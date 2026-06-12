@@ -21,8 +21,8 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
   late TextEditingController _address1Controller;
   late TextEditingController _address2Controller;
   late TextEditingController _phoneController;
-  late TextEditingController _upiController;
   late TextEditingController _footerController;
+  late TextEditingController _currencyController;
 
   @override
   void initState() {
@@ -31,10 +31,9 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
     _address1Controller = TextEditingController();
     _address2Controller = TextEditingController();
     _phoneController = TextEditingController();
-    _upiController = TextEditingController();
     _footerController = TextEditingController();
+    _currencyController = TextEditingController();
 
-    // Load shop data
     context.read<ShopBloc>().add(LoadShopEvent());
   }
 
@@ -44,8 +43,8 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
       _address1Controller.text = shop.addressLine1;
       _address2Controller.text = shop.addressLine2;
       _phoneController.text = shop.phoneNumber;
-      _upiController.text = shop.upiId;
       _footerController.text = shop.footerText;
+      _currencyController.text = shop.currencySymbol;
     }
   }
 
@@ -55,8 +54,8 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
     _address1Controller.dispose();
     _address2Controller.dispose();
     _phoneController.dispose();
-    _upiController.dispose();
     _footerController.dispose();
+    _currencyController.dispose();
     super.dispose();
   }
 
@@ -67,8 +66,8 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
         addressLine1: _address1Controller.text,
         addressLine2: _address2Controller.text,
         phoneNumber: _phoneController.text,
-        upiId: _upiController.text,
         footerText: _footerController.text,
+        currencySymbol: _currencyController.text,
       );
 
       context.read<ShopBloc>().add(UpdateShopEvent(shop));
@@ -116,9 +115,7 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
                           letterSpacing: 1.2,
                           color: AppTheme.primaryColor.withValues(alpha: 0.8),
                         )),
-                    const SizedBox(
-                      height: 5,
-                    ),
+                    const SizedBox(height: 5),
                     Text(
                       'These details will appear on your digital and printed receipts.',
                       style: TextStyle(fontSize: 12, color: Colors.grey[500]),
@@ -134,28 +131,29 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
                     const InputLabel(text: 'Address Line 1'),
                     _buildTextField(
                       controller: _address1Controller,
-                      hint: 'Samrajpet, Mecheri',
+                      hint: 'Street / Area',
                       validator: AppValidators.required('Required'),
                     ),
                     const SizedBox(height: 15),
                     const InputLabel(text: 'Address Line 2 (Optional)'),
                     _buildTextField(
                       controller: _address2Controller,
-                      hint: 'Salem - 636453',
+                      hint: 'City, ZIP code',
                     ),
                     const SizedBox(height: 15),
                     const InputLabel(text: 'Phone Number'),
                     _buildTextField(
                       controller: _phoneController,
-                      hint: '+91 7010674588',
+                      hint: '+1 555 000 0000',
                       keyboardType: TextInputType.phone,
                       validator: AppValidators.required('Required'),
                     ),
                     const SizedBox(height: 15),
-                    const InputLabel(text: 'UPI ID'),
+                    const InputLabel(text: 'Currency Symbol'),
                     _buildTextField(
-                      controller: _upiController,
-                      hint: 'dineshsowndar@oksbi',
+                      controller: _currencyController,
+                      hint: '₹  \$  €  £',
+                      textCapitalization: TextCapitalization.none,
                     ),
                     const SizedBox(height: 15),
                     Row(
@@ -171,7 +169,7 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
                       controller: _footerController,
                       hint: 'Thank you, Visit again!!!',
                       maxLines: 2,
-                      maxLength: 60,
+                      maxLength: 150,
                     ),
                   ],
                 ),
@@ -193,13 +191,14 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
     int maxLines = 1,
     int? maxLength,
     String? Function(String?)? validator,
+    TextCapitalization textCapitalization = TextCapitalization.words,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
       maxLength: maxLength,
-      textCapitalization: TextCapitalization.words,
+      textCapitalization: textCapitalization,
       validator: validator,
       decoration: InputDecoration(
         hintText: hint,

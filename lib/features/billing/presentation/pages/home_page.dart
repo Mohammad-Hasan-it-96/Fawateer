@@ -5,6 +5,7 @@ import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../billing/presentation/bloc/billing_bloc.dart';
+import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../domain/entities/cart_item.dart';
@@ -110,10 +111,9 @@ class _HomePageState extends State<HomePage> {
         return PrimaryButton(
           onPressed: state.cartItems.isEmpty
               ? null
-              : () async {
+              : () {
                   _scannerController.stop();
-                  await context.push('/checkout');
-                  if (_isCameraOn && mounted) _scannerController.start();
+                  context.push('/pos/checkout');
                 },
           icon: Icons.payment,
           label: 'Review Order',
@@ -142,10 +142,9 @@ class _HomePageState extends State<HomePage> {
               children: [
                 _buildOverlayButton(
                   icon: Icons.settings,
-                  onPressed: () async {
+                  onPressed: () {
                     _scannerController.stop();
-                    await context.push('/settings');
-                    if (_isCameraOn && mounted) _scannerController.start();
+                    context.go('/settings');
                   },
                 ),
                 const SizedBox(height: 16),
@@ -359,12 +358,19 @@ class _HomePageState extends State<HomePage> {
                                 fontWeight: FontWeight.bold,
                                 color: Colors.grey,
                                 letterSpacing: 1.2)),
-                        Text(
-                          '₹${state.totalAmount.toStringAsFixed(2)}',
-                          style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              color: Theme.of(context).primaryColor),
+                        BlocBuilder<ShopBloc, ShopState>(
+                          builder: (context, shopState) {
+                            final currency = shopState is ShopLoaded
+                                ? shopState.shop.currencySymbol
+                                : '';
+                            return Text(
+                              '$currency${state.totalAmount.toStringAsFixed(2)}',
+                              style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                  color: Theme.of(context).primaryColor),
+                            );
+                          },
                         ),
                       ],
                     ),
@@ -467,13 +473,19 @@ class _HomePageState extends State<HomePage> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  '₹${item.product.price.toStringAsFixed(2)}',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
-                      color: Colors.grey[600]),
-                ),
+                Builder(builder: (context) {
+                  final shopState = context.watch<ShopBloc>().state;
+                  final currency = shopState is ShopLoaded
+                      ? shopState.shop.currencySymbol
+                      : '';
+                  return Text(
+                    '$currency${item.product.price.toStringAsFixed(2)}',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: Colors.grey[600]),
+                  );
+                }),
               ],
             ),
           ),

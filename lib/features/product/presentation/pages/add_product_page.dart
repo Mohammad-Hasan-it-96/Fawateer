@@ -9,6 +9,7 @@ import '../bloc/product_bloc.dart';
 import '../../domain/entities/product.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
+import '../../../shop/presentation/bloc/shop_bloc.dart';
 
 class AddProductPage extends StatefulWidget {
   const AddProductPage({super.key});
@@ -22,6 +23,7 @@ class _AddProductPageState extends State<AddProductPage> {
   String _name = '';
   String _barcode = '';
   double _price = 0.0;
+  int _stock = 0;
 
   void _scanBarcode() async {
     final result = await context.push<String>('/scanner');
@@ -55,6 +57,7 @@ class _AddProductPageState extends State<AddProductPage> {
         name: _name,
         barcode: _barcode,
         price: _price,
+        stock: _stock,
       );
 
       context.read<ProductBloc>().add(AddProduct(product));
@@ -130,19 +133,37 @@ class _AddProductPageState extends State<AddProductPage> {
                   ),
                   const SizedBox(height: 24),
                   const InputLabel(text: 'Price'),
+                  Builder(builder: (context) {
+                    final shopState = context.watch<ShopBloc>().state;
+                    final currency = shopState is ShopLoaded
+                        ? shopState.shop.currencySymbol
+                        : '';
+                    return TextFormField(
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        hintText: '0.00',
+                        prefixText: currency.isNotEmpty ? '$currency ' : null,
+                        prefixStyle: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black),
+                      ),
+                      validator: AppValidators.price,
+                      onSaved: (value) => _price = double.parse(value!),
+                    );
+                  }),
+                  const SizedBox(height: 24),
+                  const InputLabel(text: 'Stock Quantity (optional)'),
                   TextFormField(
-                    keyboardType:
-                        const TextInputType.numberWithOptions(decimal: true),
+                    keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
-                      hintText: '0.00',
-                      prefixText: '₹ ',
-                      prefixStyle: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.black),
+                      hintText: '0',
+                      helperText: 'Leave 0 to disable stock tracking',
                     ),
-                    validator: AppValidators.price,
-                    onSaved: (value) => _price = double.parse(value!),
+                    initialValue: '0',
+                    onSaved: (value) =>
+                        _stock = int.tryParse(value ?? '0') ?? 0,
                   ),
                 ],
               ),

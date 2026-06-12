@@ -33,11 +33,7 @@ class _SettingsPageState extends State<SettingsPage> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.chevron_left,
-              size: 28, color: Theme.of(context).primaryColor),
-          onPressed: () => context.pop(),
-        ),
+        automaticallyImplyLeading: false,
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -102,17 +98,10 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildListGroup(
               children: [
                 _buildListItem(
-                  icon: Icons.qr_code_scanner,
-                  title: 'Products',
-                  subtitle: 'Manage stock and barcodes',
-                  onTap: () => context.push('/products'),
-                ),
-                _buildDivider(),
-                _buildListItem(
                   icon: Icons.storefront,
                   title: 'Shop Details',
                   subtitle: 'Edit business info & address',
-                  onTap: () => context.push('/shop'),
+                  onTap: () => context.push('/settings/shop'),
                 ),
               ],
             ),
@@ -247,10 +236,6 @@ class _SettingsPageState extends State<SettingsPage> {
       ),
       child: Column(children: children),
     );
-  }
-
-  Widget _buildDivider() {
-    return Divider(height: 1, thickness: 1, color: Colors.grey[50], indent: 64);
   }
 
   Widget _buildListItem({

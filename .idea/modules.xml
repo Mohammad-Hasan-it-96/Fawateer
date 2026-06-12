@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/fawateer.iml" filepath="$PROJECT_DIR$/fawateer.iml" />
+      <module fileurl="file://$PROJECT_DIR$/android/fawateer_android.iml" filepath="$PROJECT_DIR$/android/fawateer_android.iml" />
     </modules>
   </component>
 </project>

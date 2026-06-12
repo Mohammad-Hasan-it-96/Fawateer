@@ -5,6 +5,7 @@ import '../bloc/product_bloc.dart';
 import '../../domain/entities/product.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
+import '../../../shop/presentation/bloc/shop_bloc.dart';
 
 class ProductListPage extends StatefulWidget {
   const ProductListPage({super.key});
@@ -193,12 +194,19 @@ class _ProductListPageState extends State<ProductListPage> {
                                       fontSize: 16),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  '₹${product.price.toStringAsFixed(2)}',
-                                  style: TextStyle(
-                                      fontWeight: FontWeight.w500,
-                                      color: Colors.grey[600]),
-                                ),
+                                Builder(builder: (context) {
+                                  final shopState =
+                                      context.watch<ShopBloc>().state;
+                                  final currency = shopState is ShopLoaded
+                                      ? shopState.shop.currencySymbol
+                                      : '';
+                                  return Text(
+                                    '$currency${product.price.toStringAsFixed(2)}',
+                                    style: TextStyle(
+                                        fontWeight: FontWeight.w500,
+                                        color: Colors.grey[600]),
+                                  );
+                                }),
                               ],
                             ),
                           ),

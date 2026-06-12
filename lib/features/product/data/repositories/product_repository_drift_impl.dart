@@ -1,0 +1,85 @@
+import 'package:drift/drift.dart';
+import 'package:fpdart/fpdart.dart';
+import '../../../../core/database/app_database.dart';
+import '../../../../core/database/daos/products_dao.dart';
+import '../../../../core/error/failure.dart';
+import '../../domain/entities/product.dart';
+import '../../domain/repositories/product_repository.dart';
+
+class ProductRepositoryDriftImpl implements ProductRepository {
+  final ProductsDao _dao;
+
+  const ProductRepositoryDriftImpl(this._dao);
+
+  // ── mapping helpers ───────────────────────────────────────────────────────
+
+  static Product _toEntity(ProductRow row) => Product(
+        id: row.id,
+        name: row.name,
+        barcode: row.barcode,
+        price: row.price,
+        stock: row.stock,
+      );
+
+  static ProductsCompanion _toCompanion(Product p) => ProductsCompanion(
+        id: Value(p.id),
+        name: Value(p.name),
+        barcode: Value(p.barcode),
+        price: Value(p.price),
+        stock: Value(p.stock),
+      );
+
+  // ── repository interface ──────────────────────────────────────────────────
+
+  @override
+  Future<Either<Failure, List<Product>>> getProducts() async {
+    try {
+      final rows = await _dao.getAllProducts();
+      return Right(rows.map(_toEntity).toList());
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Product>> getProductByBarcode(String barcode) async {
+    try {
+      final row = await _dao.getByBarcode(barcode);
+      if (row == null) throw Exception('Product not found for barcode: $barcode');
+      return Right(_toEntity(row));
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> addProduct(Product product) async {
+    try {
+      await _dao.insertProduct(_toCompanion(product));
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateProduct(Product product) async {
+    try {
+      await _dao.insertProduct(_toCompanion(product)); // insertOrReplace
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> deleteProduct(String id) async {
+    try {
+      await _dao.deleteProduct(id);
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+}
+
