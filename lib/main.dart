@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'config/routes/app_routes.dart';
 import 'core/service_locator.dart' as di;
 import 'core/theme/app_theme.dart';
@@ -9,6 +10,7 @@ import 'features/product/presentation/bloc/product_bloc.dart';
 import 'features/shop/presentation/bloc/shop_bloc.dart';
 import 'features/settings/presentation/bloc/printer_bloc.dart';
 import 'features/settings/presentation/bloc/printer_event.dart';
+import 'l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,10 +39,18 @@ class MyApp extends StatelessWidget {
                 di.sl<HistoryBloc>()..add(LoadHistoryEvent())),
       ],
       child: MaterialApp.router(
-        title: 'Fawateer',
+        title: 'فواتير',
         theme: AppTheme.lightTheme,
         routerConfig: router,
         debugShowCheckedModeBanner: false,
+        locale: const Locale('ar'),
+        supportedLocales: const [Locale('ar'), Locale('en')],
+        localizationsDelegates: const [
+          AppLocalizations.delegate,
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
       ),
     );
   }

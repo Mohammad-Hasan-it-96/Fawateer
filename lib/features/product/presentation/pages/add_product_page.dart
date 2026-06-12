@@ -10,6 +10,7 @@ import '../../domain/entities/product.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class AddProductPage extends StatefulWidget {
   const AddProductPage({super.key});
@@ -43,9 +44,10 @@ class _AddProductPageState extends State<AddProductPage> {
           productState.products.where((p) => p.barcode == _barcode).firstOrNull;
 
       if (existingProduct != null) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Product with barcode "$_barcode" already exists!'),
+            content: Text(l10n.barcodeExistsError),
             backgroundColor: Colors.red,
           ),
         );
@@ -67,6 +69,8 @@ class _AddProductPageState extends State<AddProductPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
         appBar: AppBar(
           backgroundColor: Colors.transparent,
@@ -76,8 +80,8 @@ class _AddProductPageState extends State<AddProductPage> {
                 size: 28, color: Theme.of(context).primaryColor),
             onPressed: () => context.pop(),
           ),
-          title: const Text('Add Product',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          title: Text(l10n.addProductTitle,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           centerTitle: true,
         ),
         body: SafeArea(
@@ -88,18 +92,17 @@ class _AddProductPageState extends State<AddProductPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const InputLabel(text: 'Barcode'),
+                  InputLabel(text: l10n.barcodeLabel),
                   Row(
                     children: [
                       Expanded(
                         child: TextFormField(
                           key: ValueKey(_barcode),
                           initialValue: _barcode,
-                          decoration: const InputDecoration(
-                            hintText: 'Scan or enter barcode',
+                          decoration: InputDecoration(
+                            hintText: l10n.scanOrEnterBarcode,
                           ),
-                          validator:
-                              AppValidators.required('Please enter a barcode'),
+                          validator: AppValidators.required(l10n.fieldRequired),
                           onSaved: (value) => _barcode = value!,
                         ),
                       ),
@@ -119,20 +122,21 @@ class _AddProductPageState extends State<AddProductPage> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  const Text('Tap the icon to open camera scanner',
-                      style: TextStyle(fontSize: 12, color: Color(0xFF4C669A))),
+                  Text(l10n.tapToScan,
+                      style: const TextStyle(
+                          fontSize: 12, color: Color(0xFF4C669A))),
                   const SizedBox(height: 24),
-                  const InputLabel(text: 'Product Name'),
+                  InputLabel(text: l10n.productNameLabel),
                   TextFormField(
-                    decoration: const InputDecoration(
-                      hintText: 'e.g. Basmati Rice',
+                    decoration: InputDecoration(
+                      hintText: l10n.productNameHint,
                     ),
                     textCapitalization: TextCapitalization.words,
-                    validator: AppValidators.required('Please enter a name'),
+                    validator: AppValidators.required(l10n.fieldRequired),
                     onSaved: (value) => _name = value!,
                   ),
                   const SizedBox(height: 24),
-                  const InputLabel(text: 'Price'),
+                  InputLabel(text: l10n.priceLabel),
                   Builder(builder: (context) {
                     final shopState = context.watch<ShopBloc>().state;
                     final currency = shopState is ShopLoaded
@@ -154,12 +158,12 @@ class _AddProductPageState extends State<AddProductPage> {
                     );
                   }),
                   const SizedBox(height: 24),
-                  const InputLabel(text: 'Stock Quantity (optional)'),
+                  InputLabel(text: l10n.stockLabel),
                   TextFormField(
                     keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: '0',
-                      helperText: 'Leave 0 to disable stock tracking',
+                      helperText: l10n.stockHint,
                     ),
                     initialValue: '0',
                     onSaved: (value) =>
@@ -173,7 +177,7 @@ class _AddProductPageState extends State<AddProductPage> {
         bottomNavigationBar: PrimaryButton(
           onPressed: _submit,
           icon: Icons.add_circle,
-          label: 'Add Product',
+          label: l10n.addProductBtn,
         ));
   }
 }

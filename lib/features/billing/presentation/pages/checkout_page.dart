@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../l10n/app_localizations.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/billing_bloc.dart';
 import '../bloc/history_bloc.dart';
@@ -13,6 +14,7 @@ class CheckoutPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     const borderColor = Color(0xFFE5E5EA);
+    final l10n = AppLocalizations.of(context)!;
 
     return PopScope(
       canPop: false,
@@ -23,8 +25,8 @@ class CheckoutPage extends StatelessWidget {
       },
       child: Scaffold(
         appBar: AppBar(
-          title: const Text('Checkout',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
+          title: Text(l10n.checkoutTitle,
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600)),
           centerTitle: true,
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -49,12 +51,11 @@ class CheckoutPage extends StatelessWidget {
                   backgroundColor: Colors.red));
             }
             if (state.printSuccess) {
-              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                  content: Text('Printed successfully'),
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(l10n.printedSuccessfully),
                   backgroundColor: Colors.green));
             }
             if (state.saleConfirmed) {
-              // Refresh history so the new sale appears immediately
               try {
                 context.read<HistoryBloc>().add(LoadHistoryEvent());
               } catch (_) {}
@@ -74,7 +75,6 @@ class CheckoutPage extends StatelessWidget {
                             horizontal: 16, vertical: 16),
                         child: Column(
                           children: [
-                            // Low stock warning banner
                             if (billingState.lowStockWarnings.isNotEmpty)
                               Container(
                                 width: double.infinity,
@@ -94,7 +94,7 @@ class CheckoutPage extends StatelessWidget {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'Low stock: ${billingState.lowStockWarnings.join(', ')}',
+                                        '${l10n.lowStockPrefix}${billingState.lowStockWarnings.join(', ')}',
                                         style: const TextStyle(
                                             fontSize: 13,
                                             color: Color(0xFF856404)),
@@ -104,7 +104,6 @@ class CheckoutPage extends StatelessWidget {
                                 ),
                               ),
 
-                            // Items table
                             Container(
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -136,10 +135,12 @@ class CheckoutPage extends StatelessWidget {
                                                 color: borderColor)),
                                       ),
                                       children: [
-                                        _headerCell('Product Name',
-                                            TextAlign.left),
-                                        _headerCell('Price', TextAlign.right),
-                                        _headerCell('Total', TextAlign.right),
+                                        _headerCell(l10n.colProduct,
+                                            TextAlign.start),
+                                        _headerCell(
+                                            l10n.colPrice, TextAlign.end),
+                                        _headerCell(
+                                            l10n.colTotal, TextAlign.end),
                                       ],
                                     ),
                                     ...billingState.cartItems.map((item) {
@@ -147,16 +148,16 @@ class CheckoutPage extends StatelessWidget {
                                         children: [
                                           _dataCell(
                                             '${item.quantity} x ${item.product.name}',
-                                            TextAlign.left,
+                                            TextAlign.start,
                                           ),
                                           _dataCell(
                                             '$currency${item.product.price.toStringAsFixed(2)}',
-                                            TextAlign.right,
+                                            TextAlign.end,
                                             isSubtitle: true,
                                           ),
                                           _dataCell(
                                             '$currency${item.total.toStringAsFixed(2)}',
-                                            TextAlign.right,
+                                            TextAlign.end,
                                             isBold: true,
                                           ),
                                         ],
@@ -173,12 +174,12 @@ class CheckoutPage extends StatelessWidget {
                       ),
                     ),
 
-                    // Bottom bar
                     _buildBottomBar(
                       context: context,
                       billingState: billingState,
                       shop: shop,
                       currency: currency,
+                      l10n: l10n,
                     ),
                   ],
                 );
@@ -195,6 +196,7 @@ class CheckoutPage extends StatelessWidget {
     required BillingState billingState,
     required shop,
     required String currency,
+    required AppLocalizations l10n,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -219,7 +221,7 @@ class CheckoutPage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'GRAND TOTAL',
+                  l10n.grandTotal,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
@@ -240,19 +242,18 @@ class CheckoutPage extends StatelessWidget {
             ),
           ),
           if (billingState.saleConfirmed) ...[
-            // ── Post-confirmation state ───────────────────────────────
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
               child: Column(
                 children: [
-                  const Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(Icons.check_circle,
+                      const Icon(Icons.check_circle,
                           color: Colors.green, size: 22),
-                      SizedBox(width: 8),
-                      Text('Sale Confirmed!',
-                          style: TextStyle(
+                      const SizedBox(width: 8),
+                      Text(l10n.saleConfirmed,
+                          style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
                               color: Colors.green)),
@@ -262,7 +263,7 @@ class CheckoutPage extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        'ID: ...${billingState.savedInvoiceId!.substring(billingState.savedInvoiceId!.length > 8 ? billingState.savedInvoiceId!.length - 8 : 0)}',
+                        '${l10n.invoiceIdPrefix}${billingState.savedInvoiceId!.substring(billingState.savedInvoiceId!.length > 8 ? billingState.savedInvoiceId!.length - 8 : 0)}',
                         style: TextStyle(
                             fontSize: 11, color: Colors.grey[400]),
                       ),
@@ -295,7 +296,7 @@ class CheckoutPage extends StatelessWidget {
                               height: 16,
                               child: CircularProgressIndicator(strokeWidth: 2))
                           : const Icon(Icons.print_outlined),
-                      label: const Text('Print'),
+                      label: Text(l10n.printReceipt),
                       style: OutlinedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
@@ -313,7 +314,7 @@ class CheckoutPage extends StatelessWidget {
                         context.go('/pos');
                       },
                       icon: Icons.add_circle_outline,
-                      label: 'New Sale',
+                      label: l10n.newSale,
                     ),
                   ),
                 ),
@@ -321,7 +322,6 @@ class CheckoutPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
           ] else ...[
-            // ── Pre-confirmation state ────────────────────────────────
             PrimaryButton(
               onPressed: billingState.isSaving
                   ? null
@@ -337,12 +337,12 @@ class CheckoutPage extends StatelessWidget {
                             ));
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                                content: Text('Shop details not loaded'),
+                            SnackBar(
+                                content: Text(l10n.shopNotLoaded),
                                 backgroundColor: Colors.red));
                       }
                     },
-              label: 'Confirm Sale',
+              label: l10n.confirmSale,
               icon: Icons.check_circle_outline,
               isLoading: billingState.isSaving,
             ),

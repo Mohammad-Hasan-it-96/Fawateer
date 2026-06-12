@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:app_settings/app_settings.dart';
 
 import '../../../../core/theme/app_theme.dart';
+import '../../../../l10n/app_localizations.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/printer_bloc.dart';
 import '../bloc/printer_event.dart';
@@ -20,16 +21,17 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
     super.initState();
-    // Re-initialize printer state whenever settings page opens
     context.read<PrinterBloc>().add(InitPrinterEvent());
   }
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings',
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+        title: Text(l10n.settingsTitle,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -45,8 +47,8 @@ class _SettingsPageState extends State<SettingsPage> {
               padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
               child: BlocBuilder<ShopBloc, ShopState>(
                 builder: (context, state) {
-                  String shopName = 'Elite Groceries';
-                  String initials = 'EG';
+                  String shopName = '';
+                  String initials = 'S';
                   if (state is ShopLoaded && state.shop.name.isNotEmpty) {
                     shopName = state.shop.name;
                     final parts = shopName.split(' ');
@@ -82,9 +84,10 @@ class _SettingsPageState extends State<SettingsPage> {
                                 letterSpacing: -1)),
                       ),
                       const SizedBox(height: 16),
-                      Text(shopName.toUpperCase(),
-                          style: const TextStyle(
-                              fontSize: 20, fontWeight: FontWeight.bold)),
+                      if (shopName.isNotEmpty)
+                        Text(shopName.toUpperCase(),
+                            style: const TextStyle(
+                                fontSize: 20, fontWeight: FontWeight.bold)),
                     ],
                   );
                 },
@@ -93,14 +96,13 @@ class _SettingsPageState extends State<SettingsPage> {
 
             const SizedBox(height: 24),
 
-            // Management Section
-            _buildSectionHeader('Management'),
+            _buildSectionHeader(l10n.managementSection),
             _buildListGroup(
               children: [
                 _buildListItem(
                   icon: Icons.storefront,
-                  title: 'Shop Details',
-                  subtitle: 'Edit business info & address',
+                  title: l10n.shopDetailsItem,
+                  subtitle: l10n.shopDetailsSubtitle,
                   onTap: () => context.push('/settings/shop'),
                 ),
               ],
@@ -108,8 +110,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
             const SizedBox(height: 24),
 
-            // Hardware Section
-            _buildSectionHeader('Hardware'),
+            _buildSectionHeader(l10n.hardwareSection),
             BlocConsumer<PrinterBloc, PrinterState>(
               listener: (context, state) {
                 if (state.errorMessage != null) {
@@ -117,8 +118,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       content: Text(state.errorMessage!),
                       backgroundColor: Colors.red));
                 } else if (state.status == PrinterStatus.connected) {
-                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      content: Text('Connected to printer'),
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      content: Text(l10n.printerConnected),
                       backgroundColor: Colors.green));
                 }
               },
@@ -127,13 +128,13 @@ class _SettingsPageState extends State<SettingsPage> {
                   children: [
                     _buildListItem(
                       icon: Icons.print,
-                      title: 'Print Device',
+                      title: l10n.printDeviceItem,
                       subtitleWidget: Row(
                         children: [
                           Text(
                             state.connectedMac != null
-                                ? (state.connectedName ?? 'Printer connected')
-                                : 'No printer connected',
+                                ? (state.connectedName ?? l10n.printerConnected)
+                                : l10n.noPrinterConnected,
                             style: TextStyle(
                                 fontSize: 12, color: Colors.grey[500]),
                           ),
@@ -147,7 +148,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(color: Colors.teal[200]!)),
                               child: Text(
-                                'CONNECTED',
+                                l10n.connectedBadge,
                                 style: TextStyle(
                                     fontSize: 9,
                                     fontWeight: FontWeight.bold,
@@ -194,7 +195,7 @@ class _SettingsPageState extends State<SettingsPage> {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               child: Text(
-                "To connect a new device, tap on the Settings gear to pair in phone's Bluetooth settings, then return and hit Refresh.",
+                l10n.bluetoothHint,
                 style: TextStyle(
                     fontSize: 11,
                     fontStyle: FontStyle.italic,
@@ -213,7 +214,7 @@ class _SettingsPageState extends State<SettingsPage> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       child: Align(
-        alignment: Alignment.centerLeft,
+        alignment: AlignmentDirectional.centerStart,
         child: Text(
           title.toUpperCase(),
           style: const TextStyle(

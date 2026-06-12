@@ -5,16 +5,19 @@ import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../domain/entities/invoice.dart';
 import '../../domain/entities/invoice_item.dart';
 import '../bloc/history_bloc.dart';
+import '../../../../l10n/app_localizations.dart';
 
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Scaffold(
       appBar: AppBar(
-        title:
-            const Text('Sales History', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Text(l10n.salesHistory,
+            style: const TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -40,17 +43,14 @@ class HistoryPage extends StatelessWidget {
 
           return Column(
             children: [
-              // Daily summary card
               _DailySummaryCard(
                 currency: currency,
                 total: state.todayTotal,
                 count: state.todayCount,
               ),
-
-              // Invoice list
               Expanded(
                 child: state.invoices.isEmpty
-                    ? _buildEmptyState()
+                    ? _buildEmptyState(l10n)
                     : ListView.builder(
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
                         itemCount: state.invoices.length,
@@ -74,7 +74,7 @@ class HistoryPage extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -90,12 +90,12 @@ class HistoryPage extends StatelessWidget {
             child: Icon(Icons.receipt_long, size: 40, color: Colors.grey[300]),
           ),
           const SizedBox(height: 16),
-          const Text('No sales yet',
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+          Text(l10n.noSalesYet,
+              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           const SizedBox(height: 8),
-          const Text(
-            'Completed sales will appear here.',
-            style: TextStyle(color: Colors.grey, fontSize: 14),
+          Text(
+            l10n.noSalesHint,
+            style: const TextStyle(color: Colors.grey, fontSize: 14),
           ),
         ],
       ),
@@ -116,6 +116,8 @@ class _DailySummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -136,9 +138,9 @@ class _DailySummaryCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  "TODAY'S SALES",
-                  style: TextStyle(
+                Text(
+                  l10n.todaysSales,
+                  style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -169,9 +171,9 @@ class _DailySummaryCard extends StatelessWidget {
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const Text(
-                'invoices',
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+              Text(
+                l10n.invoicesLabel,
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
               ),
             ],
           ),
@@ -203,7 +205,9 @@ class _InvoiceCardState extends State<_InvoiceCard> {
 
   @override
   Widget build(BuildContext context) {
-    final dateStr = DateFormat('dd MMM yyyy  hh:mm a').format(widget.invoice.createdAt);
+    final l10n = AppLocalizations.of(context)!;
+    final dateStr =
+        DateFormat('dd MMM yyyy  hh:mm a').format(widget.invoice.createdAt);
     final shortId = widget.invoice.id.length > 8
         ? '...${widget.invoice.id.substring(widget.invoice.id.length - 8)}'
         : widget.invoice.id;
@@ -257,9 +261,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                             fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       Icon(
-                        _expanded
-                            ? Icons.expand_less
-                            : Icons.expand_more,
+                        _expanded ? Icons.expand_less : Icons.expand_more,
                         color: Colors.grey[400],
                         size: 20,
                       ),
@@ -273,18 +275,18 @@ class _InvoiceCardState extends State<_InvoiceCard> {
             Container(
               decoration: BoxDecoration(
                 color: Colors.grey[50],
-                borderRadius: const BorderRadius.vertical(
-                    bottom: Radius.circular(12)),
+                borderRadius:
+                    const BorderRadius.vertical(bottom: Radius.circular(12)),
               ),
               child: widget.items == null
                   ? const Padding(
                       padding: EdgeInsets.all(16),
                       child: Center(child: CircularProgressIndicator()))
                   : widget.items!.isEmpty
-                      ? const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text('No items',
-                              style: TextStyle(color: Colors.grey)))
+                      ? Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(l10n.noItems,
+                              style: const TextStyle(color: Colors.grey)))
                       : Column(
                           children: widget.items!.map((item) {
                             return Padding(

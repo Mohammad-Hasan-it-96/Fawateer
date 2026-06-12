@@ -8,13 +8,12 @@ class AppTheme {
   static const Color surfaceColor = Colors.white;
   static const Color errorColor = Color(0xFFB00020);
 
- static final TextTheme textTheme = GoogleFonts.ibmPlexSansTextTheme().copyWith(
-  bodyLarge: GoogleFonts.ibmPlexSans(
+ static final TextTheme textTheme = GoogleFonts.cairoTextTheme().copyWith(
+  bodyLarge: GoogleFonts.cairo(
     fontSize: 15,
     fontWeight: FontWeight.w500,
     color: Colors.black,
   ),
- 
 );
   static ThemeData get lightTheme {
     return ThemeData(
@@ -41,10 +40,10 @@ class AppTheme {
        backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        titleTextStyle: textTheme.titleLarge?.copyWith(
+        titleTextStyle: GoogleFonts.cairo(
           color: Colors.black,
           fontWeight: FontWeight.bold,
-          fontSize: 18
+          fontSize: 18,
         ),
         iconTheme: const IconThemeData(color: Colors.black),
       ),
