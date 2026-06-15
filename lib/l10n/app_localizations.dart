@@ -380,6 +380,18 @@ abstract class AppLocalizations {
   /// **'Price'**
   String get priceLabel;
 
+  /// No description provided for @costLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cost (optional)'**
+  String get costLabel;
+
+  /// No description provided for @costHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase cost, used for profit reports'**
+  String get costHint;
+
   /// No description provided for @stockLabel.
   ///
   /// In en, this message translates to:

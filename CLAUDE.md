@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Fawateer** is a Flutter billing, invoicing, and accounting app (package name: `billing_app`). It supports barcode scanning, Bluetooth thermal printing, product/inventory management, customer tracking, purchases, and cashbox entries.
+**Fawateer** (Arabic: فواتير, "invoices") is a simple offline-first POS app for small shops (package name: `billing_app`). It supports barcode scanning, Bluetooth thermal printing, product/inventory management, and sales invoices with history. The UI is **Arabic-first (RTL)** with English as a secondary locale.
 
 ## Commands
 
@@ -19,23 +19,20 @@ flutter analyze
 flutter test
 
 # Run a single test file
-flutter test test/path/to/test_file.dart
+flutter test test/widget_test.dart
 
-# Regenerate Drift DB code, json_serializable models, and Hive adapters
+# Regenerate Drift database code (*.g.dart files)
 dart run build_runner build --delete-conflicting-outputs
 
 # Watch and regenerate on file changes
 dart run build_runner watch --delete-conflicting-outputs
 ```
 
-Code generation is required whenever you modify:
-- Drift table definitions (`lib/core/database/tables/`)
-- Drift DAO files (`lib/core/database/daos/`)
-- Classes annotated with `@JsonSerializable` or `@HiveType`
+Run `build_runner` whenever you modify Drift table definitions (`lib/core/database/tables/`), DAO files (`lib/core/database/daos/`), or the `AppDatabase` class. Localization Dart code (`lib/l10n/app_localizations*.dart`) is generated from the ARB files automatically by `flutter run`/`flutter gen-l10n` because `generate: true` is set in `pubspec.yaml`.
 
 ## Architecture
 
-The project follows **Clean Architecture** with **BLoC** state management.
+The project follows **Clean Architecture** with **BLoC** state management. DI is via **GetIt** (`sl`), routing via **GoRouter**, functional error handling via **fpdart**.
 
 ### Layer structure (per feature)
 
@@ -44,61 +41,69 @@ lib/features/<feature>/
   domain/
     entities/        # Pure Dart classes (Equatable)
     repositories/    # Abstract interfaces
-    usecases/        # One class per use case, extends UseCase<Result, Params>
+    usecases/        # extends UseCase<Result, Params> (often grouped in one file, e.g. product_usecases.dart)
   data/
-    models/          # Data-layer models with serialization
-    repositories/    # Concrete implementations (suffix *_drift_impl.dart)
+    repositories/    # Concrete implementations (suffix *_drift_impl.dart); map Drift rows <-> entities directly
   presentation/
-    bloc/            # BLoC + event + state files (part directives)
+    bloc/            # separate bloc/event/state files (NOT part directives — imported individually)
     pages/           # UI pages
 ```
 
+Note: there is no `data/models/` layer — repository implementations convert Drift-generated row classes to domain entities directly. BLoC event/state classes live in their own files and are imported explicitly (see `main.dart` importing `product_bloc.dart` + `product_event.dart`).
+
 ### Core
 
-- `lib/core/database/` — Drift `AppDatabase`, all table definitions, and DAOs
-- `lib/core/error/failure.dart` — `Failure` base class; currently only `CacheFailure`
+- `lib/core/database/` — Drift `AppDatabase`, all table definitions (`tables/`), and DAOs (`daos/`)
+- `lib/core/error/failure.dart` — `Failure` base class (currently only `CacheFailure`)
 - `lib/core/usecase/usecase.dart` — `UseCase<Result, Params>` returning `Future<Either<Failure, Result>>`
-- `lib/core/service_locator.dart` — All GetIt registrations (DAOs → Repositories → UseCases → BLoCs)
-- `lib/config/routes/app_routes.dart` — GoRouter configuration
+- `lib/core/service_locator.dart` — All GetIt registrations
+- `lib/core/theme/app_theme.dart` — `AppTheme.lightTheme`
+- `lib/config/routes/app_routes.dart` — GoRouter config; `app_shell.dart` — bottom-nav tab shell
 
 ### Dependency Injection
 
-GetIt is used via `sl`. Registration order in `service_locator.dart` matters:
+`init()` in `service_locator.dart` registers in strict order (each layer depends on the previous):
 1. `AppDatabase` (lazy singleton)
-2. DAOs (lazy singletons, each receives `AppDatabase`)
+2. DAOs (lazy singletons, each receives `AppDatabase` via `sl()`)
 3. Repositories (lazy singletons, each receives its DAO)
 4. Use cases (lazy singletons)
 5. BLoCs (factories)
 
+`main.dart` provides app-wide BLoCs through a `MultiBlocProvider` and dispatches initial load events (`LoadProducts`, `LoadShopEvent`, `InitPrinterEvent`, `LoadHistoryEvent`).
+
 ### Database
 
-Drift (SQLite) is the active database, backed by `driftDatabase(name: 'fawateer')`. Each feature's DAO lives in `lib/core/database/daos/` and is declared in `@DriftDatabase(daos: [...])`. Generated code lives in `*.g.dart` files — never edit these manually.
+Drift (SQLite) backed by `driftDatabase(name: 'fawateer')`. All tables and DAOs are declared in the `@DriftDatabase(...)` annotation on `AppDatabase`. Generated code lives in `*.g.dart` files — **never edit these manually**.
 
-> **Note:** Hive still exists as a transient dependency (`lib/core/data/hive_database.dart`, `*_impl.dart` files). Old Hive repository implementations are superseded by `*_drift_impl.dart`. Hive will be removed after full migration.
+Schema is at **version 3** with a `MigrationStrategy`. When changing tables, bump `schemaVersion` and add the corresponding step in `onUpgrade` (v1→v2 added `shopSettings.currencySymbol`; v2→v3 dropped the removed `customers`/`debts`/`purchase_invoices`/`purchase_items`/`cashbox_entries` tables).
+
+### Localization
+
+- Arabic is the default locale and the app forces `locale: const Locale('ar')` in `main.dart`; supported locales are `ar` and `en`.
+- ARB source files live in `lib/l10n/` (`app_en.arb` is the template per `l10n.yaml`); generated `AppLocalizations` is in `lib/l10n/app_localizations.dart`.
+- Add new strings to the ARB files, not the generated Dart.
 
 ### Active features
 
-| Feature | BLoC registered | Notes |
+| Feature | BLoCs registered | Notes |
 |---|---|---|
-| billing | `BillingBloc` | Cart management, barcode scan, Bluetooth printing |
+| billing | `BillingBloc`, `HistoryBloc` | Cart management, barcode scan, Bluetooth printing, sales history |
 | product | `ProductBloc` | CRUD + barcode lookup |
 | shop | `ShopBloc` | Shop profile/settings |
 | settings | `PrinterBloc` | Bluetooth printer pairing/config |
-| customers | — | Entities + repository only (no BLoC yet) |
-| purchases | — | Entities + repository only (no BLoC yet) |
-| cashbox | — | Entities + repository only (no BLoC yet) |
 
 ### Navigation (GoRouter)
 
-- `/` → `HomePage` (billing)
-  - `/scanner` → `ScannerPage`
-  - `/checkout` → `CheckoutPage`
-- `/products` → `ProductListPage`
-  - `/products/add`
-  - `/products/edit/:id` (passes `Product` via `extra`)
-- `/shop` → `ShopDetailsPage`
-- `/settings` → `SettingsPage`
+Routing uses a `StatefulShellRoute.indexedStack` (`AppShell`) with four tab branches; `initialLocation` is `/pos`. `/scanner` is a **top-level modal route** outside the shell so it can be pushed from any branch.
+
+- Branch 0: `/pos` → `HomePage` → `/pos/checkout` → `CheckoutPage`
+- Branch 1: `/history` → `HistoryPage`
+- Branch 2: `/products` → `ProductListPage` → `/products/add`, `/products/edit/:id` (passes `Product` via `state.extra`)
+- Branch 3: `/settings` → `SettingsPage` → `/settings/shop` → `ShopDetailsPage`
+- Top-level: `/scanner` → `ScannerPage`
+
+`refreshHistoryIfNeeded(context)` in `app_routes.dart` re-loads `HistoryBloc` after a confirmed sale (no-op if the History tab isn't built yet).
 
 ### Functional error handling
 
-Use cases return `Either<Failure, T>` from `fpdart`. Callers use `.fold(onLeft, onRight)` or `result.match`. BLoCs emit error state strings on `Left`, and success state on `Right`.
+Use cases return `Either<Failure, T>` from fpdart. Callers use `.fold(onLeft, onRight)` or `result.match`. BLoCs emit an error state on `Left` and a success state on `Right`.

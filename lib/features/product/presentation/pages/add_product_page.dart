@@ -24,6 +24,7 @@ class _AddProductPageState extends State<AddProductPage> {
   String _name = '';
   String _barcode = '';
   double _price = 0.0;
+  double _cost = 0.0;
   int _stock = 0;
 
   void _scanBarcode() async {
@@ -59,6 +60,7 @@ class _AddProductPageState extends State<AddProductPage> {
         name: _name,
         barcode: _barcode,
         price: _price,
+        cost: _cost,
         stock: _stock,
       );
 
@@ -155,6 +157,30 @@ class _AddProductPageState extends State<AddProductPage> {
                       ),
                       validator: AppValidators.price,
                       onSaved: (value) => _price = double.parse(value!),
+                    );
+                  }),
+                  const SizedBox(height: 24),
+                  InputLabel(text: l10n.costLabel),
+                  Builder(builder: (context) {
+                    final shopState = context.watch<ShopBloc>().state;
+                    final currency = shopState is ShopLoaded
+                        ? shopState.shop.currencySymbol
+                        : '';
+                    return TextFormField(
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        hintText: '0.00',
+                        helperText: l10n.costHint,
+                        prefixText: currency.isNotEmpty ? '$currency ' : null,
+                        prefixStyle: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black),
+                      ),
+                      initialValue: '0',
+                      onSaved: (value) =>
+                          _cost = double.tryParse(value ?? '0') ?? 0,
                     );
                   }),
                   const SizedBox(height: 24),

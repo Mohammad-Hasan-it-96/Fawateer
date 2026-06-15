@@ -25,6 +25,7 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
           productId: Value(i.productId),
           productName: Value(i.productName),
           price: Value(i.price),
+          cost: Value(i.cost),
           quantity: Value(i.quantity),
         )).toList(),
       );
@@ -58,6 +59,7 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
         productId: r.productId,
         productName: r.productName,
         price: r.price,
+        cost: r.cost,
         quantity: r.quantity,
       )).toList());
     } catch (e) {

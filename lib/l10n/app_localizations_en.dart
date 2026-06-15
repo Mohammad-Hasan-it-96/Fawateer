@@ -155,6 +155,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get priceLabel => 'Price';
 
   @override
+  String get costLabel => 'Cost (optional)';
+
+  @override
+  String get costHint => 'Purchase cost, used for profit reports';
+
+  @override
   String get stockLabel => 'Stock Quantity (optional)';
 
   @override

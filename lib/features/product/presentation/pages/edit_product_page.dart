@@ -23,6 +23,7 @@ class _EditProductPageState extends State<EditProductPage> {
   final _formKey = GlobalKey<FormState>();
   late String _name;
   late double _price;
+  late double _cost;
   late int _stock;
 
   @override
@@ -30,6 +31,7 @@ class _EditProductPageState extends State<EditProductPage> {
     super.initState();
     _name = widget.product.name;
     _price = widget.product.price;
+    _cost = widget.product.cost;
     _stock = widget.product.stock;
   }
 
@@ -42,6 +44,7 @@ class _EditProductPageState extends State<EditProductPage> {
         name: _name,
         barcode: widget.product.barcode,
         price: _price,
+        cost: _cost,
         stock: _stock,
       );
 
@@ -137,6 +140,30 @@ class _EditProductPageState extends State<EditProductPage> {
                       ),
                       validator: AppValidators.price,
                       onSaved: (value) => _price = double.parse(value!),
+                    );
+                  }),
+                  const SizedBox(height: 24),
+
+                  InputLabel(text: l10n.costLabel),
+                  Builder(builder: (context) {
+                    final shopState = context.watch<ShopBloc>().state;
+                    final currency = shopState is ShopLoaded
+                        ? shopState.shop.currencySymbol
+                        : '';
+                    return TextFormField(
+                      initialValue: _cost.toStringAsFixed(2),
+                      keyboardType:
+                          const TextInputType.numberWithOptions(decimal: true),
+                      decoration: InputDecoration(
+                        helperText: l10n.costHint,
+                        prefixText: currency.isNotEmpty ? '$currency ' : null,
+                        prefixStyle: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.black),
+                      ),
+                      onSaved: (value) =>
+                          _cost = double.tryParse(value ?? '0') ?? 0,
                     );
                   }),
                   const SizedBox(height: 24),

@@ -6,10 +6,6 @@ import 'database/daos/products_dao.dart';
 import 'database/daos/shop_dao.dart';
 import 'database/daos/settings_dao.dart';
 import 'database/daos/sales_dao.dart';
-import 'database/daos/purchases_dao.dart';
-import 'database/daos/customers_dao.dart';
-import 'database/daos/debts_dao.dart';
-import 'database/daos/cashbox_dao.dart';
 
 // Features — Product
 import '../features/product/data/repositories/product_repository_drift_impl.dart';
@@ -35,18 +31,6 @@ import '../features/billing/domain/usecases/invoice_usecases.dart';
 import '../features/billing/presentation/bloc/billing_bloc.dart';
 import '../features/billing/presentation/bloc/history_bloc.dart';
 
-// Features — Customers & Debts
-import '../features/customers/data/repositories/customer_repository_drift_impl.dart';
-import '../features/customers/domain/repositories/customer_repository.dart';
-
-// Features — Purchases
-import '../features/purchases/data/repositories/purchase_repository_drift_impl.dart';
-import '../features/purchases/domain/repositories/purchase_repository.dart';
-
-// Features — Cashbox
-import '../features/cashbox/data/repositories/cashbox_repository_drift_impl.dart';
-import '../features/cashbox/domain/repositories/cashbox_repository.dart';
-
 final sl = GetIt.instance;
 
 Future<void> init() async {
@@ -58,10 +42,6 @@ Future<void> init() async {
   sl.registerLazySingleton<ShopDao>(() => ShopDao(sl()));
   sl.registerLazySingleton<SettingsDao>(() => SettingsDao(sl()));
   sl.registerLazySingleton<SalesDao>(() => SalesDao(sl()));
-  sl.registerLazySingleton<PurchasesDao>(() => PurchasesDao(sl()));
-  sl.registerLazySingleton<CustomersDao>(() => CustomersDao(sl()));
-  sl.registerLazySingleton<DebtsDao>(() => DebtsDao(sl()));
-  sl.registerLazySingleton<CashboxDao>(() => CashboxDao(sl()));
 
   // ── Repositories ─────────────────────────────────────────────────────────
   sl.registerLazySingleton<ProductRepository>(
@@ -72,12 +52,6 @@ Future<void> init() async {
       () => PrinterRepositoryDriftImpl(sl()));
   sl.registerLazySingleton<InvoiceRepository>(
       () => InvoiceRepositoryDriftImpl(sl()));
-  sl.registerLazySingleton<CustomerRepository>(
-      () => CustomerRepositoryDriftImpl(sl(), sl()));
-  sl.registerLazySingleton<PurchaseRepository>(
-      () => PurchaseRepositoryDriftImpl(sl()));
-  sl.registerLazySingleton<CashboxRepository>(
-      () => CashboxRepositoryDriftImpl(sl()));
 
   // ── Use Cases ─────────────────────────────────────────────────────────────
   sl.registerLazySingleton(() => GetProductsUseCase(sl()));

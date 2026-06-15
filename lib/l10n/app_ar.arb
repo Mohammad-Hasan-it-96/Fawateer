@@ -53,6 +53,8 @@
   "productNameLabel": "اسم المنتج",
   "productNameHint": "مثال: أرز بسمتي",
   "priceLabel": "السعر",
+  "costLabel": "التكلفة (اختياري)",
+  "costHint": "تكلفة الشراء، تُستخدم لتقارير الأرباح",
   "stockLabel": "الكمية المتوفرة (اختياري)",
   "stockHint": "اترك 0 لتعطيل تتبع المخزون",
   "addProductBtn": "إضافة المنتج",

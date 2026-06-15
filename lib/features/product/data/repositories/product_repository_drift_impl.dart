@@ -18,6 +18,7 @@ class ProductRepositoryDriftImpl implements ProductRepository {
         name: row.name,
         barcode: row.barcode,
         price: row.price,
+        cost: row.cost,
         stock: row.stock,
       );
 
@@ -26,6 +27,7 @@ class ProductRepositoryDriftImpl implements ProductRepository {
         name: Value(p.name),
         barcode: Value(p.barcode),
         price: Value(p.price),
+        cost: Value(p.cost),
         stock: Value(p.stock),
       );
 

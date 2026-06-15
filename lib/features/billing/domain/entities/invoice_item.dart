@@ -6,6 +6,7 @@ class InvoiceItem extends Equatable {
   final String productId;
   final String productName;
   final double price;
+  final double cost; // snapshot of product cost at sale time (profit reports)
   final int quantity;
 
   const InvoiceItem({
@@ -14,6 +15,7 @@ class InvoiceItem extends Equatable {
     required this.productId,
     required this.productName,
     required this.price,
+    this.cost = 0,
     required this.quantity,
   });
 
@@ -21,6 +23,6 @@ class InvoiceItem extends Equatable {
 
   @override
   List<Object?> get props =>
-      [id, invoiceId, productId, productName, price, quantity];
+      [id, invoiceId, productId, productName, price, cost, quantity];
 }
 

@@ -154,6 +154,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get priceLabel => 'السعر';
 
   @override
+  String get costLabel => 'التكلفة (اختياري)';
+
+  @override
+  String get costHint => 'تكلفة الشراء، تُستخدم لتقارير الأرباح';
+
+  @override
   String get stockLabel => 'الكمية المتوفرة (اختياري)';
 
   @override

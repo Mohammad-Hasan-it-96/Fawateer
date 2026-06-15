@@ -48,7 +48,6 @@ class ShopRepositoryDriftImpl implements ShopRepository {
         addressLine1: Value(shop.addressLine1),
         addressLine2: Value(shop.addressLine2),
         phoneNumber: Value(shop.phoneNumber),
-        upiId: const Value(''), // column kept in DB, unused in domain
         footerText: Value(shop.footerText),
         currencySymbol: Value(shop.currencySymbol),
       ));

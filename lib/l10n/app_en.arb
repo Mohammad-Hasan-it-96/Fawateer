@@ -55,6 +55,8 @@
   "productNameLabel": "Product Name",
   "productNameHint": "e.g. Basmati Rice",
   "priceLabel": "Price",
+  "costLabel": "Cost (optional)",
+  "costHint": "Purchase cost, used for profit reports",
   "stockLabel": "Stock Quantity (optional)",
   "stockHint": "Leave 0 to disable stock tracking",
   "addProductBtn": "Add Product",
