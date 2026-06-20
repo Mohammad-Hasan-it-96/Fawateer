@@ -56,6 +56,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get camera => 'كاميرا';
 
   @override
+  String get addItem => 'إضافة صنف';
+
+  @override
   String get checkoutTitle => 'إتمام البيع';
 
   @override

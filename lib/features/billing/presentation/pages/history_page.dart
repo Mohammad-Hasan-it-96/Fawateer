@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../domain/entities/invoice.dart';
@@ -43,6 +44,7 @@ class HistoryPage extends StatelessWidget {
 
           return Column(
             children: [
+              _buildQuickActions(context, l10n),
               _DailySummaryCard(
                 currency: currency,
                 total: state.todayTotal,
@@ -70,6 +72,43 @@ class HistoryPage extends StatelessWidget {
             ],
           );
         },
+      ),
+    );
+  }
+
+  /// Dashboard shortcuts: jump straight to a new sale or to adding a product.
+  Widget _buildQuickActions(BuildContext context, AppLocalizations l10n) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: () => context.go('/pos'),
+              icon: const Icon(Icons.point_of_sale),
+              label: Text(l10n.newSale),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: () => context.go('/products/add'),
+              icon: const Icon(Icons.add_box_outlined),
+              label: Text(l10n.addProductBtn),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Theme.of(context).primaryColor,
+                side: BorderSide(
+                    color: Theme.of(context)
+                        .primaryColor
+                        .withValues(alpha: 0.4)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

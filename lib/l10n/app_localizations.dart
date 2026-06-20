@@ -188,6 +188,12 @@ abstract class AppLocalizations {
   /// **'Camera'**
   String get camera;
 
+  /// No description provided for @addItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Item'**
+  String get addItem;
+
   /// No description provided for @checkoutTitle.
   ///
   /// In en, this message translates to:

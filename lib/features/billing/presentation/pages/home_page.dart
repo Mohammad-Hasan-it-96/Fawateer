@@ -6,6 +6,8 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../billing/presentation/bloc/billing_bloc.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
+import '../../../product/presentation/bloc/product_bloc.dart';
+import '../../../product/domain/entities/product.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -145,10 +147,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           return PrimaryButton(
             onPressed: state.cartItems.isEmpty
                 ? null
-                : () {
+                : () async {
                     setState(() => _onCheckout = true);
                     _scannerController.stop();
-                    context.push('/pos/checkout');
+                    await context.push('/pos/checkout');
+                    // Back from checkout: cart may be preserved (Back) or
+                    // cleared (New Sale) — either way, resume scanning.
+                    if (mounted) {
+                      setState(() => _onCheckout = false);
+                      if (_isCameraOn) _scannerController.start();
+                    }
                   },
             icon: Icons.payment,
             label: l10n.reviewOrder,
@@ -396,6 +404,25 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             },
           ),
           const Divider(height: 1),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(15, 12, 15, 4),
+            child: SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _showProductPicker(context),
+                icon: const Icon(Icons.add_shopping_cart, size: 20),
+                label: Text(l10n.addItem),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.primaryColor,
+                  side: BorderSide(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.4)),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
+          ),
           Expanded(
             child: BlocBuilder<BillingBloc, BillingState>(
               builder: (context, state) {
@@ -534,6 +561,187 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       child: Padding(
         padding: const EdgeInsets.all(4),
         child: Icon(icon, size: 20, color: Colors.grey[600]),
+      ),
+    );
+  }
+
+  /// Opens a searchable product grid so the cashier can add items that have
+  /// no barcode (or when scanning fails). Pauses the camera while open.
+  void _showProductPicker(BuildContext context) {
+    _scannerController.stop();
+    final products = context.read<ProductBloc>().state.products;
+    final shopState = context.read<ShopBloc>().state;
+    final currency =
+        shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (_) => _ProductPickerSheet(
+        products: products,
+        currency: currency,
+        onAdd: (product) async {
+          context.read<BillingBloc>().add(AddProductToCartEvent(product));
+          final canVibrate = await Vibrate.canVibrate;
+          if (canVibrate) Vibrate.feedback(FeedbackType.success);
+        },
+      ),
+    ).whenComplete(() {
+      if (mounted && _isCameraOn && !_onCheckout) _scannerController.start();
+    });
+  }
+}
+
+/// Bottom-sheet product picker: search field + tap-to-add grid. Stays open for
+/// multiple adds; the cart total updates live on the screen behind it.
+class _ProductPickerSheet extends StatefulWidget {
+  final List<Product> products;
+  final String currency;
+  final void Function(Product) onAdd;
+
+  const _ProductPickerSheet({
+    required this.products,
+    required this.currency,
+    required this.onAdd,
+  });
+
+  @override
+  State<_ProductPickerSheet> createState() => _ProductPickerSheetState();
+}
+
+class _ProductPickerSheetState extends State<_ProductPickerSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final q = _query.trim().toLowerCase();
+    final filtered = q.isEmpty
+        ? widget.products
+        : widget.products
+            .where((p) =>
+                p.name.toLowerCase().contains(q) ||
+                p.barcode.toLowerCase().contains(q))
+            .toList();
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.7,
+        minChildSize: 0.4,
+        maxChildSize: 0.95,
+        builder: (context, scrollController) {
+          return Column(
+            children: [
+              Container(
+                width: 48,
+                height: 4,
+                margin: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
+                child: Row(
+                  children: [
+                    Text(l10n.addItem,
+                        style: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Spacer(),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: TextField(
+                  autofocus: false,
+                  decoration: InputDecoration(
+                    hintText: l10n.searchHint,
+                    prefixIcon: const Icon(Icons.search),
+                  ),
+                  onChanged: (v) => setState(() => _query = v),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Expanded(
+                child: filtered.isEmpty
+                    ? Center(
+                        child: Text(l10n.noProductsFound,
+                            style: const TextStyle(color: Colors.grey)))
+                    : GridView.builder(
+                        controller: scrollController,
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 1.6,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
+                        itemCount: filtered.length,
+                        itemBuilder: (context, i) =>
+                            _buildTile(context, filtered[i]),
+                      ),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildTile(BuildContext context, Product p) {
+    return InkWell(
+      onTap: () => widget.onAdd(p),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade200),
+          boxShadow: const [
+            BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(p.name,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                    fontWeight: FontWeight.w600, fontSize: 14)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text(
+                    '${widget.currency}${p.price.toStringAsFixed(2)}',
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryColor),
+                  ),
+                ),
+                const Icon(Icons.add_circle,
+                    color: AppTheme.primaryColor, size: 24),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

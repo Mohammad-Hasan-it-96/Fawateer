@@ -75,7 +75,14 @@ Note: there is no `data/models/` layer — repository implementations convert Dr
 
 Drift (SQLite) backed by `driftDatabase(name: 'fawateer')`. All tables and DAOs are declared in the `@DriftDatabase(...)` annotation on `AppDatabase`. Generated code lives in `*.g.dart` files — **never edit these manually**.
 
-Schema is at **version 3** with a `MigrationStrategy`. When changing tables, bump `schemaVersion` and add the corresponding step in `onUpgrade` (v1→v2 added `shopSettings.currencySymbol`; v2→v3 dropped the removed `customers`/`debts`/`purchase_invoices`/`purchase_items`/`cashbox_entries` tables).
+Schema is at **version 4** with a `MigrationStrategy`. When changing tables, bump `schemaVersion` and **append** a new `if (from < N)` block to `onUpgrade` — never edit a shipped block (old installs have already run it). Existing steps:
+- v1→v2: added `shopSettings.currencySymbol`
+- v2→v3: dropped removed `customers`/`debts`/`purchase_invoices`/`purchase_items`/`cashbox_entries` tables
+- v3→v4: added `cost` column to `products` and `salesItems`; created barcode/sales indexes
+
+Indexes are built by `_createIndexes()` (idempotent `CREATE [UNIQUE] INDEX IF NOT EXISTS`), called from both `onCreate` and the v3→v4 step: a **partial-unique** `idx_products_barcode` (`WHERE barcode != ''`, so many barcode-less items are allowed but non-empty barcodes stay unique), plus `idx_sales_invoices_created_at`, `idx_sales_items_invoice_id`, `idx_sales_items_product_id`. Index/table names use Drift's snake_case. Note: the partial-unique index throws mid-migration if existing rows already share a non-empty barcode.
+
+The `products` table carries a `cost` column (purchase cost, default 0) used for profit-margin reporting; `salesItems` snapshots it at sale time (alongside `productName`/`price`) so historical cost is preserved even if the product is later edited or deleted.
 
 ### Localization
 
@@ -94,7 +101,9 @@ Schema is at **version 3** with a `MigrationStrategy`. When changing tables, bum
 
 ### Navigation (GoRouter)
 
-Routing uses a `StatefulShellRoute.indexedStack` (`AppShell`) with four tab branches; `initialLocation` is `/pos`. `/scanner` is a **top-level modal route** outside the shell so it can be pushed from any branch.
+Routing uses a `StatefulShellRoute.indexedStack` (`AppShell`) with four tab branches; `initialLocation` is `/pos`. `/scanner` is a top-level modal route outside the shell, but is **currently unused** — `HomePage` embeds its own inline live `MobileScanner` for continuous scanning rather than pushing `/scanner`.
+
+`HomePage` also has a tap-to-add product picker (a bottom sheet, not a route) for items without a barcode. Leaving checkout via Back preserves the cart (it is only cleared after a confirmed sale or "New Sale"); checkout exits with `context.pop()` so `HomePage`'s awaited `push('/pos/checkout')` resumes the camera.
 
 - Branch 0: `/pos` → `HomePage` → `/pos/checkout` → `CheckoutPage`
 - Branch 1: `/history` → `HistoryPage`

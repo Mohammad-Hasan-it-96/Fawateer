@@ -11,6 +11,21 @@ import '../bloc/history_bloc.dart';
 class CheckoutPage extends StatelessWidget {
   const CheckoutPage({super.key});
 
+  /// Leave checkout. The cart is preserved if the sale wasn't completed yet, so
+  /// the cashier can go back and add a forgotten item without re-scanning. Once
+  /// the sale is confirmed there's nothing to keep, so the cart is cleared.
+  void _exitToPos(BuildContext context) {
+    final billing = context.read<BillingBloc>();
+    if (billing.state.saleConfirmed) {
+      billing.add(ClearCartEvent());
+    }
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/pos');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     const borderColor = Color(0xFFE5E5EA);
@@ -20,8 +35,7 @@ class CheckoutPage extends StatelessWidget {
       canPop: false,
       onPopInvokedWithResult: (bool didPop, dynamic result) {
         if (didPop) return;
-        context.read<BillingBloc>().add(ClearCartEvent());
-        context.go('/pos');
+        _exitToPos(context);
       },
       child: Scaffold(
         appBar: AppBar(
@@ -33,10 +47,7 @@ class CheckoutPage extends StatelessWidget {
           leading: IconButton(
             icon: Icon(Icons.chevron_left,
                 size: 28, color: Theme.of(context).primaryColor),
-            onPressed: () {
-              context.read<BillingBloc>().add(ClearCartEvent());
-              context.go('/pos');
-            },
+            onPressed: () => _exitToPos(context),
           ),
         ),
         body: BlocConsumer<BillingBloc, BillingState>(
@@ -311,7 +322,11 @@ class CheckoutPage extends StatelessWidget {
                     child: PrimaryButton(
                       onPressed: () {
                         context.read<BillingBloc>().add(ClearCartEvent());
-                        context.go('/pos');
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/pos');
+                        }
                       },
                       icon: Icons.add_circle_outline,
                       label: l10n.newSale,

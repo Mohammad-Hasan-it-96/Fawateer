@@ -57,6 +57,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get camera => 'Camera';
 
   @override
+  String get addItem => 'Add Item';
+
+  @override
   String get checkoutTitle => 'Checkout';
 
   @override
