@@ -39,15 +39,25 @@ class $ProductsTable extends Products
       type: DriftSqlType.double,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
-  static const VerificationMeta _stockMeta = const VerificationMeta('stock');
+  static const VerificationMeta _quantityMeta =
+      const VerificationMeta('quantity');
   @override
-  late final GeneratedColumn<int> stock = GeneratedColumn<int>(
-      'stock', aliasedName, false,
-      type: DriftSqlType.int,
+  late final GeneratedColumn<double> quantity = GeneratedColumn<double>(
+      'quantity', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _minStockAlertMeta =
+      const VerificationMeta('minStockAlert');
+  @override
+  late final GeneratedColumn<double> minStockAlert = GeneratedColumn<double>(
+      'min_stock_alert', aliasedName, false,
+      type: DriftSqlType.double,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
   @override
-  List<GeneratedColumn> get $columns => [id, name, barcode, price, cost, stock];
+  List<GeneratedColumn> get $columns =>
+      [id, name, barcode, price, cost, quantity, minStockAlert];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -83,9 +93,15 @@ class $ProductsTable extends Products
       context.handle(
           _costMeta, cost.isAcceptableOrUnknown(data['cost']!, _costMeta));
     }
-    if (data.containsKey('stock')) {
+    if (data.containsKey('quantity')) {
+      context.handle(_quantityMeta,
+          quantity.isAcceptableOrUnknown(data['quantity']!, _quantityMeta));
+    }
+    if (data.containsKey('min_stock_alert')) {
       context.handle(
-          _stockMeta, stock.isAcceptableOrUnknown(data['stock']!, _stockMeta));
+          _minStockAlertMeta,
+          minStockAlert.isAcceptableOrUnknown(
+              data['min_stock_alert']!, _minStockAlertMeta));
     }
     return context;
   }
@@ -106,8 +122,10 @@ class $ProductsTable extends Products
           .read(DriftSqlType.double, data['${effectivePrefix}price'])!,
       cost: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}cost'])!,
-      stock: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}stock'])!,
+      quantity: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}quantity'])!,
+      minStockAlert: attachedDatabase.typeMapping.read(
+          DriftSqlType.double, data['${effectivePrefix}min_stock_alert'])!,
     );
   }
 
@@ -123,14 +141,16 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
   final String barcode;
   final double price;
   final double cost;
-  final int stock;
+  final double quantity;
+  final double minStockAlert;
   const ProductRow(
       {required this.id,
       required this.name,
       required this.barcode,
       required this.price,
       required this.cost,
-      required this.stock});
+      required this.quantity,
+      required this.minStockAlert});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -139,7 +159,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     map['barcode'] = Variable<String>(barcode);
     map['price'] = Variable<double>(price);
     map['cost'] = Variable<double>(cost);
-    map['stock'] = Variable<int>(stock);
+    map['quantity'] = Variable<double>(quantity);
+    map['min_stock_alert'] = Variable<double>(minStockAlert);
     return map;
   }
 
@@ -150,7 +171,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       barcode: Value(barcode),
       price: Value(price),
       cost: Value(cost),
-      stock: Value(stock),
+      quantity: Value(quantity),
+      minStockAlert: Value(minStockAlert),
     );
   }
 
@@ -163,7 +185,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       barcode: serializer.fromJson<String>(json['barcode']),
       price: serializer.fromJson<double>(json['price']),
       cost: serializer.fromJson<double>(json['cost']),
-      stock: serializer.fromJson<int>(json['stock']),
+      quantity: serializer.fromJson<double>(json['quantity']),
+      minStockAlert: serializer.fromJson<double>(json['minStockAlert']),
     );
   }
   @override
@@ -175,7 +198,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       'barcode': serializer.toJson<String>(barcode),
       'price': serializer.toJson<double>(price),
       'cost': serializer.toJson<double>(cost),
-      'stock': serializer.toJson<int>(stock),
+      'quantity': serializer.toJson<double>(quantity),
+      'minStockAlert': serializer.toJson<double>(minStockAlert),
     };
   }
 
@@ -185,14 +209,16 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           String? barcode,
           double? price,
           double? cost,
-          int? stock}) =>
+          double? quantity,
+          double? minStockAlert}) =>
       ProductRow(
         id: id ?? this.id,
         name: name ?? this.name,
         barcode: barcode ?? this.barcode,
         price: price ?? this.price,
         cost: cost ?? this.cost,
-        stock: stock ?? this.stock,
+        quantity: quantity ?? this.quantity,
+        minStockAlert: minStockAlert ?? this.minStockAlert,
       );
   ProductRow copyWithCompanion(ProductsCompanion data) {
     return ProductRow(
@@ -201,7 +227,10 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       barcode: data.barcode.present ? data.barcode.value : this.barcode,
       price: data.price.present ? data.price.value : this.price,
       cost: data.cost.present ? data.cost.value : this.cost,
-      stock: data.stock.present ? data.stock.value : this.stock,
+      quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      minStockAlert: data.minStockAlert.present
+          ? data.minStockAlert.value
+          : this.minStockAlert,
     );
   }
 
@@ -213,13 +242,15 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ..write('barcode: $barcode, ')
           ..write('price: $price, ')
           ..write('cost: $cost, ')
-          ..write('stock: $stock')
+          ..write('quantity: $quantity, ')
+          ..write('minStockAlert: $minStockAlert')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, barcode, price, cost, stock);
+  int get hashCode =>
+      Object.hash(id, name, barcode, price, cost, quantity, minStockAlert);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -229,7 +260,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           other.barcode == this.barcode &&
           other.price == this.price &&
           other.cost == this.cost &&
-          other.stock == this.stock);
+          other.quantity == this.quantity &&
+          other.minStockAlert == this.minStockAlert);
 }
 
 class ProductsCompanion extends UpdateCompanion<ProductRow> {
@@ -238,7 +270,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
   final Value<String> barcode;
   final Value<double> price;
   final Value<double> cost;
-  final Value<int> stock;
+  final Value<double> quantity;
+  final Value<double> minStockAlert;
   final Value<int> rowid;
   const ProductsCompanion({
     this.id = const Value.absent(),
@@ -246,7 +279,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.barcode = const Value.absent(),
     this.price = const Value.absent(),
     this.cost = const Value.absent(),
-    this.stock = const Value.absent(),
+    this.quantity = const Value.absent(),
+    this.minStockAlert = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProductsCompanion.insert({
@@ -255,7 +289,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.barcode = const Value.absent(),
     required double price,
     this.cost = const Value.absent(),
-    this.stock = const Value.absent(),
+    this.quantity = const Value.absent(),
+    this.minStockAlert = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         name = Value(name),
@@ -266,7 +301,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     Expression<String>? barcode,
     Expression<double>? price,
     Expression<double>? cost,
-    Expression<int>? stock,
+    Expression<double>? quantity,
+    Expression<double>? minStockAlert,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -275,7 +311,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       if (barcode != null) 'barcode': barcode,
       if (price != null) 'price': price,
       if (cost != null) 'cost': cost,
-      if (stock != null) 'stock': stock,
+      if (quantity != null) 'quantity': quantity,
+      if (minStockAlert != null) 'min_stock_alert': minStockAlert,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -286,7 +323,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       Value<String>? barcode,
       Value<double>? price,
       Value<double>? cost,
-      Value<int>? stock,
+      Value<double>? quantity,
+      Value<double>? minStockAlert,
       Value<int>? rowid}) {
     return ProductsCompanion(
       id: id ?? this.id,
@@ -294,7 +332,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       barcode: barcode ?? this.barcode,
       price: price ?? this.price,
       cost: cost ?? this.cost,
-      stock: stock ?? this.stock,
+      quantity: quantity ?? this.quantity,
+      minStockAlert: minStockAlert ?? this.minStockAlert,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -317,8 +356,11 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     if (cost.present) {
       map['cost'] = Variable<double>(cost.value);
     }
-    if (stock.present) {
-      map['stock'] = Variable<int>(stock.value);
+    if (quantity.present) {
+      map['quantity'] = Variable<double>(quantity.value);
+    }
+    if (minStockAlert.present) {
+      map['min_stock_alert'] = Variable<double>(minStockAlert.value);
     }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
@@ -334,7 +376,8 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
           ..write('barcode: $barcode, ')
           ..write('price: $price, ')
           ..write('cost: $cost, ')
-          ..write('stock: $stock, ')
+          ..write('quantity: $quantity, ')
+          ..write('minStockAlert: $minStockAlert, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1655,7 +1698,8 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   Value<String> barcode,
   required double price,
   Value<double> cost,
-  Value<int> stock,
+  Value<double> quantity,
+  Value<double> minStockAlert,
   Value<int> rowid,
 });
 typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
@@ -1664,7 +1708,8 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<String> barcode,
   Value<double> price,
   Value<double> cost,
-  Value<int> stock,
+  Value<double> quantity,
+  Value<double> minStockAlert,
   Value<int> rowid,
 });
 
@@ -1692,8 +1737,11 @@ class $$ProductsTableFilterComposer
   ColumnFilters<double> get cost => $composableBuilder(
       column: $table.cost, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get stock => $composableBuilder(
-      column: $table.stock, builder: (column) => ColumnFilters(column));
+  ColumnFilters<double> get quantity => $composableBuilder(
+      column: $table.quantity, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get minStockAlert => $composableBuilder(
+      column: $table.minStockAlert, builder: (column) => ColumnFilters(column));
 }
 
 class $$ProductsTableOrderingComposer
@@ -1720,8 +1768,12 @@ class $$ProductsTableOrderingComposer
   ColumnOrderings<double> get cost => $composableBuilder(
       column: $table.cost, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get stock => $composableBuilder(
-      column: $table.stock, builder: (column) => ColumnOrderings(column));
+  ColumnOrderings<double> get quantity => $composableBuilder(
+      column: $table.quantity, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get minStockAlert => $composableBuilder(
+      column: $table.minStockAlert,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$ProductsTableAnnotationComposer
@@ -1748,8 +1800,11 @@ class $$ProductsTableAnnotationComposer
   GeneratedColumn<double> get cost =>
       $composableBuilder(column: $table.cost, builder: (column) => column);
 
-  GeneratedColumn<int> get stock =>
-      $composableBuilder(column: $table.stock, builder: (column) => column);
+  GeneratedColumn<double> get quantity =>
+      $composableBuilder(column: $table.quantity, builder: (column) => column);
+
+  GeneratedColumn<double> get minStockAlert => $composableBuilder(
+      column: $table.minStockAlert, builder: (column) => column);
 }
 
 class $$ProductsTableTableManager extends RootTableManager<
@@ -1780,7 +1835,8 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String> barcode = const Value.absent(),
             Value<double> price = const Value.absent(),
             Value<double> cost = const Value.absent(),
-            Value<int> stock = const Value.absent(),
+            Value<double> quantity = const Value.absent(),
+            Value<double> minStockAlert = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               ProductsCompanion(
@@ -1789,7 +1845,8 @@ class $$ProductsTableTableManager extends RootTableManager<
             barcode: barcode,
             price: price,
             cost: cost,
-            stock: stock,
+            quantity: quantity,
+            minStockAlert: minStockAlert,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -1798,7 +1855,8 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String> barcode = const Value.absent(),
             required double price,
             Value<double> cost = const Value.absent(),
-            Value<int> stock = const Value.absent(),
+            Value<double> quantity = const Value.absent(),
+            Value<double> minStockAlert = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               ProductsCompanion.insert(
@@ -1807,7 +1865,8 @@ class $$ProductsTableTableManager extends RootTableManager<
             barcode: barcode,
             price: price,
             cost: cost,
-            stock: stock,
+            quantity: quantity,
+            minStockAlert: minStockAlert,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

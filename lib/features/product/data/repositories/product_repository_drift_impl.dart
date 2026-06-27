@@ -19,7 +19,8 @@ class ProductRepositoryDriftImpl implements ProductRepository {
         barcode: row.barcode,
         price: row.price,
         cost: row.cost,
-        stock: row.stock,
+        quantity: row.quantity,
+        minStockAlert: row.minStockAlert,
       );
 
   static ProductsCompanion _toCompanion(Product p) => ProductsCompanion(
@@ -28,7 +29,8 @@ class ProductRepositoryDriftImpl implements ProductRepository {
         barcode: Value(p.barcode),
         price: Value(p.price),
         cost: Value(p.cost),
-        stock: Value(p.stock),
+        quantity: Value(p.quantity),
+        minStockAlert: Value(p.minStockAlert),
       );
 
   // ── repository interface ──────────────────────────────────────────────────

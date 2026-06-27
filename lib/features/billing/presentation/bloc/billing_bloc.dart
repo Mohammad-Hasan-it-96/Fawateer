@@ -128,11 +128,11 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       return;
     }
 
-    // Deduct stock (best-effort — never block a confirmed sale)
+    // Deduct on-hand quantity (best-effort — never block a confirmed sale)
     for (final cartItem in state.cartItems) {
-      final newStock = cartItem.product.stock - cartItem.quantity;
+      final newQuantity = cartItem.product.quantity - cartItem.quantity;
       await updateProductUseCase(
-          cartItem.product.copyWith(stock: newStock));
+          cartItem.product.copyWith(quantity: newQuantity));
     }
 
     emit(state.copyWith(
@@ -229,8 +229,9 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
   }
 
   List<String> _computeStockWarnings(List<CartItem> items) {
+    // i.product.quantity = on-hand inventory; i.quantity = units being sold.
     return items
-        .where((i) => i.product.stock > 0 && i.quantity > i.product.stock)
+        .where((i) => i.product.quantity > 0 && i.quantity > i.product.quantity)
         .map((i) => i.product.name)
         .toList();
   }

@@ -7,7 +7,8 @@ class Product extends Equatable {
   final String barcode;
   final double price;
   final double cost; // purchase cost, for margin/profit reporting
-  final int stock; // Optional implementation detail
+  final double quantity; // on-hand inventory (was stock); supports weight/fractions
+  final double minStockAlert; // low-stock threshold; 0 = no alert
 
   const Product({
     required this.id,
@@ -15,8 +16,12 @@ class Product extends Equatable {
     required this.barcode,
     required this.price,
     this.cost = 0,
-    this.stock = 0,
+    this.quantity = 0,
+    this.minStockAlert = 0,
   });
+
+  /// True when a low-stock alert is set and on-hand has reached it.
+  bool get isLowStock => minStockAlert > 0 && quantity <= minStockAlert;
 
   Product copyWith({
     String? id,
@@ -24,7 +29,8 @@ class Product extends Equatable {
     String? barcode,
     double? price,
     double? cost,
-    int? stock,
+    double? quantity,
+    double? minStockAlert,
   }) {
     return Product(
       id: id ?? this.id,
@@ -32,10 +38,12 @@ class Product extends Equatable {
       barcode: barcode ?? this.barcode,
       price: price ?? this.price,
       cost: cost ?? this.cost,
-      stock: stock ?? this.stock,
+      quantity: quantity ?? this.quantity,
+      minStockAlert: minStockAlert ?? this.minStockAlert,
     );
   }
 
   @override
-  List<Object?> get props => [id, name, barcode, price, cost, stock];
+  List<Object?> get props =>
+      [id, name, barcode, price, cost, quantity, minStockAlert];
 }

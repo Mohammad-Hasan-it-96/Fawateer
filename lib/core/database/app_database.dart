@@ -33,7 +33,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'fawateer'));
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -62,6 +62,15 @@ class AppDatabase extends _$AppDatabase {
         await migrator.addColumn(products, products.cost);
         await migrator.addColumn(salesItems, salesItems.cost);
         await _createIndexes();
+      }
+      if (from < 5) {
+        // Inventory: int `stock` -> double `quantity` (+ low-stock threshold).
+        // Existing counts are copied over; no data loss. The old `stock` column
+        // is left orphaned (has DEFAULT 0, so inserts that omit it still work),
+        // matching how `upiId` removal was handled — avoids a table rebuild.
+        await migrator.addColumn(products, products.quantity);
+        await migrator.addColumn(products, products.minStockAlert);
+        await customStatement('UPDATE products SET quantity = stock');
       }
     },
   );

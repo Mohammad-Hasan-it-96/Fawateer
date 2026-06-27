@@ -24,7 +24,7 @@ class _EditProductPageState extends State<EditProductPage> {
   late String _name;
   late double _price;
   late double _cost;
-  late int _stock;
+  late double _quantity;
 
   @override
   void initState() {
@@ -32,7 +32,7 @@ class _EditProductPageState extends State<EditProductPage> {
     _name = widget.product.name;
     _price = widget.product.price;
     _cost = widget.product.cost;
-    _stock = widget.product.stock;
+    _quantity = widget.product.quantity;
   }
 
   void _submit() {
@@ -45,7 +45,7 @@ class _EditProductPageState extends State<EditProductPage> {
         barcode: widget.product.barcode,
         price: _price,
         cost: _cost,
-        stock: _stock,
+        quantity: _quantity,
       );
 
       context.read<ProductBloc>().add(UpdateProduct(updatedProduct));
@@ -170,13 +170,14 @@ class _EditProductPageState extends State<EditProductPage> {
 
                   InputLabel(text: l10n.stockEditLabel),
                   TextFormField(
-                    initialValue: _stock.toString(),
-                    keyboardType: TextInputType.number,
+                    initialValue: _quantity.toString(),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
                     decoration: InputDecoration(
                       helperText: l10n.stockEditHint,
                     ),
                     onSaved: (value) =>
-                        _stock = int.tryParse(value ?? '0') ?? 0,
+                        _quantity = double.tryParse(value ?? '0') ?? 0,
                   ),
                 ],
               ),
