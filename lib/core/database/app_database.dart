@@ -33,13 +33,20 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'fawateer'));
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) async {
       await migrator.createAll();
       await _createIndexes();
+    },
+    beforeOpen: (details) async {
+      // Enforce foreign keys for every connection. Set here (after migrations
+      // run) — not inside onUpgrade, where table rebuilds need FKs off. No FK
+      // constraints are declared yet, so this is currently a no-op guard that
+      // makes any FK added by a future feature actually enforced.
+      await customStatement('PRAGMA foreign_keys = ON');
     },
     onUpgrade: (migrator, from, to) async {
       if (from < 2) {
@@ -72,11 +79,20 @@ class AppDatabase extends _$AppDatabase {
         await migrator.addColumn(products, products.minStockAlert);
         await customStatement('UPDATE products SET quantity = stock');
       }
+      if (from < 6) {
+        // sales_items.quantity int -> double (matches products.quantity, so a
+        // weight/fractional sale can be recorded). SQLite can't change a column
+        // type in place, so rebuild the table; existing integer quantities copy
+        // over as reals. The rebuild drops the table's indexes, so recreate them.
+        await migrator.alterTable(TableMigration(salesItems));
+        await _createIndexes();
+      }
     },
   );
 
-  /// Idempotent index creation, shared by [onCreate] (fresh install) and the
-  /// v3→v4 upgrade. Names use Drift's snake_case for tables/columns.
+  /// Idempotent index creation (`IF NOT EXISTS`), shared by [onCreate] and the
+  /// v3→v4 / v5→v6 upgrades (the latter rebuilds sales_items, dropping its
+  /// indexes). Names use Drift's snake_case for tables/columns.
   Future<void> _createIndexes() async {
     await customStatement(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_products_barcode ON products (barcode) WHERE barcode != ''");

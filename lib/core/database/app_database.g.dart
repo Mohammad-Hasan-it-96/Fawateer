@@ -1258,9 +1258,9 @@ class $SalesItemsTable extends SalesItems
   static const VerificationMeta _quantityMeta =
       const VerificationMeta('quantity');
   @override
-  late final GeneratedColumn<int> quantity = GeneratedColumn<int>(
+  late final GeneratedColumn<double> quantity = GeneratedColumn<double>(
       'quantity', aliasedName, false,
-      type: DriftSqlType.int, requiredDuringInsert: true);
+      type: DriftSqlType.double, requiredDuringInsert: true);
   @override
   List<GeneratedColumn> get $columns =>
       [id, invoiceId, productId, productName, price, cost, quantity];
@@ -1335,7 +1335,7 @@ class $SalesItemsTable extends SalesItems
       cost: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}cost'])!,
       quantity: attachedDatabase.typeMapping
-          .read(DriftSqlType.int, data['${effectivePrefix}quantity'])!,
+          .read(DriftSqlType.double, data['${effectivePrefix}quantity'])!,
     );
   }
 
@@ -1352,7 +1352,7 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
   final String productName;
   final double price;
   final double cost;
-  final int quantity;
+  final double quantity;
   const SalesItemRow(
       {required this.id,
       required this.invoiceId,
@@ -1370,7 +1370,7 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
     map['product_name'] = Variable<String>(productName);
     map['price'] = Variable<double>(price);
     map['cost'] = Variable<double>(cost);
-    map['quantity'] = Variable<int>(quantity);
+    map['quantity'] = Variable<double>(quantity);
     return map;
   }
 
@@ -1396,7 +1396,7 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       productName: serializer.fromJson<String>(json['productName']),
       price: serializer.fromJson<double>(json['price']),
       cost: serializer.fromJson<double>(json['cost']),
-      quantity: serializer.fromJson<int>(json['quantity']),
+      quantity: serializer.fromJson<double>(json['quantity']),
     );
   }
   @override
@@ -1409,7 +1409,7 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       'productName': serializer.toJson<String>(productName),
       'price': serializer.toJson<double>(price),
       'cost': serializer.toJson<double>(cost),
-      'quantity': serializer.toJson<int>(quantity),
+      'quantity': serializer.toJson<double>(quantity),
     };
   }
 
@@ -1420,7 +1420,7 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
           String? productName,
           double? price,
           double? cost,
-          int? quantity}) =>
+          double? quantity}) =>
       SalesItemRow(
         id: id ?? this.id,
         invoiceId: invoiceId ?? this.invoiceId,
@@ -1480,7 +1480,7 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
   final Value<String> productName;
   final Value<double> price;
   final Value<double> cost;
-  final Value<int> quantity;
+  final Value<double> quantity;
   const SalesItemsCompanion({
     this.id = const Value.absent(),
     this.invoiceId = const Value.absent(),
@@ -1497,7 +1497,7 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
     required String productName,
     required double price,
     this.cost = const Value.absent(),
-    required int quantity,
+    required double quantity,
   })  : invoiceId = Value(invoiceId),
         productId = Value(productId),
         productName = Value(productName),
@@ -1510,7 +1510,7 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
     Expression<String>? productName,
     Expression<double>? price,
     Expression<double>? cost,
-    Expression<int>? quantity,
+    Expression<double>? quantity,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1530,7 +1530,7 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
       Value<String>? productName,
       Value<double>? price,
       Value<double>? cost,
-      Value<int>? quantity}) {
+      Value<double>? quantity}) {
     return SalesItemsCompanion(
       id: id ?? this.id,
       invoiceId: invoiceId ?? this.invoiceId,
@@ -1564,7 +1564,7 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
       map['cost'] = Variable<double>(cost.value);
     }
     if (quantity.present) {
-      map['quantity'] = Variable<int>(quantity.value);
+      map['quantity'] = Variable<double>(quantity.value);
     }
     return map;
   }
@@ -2273,7 +2273,7 @@ typedef $$SalesItemsTableCreateCompanionBuilder = SalesItemsCompanion Function({
   required String productName,
   required double price,
   Value<double> cost,
-  required int quantity,
+  required double quantity,
 });
 typedef $$SalesItemsTableUpdateCompanionBuilder = SalesItemsCompanion Function({
   Value<int> id,
@@ -2282,7 +2282,7 @@ typedef $$SalesItemsTableUpdateCompanionBuilder = SalesItemsCompanion Function({
   Value<String> productName,
   Value<double> price,
   Value<double> cost,
-  Value<int> quantity,
+  Value<double> quantity,
 });
 
 class $$SalesItemsTableFilterComposer
@@ -2312,7 +2312,7 @@ class $$SalesItemsTableFilterComposer
   ColumnFilters<double> get cost => $composableBuilder(
       column: $table.cost, builder: (column) => ColumnFilters(column));
 
-  ColumnFilters<int> get quantity => $composableBuilder(
+  ColumnFilters<double> get quantity => $composableBuilder(
       column: $table.quantity, builder: (column) => ColumnFilters(column));
 }
 
@@ -2343,7 +2343,7 @@ class $$SalesItemsTableOrderingComposer
   ColumnOrderings<double> get cost => $composableBuilder(
       column: $table.cost, builder: (column) => ColumnOrderings(column));
 
-  ColumnOrderings<int> get quantity => $composableBuilder(
+  ColumnOrderings<double> get quantity => $composableBuilder(
       column: $table.quantity, builder: (column) => ColumnOrderings(column));
 }
 
@@ -2374,7 +2374,7 @@ class $$SalesItemsTableAnnotationComposer
   GeneratedColumn<double> get cost =>
       $composableBuilder(column: $table.cost, builder: (column) => column);
 
-  GeneratedColumn<int> get quantity =>
+  GeneratedColumn<double> get quantity =>
       $composableBuilder(column: $table.quantity, builder: (column) => column);
 }
 
@@ -2410,7 +2410,7 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             Value<String> productName = const Value.absent(),
             Value<double> price = const Value.absent(),
             Value<double> cost = const Value.absent(),
-            Value<int> quantity = const Value.absent(),
+            Value<double> quantity = const Value.absent(),
           }) =>
               SalesItemsCompanion(
             id: id,
@@ -2428,7 +2428,7 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             required String productName,
             required double price,
             Value<double> cost = const Value.absent(),
-            required int quantity,
+            required double quantity,
           }) =>
               SalesItemsCompanion.insert(
             id: id,

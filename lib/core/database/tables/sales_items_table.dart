@@ -8,6 +8,7 @@ class SalesItems extends Table {
   TextColumn get productName => text()();
   RealColumn get price => real()();
   RealColumn get cost => real().withDefault(const Constant(0))();
-  IntColumn get quantity => integer()();
+  // Double (matches products.quantity) so items can be sold by weight/fraction.
+  RealColumn get quantity => real()();
 }
 

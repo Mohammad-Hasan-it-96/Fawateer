@@ -197,7 +197,7 @@ void main() {
       expect(state.saleConfirmed, isTrue);
       expect(invoiceRepo.saveCount, 1);
       expect(invoiceRepo.savedItems!.single.productId, 'p1');
-      expect(invoiceRepo.savedItems!.single.quantity, 1);
+      expect(invoiceRepo.savedItems!.single.quantity, 1.0);
       await bloc.close();
     });
 

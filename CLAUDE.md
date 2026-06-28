@@ -72,11 +72,14 @@ Note: there is **no use case layer** — BLoCs depend on repository interfaces d
 
 Drift (SQLite) backed by `driftDatabase(name: 'fawateer')`. All tables and DAOs are declared in the `@DriftDatabase(...)` annotation on `AppDatabase`. Generated code lives in `*.g.dart` files — **never edit these manually**.
 
-Schema is at **version 5** with a `MigrationStrategy`. When changing tables, bump `schemaVersion` and **append** a new `if (from < N)` block to `onUpgrade` — never edit a shipped block (old installs have already run it). Existing steps:
+Schema is at **version 6** with a `MigrationStrategy`. When changing tables, bump `schemaVersion` and **append** a new `if (from < N)` block to `onUpgrade` — never edit a shipped block (old installs have already run it). Existing steps:
 - v1→v2: added `shopSettings.currencySymbol`
 - v2→v3: dropped removed `customers`/`debts`/`purchase_invoices`/`purchase_items`/`cashbox_entries` tables
 - v3→v4: added `cost` column to `products` and `salesItems`; created barcode/sales indexes
 - v4→v5: replaced `products.stock` (int) with `quantity` (double, supports weight/fractions) and added `minStockAlert` (double); copies old `stock` values into `quantity`
+- v5→v6: `salesItems.quantity` int→double (matches `products.quantity` for weight/fractional sales). SQLite can't change a column type in place, so this rebuilds the table via `migrator.alterTable(TableMigration(salesItems))` then re-runs `_createIndexes()` (the rebuild drops the table's indexes).
+
+**Foreign keys** are enforced per-connection via `PRAGMA foreign_keys = ON` in `MigrationStrategy.beforeOpen` (runs after migrations — table rebuilds need FKs off). No FK constraints are declared on the tables yet, so it's currently a no-op guard; any FK a future feature adds (e.g. `references(...)`) will actually be enforced. Don't set this pragma inside `onUpgrade`.
 
 Indexes are built by `_createIndexes()` (idempotent `CREATE [UNIQUE] INDEX IF NOT EXISTS`), called from both `onCreate` and the v3→v4 step: a **partial-unique** `idx_products_barcode` (`WHERE barcode != ''`, so many barcode-less items are allowed but non-empty barcodes stay unique), plus `idx_sales_invoices_created_at`, `idx_sales_items_invoice_id`, `idx_sales_items_product_id`. Index/table names use Drift's snake_case. Note: the partial-unique index throws mid-migration if existing rows already share a non-empty barcode.
 

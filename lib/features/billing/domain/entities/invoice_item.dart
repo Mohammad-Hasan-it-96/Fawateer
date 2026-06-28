@@ -7,7 +7,7 @@ class InvoiceItem extends Equatable {
   final String productName;
   final double price;
   final double cost; // snapshot of product cost at sale time (profit reports)
-  final int quantity;
+  final double quantity; // double so weight/fractional sales can be recorded
 
   const InvoiceItem({
     this.id,

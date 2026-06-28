@@ -8,6 +8,10 @@ import '../../domain/entities/invoice_item.dart';
 import '../bloc/history_bloc.dart';
 import '../../../../l10n/app_localizations.dart';
 
+/// Format a line quantity: whole numbers print as `2`, fractional as `1.5`.
+String _qtyLabel(double q) =>
+    q == q.truncateToDouble() ? q.toInt().toString() : '$q';
+
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
 
@@ -335,7 +339,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      '${item.quantity}x ${item.productName}',
+                                      '${_qtyLabel(item.quantity)}x ${item.productName}',
                                       style: const TextStyle(fontSize: 14),
                                     ),
                                   ),
