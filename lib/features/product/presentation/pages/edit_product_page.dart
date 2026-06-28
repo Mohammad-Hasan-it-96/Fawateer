@@ -5,11 +5,15 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../bloc/product_bloc.dart';
+import '../widgets/currency_field.dart';
 import '../../domain/entities/product.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
-import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../../../l10n/app_localizations.dart';
+
+/// Show a whole-number quantity as `5`, not `5.0`.
+String _formatQty(double q) =>
+    q == q.truncateToDouble() ? q.toInt().toString() : q.toString();
 
 class EditProductPage extends StatefulWidget {
   final Product product;
@@ -25,6 +29,7 @@ class _EditProductPageState extends State<EditProductPage> {
   late double _price;
   late double _cost;
   late double _quantity;
+  late double _minStockAlert;
 
   @override
   void initState() {
@@ -33,19 +38,20 @@ class _EditProductPageState extends State<EditProductPage> {
     _price = widget.product.price;
     _cost = widget.product.cost;
     _quantity = widget.product.quantity;
+    _minStockAlert = widget.product.minStockAlert;
   }
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      final updatedProduct = Product(
-        id: widget.product.id,
+      // copyWith so fields not on this form (id, barcode, …) are preserved.
+      final updatedProduct = widget.product.copyWith(
         name: _name,
-        barcode: widget.product.barcode,
         price: _price,
         cost: _cost,
         quantity: _quantity,
+        minStockAlert: _minStockAlert,
       );
 
       context.read<ProductBloc>().add(UpdateProduct(updatedProduct));
@@ -122,55 +128,25 @@ class _EditProductPageState extends State<EditProductPage> {
                   const SizedBox(height: 24),
 
                   InputLabel(text: l10n.priceLabel),
-                  Builder(builder: (context) {
-                    final shopState = context.watch<ShopBloc>().state;
-                    final currency = shopState is ShopLoaded
-                        ? shopState.shop.currencySymbol
-                        : '';
-                    return TextFormField(
-                      initialValue: _price.toStringAsFixed(2),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        prefixText: currency.isNotEmpty ? '$currency ' : null,
-                        prefixStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black),
-                      ),
-                      validator: AppValidators.price,
-                      onSaved: (value) => _price = double.parse(value!),
-                    );
-                  }),
+                  CurrencyField(
+                    initialValue: _price.toStringAsFixed(2),
+                    validator: AppValidators.price,
+                    onSaved: (value) => _price = double.parse(value!),
+                  ),
                   const SizedBox(height: 24),
 
                   InputLabel(text: l10n.costLabel),
-                  Builder(builder: (context) {
-                    final shopState = context.watch<ShopBloc>().state;
-                    final currency = shopState is ShopLoaded
-                        ? shopState.shop.currencySymbol
-                        : '';
-                    return TextFormField(
-                      initialValue: _cost.toStringAsFixed(2),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        helperText: l10n.costHint,
-                        prefixText: currency.isNotEmpty ? '$currency ' : null,
-                        prefixStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black),
-                      ),
-                      onSaved: (value) =>
-                          _cost = double.tryParse(value ?? '0') ?? 0,
-                    );
-                  }),
+                  CurrencyField(
+                    initialValue: _cost.toStringAsFixed(2),
+                    helperText: l10n.costHint,
+                    onSaved: (value) =>
+                        _cost = double.tryParse(value ?? '0') ?? 0,
+                  ),
                   const SizedBox(height: 24),
 
                   InputLabel(text: l10n.stockEditLabel),
                   TextFormField(
-                    initialValue: _quantity.toString(),
+                    initialValue: _formatQty(_quantity),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     decoration: InputDecoration(
@@ -178,6 +154,20 @@ class _EditProductPageState extends State<EditProductPage> {
                     ),
                     onSaved: (value) =>
                         _quantity = double.tryParse(value ?? '0') ?? 0,
+                  ),
+                  const SizedBox(height: 24),
+
+                  InputLabel(text: l10n.lowStockAlertLabel),
+                  TextFormField(
+                    initialValue: _formatQty(_minStockAlert),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      hintText: '0',
+                      helperText: l10n.lowStockAlertHint,
+                    ),
+                    onSaved: (value) =>
+                        _minStockAlert = double.tryParse(value ?? '0') ?? 0,
                   ),
                 ],
               ),

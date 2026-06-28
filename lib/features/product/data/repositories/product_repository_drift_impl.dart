@@ -65,9 +65,14 @@ class ProductRepositoryDriftImpl implements ProductRepository {
   @override
   Future<Either<Failure, void>> addProduct(Product product) async {
     try {
-      await _dao.insertProduct(_toCompanion(product));
+      await _dao.createProduct(_toCompanion(product));
       return const Right(null);
     } catch (e) {
+      // A non-empty barcode that already exists trips the partial-unique index.
+      if (e.toString().contains('UNIQUE')) {
+        return const Left(
+            DuplicateFailure('A product with this barcode already exists'));
+      }
       return Left(CacheFailure(e.toString()));
     }
   }

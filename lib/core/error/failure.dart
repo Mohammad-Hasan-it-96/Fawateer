@@ -23,5 +23,10 @@ class PermissionFailure extends Failure {
   const PermissionFailure(super.message);
 }
 
+/// A uniqueness constraint was violated (e.g. a duplicate product barcode).
+class DuplicateFailure extends Failure {
+  const DuplicateFailure(super.message);
+}
+
 // Note: `message` carries developer/debug detail — it is NOT shown to users.
 // Presentation maps the failure *type* to a localized string.

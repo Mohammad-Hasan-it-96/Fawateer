@@ -40,6 +40,9 @@ class _FakeProductRepository implements ProductRepository {
   // is buffered and delivered, instead of being dropped.
   final _controller = StreamController<List<Product>>();
 
+  /// Result returned by [addProduct] — override to simulate a duplicate barcode.
+  Either<Failure, void> addResult = const Right(null);
+
   _FakeProductRepository({this.byBarcode = const {}});
 
   void emit(List<Product> products) => _controller.add(products);
@@ -57,8 +60,7 @@ class _FakeProductRepository implements ProductRepository {
   @override
   Future<Either<Failure, List<Product>>> getProducts() async => const Right([]);
   @override
-  Future<Either<Failure, void>> addProduct(Product product) async =>
-      const Right(null);
+  Future<Either<Failure, void>> addProduct(Product product) async => addResult;
   @override
   Future<Either<Failure, void>> updateProduct(Product product) async =>
       const Right(null);
@@ -235,6 +237,31 @@ void main() {
       expect(state.products.single.id, 'p1');
       await bloc.close();
       await repo.dispose();
+    });
+
+    test('add success → typed "added" feedback', () async {
+      final repo = _FakeProductRepository();
+      final bloc = ProductBloc(repository: repo);
+      final done = bloc.stream.firstWhere((s) => s.message != null);
+      bloc.add(AddProduct(_product()));
+
+      final state = await done.timeout(_timeout);
+      expect(state.status, ProductStatus.success);
+      expect(state.message, ProductMessage.added);
+      await bloc.close(); // stream unused here, so no repo.dispose()
+    });
+
+    test('duplicate barcode → typed "barcodeExists" feedback', () async {
+      final repo = _FakeProductRepository()
+        ..addResult = const Left(DuplicateFailure('dup'));
+      final bloc = ProductBloc(repository: repo);
+      final done = bloc.stream.firstWhere((s) => s.message != null);
+      bloc.add(AddProduct(_product()));
+
+      final state = await done.timeout(_timeout);
+      expect(state.status, ProductStatus.error);
+      expect(state.message, ProductMessage.barcodeExists);
+      await bloc.close(); // stream unused here, so no repo.dispose()
     });
   });
 

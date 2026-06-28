@@ -175,6 +175,28 @@ class AppLocalizationsAr extends AppLocalizations {
   String get barcodeExistsError => 'يوجد منتج بهذا الباركود مسبقاً!';
 
   @override
+  String get lowStockAlertLabel => 'تنبيه المخزون المنخفض (اختياري)';
+
+  @override
+  String get lowStockAlertHint =>
+      'نبّهني عند وصول المخزون لهذا الحد. 0 = إيقاف';
+
+  @override
+  String get productAdded => 'تمت إضافة المنتج';
+
+  @override
+  String get productUpdated => 'تم تحديث المنتج';
+
+  @override
+  String get productDeleted => 'تم حذف المنتج';
+
+  @override
+  String get errorSaveFailed => 'تعذّر الحفظ. حاول مرة أخرى.';
+
+  @override
+  String get errorLoadFailed => 'تعذّر تحميل المنتجات.';
+
+  @override
   String get editProductTitle => 'تعديل المنتج';
 
   @override

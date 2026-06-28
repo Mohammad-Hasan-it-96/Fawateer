@@ -62,6 +62,13 @@
   "stockHint": "Leave 0 to disable stock tracking",
   "addProductBtn": "Add Product",
   "barcodeExistsError": "A product with this barcode already exists!",
+  "lowStockAlertLabel": "Low-stock alert (optional)",
+  "lowStockAlertHint": "Warn when stock reaches this amount. 0 = off",
+  "productAdded": "Product added",
+  "productUpdated": "Product updated",
+  "productDeleted": "Product deleted",
+  "errorSaveFailed": "Couldn't save. Please try again.",
+  "errorLoadFailed": "Couldn't load products.",
 
   "editProductTitle": "Edit Product",
   "barcodeDisplay": "BARCODE",

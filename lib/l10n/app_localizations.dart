@@ -422,6 +422,48 @@ abstract class AppLocalizations {
   /// **'A product with this barcode already exists!'**
   String get barcodeExistsError;
 
+  /// No description provided for @lowStockAlertLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Low-stock alert (optional)'**
+  String get lowStockAlertLabel;
+
+  /// No description provided for @lowStockAlertHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Warn when stock reaches this amount. 0 = off'**
+  String get lowStockAlertHint;
+
+  /// No description provided for @productAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Product added'**
+  String get productAdded;
+
+  /// No description provided for @productUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Product updated'**
+  String get productUpdated;
+
+  /// No description provided for @productDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Product deleted'**
+  String get productDeleted;
+
+  /// No description provided for @errorSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save. Please try again.'**
+  String get errorSaveFailed;
+
+  /// No description provided for @errorLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load products.'**
+  String get errorLoadFailed;
+
   /// No description provided for @editProductTitle.
   ///
   /// In en, this message translates to:

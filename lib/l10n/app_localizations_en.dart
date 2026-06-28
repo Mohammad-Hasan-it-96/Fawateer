@@ -177,6 +177,28 @@ class AppLocalizationsEn extends AppLocalizations {
       'A product with this barcode already exists!';
 
   @override
+  String get lowStockAlertLabel => 'Low-stock alert (optional)';
+
+  @override
+  String get lowStockAlertHint =>
+      'Warn when stock reaches this amount. 0 = off';
+
+  @override
+  String get productAdded => 'Product added';
+
+  @override
+  String get productUpdated => 'Product updated';
+
+  @override
+  String get productDeleted => 'Product deleted';
+
+  @override
+  String get errorSaveFailed => 'Couldn\'t save. Please try again.';
+
+  @override
+  String get errorLoadFailed => 'Couldn\'t load products.';
+
+  @override
   String get editProductTitle => 'Edit Product';
 
   @override

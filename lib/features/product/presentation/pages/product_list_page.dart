@@ -15,6 +15,24 @@ class ProductListPage extends StatefulWidget {
   State<ProductListPage> createState() => _ProductListPageState();
 }
 
+/// Map a [ProductMessage] to a localized, user-facing string.
+String _productMessageText(ProductMessage m, AppLocalizations l10n) {
+  switch (m) {
+    case ProductMessage.added:
+      return l10n.productAdded;
+    case ProductMessage.updated:
+      return l10n.productUpdated;
+    case ProductMessage.deleted:
+      return l10n.productDeleted;
+    case ProductMessage.barcodeExists:
+      return l10n.barcodeExistsError;
+    case ProductMessage.saveFailed:
+      return l10n.errorSaveFailed;
+    case ProductMessage.loadFailed:
+      return l10n.errorLoadFailed;
+  }
+}
+
 class _ProductListPageState extends State<ProductListPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -114,21 +132,15 @@ class _ProductListPageState extends State<ProductListPage> {
           Expanded(
             child: BlocConsumer<ProductBloc, ProductState>(
               listener: (context, state) {
-                if (state.status == ProductStatus.success &&
-                    state.message != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text(state.message!),
-                        backgroundColor: Colors.green),
-                  );
-                } else if (state.status == ProductStatus.error &&
-                    state.message != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text(state.message!),
-                        backgroundColor: Colors.red),
-                  );
-                }
+                final message = state.message;
+                if (message == null) return;
+                final isError = state.status == ProductStatus.error;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(_productMessageText(message, l10n)),
+                    backgroundColor: isError ? Colors.red : Colors.green,
+                  ),
+                );
               },
               builder: (context, state) {
                 if (state.status == ProductStatus.loading &&
@@ -138,7 +150,9 @@ class _ProductListPageState extends State<ProductListPage> {
 
                 if (state.products.isEmpty) {
                   if (state.status == ProductStatus.error) {
-                    return Center(child: Text('Error: ${state.message}'));
+                    return Center(
+                        child: Text(_productMessageText(
+                            state.message ?? ProductMessage.loadFailed, l10n)));
                   }
                   return Center(child: Text(l10n.noProductsFound));
                 }

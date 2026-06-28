@@ -60,6 +60,13 @@
   "stockHint": "اترك 0 لتعطيل تتبع المخزون",
   "addProductBtn": "إضافة المنتج",
   "barcodeExistsError": "يوجد منتج بهذا الباركود مسبقاً!",
+  "lowStockAlertLabel": "تنبيه المخزون المنخفض (اختياري)",
+  "lowStockAlertHint": "نبّهني عند وصول المخزون لهذا الحد. 0 = إيقاف",
+  "productAdded": "تمت إضافة المنتج",
+  "productUpdated": "تم تحديث المنتج",
+  "productDeleted": "تم حذف المنتج",
+  "errorSaveFailed": "تعذّر الحفظ. حاول مرة أخرى.",
+  "errorLoadFailed": "تعذّر تحميل المنتجات.",
 
   "editProductTitle": "تعديل المنتج",
   "barcodeDisplay": "الباركود",

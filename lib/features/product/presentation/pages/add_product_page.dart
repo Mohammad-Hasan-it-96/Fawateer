@@ -6,10 +6,10 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../bloc/product_bloc.dart';
+import '../widgets/currency_field.dart';
 import '../../domain/entities/product.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
-import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class AddProductPage extends StatefulWidget {
@@ -26,6 +26,7 @@ class _AddProductPageState extends State<AddProductPage> {
   double _price = 0.0;
   double _cost = 0.0;
   double _quantity = 0.0;
+  double _minStockAlert = 0.0;
 
   void _scanBarcode() async {
     final result = await context.push<String>('/scanner');
@@ -41,10 +42,12 @@ class _AddProductPageState extends State<AddProductPage> {
       _formKey.currentState!.save();
 
       final productState = context.read<ProductBloc>().state;
-      final existingProduct =
-          productState.products.where((p) => p.barcode == _barcode).firstOrNull;
+      // Only non-empty barcodes must be unique; many items legitimately have no
+      // barcode (loose produce, bakery), so blank barcodes are always allowed.
+      final isDuplicate = _barcode.isNotEmpty &&
+          productState.products.any((p) => p.barcode == _barcode);
 
-      if (existingProduct != null) {
+      if (isDuplicate) {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -62,6 +65,7 @@ class _AddProductPageState extends State<AddProductPage> {
         price: _price,
         cost: _cost,
         quantity: _quantity,
+        minStockAlert: _minStockAlert,
       );
 
       context.read<ProductBloc>().add(AddProduct(product));
@@ -139,50 +143,18 @@ class _AddProductPageState extends State<AddProductPage> {
                   ),
                   const SizedBox(height: 24),
                   InputLabel(text: l10n.priceLabel),
-                  Builder(builder: (context) {
-                    final shopState = context.watch<ShopBloc>().state;
-                    final currency = shopState is ShopLoaded
-                        ? shopState.shop.currencySymbol
-                        : '';
-                    return TextFormField(
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        hintText: '0.00',
-                        prefixText: currency.isNotEmpty ? '$currency ' : null,
-                        prefixStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black),
-                      ),
-                      validator: AppValidators.price,
-                      onSaved: (value) => _price = double.parse(value!),
-                    );
-                  }),
+                  CurrencyField(
+                    validator: AppValidators.price,
+                    onSaved: (value) => _price = double.parse(value!),
+                  ),
                   const SizedBox(height: 24),
                   InputLabel(text: l10n.costLabel),
-                  Builder(builder: (context) {
-                    final shopState = context.watch<ShopBloc>().state;
-                    final currency = shopState is ShopLoaded
-                        ? shopState.shop.currencySymbol
-                        : '';
-                    return TextFormField(
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        hintText: '0.00',
-                        helperText: l10n.costHint,
-                        prefixText: currency.isNotEmpty ? '$currency ' : null,
-                        prefixStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black),
-                      ),
-                      initialValue: '0',
-                      onSaved: (value) =>
-                          _cost = double.tryParse(value ?? '0') ?? 0,
-                    );
-                  }),
+                  CurrencyField(
+                    initialValue: '0',
+                    helperText: l10n.costHint,
+                    onSaved: (value) =>
+                        _cost = double.tryParse(value ?? '0') ?? 0,
+                  ),
                   const SizedBox(height: 24),
                   InputLabel(text: l10n.stockLabel),
                   TextFormField(
@@ -195,6 +167,19 @@ class _AddProductPageState extends State<AddProductPage> {
                     initialValue: '0',
                     onSaved: (value) =>
                         _quantity = double.tryParse(value ?? '0') ?? 0,
+                  ),
+                  const SizedBox(height: 24),
+                  InputLabel(text: l10n.lowStockAlertLabel),
+                  TextFormField(
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    decoration: InputDecoration(
+                      hintText: '0',
+                      helperText: l10n.lowStockAlertHint,
+                    ),
+                    initialValue: '0',
+                    onSaved: (value) =>
+                        _minStockAlert = double.tryParse(value ?? '0') ?? 0,
                   ),
                 ],
               ),
