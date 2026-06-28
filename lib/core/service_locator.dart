@@ -10,13 +10,11 @@ import 'database/daos/sales_dao.dart';
 // Features — Product
 import '../features/product/data/repositories/product_repository_drift_impl.dart';
 import '../features/product/domain/repositories/product_repository.dart';
-import '../features/product/domain/usecases/product_usecases.dart';
 import '../features/product/presentation/bloc/product_bloc.dart';
 
 // Features — Shop
 import '../features/shop/data/repositories/shop_repository_drift_impl.dart';
 import '../features/shop/domain/repositories/shop_repository.dart';
-import '../features/shop/domain/usecases/shop_usecases.dart';
 import '../features/shop/presentation/bloc/shop_bloc.dart';
 
 // Features — Settings / Printer
@@ -27,7 +25,6 @@ import '../features/settings/presentation/bloc/printer_bloc.dart';
 // Features — Billing (invoices)
 import '../features/billing/data/repositories/invoice_repository_drift_impl.dart';
 import '../features/billing/domain/repositories/invoice_repository.dart';
-import '../features/billing/domain/usecases/invoice_usecases.dart';
 import '../features/billing/presentation/bloc/billing_bloc.dart';
 import '../features/billing/presentation/bloc/history_bloc.dart';
 
@@ -53,43 +50,18 @@ Future<void> init() async {
   sl.registerLazySingleton<InvoiceRepository>(
       () => InvoiceRepositoryDriftImpl(sl()));
 
-  // ── Use Cases ─────────────────────────────────────────────────────────────
-  sl.registerLazySingleton(() => GetProductsUseCase(sl()));
-  sl.registerLazySingleton(() => AddProductUseCase(sl()));
-  sl.registerLazySingleton(() => UpdateProductUseCase(sl()));
-  sl.registerLazySingleton(() => DeleteProductUseCase(sl()));
-  sl.registerLazySingleton(() => GetProductByBarcodeUseCase(sl()));
-
-  sl.registerLazySingleton(() => GetShopUseCase(sl()));
-  sl.registerLazySingleton(() => UpdateShopUseCase(sl()));
-
-  sl.registerLazySingleton(() => GetAllInvoicesUseCase(sl()));
-  sl.registerLazySingleton(() => GetInvoiceItemsUseCase(sl()));
-
   // ── BLoCs ─────────────────────────────────────────────────────────────────
-  sl.registerFactory(() => ProductBloc(
-        getProductsUseCase: sl(),
-        addProductUseCase: sl(),
-        updateProductUseCase: sl(),
-        deleteProductUseCase: sl(),
-      ));
+  sl.registerFactory(() => ProductBloc(repository: sl()));
 
-  sl.registerFactory(() => ShopBloc(
-        getShopUseCase: sl(),
-        updateShopUseCase: sl(),
-      ));
+  sl.registerFactory(() => ShopBloc(repository: sl()));
 
   sl.registerFactory(() => PrinterBloc(repository: sl()));
 
-  sl.registerFactory(() => HistoryBloc(
-        getAllInvoicesUseCase: sl(),
-        getInvoiceItemsUseCase: sl(),
-      ));
+  sl.registerFactory(() => HistoryBloc(repository: sl()));
 
   sl.registerFactory(() => BillingBloc(
-        getProductByBarcodeUseCase: sl(),
+        productRepository: sl(),
         printerRepository: sl(),
         invoiceRepository: sl(),
-        updateProductUseCase: sl(),
       ));
 }

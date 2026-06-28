@@ -2,47 +2,45 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/invoice.dart';
 import '../../domain/entities/invoice_item.dart';
-import '../../domain/usecases/invoice_usecases.dart';
-import '../../../../core/usecase/usecase.dart';
+import '../../domain/repositories/invoice_repository.dart';
 
 part 'history_event.dart';
 part 'history_state.dart';
 
-class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
-  final GetAllInvoicesUseCase getAllInvoicesUseCase;
-  final GetInvoiceItemsUseCase getInvoiceItemsUseCase;
+/// Today's total revenue and invoice count, derived from the full invoice list.
+class _TodayStats {
+  final double total;
+  final int count;
+  const _TodayStats(this.total, this.count);
+}
 
-  HistoryBloc({
-    required this.getAllInvoicesUseCase,
-    required this.getInvoiceItemsUseCase,
-  }) : super(const HistoryState()) {
+class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
+  final InvoiceRepository repository;
+
+  HistoryBloc({required this.repository}) : super(const HistoryState()) {
     on<LoadHistoryEvent>(_onLoadHistory);
     on<LoadInvoiceDetailsEvent>(_onLoadInvoiceDetails);
   }
 
+  /// Subscribe to the invoice stream. Dispatched once at startup; the list and
+  /// today's totals then refresh automatically after every sale — no manual
+  /// reload needed.
   Future<void> _onLoadHistory(
       LoadHistoryEvent event, Emitter<HistoryState> emit) async {
     emit(state.copyWith(status: HistoryStatus.loading));
-
-    final result = await getAllInvoicesUseCase(NoParams());
-    result.fold(
-      (failure) => emit(state.copyWith(
-          status: HistoryStatus.error, error: failure.message)),
-      (invoices) {
-        final todayStart = DateTime.now();
-        final startOfDay =
-            DateTime(todayStart.year, todayStart.month, todayStart.day);
-        final todayInvoices = invoices
-            .where((i) =>
-                !i.createdAt.isBefore(startOfDay))
-            .toList();
-        emit(state.copyWith(
+    await emit.forEach(
+      repository.watchInvoices(),
+      onData: (invoices) {
+        final today = _todayStats(invoices);
+        return state.copyWith(
           status: HistoryStatus.loaded,
           invoices: invoices,
-          todayTotal: todayInvoices.fold<double>(0.0, (s, i) => s + i.totalAmount),
-          todayCount: todayInvoices.length,
-        ));
+          todayTotal: today.total,
+          todayCount: today.count,
+        );
       },
+      onError: (e, _) =>
+          state.copyWith(status: HistoryStatus.error, error: e.toString()),
     );
   }
 
@@ -50,7 +48,7 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
       LoadInvoiceDetailsEvent event, Emitter<HistoryState> emit) async {
     if (state.itemsCache.containsKey(event.invoiceId)) return;
 
-    final result = await getInvoiceItemsUseCase(event.invoiceId);
+    final result = await repository.getInvoiceItems(event.invoiceId);
     result.fold(
       (_) {}, // silently ignore errors for item loading
       (items) {
@@ -59,5 +57,14 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
         emit(state.copyWith(itemsCache: updated));
       },
     );
+  }
+
+  static _TodayStats _todayStats(List<Invoice> invoices) {
+    final now = DateTime.now();
+    final startOfDay = DateTime(now.year, now.month, now.day);
+    final today =
+        invoices.where((i) => !i.createdAt.isBefore(startOfDay)).toList();
+    final total = today.fold<double>(0, (s, i) => s + i.totalAmount);
+    return _TodayStats(total, today.length);
   }
 }

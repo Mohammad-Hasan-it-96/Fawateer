@@ -1,27 +1,22 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../domain/entities/shop.dart';
-import '../../domain/usecases/shop_usecases.dart';
-import '../../../../core/usecase/usecase.dart';
+import '../../domain/repositories/shop_repository.dart';
 
 part 'shop_event.dart';
 part 'shop_state.dart';
 
 class ShopBloc extends Bloc<ShopEvent, ShopState> {
-  final GetShopUseCase getShopUseCase;
-  final UpdateShopUseCase updateShopUseCase;
+  final ShopRepository repository;
 
-  ShopBloc({
-    required this.getShopUseCase,
-    required this.updateShopUseCase,
-  }) : super(ShopInitial()) {
+  ShopBloc({required this.repository}) : super(ShopInitial()) {
     on<LoadShopEvent>(_onLoadShop);
     on<UpdateShopEvent>(_onUpdateShop);
   }
 
   Future<void> _onLoadShop(LoadShopEvent event, Emitter<ShopState> emit) async {
     emit(ShopLoading());
-    final result = await getShopUseCase(NoParams());
+    final result = await repository.getShop();
     result.fold(
       (failure) => emit(ShopError(failure.message)),
       (shop) => emit(ShopLoaded(shop)),
@@ -31,7 +26,7 @@ class ShopBloc extends Bloc<ShopEvent, ShopState> {
   Future<void> _onUpdateShop(
       UpdateShopEvent event, Emitter<ShopState> emit) async {
     emit(ShopLoading());
-    final result = await updateShopUseCase(event.shop);
+    final result = await repository.updateShop(event.shop);
     result.fold(
       (failure) => emit(ShopError(failure.message)),
       (_) {

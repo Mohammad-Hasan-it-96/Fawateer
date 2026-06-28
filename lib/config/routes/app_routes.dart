@@ -1,8 +1,5 @@
-import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../features/billing/presentation/bloc/history_bloc.dart';
 import '../../features/billing/presentation/pages/checkout_page.dart';
 import '../../features/billing/presentation/pages/history_page.dart';
 import '../../features/billing/presentation/pages/home_page.dart';
@@ -97,13 +94,3 @@ final router = GoRouter(
     ),
   ],
 );
-
-/// Helper: refresh history after a confirmed sale.
-/// Call this from a BlocListener on BillingBloc where HistoryBloc is accessible.
-void refreshHistoryIfNeeded(BuildContext context) {
-  try {
-    context.read<HistoryBloc>().add(LoadHistoryEvent());
-  } catch (_) {
-    // HistoryBloc not in scope (tab not yet built) — no-op
-  }
-}

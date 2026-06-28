@@ -999,23 +999,8 @@ class $SalesInvoicesTable extends SalesInvoices
   late final GeneratedColumn<double> totalAmount = GeneratedColumn<double>(
       'total_amount', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
-  static const VerificationMeta _customerIdMeta =
-      const VerificationMeta('customerId');
   @override
-  late final GeneratedColumn<String> customerId = GeneratedColumn<String>(
-      'customer_id', aliasedName, true,
-      type: DriftSqlType.string, requiredDuringInsert: false);
-  static const VerificationMeta _customerNameMeta =
-      const VerificationMeta('customerName');
-  @override
-  late final GeneratedColumn<String> customerName = GeneratedColumn<String>(
-      'customer_name', aliasedName, false,
-      type: DriftSqlType.string,
-      requiredDuringInsert: false,
-      defaultValue: const Constant(''));
-  @override
-  List<GeneratedColumn> get $columns =>
-      [id, createdAt, totalAmount, customerId, customerName];
+  List<GeneratedColumn> get $columns => [id, createdAt, totalAmount];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1045,18 +1030,6 @@ class $SalesInvoicesTable extends SalesInvoices
     } else if (isInserting) {
       context.missing(_totalAmountMeta);
     }
-    if (data.containsKey('customer_id')) {
-      context.handle(
-          _customerIdMeta,
-          customerId.isAcceptableOrUnknown(
-              data['customer_id']!, _customerIdMeta));
-    }
-    if (data.containsKey('customer_name')) {
-      context.handle(
-          _customerNameMeta,
-          customerName.isAcceptableOrUnknown(
-              data['customer_name']!, _customerNameMeta));
-    }
     return context;
   }
 
@@ -1072,10 +1045,6 @@ class $SalesInvoicesTable extends SalesInvoices
           .read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
       totalAmount: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}total_amount'])!,
-      customerId: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}customer_id']),
-      customerName: attachedDatabase.typeMapping
-          .read(DriftSqlType.string, data['${effectivePrefix}customer_name'])!,
     );
   }
 
@@ -1091,24 +1060,14 @@ class SalesInvoiceRow extends DataClass implements Insertable<SalesInvoiceRow> {
   /// Stored as milliseconds since epoch.
   final int createdAt;
   final double totalAmount;
-  final String? customerId;
-  final String customerName;
   const SalesInvoiceRow(
-      {required this.id,
-      required this.createdAt,
-      required this.totalAmount,
-      this.customerId,
-      required this.customerName});
+      {required this.id, required this.createdAt, required this.totalAmount});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
     map['id'] = Variable<String>(id);
     map['created_at'] = Variable<int>(createdAt);
     map['total_amount'] = Variable<double>(totalAmount);
-    if (!nullToAbsent || customerId != null) {
-      map['customer_id'] = Variable<String>(customerId);
-    }
-    map['customer_name'] = Variable<String>(customerName);
     return map;
   }
 
@@ -1117,10 +1076,6 @@ class SalesInvoiceRow extends DataClass implements Insertable<SalesInvoiceRow> {
       id: Value(id),
       createdAt: Value(createdAt),
       totalAmount: Value(totalAmount),
-      customerId: customerId == null && nullToAbsent
-          ? const Value.absent()
-          : Value(customerId),
-      customerName: Value(customerName),
     );
   }
 
@@ -1131,8 +1086,6 @@ class SalesInvoiceRow extends DataClass implements Insertable<SalesInvoiceRow> {
       id: serializer.fromJson<String>(json['id']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       totalAmount: serializer.fromJson<double>(json['totalAmount']),
-      customerId: serializer.fromJson<String?>(json['customerId']),
-      customerName: serializer.fromJson<String>(json['customerName']),
     );
   }
   @override
@@ -1142,23 +1095,14 @@ class SalesInvoiceRow extends DataClass implements Insertable<SalesInvoiceRow> {
       'id': serializer.toJson<String>(id),
       'createdAt': serializer.toJson<int>(createdAt),
       'totalAmount': serializer.toJson<double>(totalAmount),
-      'customerId': serializer.toJson<String?>(customerId),
-      'customerName': serializer.toJson<String>(customerName),
     };
   }
 
-  SalesInvoiceRow copyWith(
-          {String? id,
-          int? createdAt,
-          double? totalAmount,
-          Value<String?> customerId = const Value.absent(),
-          String? customerName}) =>
+  SalesInvoiceRow copyWith({String? id, int? createdAt, double? totalAmount}) =>
       SalesInvoiceRow(
         id: id ?? this.id,
         createdAt: createdAt ?? this.createdAt,
         totalAmount: totalAmount ?? this.totalAmount,
-        customerId: customerId.present ? customerId.value : this.customerId,
-        customerName: customerName ?? this.customerName,
       );
   SalesInvoiceRow copyWithCompanion(SalesInvoicesCompanion data) {
     return SalesInvoiceRow(
@@ -1166,11 +1110,6 @@ class SalesInvoiceRow extends DataClass implements Insertable<SalesInvoiceRow> {
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       totalAmount:
           data.totalAmount.present ? data.totalAmount.value : this.totalAmount,
-      customerId:
-          data.customerId.present ? data.customerId.value : this.customerId,
-      customerName: data.customerName.present
-          ? data.customerName.value
-          : this.customerName,
     );
   }
 
@@ -1179,48 +1118,37 @@ class SalesInvoiceRow extends DataClass implements Insertable<SalesInvoiceRow> {
     return (StringBuffer('SalesInvoiceRow(')
           ..write('id: $id, ')
           ..write('createdAt: $createdAt, ')
-          ..write('totalAmount: $totalAmount, ')
-          ..write('customerId: $customerId, ')
-          ..write('customerName: $customerName')
+          ..write('totalAmount: $totalAmount')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, createdAt, totalAmount, customerId, customerName);
+  int get hashCode => Object.hash(id, createdAt, totalAmount);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is SalesInvoiceRow &&
           other.id == this.id &&
           other.createdAt == this.createdAt &&
-          other.totalAmount == this.totalAmount &&
-          other.customerId == this.customerId &&
-          other.customerName == this.customerName);
+          other.totalAmount == this.totalAmount);
 }
 
 class SalesInvoicesCompanion extends UpdateCompanion<SalesInvoiceRow> {
   final Value<String> id;
   final Value<int> createdAt;
   final Value<double> totalAmount;
-  final Value<String?> customerId;
-  final Value<String> customerName;
   final Value<int> rowid;
   const SalesInvoicesCompanion({
     this.id = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.totalAmount = const Value.absent(),
-    this.customerId = const Value.absent(),
-    this.customerName = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   SalesInvoicesCompanion.insert({
     required String id,
     required int createdAt,
     required double totalAmount,
-    this.customerId = const Value.absent(),
-    this.customerName = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         createdAt = Value(createdAt),
@@ -1229,16 +1157,12 @@ class SalesInvoicesCompanion extends UpdateCompanion<SalesInvoiceRow> {
     Expression<String>? id,
     Expression<int>? createdAt,
     Expression<double>? totalAmount,
-    Expression<String>? customerId,
-    Expression<String>? customerName,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (createdAt != null) 'created_at': createdAt,
       if (totalAmount != null) 'total_amount': totalAmount,
-      if (customerId != null) 'customer_id': customerId,
-      if (customerName != null) 'customer_name': customerName,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1247,15 +1171,11 @@ class SalesInvoicesCompanion extends UpdateCompanion<SalesInvoiceRow> {
       {Value<String>? id,
       Value<int>? createdAt,
       Value<double>? totalAmount,
-      Value<String?>? customerId,
-      Value<String>? customerName,
       Value<int>? rowid}) {
     return SalesInvoicesCompanion(
       id: id ?? this.id,
       createdAt: createdAt ?? this.createdAt,
       totalAmount: totalAmount ?? this.totalAmount,
-      customerId: customerId ?? this.customerId,
-      customerName: customerName ?? this.customerName,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1272,12 +1192,6 @@ class SalesInvoicesCompanion extends UpdateCompanion<SalesInvoiceRow> {
     if (totalAmount.present) {
       map['total_amount'] = Variable<double>(totalAmount.value);
     }
-    if (customerId.present) {
-      map['customer_id'] = Variable<String>(customerId.value);
-    }
-    if (customerName.present) {
-      map['customer_name'] = Variable<String>(customerName.value);
-    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1290,8 +1204,6 @@ class SalesInvoicesCompanion extends UpdateCompanion<SalesInvoiceRow> {
           ..write('id: $id, ')
           ..write('createdAt: $createdAt, ')
           ..write('totalAmount: $totalAmount, ')
-          ..write('customerId: $customerId, ')
-          ..write('customerName: $customerName, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2216,8 +2128,6 @@ typedef $$SalesInvoicesTableCreateCompanionBuilder = SalesInvoicesCompanion
   required String id,
   required int createdAt,
   required double totalAmount,
-  Value<String?> customerId,
-  Value<String> customerName,
   Value<int> rowid,
 });
 typedef $$SalesInvoicesTableUpdateCompanionBuilder = SalesInvoicesCompanion
@@ -2225,8 +2135,6 @@ typedef $$SalesInvoicesTableUpdateCompanionBuilder = SalesInvoicesCompanion
   Value<String> id,
   Value<int> createdAt,
   Value<double> totalAmount,
-  Value<String?> customerId,
-  Value<String> customerName,
   Value<int> rowid,
 });
 
@@ -2247,12 +2155,6 @@ class $$SalesInvoicesTableFilterComposer
 
   ColumnFilters<double> get totalAmount => $composableBuilder(
       column: $table.totalAmount, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get customerId => $composableBuilder(
-      column: $table.customerId, builder: (column) => ColumnFilters(column));
-
-  ColumnFilters<String> get customerName => $composableBuilder(
-      column: $table.customerName, builder: (column) => ColumnFilters(column));
 }
 
 class $$SalesInvoicesTableOrderingComposer
@@ -2272,13 +2174,6 @@ class $$SalesInvoicesTableOrderingComposer
 
   ColumnOrderings<double> get totalAmount => $composableBuilder(
       column: $table.totalAmount, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get customerId => $composableBuilder(
-      column: $table.customerId, builder: (column) => ColumnOrderings(column));
-
-  ColumnOrderings<String> get customerName => $composableBuilder(
-      column: $table.customerName,
-      builder: (column) => ColumnOrderings(column));
 }
 
 class $$SalesInvoicesTableAnnotationComposer
@@ -2298,12 +2193,6 @@ class $$SalesInvoicesTableAnnotationComposer
 
   GeneratedColumn<double> get totalAmount => $composableBuilder(
       column: $table.totalAmount, builder: (column) => column);
-
-  GeneratedColumn<String> get customerId => $composableBuilder(
-      column: $table.customerId, builder: (column) => column);
-
-  GeneratedColumn<String> get customerName => $composableBuilder(
-      column: $table.customerName, builder: (column) => column);
 }
 
 class $$SalesInvoicesTableTableManager extends RootTableManager<
@@ -2335,32 +2224,24 @@ class $$SalesInvoicesTableTableManager extends RootTableManager<
             Value<String> id = const Value.absent(),
             Value<int> createdAt = const Value.absent(),
             Value<double> totalAmount = const Value.absent(),
-            Value<String?> customerId = const Value.absent(),
-            Value<String> customerName = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               SalesInvoicesCompanion(
             id: id,
             createdAt: createdAt,
             totalAmount: totalAmount,
-            customerId: customerId,
-            customerName: customerName,
             rowid: rowid,
           ),
           createCompanionCallback: ({
             required String id,
             required int createdAt,
             required double totalAmount,
-            Value<String?> customerId = const Value.absent(),
-            Value<String> customerName = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               SalesInvoicesCompanion.insert(
             id: id,
             createdAt: createdAt,
             totalAmount: totalAmount,
-            customerId: customerId,
-            customerName: customerName,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0

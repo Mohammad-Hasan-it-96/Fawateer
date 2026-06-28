@@ -6,8 +6,9 @@ class SalesInvoices extends Table {
   /// Stored as milliseconds since epoch.
   IntColumn get createdAt => integer()();
   RealColumn get totalAmount => real()();
-  TextColumn get customerId => text().nullable()();
-  TextColumn get customerName => text().withDefault(const Constant(''))();
+  // Note: the removed `customerId`/`customerName` columns are left orphaned in
+  // existing databases (ignored by Drift, like the old `stock`/`upiId`) — no
+  // migration needed since dropping a column requires none.
 
   @override
   Set<Column> get primaryKey => {id};

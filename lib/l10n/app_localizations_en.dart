@@ -290,4 +290,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noItems => 'No items';
+
+  @override
+  String productNotFound(String barcode) {
+    return 'Product not found: $barcode';
+  }
+
+  @override
+  String get saleSaveFailed => 'Could not save the sale. Please try again.';
+
+  @override
+  String get printerUnavailable => 'No printer is connected.';
+
+  @override
+  String get printFailed => 'Printing failed. Please try again.';
+
+  @override
+  String get printerPermissionDenied => 'Bluetooth permission is required.';
+
+  @override
+  String get printerNoPairedDevices =>
+      'No paired printer found. Pair one in Bluetooth settings.';
+
+  @override
+  String get printerConnectFailed => 'Could not connect to the printer.';
+
+  @override
+  String get printerScanFailed => 'Could not scan for printers.';
 }

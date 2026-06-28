@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/billing_bloc.dart';
-import '../bloc/history_bloc.dart';
+import '../billing_error_text.dart';
 
 class CheckoutPage extends StatelessWidget {
   const CheckoutPage({super.key});
@@ -53,12 +53,12 @@ class CheckoutPage extends StatelessWidget {
         body: BlocConsumer<BillingBloc, BillingState>(
           listenWhen: (prev, curr) =>
               prev.error != curr.error ||
-              prev.printSuccess != curr.printSuccess ||
-              (!prev.saleConfirmed && curr.saleConfirmed),
+              prev.printSuccess != curr.printSuccess,
           listener: (context, state) {
             if (state.error != null) {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(state.error!),
+                  content: Text(
+                      billingErrorText(state.error!, state.errorBarcode, l10n)),
                   backgroundColor: Colors.red));
             }
             if (state.printSuccess) {
@@ -66,11 +66,8 @@ class CheckoutPage extends StatelessWidget {
                   content: Text(l10n.printedSuccessfully),
                   backgroundColor: Colors.green));
             }
-            if (state.saleConfirmed) {
-              try {
-                context.read<HistoryBloc>().add(LoadHistoryEvent());
-              } catch (_) {}
-            }
+            // History (incl. today's totals) auto-refreshes via the invoice
+            // stream — no manual reload needed here.
           },
           builder: (context, billingState) {
             return BlocBuilder<ShopBloc, ShopState>(

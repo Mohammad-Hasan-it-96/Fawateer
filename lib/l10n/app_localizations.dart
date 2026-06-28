@@ -649,6 +649,54 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No items'**
   String get noItems;
+
+  /// No description provided for @productNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Product not found: {barcode}'**
+  String productNotFound(String barcode);
+
+  /// No description provided for @saleSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the sale. Please try again.'**
+  String get saleSaveFailed;
+
+  /// No description provided for @printerUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No printer is connected.'**
+  String get printerUnavailable;
+
+  /// No description provided for @printFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Printing failed. Please try again.'**
+  String get printFailed;
+
+  /// No description provided for @printerPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth permission is required.'**
+  String get printerPermissionDenied;
+
+  /// No description provided for @printerNoPairedDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'No paired printer found. Pair one in Bluetooth settings.'**
+  String get printerNoPairedDevices;
+
+  /// No description provided for @printerConnectFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not connect to the printer.'**
+  String get printerConnectFailed;
+
+  /// No description provided for @printerScanFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not scan for printers.'**
+  String get printerScanFailed;
 }
 
 class _AppLocalizationsDelegate

@@ -17,6 +17,20 @@ class SettingsPage extends StatefulWidget {
   State<SettingsPage> createState() => _SettingsPageState();
 }
 
+/// Map a [PrinterError] to a localized, user-facing message.
+String _printerErrorText(PrinterError error, AppLocalizations l10n) {
+  switch (error) {
+    case PrinterError.permissionDenied:
+      return l10n.printerPermissionDenied;
+    case PrinterError.noPairedDevices:
+      return l10n.printerNoPairedDevices;
+    case PrinterError.connectFailed:
+      return l10n.printerConnectFailed;
+    case PrinterError.scanFailed:
+      return l10n.printerScanFailed;
+  }
+}
+
 class _SettingsPageState extends State<SettingsPage> {
   @override
   void initState() {
@@ -113,9 +127,9 @@ class _SettingsPageState extends State<SettingsPage> {
             _buildSectionHeader(l10n.hardwareSection),
             BlocConsumer<PrinterBloc, PrinterState>(
               listener: (context, state) {
-                if (state.errorMessage != null) {
+                if (state.error != null) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                      content: Text(state.errorMessage!),
+                      content: Text(_printerErrorText(state.error!, l10n)),
                       backgroundColor: Colors.red));
                 } else if (state.status == PrinterStatus.connected) {
                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(

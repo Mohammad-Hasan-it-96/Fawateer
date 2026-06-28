@@ -46,10 +46,16 @@ class ProductRepositoryDriftImpl implements ProductRepository {
   }
 
   @override
+  Stream<List<Product>> watchProducts() =>
+      _dao.watchAllProducts().map((rows) => rows.map(_toEntity).toList());
+
+  @override
   Future<Either<Failure, Product>> getProductByBarcode(String barcode) async {
     try {
       final row = await _dao.getByBarcode(barcode);
-      if (row == null) throw Exception('Product not found for barcode: $barcode');
+      if (row == null) {
+        return Left(NotFoundFailure('No product for barcode: $barcode'));
+      }
       return Right(_toEntity(row));
     } catch (e) {
       return Left(CacheFailure(e.toString()));

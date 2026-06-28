@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
+import '../../domain/entities/printer_device.dart';
 
 enum PrinterStatus {
   initial,
@@ -13,27 +13,36 @@ enum PrinterStatus {
   testPrinting
 }
 
+/// A localizable printer error. The BLoC sets the case; the page maps it to a
+/// translated string — no user-facing English lives in the BLoC.
+enum PrinterError {
+  permissionDenied,
+  noPairedDevices,
+  connectFailed,
+  scanFailed,
+}
+
 class PrinterState extends Equatable {
   final PrinterStatus status;
   final String? connectedMac;
   final String? connectedName;
-  final List<BluetoothInfo> devices;
-  final String? errorMessage;
+  final List<PrinterDevice> devices;
+  final PrinterError? error;
 
   const PrinterState({
     this.status = PrinterStatus.initial,
     this.connectedMac,
     this.connectedName,
     this.devices = const [],
-    this.errorMessage,
+    this.error,
   });
 
   PrinterState copyWith({
     PrinterStatus? status,
     String? connectedMac,
     String? connectedName,
-    List<BluetoothInfo>? devices,
-    String? errorMessage,
+    List<PrinterDevice>? devices,
+    PrinterError? error,
     bool clearError = false,
   }) {
     return PrinterState(
@@ -41,11 +50,11 @@ class PrinterState extends Equatable {
       connectedMac: connectedMac ?? this.connectedMac,
       connectedName: connectedName ?? this.connectedName,
       devices: devices ?? this.devices,
-      errorMessage: clearError ? null : (errorMessage ?? this.errorMessage),
+      error: clearError ? null : (error ?? this.error),
     );
   }
 
   @override
   List<Object?> get props =>
-      [status, connectedMac, connectedName, devices, errorMessage];
+      [status, connectedMac, connectedName, devices, error];
 }

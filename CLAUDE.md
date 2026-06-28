@@ -40,22 +40,20 @@ The project follows **Clean Architecture** with **BLoC** state management. DI is
 lib/features/<feature>/
   domain/
     entities/        # Pure Dart classes (Equatable)
-    repositories/    # Abstract interfaces
-    usecases/        # extends UseCase<Result, Params> (often grouped in one file, e.g. product_usecases.dart)
+    repositories/    # Abstract interfaces returning Either<Failure, T>
   data/
     repositories/    # Concrete implementations (suffix *_drift_impl.dart); map Drift rows <-> entities directly
   presentation/
-    bloc/            # separate bloc/event/state files (NOT part directives — imported individually)
+    bloc/            # bloc/event/state (event+state are `part of` the bloc file)
     pages/           # UI pages
 ```
 
-Note: there is no `data/models/` layer — repository implementations convert Drift-generated row classes to domain entities directly. BLoC event/state classes live in their own files and are imported explicitly (see `main.dart` importing `product_bloc.dart` + `product_event.dart`).
+Note: there is **no use case layer** — BLoCs depend on repository interfaces directly (e.g. `ProductBloc({required ProductRepository repository})`) and call their methods. There is also no `data/models/` layer; repository implementations convert Drift-generated row classes to domain entities directly. Keep any real business logic in the repository (or the BLoC if it's UI state logic), not in a new pass-through layer.
 
 ### Core
 
 - `lib/core/database/` — Drift `AppDatabase`, all table definitions (`tables/`), and DAOs (`daos/`)
-- `lib/core/error/failure.dart` — `Failure` base class (currently only `CacheFailure`)
-- `lib/core/usecase/usecase.dart` — `UseCase<Result, Params>` returning `Future<Either<Failure, Result>>`
+- `lib/core/error/failure.dart` — `Failure` base class + typed subclasses: `CacheFailure` (DB/unexpected), `NotFoundFailure` (entity missing), `PermissionFailure` (OS permission denied). `Failure.message` is debug detail only — never shown to users.
 - `lib/core/service_locator.dart` — All GetIt registrations
 - `lib/core/theme/app_theme.dart` — `AppTheme.lightTheme`
 - `lib/config/routes/app_routes.dart` — GoRouter config; `app_shell.dart` — bottom-nav tab shell
@@ -66,8 +64,7 @@ Note: there is no `data/models/` layer — repository implementations convert Dr
 1. `AppDatabase` (lazy singleton)
 2. DAOs (lazy singletons, each receives `AppDatabase` via `sl()`)
 3. Repositories (lazy singletons, each receives its DAO)
-4. Use cases (lazy singletons)
-5. BLoCs (factories)
+4. BLoCs (factories, each receives the repository interface(s) it needs)
 
 `main.dart` provides app-wide BLoCs through a `MultiBlocProvider` and dispatches initial load events (`LoadProducts`, `LoadShopEvent`, `InitPrinterEvent`, `LoadHistoryEvent`).
 
@@ -83,7 +80,7 @@ Schema is at **version 5** with a `MigrationStrategy`. When changing tables, bum
 
 Indexes are built by `_createIndexes()` (idempotent `CREATE [UNIQUE] INDEX IF NOT EXISTS`), called from both `onCreate` and the v3→v4 step: a **partial-unique** `idx_products_barcode` (`WHERE barcode != ''`, so many barcode-less items are allowed but non-empty barcodes stay unique), plus `idx_sales_invoices_created_at`, `idx_sales_items_invoice_id`, `idx_sales_items_product_id`. Index/table names use Drift's snake_case. Note: the partial-unique index throws mid-migration if existing rows already share a non-empty barcode.
 
-The `products` table carries a `cost` column (purchase cost, default 0) used for profit-margin reporting; `salesItems` snapshots it at sale time (alongside `productName`/`price`) so historical cost is preserved even if the product is later edited or deleted. Inventory is tracked by `quantity` (double, on-hand) with a `minStockAlert` threshold (`Product.isLowStock` = `minStockAlert > 0 && quantity <= minStockAlert`); the sale flow deducts `quantity` on confirm. The old physical `stock` column is left orphaned by the v4→v5 migration (has `DEFAULT 0`, ignored by Drift) — same approach used when `upiId` was removed; `addColumn`-only migrations avoid table rebuilds.
+The `products` table carries a `cost` column (purchase cost, default 0) used for profit-margin reporting; `salesItems` snapshots it at sale time (alongside `productName`/`price`) so historical cost is preserved even if the product is later edited or deleted. Inventory is tracked by `quantity` (double, on-hand) with a `minStockAlert` threshold (`Product.isLowStock` = `minStockAlert > 0 && quantity <= minStockAlert`); the sale flow deducts `quantity` on confirm. The old physical `stock` column is left orphaned by the v4→v5 migration (has `DEFAULT 0`, ignored by Drift) — same approach used when `upiId` was removed; `addColumn`-only migrations avoid table rebuilds. The `sales_invoices.customerId`/`customerName` columns were likewise removed from the table class (and the `Invoice` entity) but stay physically present in existing DBs, ignored by Drift — no migration or `schemaVersion` bump needed, since dropping a column requires no DDL. `SalesDao.deleteInvoice` deletes an invoice and its `sales_items` rows in one transaction (no orphans).
 
 ### Localization
 
@@ -95,10 +92,10 @@ The `products` table carries a `cost` column (purchase cost, default 0) used for
 
 | Feature | BLoCs registered | Notes |
 |---|---|---|
-| billing | `BillingBloc`, `HistoryBloc` | Cart management, barcode scan, Bluetooth printing, sales history |
+| billing | `BillingBloc`, `HistoryBloc` | Cart management, barcode scan, sales history. Receipt printing is delegated to `PrinterRepository.printReceipt` (which ensures/reconnects the printer); the BLoC builds `ReceiptLine`s and never touches `PrinterHelper` directly. |
 | product | `ProductBloc` | CRUD + barcode lookup |
 | shop | `ShopBloc` | Shop profile/settings |
-| settings | `PrinterBloc` | Bluetooth printer pairing/config |
+| settings | `PrinterBloc` | Bluetooth printer pairing/config. Domain exposes `PrinterDevice` (not the plugin's `BluetoothInfo`) and `ReceiptLine`; only `core/utils/printer_helper.dart` and the repo impl touch `print_bluetooth_thermal`. `scanDevices` returns `Either<Failure, List<PrinterDevice>>`. |
 
 ### Navigation (GoRouter)
 
@@ -112,8 +109,12 @@ Routing uses a `StatefulShellRoute.indexedStack` (`AppShell`) with four tab bran
 - Branch 3: `/settings` → `SettingsPage` → `/settings/shop` → `ShopDetailsPage`
 - Top-level: `/scanner` → `ScannerPage`
 
-`refreshHistoryIfNeeded(context)` in `app_routes.dart` re-loads `HistoryBloc` after a confirmed sale (no-op if the History tab isn't built yet).
+History and the product list are **stream-backed**: `ProductBloc`/`HistoryBloc` dispatch `LoadProducts`/`LoadHistoryEvent` once at startup, which subscribe (via `emit.forEach`) to `repository.watchProducts()`/`watchInvoices()`. After a sale, the stock decrement and new invoice flow back automatically — there is no manual reload after a confirmed sale (the old `refreshHistoryIfNeeded` helper was removed). Product mutation handlers (add/update/delete) emit only their transient success/error message; the list itself updates from the stream.
 
 ### Functional error handling
 
-Use cases return `Either<Failure, T>` from fpdart. Callers use `.fold(onLeft, onRight)` or `result.match`. BLoCs emit an error state on `Left` and a success state on `Right`.
+Repositories return `Either<Failure, T>` from fpdart. BLoCs call the repository, then `.fold(onLeft, onRight)` (or `result.match`), emitting an error state on `Left` and a success state on `Right`.
+
+**No user-facing English in BLoCs.** A BLoC that hits a failure stores a *typed* error in its state — either the `Failure` subtype or a feature error enum (`BillingError`, `PrinterError`) — never a pre-rendered string. The page maps that type to a localized ARB string (`billingErrorText(...)`, `_printerErrorText(...)`). Add new error strings to the ARB files. (`PrinterRepository.connect`/`disconnect`/`printReceipt` still return plain `bool` — a connect/print is a boolean outcome, not an error channel; only `scanDevices` returns `Either` because it can fail on permission.)
+
+Note: Product/Shop BLoC *success* messages (e.g. "Product added successfully") are still English — localizing those is a separate i18n pass, not part of the failure taxonomy.

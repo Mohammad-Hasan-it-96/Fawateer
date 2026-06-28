@@ -102,5 +102,14 @@
   "negativePriceError": "السعر لا يمكن أن يكون سالباً",
 
   "printedSuccessfully": "تمت الطباعة بنجاح",
-  "noItems": "لا توجد عناصر"
+  "noItems": "لا توجد عناصر",
+
+  "productNotFound": "المنتج غير موجود: {barcode}",
+  "saleSaveFailed": "تعذّر حفظ عملية البيع. حاول مرة أخرى.",
+  "printerUnavailable": "لا توجد طابعة متصلة.",
+  "printFailed": "فشلت الطباعة. حاول مرة أخرى.",
+  "printerPermissionDenied": "إذن البلوتوث مطلوب.",
+  "printerNoPairedDevices": "لا توجد طابعة مقترنة. قم بالإقران من إعدادات البلوتوث.",
+  "printerConnectFailed": "تعذّر الاتصال بالطابعة.",
+  "printerScanFailed": "تعذّر البحث عن الطابعات."
 }

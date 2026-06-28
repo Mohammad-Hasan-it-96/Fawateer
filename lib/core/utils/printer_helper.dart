@@ -71,35 +71,11 @@ class PrinterHelper {
     }
   }
 
+  /// Print a plain line of text (used for the printer test print).
   Future<void> printText(String text) async {
     if (!_isConnected) return;
-
-    // Simple text printing
-    // We can use bytes for advanced formatting
-    // But plugin supports basic text or bytes
-
-    // Checking battery or connection status
-    final bool connectionStatus = await PrintBluetoothThermal.connectionStatus;
-    if (connectionStatus) {
-      // Plugin allows sending bytes. We need ESC/POS commands for text.
-      // However, the plugin might have helper.
-      // Looking at doc, `writeBytes` or `writeString`?
-      // The plugin `print_bluetooth_thermal` mainly exposes `writeBytes`.
-      // We need a generator. `esc_pos_utils` is common but not requested.
-      // But wait, `print_bluetooth_thermal` example often uses `capability_profile` and `generator`.
-      // I don't have `esc_pos_utils` or similar in my pubspec.
-      // The user requested `print_bluetooth_thermal`.
-      // Let's assume we can send raw string bytes or use a simple helper.
-      // Actually without `esc_pos_utils`, formatting is hard.
-      // I will try to use `esc_pos_utils_plus` or similar if I can add it, but user gave specific packages.
-      // Wait, user allowed "use required plugins".
-      // "suggest barcode scanner ... and use required plugins".
-      // So I can add `esc_pos_utils_plus`.
-
-      // For now, I'll assume simple text printing by converting string to bytes.
-      // ASCII bytes.
-      List<int> bytes = text.codeUnits;
-      await PrintBluetoothThermal.writeBytes(bytes);
+    if (await PrintBluetoothThermal.connectionStatus) {
+      await PrintBluetoothThermal.writeBytes(_textToBytes(text));
     }
   }
 
@@ -194,8 +170,14 @@ class PrinterHelper {
     await PrintBluetoothThermal.writeBytes(bytes);
   }
 
-  List<int> _textToBytes(String text) {
-    // Should verify encoding, but Latin-1 usually works for basic printers
-    return List.from(text.codeUnits);
-  }
+  /// Encode text to bytes for the thermal printer.
+  ///
+  /// LIMITATION: this emits Latin-1 (single-byte) output, so non-Latin scripts —
+  /// including Arabic — will NOT print correctly. Proper Arabic receipts require
+  /// rendering the text to a bitmap and sending it as a raster image (a separate
+  /// print path) — tracked as a TODO. Characters outside Latin-1 are replaced
+  /// with '?' so we never emit stray control bytes that could mis-drive the
+  /// printer.
+  List<int> _textToBytes(String text) =>
+      text.runes.map((r) => r <= 0xFF ? r : 0x3F).toList();
 }

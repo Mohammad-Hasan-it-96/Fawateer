@@ -1,6 +1,9 @@
-import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
+import 'package:fpdart/fpdart.dart';
 import '../../../../core/database/daos/settings_dao.dart';
+import '../../../../core/error/failure.dart';
 import '../../../../core/utils/printer_helper.dart';
+import '../../domain/entities/printer_device.dart';
+import '../../domain/entities/receipt_line.dart';
 import '../../domain/repositories/printer_repository.dart';
 
 class PrinterRepositoryDriftImpl implements PrinterRepository {
@@ -10,11 +13,18 @@ class PrinterRepositoryDriftImpl implements PrinterRepository {
   PrinterRepositoryDriftImpl(this._settingsDao);
 
   @override
-  Future<List<BluetoothInfo>> scanDevices() async {
-    if (await _printerHelper.checkPermission()) {
-      return _printerHelper.getBondedDevices();
+  Future<Either<Failure, List<PrinterDevice>>> scanDevices() async {
+    try {
+      if (!await _printerHelper.checkPermission()) {
+        return const Left(PermissionFailure('Bluetooth permission denied'));
+      }
+      final devices = await _printerHelper.getBondedDevices();
+      return Right(devices
+          .map((d) => PrinterDevice(name: d.name, mac: d.macAdress))
+          .toList());
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
     }
-    throw Exception('Bluetooth permission denied');
   }
 
   @override
@@ -46,5 +56,45 @@ class PrinterRepositoryDriftImpl implements PrinterRepository {
   Future<void> testPrint(String shopName) =>
       _printerHelper
           .printText('Test Print\n\n$shopName\n\n----------------\n\n');
+
+  @override
+  Future<bool> printReceipt({
+    required String shopName,
+    required String address1,
+    required String address2,
+    required String phone,
+    required String footer,
+    required double total,
+    required List<ReceiptLine> items,
+  }) async {
+    if (!await _ensureConnected()) return false;
+
+    await _printerHelper.printReceipt(
+      shopName: shopName,
+      address1: address1,
+      address2: address2,
+      phone: phone,
+      footer: footer,
+      total: total,
+      items: items
+          .map((i) => {
+                'name': i.name,
+                'qty': i.quantity,
+                'price': i.price,
+                'total': i.total,
+              })
+          .toList(),
+    );
+    return true;
+  }
+
+  /// Make sure we have a live connection, reconnecting to the saved printer if
+  /// needed. Returns false when there's nothing to connect to.
+  Future<bool> _ensureConnected() async {
+    if (_printerHelper.isConnected) return true;
+    final mac = await _settingsDao.getValue('printer_mac');
+    if (mac == null) return false;
+    return _printerHelper.connect(mac);
+  }
 }
 

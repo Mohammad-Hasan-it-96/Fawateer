@@ -288,4 +288,31 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noItems => 'لا توجد عناصر';
+
+  @override
+  String productNotFound(String barcode) {
+    return 'المنتج غير موجود: $barcode';
+  }
+
+  @override
+  String get saleSaveFailed => 'تعذّر حفظ عملية البيع. حاول مرة أخرى.';
+
+  @override
+  String get printerUnavailable => 'لا توجد طابعة متصلة.';
+
+  @override
+  String get printFailed => 'فشلت الطباعة. حاول مرة أخرى.';
+
+  @override
+  String get printerPermissionDenied => 'إذن البلوتوث مطلوب.';
+
+  @override
+  String get printerNoPairedDevices =>
+      'لا توجد طابعة مقترنة. قم بالإقران من إعدادات البلوتوث.';
+
+  @override
+  String get printerConnectFailed => 'تعذّر الاتصال بالطابعة.';
+
+  @override
+  String get printerScanFailed => 'تعذّر البحث عن الطابعات.';
 }

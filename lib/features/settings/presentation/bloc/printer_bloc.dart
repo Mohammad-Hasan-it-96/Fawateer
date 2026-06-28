@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/error/failure.dart';
 import '../../domain/repositories/printer_repository.dart';
 import 'printer_event.dart';
 import 'printer_state.dart';
@@ -28,64 +29,60 @@ class PrinterBloc extends Bloc<PrinterEvent, PrinterState> {
   Future<void> _onRefresh(
       RefreshPrinterEvent event, Emitter<PrinterState> emit) async {
     emit(state.copyWith(status: PrinterStatus.scanning, clearError: true));
-    try {
-      final devices = await repository.scanDevices();
-      if (devices.isEmpty) {
-        emit(state.copyWith(
-          status: PrinterStatus.scanFailure,
-          errorMessage: 'No paired devices found.',
-          devices: [],
-        ));
-        return;
-      }
+    final result = await repository.scanDevices();
 
-      bool connected = false;
-      for (var device in devices) {
-        final success = await repository.connect(device.macAdress);
-        if (success) {
-          await repository.savePrinterData(device.macAdress, device.name);
+    await result.fold(
+      (failure) async => emit(state.copyWith(
+        status: PrinterStatus.scanFailure,
+        error: _mapScanFailure(failure),
+      )),
+      (devices) async {
+        if (devices.isEmpty) {
           emit(state.copyWith(
-            status: PrinterStatus.connected,
-            connectedMac: device.macAdress,
-            connectedName: device.name,
-            devices: devices,
-            clearError: true,
+            status: PrinterStatus.scanFailure,
+            error: PrinterError.noPairedDevices,
+            devices: const [],
           ));
-          connected = true;
-          break;
+          return;
         }
-      }
 
-      if (!connected) {
+        for (final device in devices) {
+          if (await repository.connect(device.mac)) {
+            await repository.savePrinterData(device.mac, device.name);
+            emit(state.copyWith(
+              status: PrinterStatus.connected,
+              connectedMac: device.mac,
+              connectedName: device.name,
+              devices: devices,
+              clearError: true,
+            ));
+            return;
+          }
+        }
+
         emit(state.copyWith(
           status: PrinterStatus.scanFailure,
-          errorMessage: 'Could not connect to any paired device.',
+          error: PrinterError.connectFailed,
           devices: devices,
         ));
-      }
-    } catch (e) {
-      emit(state.copyWith(
-        status: PrinterStatus.scanFailure,
-        errorMessage: e.toString(),
-      ));
-    }
+      },
+    );
   }
 
   Future<void> _onScan(
       ScanPrintersEvent event, Emitter<PrinterState> emit) async {
     emit(state.copyWith(status: PrinterStatus.scanning, clearError: true));
-    try {
-      final devices = await repository.scanDevices();
-      emit(state.copyWith(
+    final result = await repository.scanDevices();
+    result.fold(
+      (failure) => emit(state.copyWith(
+        status: PrinterStatus.scanFailure,
+        error: _mapScanFailure(failure),
+      )),
+      (devices) => emit(state.copyWith(
         status: PrinterStatus.scanSuccess,
         devices: devices,
-      ));
-    } catch (e) {
-      emit(state.copyWith(
-        status: PrinterStatus.scanFailure,
-        errorMessage: e.toString(),
-      ));
-    }
+      )),
+    );
   }
 
   Future<void> _onConnect(
@@ -102,7 +99,7 @@ class PrinterBloc extends Bloc<PrinterEvent, PrinterState> {
     } else {
       emit(state.copyWith(
         status: PrinterStatus.connectionFailure,
-        errorMessage: 'Failed to connect to printer',
+        error: PrinterError.connectFailed,
       ));
     }
   }
@@ -123,4 +120,9 @@ class PrinterBloc extends Bloc<PrinterEvent, PrinterState> {
     await repository.testPrint(event.shopName);
     emit(state.copyWith(status: PrinterStatus.scanSuccess));
   }
+
+  PrinterError _mapScanFailure(Failure failure) =>
+      failure is PermissionFailure
+          ? PrinterError.permissionDenied
+          : PrinterError.scanFailed;
 }

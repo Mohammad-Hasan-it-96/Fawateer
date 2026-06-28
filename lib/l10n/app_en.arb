@@ -104,5 +104,15 @@
   "negativePriceError": "Price cannot be negative",
 
   "printedSuccessfully": "Printed successfully",
-  "noItems": "No items"
+  "noItems": "No items",
+
+  "productNotFound": "Product not found: {barcode}",
+  "@productNotFound": { "placeholders": { "barcode": { "type": "String" } } },
+  "saleSaveFailed": "Could not save the sale. Please try again.",
+  "printerUnavailable": "No printer is connected.",
+  "printFailed": "Printing failed. Please try again.",
+  "printerPermissionDenied": "Bluetooth permission is required.",
+  "printerNoPairedDevices": "No paired printer found. Pair one in Bluetooth settings.",
+  "printerConnectFailed": "Could not connect to the printer.",
+  "printerScanFailed": "Could not scan for printers."
 }

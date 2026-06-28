@@ -5,6 +5,7 @@ import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../../../billing/presentation/bloc/billing_bloc.dart';
+import '../billing_error_text.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../../product/presentation/bloc/product_bloc.dart';
 import '../../../product/domain/entities/product.dart';
@@ -103,7 +104,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 prev.error != curr.error && curr.error != null,
             listener: (context, state) {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(state.error!),
+                content: Text(
+                    billingErrorText(state.error!, state.errorBarcode, l10n)),
                 backgroundColor: Colors.red,
                 behavior: SnackBarBehavior.floating,
               ));

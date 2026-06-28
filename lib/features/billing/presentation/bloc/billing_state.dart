@@ -1,8 +1,21 @@
 part of 'billing_bloc.dart';
 
+/// A localizable billing error. The BLoC sets the case; pages map it to a
+/// translated string — no user-facing English lives in the BLoC.
+enum BillingError {
+  productNotFound,
+  saveFailed,
+  printerUnavailable,
+  printFailed,
+}
+
 class BillingState extends Equatable {
   final List<CartItem> cartItems;
-  final String? error;
+  final BillingError? error;
+
+  /// The barcode that wasn't found — only set for [BillingError.productNotFound]
+  /// so the UI can name it in the message.
+  final String? errorBarcode;
   final bool isPrinting;
   final bool printSuccess;
   final bool isSaving;
@@ -13,6 +26,7 @@ class BillingState extends Equatable {
   const BillingState({
     this.cartItems = const [],
     this.error,
+    this.errorBarcode,
     this.isPrinting = false,
     this.printSuccess = false,
     this.isSaving = false,
@@ -25,7 +39,8 @@ class BillingState extends Equatable {
 
   BillingState copyWith({
     List<CartItem>? cartItems,
-    String? error,
+    BillingError? error,
+    String? errorBarcode,
     bool clearError = false,
     bool? isPrinting,
     bool? printSuccess,
@@ -38,6 +53,7 @@ class BillingState extends Equatable {
     return BillingState(
       cartItems: cartItems ?? this.cartItems,
       error: clearError ? null : (error ?? this.error),
+      errorBarcode: clearError ? null : (errorBarcode ?? this.errorBarcode),
       isPrinting: isPrinting ?? this.isPrinting,
       printSuccess: printSuccess ?? this.printSuccess,
       isSaving: isSaving ?? this.isSaving,
@@ -52,6 +68,7 @@ class BillingState extends Equatable {
   List<Object?> get props => [
         cartItems,
         error,
+        errorBarcode,
         isPrinting,
         printSuccess,
         isSaving,

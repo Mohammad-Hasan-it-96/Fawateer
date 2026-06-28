@@ -4,6 +4,10 @@ import '../../domain/entities/product.dart';
 
 abstract class ProductRepository {
   Future<Either<Failure, List<Product>>> getProducts();
+
+  /// Reactive stream of all products, updated on every write (incl. stock
+  /// changes from a sale).
+  Stream<List<Product>> watchProducts();
   Future<Either<Failure, Product>> getProductByBarcode(String barcode);
   Future<Either<Failure, void>> addProduct(Product product);
   Future<Either<Failure, void>> updateProduct(Product product);
