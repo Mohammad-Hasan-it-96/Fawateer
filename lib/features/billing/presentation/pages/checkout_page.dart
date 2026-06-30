@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/utils/format.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/billing_bloc.dart';
@@ -155,7 +156,7 @@ class CheckoutPage extends StatelessWidget {
                                       return TableRow(
                                         children: [
                                           _dataCell(
-                                            '${item.quantity} x ${item.product.name}',
+                                            '${formatQty(item.quantity)} x ${item.product.name}',
                                             TextAlign.start,
                                           ),
                                           _dataCell(
@@ -345,7 +346,6 @@ class CheckoutPage extends StatelessWidget {
                               address2: shop.addressLine2,
                               phone: shop.phoneNumber,
                               footer: shop.footerText,
-                              currencySymbol: shop.currencySymbol,
                             ));
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(

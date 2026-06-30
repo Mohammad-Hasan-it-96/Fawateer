@@ -24,7 +24,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scannedItems => 'Scanned Items';
 
   @override
-  String itemsCount(int count) {
+  String itemsCount(String count) {
     return '$count items total';
   }
 
@@ -138,6 +138,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get delete => 'Delete';
+
+  @override
+  String get save => 'Save';
+
+  @override
+  String get quantityDialogTitle => 'Quantity';
 
   @override
   String get addProductTitle => 'Add Product';

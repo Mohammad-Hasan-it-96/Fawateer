@@ -10,6 +10,7 @@ import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../../product/presentation/bloc/product_bloc.dart';
 import '../../../product/domain/entities/product.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/format.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/cart_item.dart';
@@ -358,7 +359,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           BlocBuilder<BillingBloc, BillingState>(
             builder: (context, state) {
               final totalItems =
-                  state.cartItems.fold<int>(0, (s, i) => s + i.quantity);
+                  state.cartItems.fold<double>(0, (s, i) => s + i.quantity);
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                 child: Row(
@@ -370,7 +371,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         Text(l10n.scannedItems,
                             style: const TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.w600)),
-                        Text(l10n.itemsCount(totalItems),
+                        Text(l10n.itemsCount(formatQty(totalItems)),
                             style: const TextStyle(
                                 fontSize: 12, color: Colors.grey)),
                       ],
@@ -537,11 +538,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     }
                   },
                 ),
-                SizedBox(
-                  width: 32,
-                  child: Text('${item.quantity}',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                InkWell(
+                  onTap: () => _editQuantity(context, item),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 36),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                    child: Text(formatQty(item.quantity),
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                  ),
                 ),
                 _qtyButton(
                   icon: Icons.add,
@@ -565,6 +572,21 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         child: Icon(icon, size: 20, color: Colors.grey[600]),
       ),
     );
+  }
+
+  /// Tap-to-edit quantity: opens a numeric keypad so the cashier sets an exact
+  /// amount in one entry — including decimals for weight items (0.5 kg) —
+  /// instead of tapping +/- repeatedly. Submitting 0 removes the line; an
+  /// empty/invalid entry leaves the quantity unchanged.
+  Future<void> _editQuantity(BuildContext context, CartItem item) async {
+    final bloc = context.read<BillingBloc>();
+    final newQty = await showDialog<double>(
+      context: context,
+      builder: (_) => _QuantityDialog(item: item),
+    );
+    if (newQty != null) {
+      bloc.add(UpdateQuantityEvent(item.product.id, newQty));
+    }
   }
 
   /// Opens a searchable product grid so the cashier can add items that have
@@ -745,6 +767,60 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Numeric-keypad dialog for setting an exact cart quantity. Owns its own
+/// [TextEditingController] so it's disposed in [dispose] — after the element is
+/// fully unmounted — rather than in the caller's async gap, which would tear
+/// the field down mid-transition.
+class _QuantityDialog extends StatefulWidget {
+  final CartItem item;
+  const _QuantityDialog({required this.item});
+
+  @override
+  State<_QuantityDialog> createState() => _QuantityDialogState();
+}
+
+class _QuantityDialogState extends State<_QuantityDialog> {
+  late final TextEditingController _controller =
+      TextEditingController(text: formatQty(widget.item.quantity));
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _submit() =>
+      Navigator.of(context).pop(double.tryParse(_controller.text));
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return AlertDialog(
+      title: Text(widget.item.product.name,
+          maxLines: 1, overflow: TextOverflow.ellipsis),
+      content: TextField(
+        controller: _controller,
+        autofocus: true,
+        textAlign: TextAlign.center,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: InputDecoration(labelText: l10n.quantityDialogTitle),
+        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        onSubmitted: (_) => _submit(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        ElevatedButton(
+          onPressed: _submit,
+          child: Text(l10n.save),
+        ),
+      ],
     );
   }
 }

@@ -29,7 +29,7 @@ class RemoveProductFromCartEvent extends BillingEvent {
 
 class UpdateQuantityEvent extends BillingEvent {
   final String productId;
-  final int quantity;
+  final double quantity;
   const UpdateQuantityEvent(this.productId, this.quantity);
   @override
   List<Object> get props => [productId, quantity];
@@ -62,7 +62,6 @@ class ConfirmSaleEvent extends BillingEvent {
   final String address2;
   final String phone;
   final String footer;
-  final String currencySymbol;
 
   const ConfirmSaleEvent({
     required this.shopName,
@@ -70,10 +69,8 @@ class ConfirmSaleEvent extends BillingEvent {
     required this.address2,
     required this.phone,
     required this.footer,
-    required this.currencySymbol,
   });
 
   @override
-  List<Object> get props =>
-      [shopName, address1, address2, phone, footer, currencySymbol];
+  List<Object> get props => [shopName, address1, address2, phone, footer];
 }

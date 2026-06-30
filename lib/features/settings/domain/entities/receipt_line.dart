@@ -2,7 +2,7 @@
 /// any cart/invoice types — callers map their data into these.
 class ReceiptLine {
   final String name;
-  final int quantity;
+  final double quantity;
   final double price;
   final double total;
 

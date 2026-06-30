@@ -24,7 +24,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get scannedItems => 'المنتجات الممسوحة';
 
   @override
-  String itemsCount(int count) {
+  String itemsCount(String count) {
     return '$count منتج';
   }
 
@@ -137,6 +137,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get delete => 'حذف';
+
+  @override
+  String get save => 'حفظ';
+
+  @override
+  String get quantityDialogTitle => 'الكمية';
 
   @override
   String get addProductTitle => 'إضافة منتج';

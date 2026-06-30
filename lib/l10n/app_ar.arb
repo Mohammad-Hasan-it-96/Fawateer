@@ -47,6 +47,8 @@
   "deleteProductConfirm": "هل تريد حذف {name}؟",
   "cancel": "إلغاء",
   "delete": "حذف",
+  "save": "حفظ",
+  "quantityDialogTitle": "الكمية",
 
   "addProductTitle": "إضافة منتج",
   "barcodeLabel": "الباركود",

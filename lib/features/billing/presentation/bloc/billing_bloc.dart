@@ -114,7 +114,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
               productName: cartItem.product.name,
               price: cartItem.product.price,
               cost: cartItem.product.cost,
-              quantity: cartItem.quantity.toDouble(),
+              quantity: cartItem.quantity,
             ))
         .toList();
 

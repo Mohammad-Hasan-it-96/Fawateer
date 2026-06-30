@@ -132,7 +132,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{count} items total'**
-  String itemsCount(int count);
+  String itemsCount(String count);
 
   /// No description provided for @totalPrice.
   ///
@@ -349,6 +349,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete'**
   String get delete;
+
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @quantityDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity'**
+  String get quantityDialogTitle;
 
   /// No description provided for @addProductTitle.
   ///

@@ -8,7 +8,7 @@
 
   "scannedItems": "Scanned Items",
   "itemsCount": "{count} items total",
-  "@itemsCount": { "placeholders": { "count": { "type": "int" } } },
+  "@itemsCount": { "placeholders": { "count": { "type": "String" } } },
   "totalPrice": "TOTAL PRICE",
   "reviewOrder": "Review Order",
   "cameraOff": "Camera is turned off",
@@ -49,6 +49,8 @@
   "@deleteProductConfirm": { "placeholders": { "name": { "type": "String" } } },
   "cancel": "Cancel",
   "delete": "Delete",
+  "save": "Save",
+  "quantityDialogTitle": "Quantity",
 
   "addProductTitle": "Add Product",
   "barcodeLabel": "Barcode",
