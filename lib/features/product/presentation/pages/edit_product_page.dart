@@ -135,6 +135,7 @@ class _EditProductPageState extends State<EditProductPage> {
                       requiredMsg: l10n.fieldRequired,
                       invalidMsg: l10n.invalidPrice,
                       negativeMsg: l10n.negativePriceError,
+                      mustBePositiveMsg: l10n.priceMustBePositive,
                     ),
                     onSaved: (value) =>
                         _price = NumInput.parseFlexibleNumber(value) ?? 0,

@@ -11,6 +11,9 @@
   "@itemsCount": { "placeholders": { "count": { "type": "String" } } },
   "totalPrice": "TOTAL PRICE",
   "reviewOrder": "Review Order",
+  "cameraUnavailable": "Camera unavailable",
+  "cameraPermissionHint": "Allow camera access to scan barcodes, or add items manually below.",
+  "openSettings": "Open Settings",
   "cameraOff": "Camera is turned off",
   "cameraOffHint": "Turn on the camera to scan barcodes automatically.",
   "turnOnCamera": "Turn on Camera",
@@ -115,6 +118,7 @@
   "fieldRequired": "Required",
   "invalidPrice": "Please enter a valid price",
   "negativePriceError": "Price cannot be negative",
+  "priceMustBePositive": "Price must be greater than zero",
   "invalidNumber": "Please enter a valid number",
   "negativeNotAllowed": "Cannot be negative",
 

@@ -35,6 +35,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get reviewOrder => 'مراجعة الطلب';
 
   @override
+  String get cameraUnavailable => 'الكاميرا غير متاحة';
+
+  @override
+  String get cameraPermissionHint =>
+      'اسمح بالوصول إلى الكاميرا لمسح الباركود، أو أضف الأصناف يدوياً بالأسفل.';
+
+  @override
+  String get openSettings => 'فتح الإعدادات';
+
+  @override
   String get cameraOff => 'الكاميرا متوقفة';
 
   @override
@@ -321,6 +331,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get negativePriceError => 'السعر لا يمكن أن يكون سالباً';
+
+  @override
+  String get priceMustBePositive => 'يجب أن يكون السعر أكبر من صفر';
 
   @override
   String get invalidNumber => 'الرجاء إدخال رقم صحيح';

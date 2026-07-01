@@ -146,6 +146,24 @@ abstract class AppLocalizations {
   /// **'Review Order'**
   String get reviewOrder;
 
+  /// No description provided for @cameraUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera unavailable'**
+  String get cameraUnavailable;
+
+  /// No description provided for @cameraPermissionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow camera access to scan barcodes, or add items manually below.'**
+  String get cameraPermissionHint;
+
+  /// No description provided for @openSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get openSettings;
+
   /// No description provided for @cameraOff.
   ///
   /// In en, this message translates to:
@@ -709,6 +727,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Price cannot be negative'**
   String get negativePriceError;
+
+  /// No description provided for @priceMustBePositive.
+  ///
+  /// In en, this message translates to:
+  /// **'Price must be greater than zero'**
+  String get priceMustBePositive;
 
   /// No description provided for @invalidNumber.
   ///

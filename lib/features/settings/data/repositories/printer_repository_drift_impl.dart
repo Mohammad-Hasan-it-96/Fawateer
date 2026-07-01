@@ -33,30 +33,57 @@ class PrinterRepositoryDriftImpl implements PrinterRepository {
   @override
   Future<bool> disconnect() => _printerHelper.disconnect();
 
-  @override
-  Future<String?> getSavedPrinterMac() => _settingsDao.getValue('printer_mac');
+  // The methods below intentionally never throw: a DB/IO failure degrades
+  // gracefully (null / no-op) instead of unwinding into a BLoC handler and
+  // leaving its spinner stuck. Persistence is best-effort.
 
   @override
-  Future<String?> getSavedPrinterName() =>
-      _settingsDao.getValue('printer_name');
+  Future<String?> getSavedPrinterMac() async {
+    try {
+      return await _settingsDao.getValue('printer_mac');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  @override
+  Future<String?> getSavedPrinterName() async {
+    try {
+      return await _settingsDao.getValue('printer_name');
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Future<void> savePrinterData(String mac, String name) async {
-    await _settingsDao.setValue('printer_mac', mac);
-    await _settingsDao.setValue('printer_name', name);
+    try {
+      await _settingsDao.setValue('printer_mac', mac);
+      await _settingsDao.setValue('printer_name', name);
+    } catch (_) {
+      // Best-effort: a failed save just means the printer isn't remembered.
+    }
   }
 
   @override
   Future<void> clearPrinterData() async {
-    await _settingsDao.deleteKey('printer_mac');
-    await _settingsDao.deleteKey('printer_name');
+    try {
+      await _settingsDao.deleteKey('printer_mac');
+      await _settingsDao.deleteKey('printer_name');
+    } catch (_) {
+      // Best-effort.
+    }
   }
 
   @override
   Future<void> testPrint(String shopName) async {
-    if (!await _ensureConnected()) return;
-    await _printerHelper
-        .printText('Test Print\n\n$shopName\n\n----------------\n\n');
+    try {
+      if (!await _ensureConnected()) return;
+      await _printerHelper
+          .printText('Test Print\n\n$shopName\n\n----------------\n\n');
+    } catch (_) {
+      // Never let a diagnostic print throw into the BLoC.
+    }
   }
 
   @override

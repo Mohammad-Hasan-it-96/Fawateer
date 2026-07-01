@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:app_settings/app_settings.dart';
 
 import '../../../../core/utils/num_input.dart';
 
@@ -48,7 +49,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     // Start/stop camera based on whether this branch is the visible tab
     final visible = TickerMode.of(context);
     if (visible && _isCameraOn) {
-      _scannerController.start();
+      _startScanner();
     } else if (!visible) {
       _scannerController.stop();
     }
@@ -58,7 +59,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       if (_isCameraOn && !_onCheckout && TickerMode.of(context)) {
-        _scannerController.start();
+        _startScanner();
       }
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
@@ -71,6 +72,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _scannerController.dispose();
     super.dispose();
+  }
+
+  /// Start the camera, swallowing platform errors (permission denied, no
+  /// camera). The [MobileScanner] errorBuilder renders the user-facing fallback,
+  /// so an unhandled async throw never escapes here.
+  void _startScanner() {
+    _scannerController.start().catchError((_) {});
   }
 
   void _onDetect(BarcodeCapture capture) async {
@@ -123,7 +131,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             listener: (context, state) {
               if (_onCheckout) {
                 setState(() => _onCheckout = false);
-                if (_isCameraOn) _scannerController.start();
+                if (_isCameraOn) _startScanner();
               }
             },
           ),
@@ -160,7 +168,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     // cleared (New Sale) — either way, resume scanning.
                     if (mounted) {
                       setState(() => _onCheckout = false);
-                      if (_isCameraOn) _scannerController.start();
+                      if (_isCameraOn) _startScanner();
                     }
                   },
             icon: Icons.payment,
@@ -177,7 +185,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          MobileScanner(controller: _scannerController, onDetect: _onDetect),
+          MobileScanner(
+            controller: _scannerController,
+            onDetect: _onDetect,
+            // Shown when the camera can't start (permission denied, no camera).
+            errorBuilder: (context, error, child) =>
+                _buildCameraErrorState(l10n),
+          ),
           if (!_isCameraOn) _buildCameraOffState(l10n),
 
           // Two overlay buttons (flash + camera toggle) — top-right horizontal row
@@ -201,7 +215,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   onPressed: () {
                     setState(() => _isCameraOn = !_isCameraOn);
                     if (_isCameraOn) {
-                      _scannerController.start();
+                      _startScanner();
                     } else {
                       _scannerController.stop();
                     }
@@ -273,8 +287,58 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             onPressed: () {
               setState(() => _isCameraOn = true);
-              _scannerController.start();
+              _startScanner();
             },
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Shown when the camera can't start (permission permanently denied, or no
+  /// usable camera). Keeps the cashier unblocked: they can open settings to
+  /// grant access, or add items manually via the picker below.
+  Widget _buildCameraErrorState(AppLocalizations l10n) {
+    return Container(
+      color: const Color(0xFF1E293B),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: const BoxDecoration(
+                color: Color(0xFF334155), shape: BoxShape.circle),
+            alignment: Alignment.center,
+            child: const Icon(Icons.no_photography,
+                color: Colors.white, size: 32),
+          ),
+          const SizedBox(height: 16),
+          Text(l10n.cameraUnavailable,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16)),
+          const SizedBox(height: 8),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32),
+            child: Text(l10n.cameraPermissionHint,
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white70, fontSize: 12)),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20)),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            ),
+            icon: const Icon(Icons.settings),
+            label: Text(l10n.openSettings,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            onPressed: () => AppSettings.openAppSettings(),
           ),
         ],
       ),
@@ -621,7 +685,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         },
       ),
     ).whenComplete(() {
-      if (mounted && _isCameraOn && !_onCheckout) _scannerController.start();
+      if (mounted && _isCameraOn && !_onCheckout) _startScanner();
     });
   }
 }

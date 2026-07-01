@@ -10,6 +10,9 @@
   "itemsCount": "{count} منتج",
   "totalPrice": "إجمالي السعر",
   "reviewOrder": "مراجعة الطلب",
+  "cameraUnavailable": "الكاميرا غير متاحة",
+  "cameraPermissionHint": "اسمح بالوصول إلى الكاميرا لمسح الباركود، أو أضف الأصناف يدوياً بالأسفل.",
+  "openSettings": "فتح الإعدادات",
   "cameraOff": "الكاميرا متوقفة",
   "cameraOffHint": "شغّل الكاميرا لمسح الباركود تلقائياً.",
   "turnOnCamera": "تشغيل الكاميرا",
@@ -112,6 +115,7 @@
   "fieldRequired": "مطلوب",
   "invalidPrice": "الرجاء إدخال سعر صحيح",
   "negativePriceError": "السعر لا يمكن أن يكون سالباً",
+  "priceMustBePositive": "يجب أن يكون السعر أكبر من صفر",
   "invalidNumber": "الرجاء إدخال رقم صحيح",
   "negativeNotAllowed": "لا يمكن أن يكون سالباً",
 

@@ -35,6 +35,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get reviewOrder => 'Review Order';
 
   @override
+  String get cameraUnavailable => 'Camera unavailable';
+
+  @override
+  String get cameraPermissionHint =>
+      'Allow camera access to scan barcodes, or add items manually below.';
+
+  @override
+  String get openSettings => 'Open Settings';
+
+  @override
   String get cameraOff => 'Camera is turned off';
 
   @override
@@ -323,6 +333,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get negativePriceError => 'Price cannot be negative';
+
+  @override
+  String get priceMustBePositive => 'Price must be greater than zero';
 
   @override
   String get invalidNumber => 'Please enter a valid number';

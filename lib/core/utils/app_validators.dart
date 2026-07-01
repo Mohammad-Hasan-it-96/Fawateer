@@ -11,17 +11,20 @@ class AppValidators {
   }
 
   /// Validator for a required price: must be present, a valid finite number, and
-  /// not negative. Messages are passed in so they can be localized by the caller.
+  /// greater than zero (a zero-price sale item is almost always a mistake).
+  /// Messages are passed in so they can be localized by the caller.
   static String? Function(String?) price({
     required String requiredMsg,
     required String invalidMsg,
     required String negativeMsg,
+    required String mustBePositiveMsg,
   }) {
     return (String? value) {
       if (value == null || value.trim().isEmpty) return requiredMsg;
       final v = NumInput.parseFlexibleNumber(value);
       if (v == null) return invalidMsg; // non-numeric or non-finite
       if (v < 0) return negativeMsg;
+      if (v == 0) return mustBePositiveMsg;
       return null;
     };
   }

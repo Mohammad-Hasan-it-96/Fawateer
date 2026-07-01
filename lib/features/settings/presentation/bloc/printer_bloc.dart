@@ -17,18 +17,33 @@ class PrinterBloc extends Bloc<PrinterEvent, PrinterState> {
   }
 
   Future<void> _onInit(InitPrinterEvent event, Emitter<PrinterState> emit) async {
-    final mac = await repository.getSavedPrinterMac();
-    final name = await repository.getSavedPrinterName();
-    emit(state.copyWith(
-      status: PrinterStatus.initial,
-      connectedMac: mac,
-      connectedName: name,
-    ));
+    try {
+      final mac = await repository.getSavedPrinterMac();
+      final name = await repository.getSavedPrinterName();
+      emit(state.copyWith(
+        status: PrinterStatus.initial,
+        connectedMac: mac,
+        connectedName: name,
+      ));
+    } catch (_) {
+      emit(state.copyWith(status: PrinterStatus.initial));
+    }
   }
 
   Future<void> _onRefresh(
       RefreshPrinterEvent event, Emitter<PrinterState> emit) async {
     emit(state.copyWith(status: PrinterStatus.scanning, clearError: true));
+    try {
+      await _refresh(emit);
+    } catch (_) {
+      emit(state.copyWith(
+        status: PrinterStatus.scanFailure,
+        error: PrinterError.scanFailed,
+      ));
+    }
+  }
+
+  Future<void> _refresh(Emitter<PrinterState> emit) async {
     final result = await repository.scanDevices();
 
     await result.fold(
@@ -88,15 +103,22 @@ class PrinterBloc extends Bloc<PrinterEvent, PrinterState> {
   Future<void> _onConnect(
       ConnectPrinterEvent event, Emitter<PrinterState> emit) async {
     emit(state.copyWith(status: PrinterStatus.connecting, clearError: true));
-    final success = await repository.connect(event.mac);
-    if (success) {
-      await repository.savePrinterData(event.mac, event.name);
-      emit(state.copyWith(
-        status: PrinterStatus.connected,
-        connectedMac: event.mac,
-        connectedName: event.name,
-      ));
-    } else {
+    try {
+      final success = await repository.connect(event.mac);
+      if (success) {
+        await repository.savePrinterData(event.mac, event.name);
+        emit(state.copyWith(
+          status: PrinterStatus.connected,
+          connectedMac: event.mac,
+          connectedName: event.name,
+        ));
+      } else {
+        emit(state.copyWith(
+          status: PrinterStatus.connectionFailure,
+          error: PrinterError.connectFailed,
+        ));
+      }
+    } catch (_) {
       emit(state.copyWith(
         status: PrinterStatus.connectionFailure,
         error: PrinterError.connectFailed,
@@ -106,8 +128,14 @@ class PrinterBloc extends Bloc<PrinterEvent, PrinterState> {
 
   Future<void> _onDisconnect(
       DisconnectPrinterEvent event, Emitter<PrinterState> emit) async {
-    await repository.disconnect();
-    await repository.clearPrinterData();
+    // Always land in the disconnected state, even if the calls throw — the
+    // user asked to forget the printer.
+    try {
+      await repository.disconnect();
+      await repository.clearPrinterData();
+    } catch (_) {
+      // Ignore: we still report disconnected below.
+    }
     emit(PrinterState(
       status: PrinterStatus.disconnected,
       devices: state.devices,
@@ -117,8 +145,15 @@ class PrinterBloc extends Bloc<PrinterEvent, PrinterState> {
   Future<void> _onTestPrint(
       TestPrintEvent event, Emitter<PrinterState> emit) async {
     emit(state.copyWith(status: PrinterStatus.testPrinting));
-    await repository.testPrint(event.shopName);
-    emit(state.copyWith(status: PrinterStatus.scanSuccess));
+    try {
+      await repository.testPrint(event.shopName);
+      emit(state.copyWith(status: PrinterStatus.scanSuccess));
+    } catch (_) {
+      emit(state.copyWith(
+        status: PrinterStatus.scanFailure,
+        error: PrinterError.connectFailed,
+      ));
+    }
   }
 
   PrinterError _mapScanFailure(Failure failure) =>
