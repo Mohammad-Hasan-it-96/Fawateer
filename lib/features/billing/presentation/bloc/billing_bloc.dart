@@ -46,7 +46,10 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
 
   void _onAddProductToCart(
       AddProductToCartEvent event, Emitter<BillingState> emit) {
-    final cleanState = state.copyWith(error: null, clearError: true);
+    // Adding an item starts a fresh sale: clear any error and the sticky
+    // "sale confirmed" flags left from a previous completed sale.
+    final cleanState =
+        state.copyWith(error: null, clearError: true, clearSale: true);
 
     final existingIndex = cleanState.cartItems
         .indexWhere((item) => item.product.id == event.product.id);
@@ -98,6 +101,18 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
 
   Future<void> _onConfirmSale(
       ConfirmSaleEvent event, Emitter<BillingState> emit) async {
+    // Re-entrancy guard: a double-tap enqueues two events. The first flips
+    // isSaving synchronously (before the first await below), so the second is
+    // dropped here — preventing duplicate invoices and double stock deduction.
+    // `saleConfirmed` also blocks a re-confirm of an already-saved sale.
+    if (state.isSaving || state.saleConfirmed) return;
+
+    // Never persist an empty/zero-total sale.
+    if (state.cartItems.isEmpty) {
+      emit(state.copyWith(error: BillingError.emptyCart));
+      return;
+    }
+
     emit(state.copyWith(isSaving: true, clearError: true));
 
     final invoiceId = const Uuid().v4();
@@ -142,6 +157,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         address2: event.address2,
         phone: event.phone,
         footer: event.footer,
+        currency: event.currencySymbol,
         total: invoice.totalAmount,
         items: _receiptLines(),
       );
@@ -153,6 +169,8 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
 
   Future<void> _onPrintReceipt(
       PrintReceiptEvent event, Emitter<BillingState> emit) async {
+    // Drop a second tap while a print is already in flight.
+    if (state.isPrinting) return;
     emit(state.copyWith(
         isPrinting: true, printSuccess: false, clearError: true));
 
@@ -163,6 +181,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         address2: event.address2,
         phone: event.phone,
         footer: event.footer,
+        currency: event.currencySymbol,
         total: state.totalAmount,
         items: _receiptLines(),
       );

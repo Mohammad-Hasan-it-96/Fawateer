@@ -266,6 +266,12 @@ abstract class AppLocalizations {
   /// **'Shop details not loaded'**
   String get shopNotLoaded;
 
+  /// No description provided for @cartEmptyError.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an item before confirming the sale.'**
+  String get cartEmptyError;
+
   /// No description provided for @salesHistory.
   ///
   /// In en, this message translates to:
@@ -703,6 +709,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Price cannot be negative'**
   String get negativePriceError;
+
+  /// No description provided for @invalidNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid number'**
+  String get invalidNumber;
+
+  /// No description provided for @negativeNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot be negative'**
+  String get negativeNotAllowed;
 
   /// No description provided for @printedSuccessfully.
   ///

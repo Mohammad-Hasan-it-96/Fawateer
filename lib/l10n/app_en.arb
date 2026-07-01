@@ -32,6 +32,7 @@
   "printReceipt": "Print Receipt",
   "newSale": "New Sale",
   "shopNotLoaded": "Shop details not loaded",
+  "cartEmptyError": "Add an item before confirming the sale.",
 
   "salesHistory": "Sales History",
   "todaysSales": "TODAY'S SALES",
@@ -114,6 +115,8 @@
   "fieldRequired": "Required",
   "invalidPrice": "Please enter a valid price",
   "negativePriceError": "Price cannot be negative",
+  "invalidNumber": "Please enter a valid number",
+  "negativeNotAllowed": "Cannot be negative",
 
   "printedSuccessfully": "Printed successfully",
   "noItems": "No items",

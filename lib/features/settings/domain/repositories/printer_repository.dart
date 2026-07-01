@@ -14,8 +14,9 @@ abstract class PrinterRepository {
   Future<void> testPrint(String shopName);
 
   /// Print a sales receipt. Ensures the printer is connected first — if it
-  /// isn't, it tries to reconnect to the saved printer. Returns `true` when the
-  /// receipt was sent, `false` when no printer was available to print to.
+  /// isn't, it tries to reconnect to the saved printer. Returns `true` only when
+  /// the receipt bytes were actually written; `false` when no printer was
+  /// available or the write failed/timed out.
   Future<bool> printReceipt({
     required String shopName,
     required String address1,
@@ -24,5 +25,6 @@ abstract class PrinterRepository {
     required String footer,
     required double total,
     required List<ReceiptLine> items,
+    String currency = '',
   });
 }

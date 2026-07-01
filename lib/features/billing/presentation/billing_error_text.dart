@@ -14,5 +14,7 @@ String billingErrorText(
       return l10n.printerUnavailable;
     case BillingError.printFailed:
       return l10n.printFailed;
+    case BillingError.emptyCart:
+      return l10n.cartEmptyError;
   }
 }

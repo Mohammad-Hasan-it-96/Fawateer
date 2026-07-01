@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 
+import '../../../../core/utils/num_input.dart';
+
 import '../../../billing/presentation/bloc/billing_bloc.dart';
 import '../billing_error_text.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
@@ -797,8 +799,10 @@ class _QuantityDialogState extends State<_QuantityDialog> {
     super.dispose();
   }
 
+  /// Parse tolerantly (Arabic digits/separators) and reject non-finite values;
+  /// null leaves the quantity unchanged.
   void _submit() =>
-      Navigator.of(context).pop(double.tryParse(_controller.text));
+      Navigator.of(context).pop(NumInput.parseFlexibleNumber(_controller.text));
 
   @override
   Widget build(BuildContext context) {
@@ -811,6 +815,7 @@ class _QuantityDialogState extends State<_QuantityDialog> {
         autofocus: true,
         textAlign: TextAlign.center,
         keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        inputFormatters: NumInput.decimalFormatters,
         decoration: InputDecoration(labelText: l10n.quantityDialogTitle),
         style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
         onSubmitted: (_) => _submit(),

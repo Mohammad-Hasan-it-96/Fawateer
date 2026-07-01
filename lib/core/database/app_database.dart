@@ -94,6 +94,16 @@ class AppDatabase extends _$AppDatabase {
   /// v3→v4 / v5→v6 upgrades (the latter rebuilds sales_items, dropping its
   /// indexes). Names use Drift's snake_case for tables/columns.
   Future<void> _createIndexes() async {
+    // A legacy v1–v3 DB had no unique barcode index, so a shop could hold two
+    // products sharing a non-empty barcode. Creating the partial-unique index
+    // over such data throws mid-migration and bricks the DB on every launch, so
+    // de-dup FIRST: keep the earliest row per barcode, blank the rest (the
+    // product stays; only its now-ambiguous barcode is cleared). No-op on a
+    // fresh/clean DB.
+    await customStatement(
+        "UPDATE products SET barcode = '' "
+        "WHERE barcode != '' AND rowid NOT IN ("
+        "SELECT MIN(rowid) FROM products WHERE barcode != '' GROUP BY barcode)");
     await customStatement(
         "CREATE UNIQUE INDEX IF NOT EXISTS idx_products_barcode ON products (barcode) WHERE barcode != ''");
     await customStatement(

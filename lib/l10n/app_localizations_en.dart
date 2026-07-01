@@ -96,6 +96,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shopNotLoaded => 'Shop details not loaded';
 
   @override
+  String get cartEmptyError => 'Add an item before confirming the sale.';
+
+  @override
   String get salesHistory => 'Sales History';
 
   @override
@@ -320,6 +323,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get negativePriceError => 'Price cannot be negative';
+
+  @override
+  String get invalidNumber => 'Please enter a valid number';
+
+  @override
+  String get negativeNotAllowed => 'Cannot be negative';
 
   @override
   String get printedSuccessfully => 'Printed successfully';

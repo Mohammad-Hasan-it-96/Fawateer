@@ -9,6 +9,7 @@ import '../widgets/currency_field.dart';
 import '../../domain/entities/product.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
+import '../../../../core/utils/num_input.dart';
 import '../../../../l10n/app_localizations.dart';
 
 /// Show a whole-number quantity as `5`, not `5.0`.
@@ -123,15 +124,20 @@ class _EditProductPageState extends State<EditProductPage> {
                     initialValue: _name,
                     textCapitalization: TextCapitalization.words,
                     validator: AppValidators.required(l10n.fieldRequired),
-                    onSaved: (value) => _name = value!,
+                    onSaved: (value) => _name = value!.trim(),
                   ),
                   const SizedBox(height: 24),
 
                   InputLabel(text: l10n.priceLabel),
                   CurrencyField(
                     initialValue: _price.toStringAsFixed(2),
-                    validator: AppValidators.price,
-                    onSaved: (value) => _price = double.parse(value!),
+                    validator: AppValidators.price(
+                      requiredMsg: l10n.fieldRequired,
+                      invalidMsg: l10n.invalidPrice,
+                      negativeMsg: l10n.negativePriceError,
+                    ),
+                    onSaved: (value) =>
+                        _price = NumInput.parseFlexibleNumber(value) ?? 0,
                   ),
                   const SizedBox(height: 24),
 
@@ -139,8 +145,12 @@ class _EditProductPageState extends State<EditProductPage> {
                   CurrencyField(
                     initialValue: _cost.toStringAsFixed(2),
                     helperText: l10n.costHint,
+                    validator: AppValidators.optionalNonNegative(
+                      invalidMsg: l10n.invalidNumber,
+                      negativeMsg: l10n.negativeNotAllowed,
+                    ),
                     onSaved: (value) =>
-                        _cost = double.tryParse(value ?? '0') ?? 0,
+                        _cost = NumInput.parseFlexibleNumber(value) ?? 0,
                   ),
                   const SizedBox(height: 24),
 
@@ -149,11 +159,16 @@ class _EditProductPageState extends State<EditProductPage> {
                     initialValue: _formatQty(_quantity),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: NumInput.decimalFormatters,
                     decoration: InputDecoration(
                       helperText: l10n.stockEditHint,
                     ),
+                    validator: AppValidators.optionalNonNegative(
+                      invalidMsg: l10n.invalidNumber,
+                      negativeMsg: l10n.negativeNotAllowed,
+                    ),
                     onSaved: (value) =>
-                        _quantity = double.tryParse(value ?? '0') ?? 0,
+                        _quantity = NumInput.parseFlexibleNumber(value) ?? 0,
                   ),
                   const SizedBox(height: 24),
 
@@ -162,12 +177,17 @@ class _EditProductPageState extends State<EditProductPage> {
                     initialValue: _formatQty(_minStockAlert),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: NumInput.decimalFormatters,
                     decoration: InputDecoration(
                       hintText: '0',
                       helperText: l10n.lowStockAlertHint,
                     ),
+                    validator: AppValidators.optionalNonNegative(
+                      invalidMsg: l10n.invalidNumber,
+                      negativeMsg: l10n.negativeNotAllowed,
+                    ),
                     onSaved: (value) =>
-                        _minStockAlert = double.tryParse(value ?? '0') ?? 0,
+                        _minStockAlert = NumInput.parseFlexibleNumber(value) ?? 0,
                   ),
                 ],
               ),

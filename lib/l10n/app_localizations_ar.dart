@@ -95,6 +95,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get shopNotLoaded => 'لم تُحمَّل بيانات المحل';
 
   @override
+  String get cartEmptyError => 'أضف صنفاً قبل تأكيد البيع.';
+
+  @override
   String get salesHistory => 'سجل المبيعات';
 
   @override
@@ -318,6 +321,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get negativePriceError => 'السعر لا يمكن أن يكون سالباً';
+
+  @override
+  String get invalidNumber => 'الرجاء إدخال رقم صحيح';
+
+  @override
+  String get negativeNotAllowed => 'لا يمكن أن يكون سالباً';
 
   @override
   String get printedSuccessfully => 'تمت الطباعة بنجاح';

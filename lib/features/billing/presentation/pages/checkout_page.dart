@@ -294,7 +294,8 @@ class CheckoutPage extends StatelessWidget {
                                         address1: shop.addressLine1,
                                         address2: shop.addressLine2,
                                         phone: shop.phoneNumber,
-                                        footer: shop.footerText));
+                                        footer: shop.footerText,
+                                        currencySymbol: currency));
                               }
                             },
                       icon: billingState.isPrinting
@@ -344,6 +345,7 @@ class CheckoutPage extends StatelessWidget {
                               address2: shop.addressLine2,
                               phone: shop.phoneNumber,
                               footer: shop.footerText,
+                              currencySymbol: currency,
                             ));
                       } else {
                         ScaffoldMessenger.of(context).showSnackBar(

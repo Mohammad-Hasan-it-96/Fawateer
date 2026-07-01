@@ -31,6 +31,7 @@
   "printReceipt": "طباعة الفاتورة",
   "newSale": "بيع جديد",
   "shopNotLoaded": "لم تُحمَّل بيانات المحل",
+  "cartEmptyError": "أضف صنفاً قبل تأكيد البيع.",
 
   "salesHistory": "سجل المبيعات",
   "todaysSales": "مبيعات اليوم",
@@ -111,6 +112,8 @@
   "fieldRequired": "مطلوب",
   "invalidPrice": "الرجاء إدخال سعر صحيح",
   "negativePriceError": "السعر لا يمكن أن يكون سالباً",
+  "invalidNumber": "الرجاء إدخال رقم صحيح",
+  "negativeNotAllowed": "لا يمكن أن يكون سالباً",
 
   "printedSuccessfully": "تمت الطباعة بنجاح",
   "noItems": "لا توجد عناصر",

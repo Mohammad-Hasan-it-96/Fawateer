@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
+import '../../../../core/utils/num_input.dart';
 
 /// A money input that prefixes the shop's currency symbol. Centralizes the
 /// price/cost fields that were duplicated across the add/edit product forms.
@@ -28,6 +29,7 @@ class CurrencyField extends StatelessWidget {
     return TextFormField(
       initialValue: initialValue,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      inputFormatters: NumInput.decimalFormatters,
       decoration: InputDecoration(
         hintText: hintText,
         helperText: helperText,

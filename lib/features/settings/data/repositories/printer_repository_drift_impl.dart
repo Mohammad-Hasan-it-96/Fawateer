@@ -53,9 +53,11 @@ class PrinterRepositoryDriftImpl implements PrinterRepository {
   }
 
   @override
-  Future<void> testPrint(String shopName) =>
-      _printerHelper
-          .printText('Test Print\n\n$shopName\n\n----------------\n\n');
+  Future<void> testPrint(String shopName) async {
+    if (!await _ensureConnected()) return;
+    await _printerHelper
+        .printText('Test Print\n\n$shopName\n\n----------------\n\n');
+  }
 
   @override
   Future<bool> printReceipt({
@@ -66,16 +68,20 @@ class PrinterRepositoryDriftImpl implements PrinterRepository {
     required String footer,
     required double total,
     required List<ReceiptLine> items,
+    String currency = '',
   }) async {
     if (!await _ensureConnected()) return false;
 
-    await _printerHelper.printReceipt(
+    // Propagate the real write result — a dropped connection or write failure
+    // must surface as false, never a false "printed" success.
+    return _printerHelper.printReceipt(
       shopName: shopName,
       address1: address1,
       address2: address2,
       phone: phone,
       footer: footer,
       total: total,
+      currency: currency,
       items: items
           .map((i) => {
                 'name': i.name,
@@ -85,13 +91,12 @@ class PrinterRepositoryDriftImpl implements PrinterRepository {
               })
           .toList(),
     );
-    return true;
   }
 
-  /// Make sure we have a live connection, reconnecting to the saved printer if
-  /// needed. Returns false when there's nothing to connect to.
+  /// Make sure we have a *live* connection, reconnecting to the saved printer if
+  /// the socket is dead. Returns false when there's nothing to connect to.
   Future<bool> _ensureConnected() async {
-    if (_printerHelper.isConnected) return true;
+    if (await _printerHelper.isLiveConnected()) return true;
     final mac = await _settingsDao.getValue('printer_mac');
     if (mac == null) return false;
     return _printerHelper.connect(mac);

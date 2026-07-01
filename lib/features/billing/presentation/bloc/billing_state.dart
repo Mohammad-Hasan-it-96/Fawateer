@@ -7,6 +7,7 @@ enum BillingError {
   saveFailed,
   printerUnavailable,
   printFailed,
+  emptyCart,
 }
 
 class BillingState extends Equatable {

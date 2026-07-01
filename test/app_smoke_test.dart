@@ -117,6 +117,7 @@ class _FakePrinterRepository implements PrinterRepository {
     required String footer,
     required double total,
     required List<ReceiptLine> items,
+    String currency = '',
   }) async {
     printReceiptCount++;
     return printerAvailable;
