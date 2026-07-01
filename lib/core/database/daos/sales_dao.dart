@@ -30,6 +30,13 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   /// transaction. Stock is decremented *relatively* (`quantity = quantity - ?`)
   /// straight in SQL, so it never overwrites the rest of the product row and
   /// can't clobber a concurrent edit to price/name/cost.
+  ///
+  /// The deduction is clamped at 0 (`MAX(quantity - ?, 0)`) so on-hand can never
+  /// go negative: overselling a tracked item, or selling one that is untracked
+  /// (quantity 0) or was deleted mid-cart (matches 0 rows), leaves on-hand at 0
+  /// instead of a nonsensical negative. The sale itself always completes and is
+  /// recorded in full via the snapshotted line item (name/price/cost) — a POS
+  /// must never block a sale the cashier is physically making.
   Future<void> insertInvoiceWithItems({
     required SalesInvoicesCompanion invoice,
     required List<SalesItemsCompanion> items,
@@ -39,7 +46,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         for (final item in items) {
           await into(salesItems).insert(item);
           await customStatement(
-            'UPDATE products SET quantity = quantity - ? WHERE id = ?',
+            'UPDATE products SET quantity = MAX(quantity - ?, 0) WHERE id = ?',
             [item.quantity.value, item.productId.value],
           );
         }

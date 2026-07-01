@@ -222,6 +222,73 @@ void main() {
       expect(state.error, BillingError.printerUnavailable);
       await bloc.close();
     });
+
+    test('overselling a tracked item warns; untracked stays silent', () async {
+      final bloc = BillingBloc(
+        productRepository: _FakeProductRepository(),
+        printerRepository: _FakePrinterRepository(),
+        invoiceRepository: _FakeInvoiceRepository(),
+      );
+
+      // Tracked item, on-hand 1: selling 2 (add twice) must warn.
+      const tracked = Product(
+          id: 't1', name: 'Milk', barcode: '', price: 5, quantity: 1);
+      final warned = bloc.stream.firstWhere((s) => s.lowStockWarnings.isNotEmpty);
+      bloc.add(const AddProductToCartEvent(tracked));
+      bloc.add(const AddProductToCartEvent(tracked));
+      final s1 = await warned.timeout(_timeout);
+      expect(s1.lowStockWarnings, contains('Milk'));
+
+      // Untracked item (on-hand 0, no alert): selling it must NOT warn.
+      bloc.add(ClearCartEvent());
+      const untracked = Product(
+          id: 'u1', name: 'Loose', barcode: '', price: 3, quantity: 0);
+      final added = bloc.stream.firstWhere((s) => s.cartItems.isNotEmpty);
+      bloc.add(const AddProductToCartEvent(untracked));
+      final s2 = await added.timeout(_timeout);
+      expect(s2.lowStockWarnings, isEmpty);
+      await bloc.close();
+    });
+
+    test('empty cart confirm → emptyCart error, nothing saved', () async {
+      final invoiceRepo = _FakeInvoiceRepository();
+      final bloc = BillingBloc(
+        productRepository: _FakeProductRepository(),
+        printerRepository: _FakePrinterRepository(),
+        invoiceRepository: invoiceRepo,
+      );
+      final errored = bloc.stream.firstWhere((s) => s.error != null);
+      bloc.add(const ConfirmSaleEvent(
+          shopName: 'Shop', address1: '', address2: '', phone: '', footer: ''));
+
+      final state = await errored.timeout(_timeout);
+      expect(state.error, BillingError.emptyCart);
+      expect(state.saleConfirmed, isFalse);
+      expect(invoiceRepo.saveCount, 0);
+      await bloc.close();
+    });
+
+    test('double-tap confirm → invoice saved only once', () async {
+      final invoiceRepo = _FakeInvoiceRepository();
+      final bloc = BillingBloc(
+        productRepository: _FakeProductRepository(),
+        printerRepository: _FakePrinterRepository(),
+        invoiceRepository: invoiceRepo,
+      );
+      final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
+      bloc.add(AddProductToCartEvent(_product()));
+      // Two confirms enqueued back-to-back (double tap).
+      const confirm = ConfirmSaleEvent(
+          shopName: 'Shop', address1: '', address2: '', phone: '', footer: '');
+      bloc.add(confirm);
+      bloc.add(confirm);
+
+      await confirmed.timeout(_timeout);
+      // Let any second handler run before asserting.
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      expect(invoiceRepo.saveCount, 1);
+      await bloc.close();
+    });
   });
 
   group('ProductBloc', () {

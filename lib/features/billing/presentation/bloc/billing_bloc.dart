@@ -211,8 +211,15 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
 
   List<String> _computeStockWarnings(List<CartItem> items) {
     // i.product.quantity = on-hand inventory; i.quantity = units being sold.
+    // Warn when selling more than on-hand for a *tracked* product — one the shop
+    // cares about, i.e. it has a positive on-hand count OR a low-stock alert set.
+    // This surfaces the out-of-stock case (on-hand 0 on a tracked item) that a
+    // bare `quantity > 0` check missed, while staying silent for untracked items
+    // (on-hand 0, no alert) so loose/produce items don't warn on every sale.
     return items
-        .where((i) => i.product.quantity > 0 && i.quantity > i.product.quantity)
+        .where((i) =>
+            (i.product.quantity > 0 || i.product.minStockAlert > 0) &&
+            i.quantity > i.product.quantity)
         .map((i) => i.product.name)
         .toList();
   }
