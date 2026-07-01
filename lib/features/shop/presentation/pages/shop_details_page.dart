@@ -113,9 +113,8 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
                   children: [
                     Text(l10n.generalInfo,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
                           color: AppTheme.primaryColor.withValues(alpha: 0.8),
                         )),
                     const SizedBox(height: 5),

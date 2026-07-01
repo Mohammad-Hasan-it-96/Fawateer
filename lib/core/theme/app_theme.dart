@@ -10,7 +10,7 @@ class AppTheme {
 
  static final TextTheme textTheme = GoogleFonts.cairoTextTheme().copyWith(
   bodyLarge: GoogleFonts.cairo(
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: FontWeight.w500,
     color: Colors.black,
   ),
@@ -57,7 +57,7 @@ class AppTheme {
         filled: true,
         fillColor: Colors.white,
          hintStyle:
-            TextStyle(color: Colors.grey[400], fontWeight: FontWeight.normal,fontSize: 13),
+            TextStyle(color: Colors.grey[600], fontWeight: FontWeight.normal,fontSize: 14),
       
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

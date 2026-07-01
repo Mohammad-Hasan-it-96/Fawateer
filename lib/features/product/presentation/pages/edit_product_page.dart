@@ -100,9 +100,9 @@ class _EditProductPageState extends State<EditProductPage> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(l10n.barcodeDisplay.toUpperCase(),
+                            Text(l10n.barcodeDisplay,
                                 style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 13,
                                     fontWeight: FontWeight.bold,
                                     color: AppTheme.primaryColor
                                         .withValues(alpha: 0.7))),

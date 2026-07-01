@@ -133,6 +133,14 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String stockCountLabel(String qty) {
+    return 'المتوفر: $qty';
+  }
+
+  @override
+  String get lowStockBadge => 'مخزون منخفض';
+
+  @override
   String get cancel => 'إلغاء';
 
   @override
@@ -148,7 +156,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get addProductTitle => 'إضافة منتج';
 
   @override
-  String get barcodeLabel => 'الباركود';
+  String get barcodeLabel => 'الباركود (اختياري)';
 
   @override
   String get scanOrEnterBarcode => 'امسح أو أدخل الباركود';

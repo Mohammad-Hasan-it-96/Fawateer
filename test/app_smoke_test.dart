@@ -192,7 +192,6 @@ void main() {
         address2: '',
         phone: '',
         footer: '',
-        currencySymbol: '',
       ));
 
       final state = await confirmed.timeout(_timeout);

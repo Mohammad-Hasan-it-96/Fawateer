@@ -94,12 +94,11 @@ class _SettingsPageState extends State<SettingsPage> {
                             style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 32,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: -1)),
+                                fontWeight: FontWeight.bold)),
                       ),
                       const SizedBox(height: 16),
                       if (shopName.isNotEmpty)
-                        Text(shopName.toUpperCase(),
+                        Text(shopName,
                             style: const TextStyle(
                                 fontSize: 20, fontWeight: FontWeight.bold)),
                     ],
@@ -230,12 +229,11 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Align(
         alignment: AlignmentDirectional.centerStart,
         child: Text(
-          title.toUpperCase(),
-          style: const TextStyle(
-              fontSize: 12,
+          title,
+          style: TextStyle(
+              fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: Colors.grey,
-              letterSpacing: 1.2),
+              color: Colors.grey[700]),
         ),
       ),
     );

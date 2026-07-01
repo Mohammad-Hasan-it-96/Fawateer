@@ -98,6 +98,16 @@ class _AddProductPageState extends State<AddProductPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  InputLabel(text: l10n.productNameLabel),
+                  TextFormField(
+                    decoration: InputDecoration(
+                      hintText: l10n.productNameHint,
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                    validator: AppValidators.required(l10n.fieldRequired),
+                    onSaved: (value) => _name = value!,
+                  ),
+                  const SizedBox(height: 24),
                   InputLabel(text: l10n.barcodeLabel),
                   Row(
                     children: [
@@ -108,8 +118,9 @@ class _AddProductPageState extends State<AddProductPage> {
                           decoration: InputDecoration(
                             hintText: l10n.scanOrEnterBarcode,
                           ),
-                          validator: AppValidators.required(l10n.fieldRequired),
-                          onSaved: (value) => _barcode = value!,
+                          // Barcode is optional: loose produce/bakery items have
+                          // none. Only non-empty barcodes must be unique.
+                          onSaved: (value) => _barcode = value ?? '',
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -131,16 +142,6 @@ class _AddProductPageState extends State<AddProductPage> {
                   Text(l10n.tapToScan,
                       style: const TextStyle(
                           fontSize: 12, color: Color(0xFF4C669A))),
-                  const SizedBox(height: 24),
-                  InputLabel(text: l10n.productNameLabel),
-                  TextFormField(
-                    decoration: InputDecoration(
-                      hintText: l10n.productNameHint,
-                    ),
-                    textCapitalization: TextCapitalization.words,
-                    validator: AppValidators.required(l10n.fieldRequired),
-                    onSaved: (value) => _name = value!,
-                  ),
                   const SizedBox(height: 24),
                   InputLabel(text: l10n.priceLabel),
                   CurrencyField(

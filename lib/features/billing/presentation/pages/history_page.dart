@@ -184,10 +184,9 @@ class _DailySummaryCard extends StatelessWidget {
                 Text(
                   l10n.todaysSales,
                   style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
+                    color: Colors.white,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -197,7 +196,6 @@ class _DailySummaryCard extends StatelessWidget {
                     color: Colors.white,
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: -0.5,
                   ),
                 ),
               ],
@@ -249,8 +247,11 @@ class _InvoiceCardState extends State<_InvoiceCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final dateStr =
-        DateFormat('dd MMM yyyy  hh:mm a').format(widget.invoice.createdAt);
+    // Locale-aware date: Arabic month names + ص/م instead of English AM/PM.
+    final locale = Localizations.localeOf(context).toString();
+    final dateStr = DateFormat.yMMMd(locale)
+        .add_jm()
+        .format(widget.invoice.createdAt);
     final shortId = widget.invoice.id.length > 8
         ? '...${widget.invoice.id.substring(widget.invoice.id.length - 8)}'
         : widget.invoice.id;

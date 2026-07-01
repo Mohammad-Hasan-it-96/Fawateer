@@ -338,6 +338,18 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to delete {name}?'**
   String deleteProductConfirm(String name);
 
+  /// No description provided for @stockCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'In stock: {qty}'**
+  String stockCountLabel(String qty);
+
+  /// No description provided for @lowStockBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Low stock'**
+  String get lowStockBadge;
+
   /// No description provided for @cancel.
   ///
   /// In en, this message translates to:
@@ -371,7 +383,7 @@ abstract class AppLocalizations {
   /// No description provided for @barcodeLabel.
   ///
   /// In en, this message translates to:
-  /// **'Barcode'**
+  /// **'Barcode (optional)'**
   String get barcodeLabel;
 
   /// No description provided for @scanOrEnterBarcode.

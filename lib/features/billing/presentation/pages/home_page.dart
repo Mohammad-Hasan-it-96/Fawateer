@@ -380,11 +380,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(l10n.totalPrice,
-                            style: const TextStyle(
-                                fontSize: 10,
+                            style: TextStyle(
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.grey,
-                                letterSpacing: 1.2)),
+                                color: Colors.grey[700])),
                         BlocBuilder<ShopBloc, ShopState>(
                           builder: (context, shopState) {
                             final currency = shopState is ShopLoaded
@@ -542,12 +541,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   onTap: () => _editQuantity(context, item),
                   borderRadius: BorderRadius.circular(6),
                   child: Container(
-                    constraints: const BoxConstraints(minWidth: 36),
+                    constraints:
+                        const BoxConstraints(minWidth: 48, minHeight: 44),
+                    alignment: Alignment.center,
                     padding:
-                        const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                     child: Text(formatQty(item.quantity),
                         textAlign: TextAlign.center,
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
+                        style: const TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 16)),
                   ),
                 ),
                 _qtyButton(
@@ -567,9 +569,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.all(4),
-        child: Icon(icon, size: 20, color: Colors.grey[600]),
+      child: Container(
+        width: 44,
+        height: 44,
+        alignment: Alignment.center,
+        child: Icon(icon, size: 24, color: Colors.grey[800]),
       ),
     );
   }

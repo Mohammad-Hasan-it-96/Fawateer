@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'config/routes/app_routes.dart';
 import 'core/service_locator.dart' as di;
 import 'core/theme/app_theme.dart';
@@ -14,6 +15,8 @@ import 'l10n/app_localizations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Load locale data (Arabic month names, ص/م) for intl's DateFormat.
+  await initializeDateFormatting();
   await di.init();
   runApp(const MyApp());
 }

@@ -232,10 +232,9 @@ class CheckoutPage extends StatelessWidget {
                 Text(
                   l10n.grandTotal,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[400],
-                    letterSpacing: 1.2,
+                    color: Colors.grey[700],
                   ),
                 ),
                 Text(
@@ -243,7 +242,6 @@ class CheckoutPage extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: -0.5,
                     color: Color(0xFF0F172A),
                   ),
                 ),
@@ -368,13 +366,12 @@ class CheckoutPage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       child: Text(
-        text.toUpperCase(),
+        text,
         textAlign: align,
-        style: const TextStyle(
-          fontSize: 10,
+        style: TextStyle(
+          fontSize: 13,
           fontWeight: FontWeight.bold,
-          letterSpacing: 1,
-          color: Colors.grey,
+          color: Colors.grey[700],
         ),
       ),
     );
