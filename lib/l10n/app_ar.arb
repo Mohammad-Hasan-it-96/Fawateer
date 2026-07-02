@@ -41,6 +41,10 @@
   "invoicesLabel": "فاتورة",
   "noSalesYet": "لا توجد مبيعات بعد",
   "noSalesHint": "ستظهر هنا المبيعات المكتملة.",
+  "historyLoadFailed": "تعذّر تحميل سجل المبيعات.",
+  "itemsLoadFailed": "تعذّر تحميل الأصناف. اضغط لإعادة المحاولة.",
+  "shopLoadFailed": "تعذّر تحميل بيانات المحل.",
+  "shopSaveFailed": "تعذّر الحفظ. حاول مرة أخرى.",
 
   "productsTitle": "المنتجات",
   "searchHint": "ابحث عن منتج…",

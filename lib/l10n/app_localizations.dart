@@ -320,6 +320,30 @@ abstract class AppLocalizations {
   /// **'Completed sales will appear here.'**
   String get noSalesHint;
 
+  /// No description provided for @historyLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load sales history.'**
+  String get historyLoadFailed;
+
+  /// No description provided for @itemsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load items. Tap to retry.'**
+  String get itemsLoadFailed;
+
+  /// No description provided for @shopLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load shop details.'**
+  String get shopLoadFailed;
+
+  /// No description provided for @shopSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save. Please try again.'**
+  String get shopSaveFailed;
+
   /// No description provided for @productsTitle.
   ///
   /// In en, this message translates to:

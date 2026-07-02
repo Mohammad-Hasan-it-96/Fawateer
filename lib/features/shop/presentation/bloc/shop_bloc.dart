@@ -18,7 +18,7 @@ class ShopBloc extends Bloc<ShopEvent, ShopState> {
     emit(ShopLoading());
     final result = await repository.getShop();
     result.fold(
-      (failure) => emit(ShopError(failure.message)),
+      (failure) => emit(const ShopError(ShopFailure.loadFailed)),
       (shop) => emit(ShopLoaded(shop)),
     );
   }
@@ -28,7 +28,7 @@ class ShopBloc extends Bloc<ShopEvent, ShopState> {
     emit(ShopLoading());
     final result = await repository.updateShop(event.shop);
     result.fold(
-      (failure) => emit(ShopError(failure.message)),
+      (failure) => emit(const ShopError(ShopFailure.saveFailed)),
       (_) {
         // Reload shop to update state with latest data (though local is same)
         add(LoadShopEvent());

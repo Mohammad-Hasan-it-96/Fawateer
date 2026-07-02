@@ -11,6 +11,10 @@ part 'product_state.dart';
 class ProductBloc extends Bloc<ProductEvent, ProductState> {
   final ProductRepository repository;
 
+  /// Guards against a second [LoadProducts] spinning up a duplicate stream
+  /// subscription (and duplicate emits).
+  bool _watching = false;
+
   ProductBloc({required this.repository}) : super(const ProductState()) {
     on<LoadProducts>(_onLoadProducts);
     on<AddProduct>((e, emit) =>
@@ -29,7 +33,12 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   /// automatically, so mutation handlers don't re-fetch.
   Future<void> _onLoadProducts(
       LoadProducts event, Emitter<ProductState> emit) async {
+    if (_watching) return;
+    _watching = true;
     emit(state.copyWith(status: ProductStatus.loading));
+    // A transient stream error emits an error state but keeps the subscription
+    // alive (`emit.forEach` doesn't cancel on error), so the list self-recovers
+    // on the next emission.
     await emit.forEach(
       repository.watchProducts(),
       onData: (products) =>

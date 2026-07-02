@@ -123,6 +123,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noSalesHint => 'ستظهر هنا المبيعات المكتملة.';
 
   @override
+  String get historyLoadFailed => 'تعذّر تحميل سجل المبيعات.';
+
+  @override
+  String get itemsLoadFailed => 'تعذّر تحميل الأصناف. اضغط لإعادة المحاولة.';
+
+  @override
+  String get shopLoadFailed => 'تعذّر تحميل بيانات المحل.';
+
+  @override
+  String get shopSaveFailed => 'تعذّر الحفظ. حاول مرة أخرى.';
+
+  @override
   String get productsTitle => 'المنتجات';
 
   @override

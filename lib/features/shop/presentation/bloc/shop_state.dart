@@ -1,5 +1,9 @@
 part of 'shop_bloc.dart';
 
+/// A localizable shop error. The BLoC sets the case; the page maps it to a
+/// translated string — no user-facing English lives in the BLoC.
+enum ShopFailure { loadFailed, saveFailed }
+
 abstract class ShopState extends Equatable {
   const ShopState();
   @override
@@ -18,10 +22,10 @@ class ShopLoaded extends ShopState {
 }
 
 class ShopError extends ShopState {
-  final String message;
-  const ShopError(this.message);
+  final ShopFailure failure;
+  const ShopError(this.failure);
   @override
-  List<Object> get props => [message];
+  List<Object> get props => [failure];
 }
 
 class ShopOperationSuccess extends ShopState {}

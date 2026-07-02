@@ -17,6 +17,10 @@ class _TodayStats {
 class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
   final InvoiceRepository repository;
 
+  /// Guards against a second [LoadHistoryEvent] spinning up a duplicate stream
+  /// subscription (and duplicate emits).
+  bool _watching = false;
+
   HistoryBloc({required this.repository}) : super(const HistoryState()) {
     on<LoadHistoryEvent>(_onLoadHistory);
     on<LoadInvoiceDetailsEvent>(_onLoadInvoiceDetails);
@@ -24,9 +28,13 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
 
   /// Subscribe to the invoice stream. Dispatched once at startup; the list and
   /// today's totals then refresh automatically after every sale — no manual
-  /// reload needed.
+  /// reload needed. A transient stream error emits an error state but keeps the
+  /// subscription alive (`emit.forEach` doesn't cancel on error), so the list
+  /// self-recovers on the next emission.
   Future<void> _onLoadHistory(
       LoadHistoryEvent event, Emitter<HistoryState> emit) async {
+    if (_watching) return;
+    _watching = true;
     emit(state.copyWith(status: HistoryStatus.loading));
     await emit.forEach(
       repository.watchInvoices(),
@@ -37,10 +45,11 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
           invoices: invoices,
           todayTotal: today.total,
           todayCount: today.count,
+          clearError: true,
         );
       },
-      onError: (e, _) =>
-          state.copyWith(status: HistoryStatus.error, error: e.toString()),
+      onError: (e, _) => state.copyWith(
+          status: HistoryStatus.error, error: HistoryError.loadFailed),
     );
   }
 
@@ -50,11 +59,16 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
 
     final result = await repository.getInvoiceItems(event.invoiceId);
     result.fold(
-      (_) {}, // silently ignore errors for item loading
+      // Record the failure so the card shows a retry hint instead of an endless
+      // spinner. Not cached, so re-tapping the card retries the load.
+      (_) => emit(state.copyWith(
+          failedItems: {...state.failedItems, event.invoiceId})),
       (items) {
         final updated = Map<String, List<InvoiceItem>>.from(state.itemsCache);
         updated[event.invoiceId] = items;
-        emit(state.copyWith(itemsCache: updated));
+        final failed =
+            state.failedItems.where((id) => id != event.invoiceId).toSet();
+        emit(state.copyWith(itemsCache: updated, failedItems: failed));
       },
     );
   }

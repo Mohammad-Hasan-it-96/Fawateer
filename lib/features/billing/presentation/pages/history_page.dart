@@ -35,7 +35,7 @@ class HistoryPage extends StatelessWidget {
 
           if (state.status == HistoryStatus.error) {
             return Center(
-              child: Text('Error: ${state.error}',
+              child: Text(l10n.historyLoadFailed,
                   style: const TextStyle(color: Colors.red)),
             );
           }
@@ -66,6 +66,7 @@ class HistoryPage extends StatelessWidget {
                             invoice: invoice,
                             currency: currency,
                             items: state.itemsCache[invoice.id],
+                            failed: state.failedItems.contains(invoice.id),
                             onExpand: () => context
                                 .read<HistoryBloc>()
                                 .add(LoadInvoiceDetailsEvent(invoice.id)),
@@ -228,12 +229,14 @@ class _InvoiceCard extends StatefulWidget {
   final Invoice invoice;
   final String currency;
   final List<InvoiceItem>? items;
+  final bool failed;
   final VoidCallback onExpand;
 
   const _InvoiceCard({
     required this.invoice,
     required this.currency,
     required this.items,
+    required this.failed,
     required this.onExpand,
   });
 
@@ -272,7 +275,9 @@ class _InvoiceCardState extends State<_InvoiceCard> {
             borderRadius: BorderRadius.circular(12),
             onTap: () {
               setState(() => _expanded = !_expanded);
-              if (!_expanded && widget.items == null) {
+              // Load (or retry) the line items when expanding and we don't have
+              // them cached yet.
+              if (_expanded && widget.items == null) {
                 widget.onExpand();
               }
             },
@@ -323,9 +328,14 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                     const BorderRadius.vertical(bottom: Radius.circular(12)),
               ),
               child: widget.items == null
-                  ? const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(child: CircularProgressIndicator()))
+                  ? (widget.failed
+                      ? Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(l10n.itemsLoadFailed,
+                              style: const TextStyle(color: Colors.red)))
+                      : const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Center(child: CircularProgressIndicator())))
                   : widget.items!.isEmpty
                       ? Padding(
                           padding: const EdgeInsets.all(16),

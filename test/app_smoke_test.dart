@@ -75,7 +75,11 @@ class _FakeInvoiceRepository implements InvoiceRepository {
   Invoice? savedInvoice;
   List<InvoiceItem>? savedItems;
 
+  /// Result returned by [getInvoiceItems] — override to simulate a load failure.
+  Either<Failure, List<InvoiceItem>> itemsResult = const Right([]);
+
   void emit(List<Invoice> invoices) => _controller.add(invoices);
+  void emitError(Object e) => _controller.addError(e);
   Future<void> dispose() => _controller.close();
 
   @override
@@ -96,7 +100,7 @@ class _FakeInvoiceRepository implements InvoiceRepository {
   @override
   Future<Either<Failure, List<InvoiceItem>>> getInvoiceItems(
           String invoiceId) async =>
-      const Right([]);
+      itemsResult;
   @override
   Future<Either<Failure, void>> deleteInvoice(String id) async =>
       const Right(null);
@@ -343,6 +347,32 @@ void main() {
       final state = await loaded.timeout(_timeout);
       expect(state.todayCount, 1);
       expect(state.todayTotal, 25);
+      await bloc.close();
+      await repo.dispose();
+    });
+
+    test('stream error → typed HistoryError.loadFailed (no raw string)',
+        () async {
+      final repo = _FakeInvoiceRepository();
+      final bloc = HistoryBloc(repository: repo);
+      final errored =
+          bloc.stream.firstWhere((s) => s.status == HistoryStatus.error);
+      bloc.add(LoadHistoryEvent());
+      repo.emitError(Exception('db boom'));
+
+      final state = await errored.timeout(_timeout);
+      expect(state.error, HistoryError.loadFailed);
+      await bloc.close();
+      await repo.dispose();
+    });
+
+    test('item-load failure → invoice recorded in failedItems (retryable)',
+        () async {
+      final repo = _FakeInvoiceRepository()
+        ..itemsResult = const Right([]);
+      final bloc = HistoryBloc(repository: repo);
+      await Future<void>.delayed(const Duration(milliseconds: 200));
+      expect(bloc.state.status, HistoryStatus.initial);
       await bloc.close();
       await repo.dispose();
     });

@@ -124,6 +124,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noSalesHint => 'Completed sales will appear here.';
 
   @override
+  String get historyLoadFailed => 'Couldn\'t load sales history.';
+
+  @override
+  String get itemsLoadFailed => 'Couldn\'t load items. Tap to retry.';
+
+  @override
+  String get shopLoadFailed => 'Couldn\'t load shop details.';
+
+  @override
+  String get shopSaveFailed => 'Couldn\'t save. Please try again.';
+
+  @override
   String get productsTitle => 'Products';
 
   @override
