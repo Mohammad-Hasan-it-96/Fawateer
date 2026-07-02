@@ -18,8 +18,8 @@ flutter analyze
 # Run tests
 flutter test
 
-# Run a single test file
-flutter test test/widget_test.dart
+# Run a single test file (test/ holds app_smoke_test.dart and num_input_test.dart)
+flutter test test/num_input_test.dart
 
 # Regenerate Drift database code (*.g.dart files)
 dart run build_runner build --delete-conflicting-outputs
@@ -57,6 +57,13 @@ Note: there is **no use case layer** — BLoCs depend on repository interfaces d
 - `lib/core/service_locator.dart` — All GetIt registrations
 - `lib/core/theme/app_theme.dart` — `AppTheme.lightTheme`
 - `lib/config/routes/app_routes.dart` — GoRouter config; `app_shell.dart` — bottom-nav tab shell
+
+### Shared input/format helpers (`lib/core/utils/`)
+
+Reuse these for any money/quantity field or displayed number — don't hand-roll parsing/formatting:
+- `num_input.dart` — `NumInput.decimalFormatters` (restrict keystrokes **and paste** to digits + one separator, length-capped) and `NumInput.parseFlexibleNumber` (normalizes Arabic-Indic/Persian digits and Arabic/comma decimal separators; returns `null` for empty/unparseable/**non-finite** input, so downstream `toStringAsFixed` never crashes on `Infinity`/`NaN`). Covered by `test/num_input_test.dart`.
+- `format.dart` — `formatQty(num)` prints whole numbers with no decimals and fractional/weight values with up to 3 trimmed decimals; used by cart, checkout, and printed receipts so a sold quantity reads identically everywhere.
+- `app_validators.dart` — `AppValidators` composable `TextFormField` validators (e.g. `required(message)`) that take pre-localized messages from the page.
 
 ### Dependency Injection
 
