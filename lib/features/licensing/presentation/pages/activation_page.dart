@@ -7,6 +7,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../bloc/license_bloc.dart';
 import '../licensing_error_text.dart';
+import '../widgets/device_id_card.dart';
 
 /// Gate screen for an unlicensed / expired device. Captures the agent's name +
 /// phone, lets them (re-)send an activation request, and routes to the plan
@@ -149,6 +150,8 @@ class _ActivationPageState extends State<ActivationPage> {
                           padding: const EdgeInsets.symmetric(vertical: 16),
                         ),
                       ),
+                      const SizedBox(height: 24),
+                      DeviceIdCard(deviceId: state.deviceId, l10n: l10n),
                     ],
                   ),
                 ),

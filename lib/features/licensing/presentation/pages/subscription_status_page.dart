@@ -7,6 +7,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../bloc/license_bloc.dart';
 import '../licensing_error_text.dart';
+import '../widgets/device_id_card.dart';
 
 /// Subscription status & management for an already-activated device. Reachable
 /// from Settings (the gate only redirects unlicensed users, so this is only hit
@@ -116,6 +117,8 @@ class SubscriptionStatusPage extends StatelessWidget {
                     backgroundColor: AppTheme.primaryColor,
                     padding: const EdgeInsets.symmetric(vertical: 14)),
               ),
+              const SizedBox(height: 24),
+              DeviceIdCard(deviceId: state.deviceId, l10n: l10n),
             ],
           );
         },

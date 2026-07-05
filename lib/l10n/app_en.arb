@@ -239,5 +239,10 @@
   "@lastChecked": { "placeholders": { "date": { "type": "String" } } },
   "neverChecked": "never",
   "refreshStatus": "Refresh status",
-  "renewSubscription": "Renew / change plan"
+  "renewSubscription": "Renew / change plan",
+
+  "deviceIdLabel": "Device ID",
+  "deviceIdHint": "Send this ID to support to activate your device.",
+  "copy": "Copy",
+  "copied": "Copied"
 }

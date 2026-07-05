@@ -658,4 +658,16 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get renewSubscription => 'تجديد / تغيير الباقة';
+
+  @override
+  String get deviceIdLabel => 'معرّف الجهاز';
+
+  @override
+  String get deviceIdHint => 'أرسل هذا المعرّف للدعم لتفعيل جهازك.';
+
+  @override
+  String get copy => 'نسخ';
+
+  @override
+  String get copied => 'تم النسخ';
 }

@@ -105,6 +105,9 @@ class LicenseRepositoryImpl implements LicenseRepository {
   @override
   Future<({String? name, String? phone})> cachedAgent() => _local.loadAgent();
 
+  @override
+  Future<String> deviceId() => _identity.getDeviceId();
+
   // ── mapping helpers ────────────────────────────────────────────────────────
 
   LicenseStatus _statusFromJson(Map<String, dynamic> json) => LicenseStatus(

@@ -226,5 +226,10 @@
   "lastChecked": "آخر تحقق: {date}",
   "neverChecked": "لم يتم",
   "refreshStatus": "تحديث الحالة",
-  "renewSubscription": "تجديد / تغيير الباقة"
+  "renewSubscription": "تجديد / تغيير الباقة",
+
+  "deviceIdLabel": "معرّف الجهاز",
+  "deviceIdHint": "أرسل هذا المعرّف للدعم لتفعيل جهازك.",
+  "copy": "نسخ",
+  "copied": "تم النسخ"
 }

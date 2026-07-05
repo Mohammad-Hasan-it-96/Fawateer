@@ -25,10 +25,13 @@ class LicenseBloc extends Bloc<LicenseEvent, LicenseState> {
   Future<void> _onCheck(
       CheckLicenseEvent event, Emitter<LicenseState> emit) async {
     final agent = await repository.cachedAgent();
+    final deviceId =
+        state.deviceId.isEmpty ? await repository.deviceId() : state.deviceId;
     emit(state.copyWith(
       status: LicenseFlowStatus.checking,
       agentName: agent.name,
       agentPhone: agent.phone,
+      deviceId: deviceId,
     ));
     final result = await repository.checkLicense();
     result.fold(

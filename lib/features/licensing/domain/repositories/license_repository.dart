@@ -39,4 +39,8 @@ abstract class LicenseRepository {
 
   /// The agent identity captured at first activation (name, phone), if any.
   Future<({String? name, String? phone})> cachedAgent();
+
+  /// This device's stable identifier (the value sent to the server and that the
+  /// user gives to support for operator-driven activation).
+  Future<String> deviceId();
 }

@@ -665,4 +665,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get renewSubscription => 'Renew / change plan';
+
+  @override
+  String get deviceIdLabel => 'Device ID';
+
+  @override
+  String get deviceIdHint => 'Send this ID to support to activate your device.';
+
+  @override
+  String get copy => 'Copy';
+
+  @override
+  String get copied => 'Copied';
 }

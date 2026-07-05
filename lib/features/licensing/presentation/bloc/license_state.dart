@@ -39,6 +39,9 @@ class LicenseState extends Equatable {
   final String agentName;
   final String agentPhone;
 
+  /// This device's identifier (for support / operator-driven activation).
+  final String deviceId;
+
   /// True once the first server check has resolved. The router gate only holds
   /// on `/splash` before this — later re-checks (e.g. a manual refresh from the
   /// subscription screen) must NOT bounce the user back to the splash.
@@ -52,6 +55,7 @@ class LicenseState extends Equatable {
     this.error,
     this.agentName = '',
     this.agentPhone = '',
+    this.deviceId = '',
     this.bootstrapped = false,
   });
 
@@ -65,6 +69,7 @@ class LicenseState extends Equatable {
     LicenseError? error,
     String? agentName,
     String? agentPhone,
+    String? deviceId,
     bool? bootstrapped,
   }) {
     return LicenseState(
@@ -75,6 +80,7 @@ class LicenseState extends Equatable {
       error: error,
       agentName: agentName ?? this.agentName,
       agentPhone: agentPhone ?? this.agentPhone,
+      deviceId: deviceId ?? this.deviceId,
       bootstrapped: bootstrapped ?? this.bootstrapped,
     );
   }
@@ -88,6 +94,7 @@ class LicenseState extends Equatable {
         error,
         agentName,
         agentPhone,
+        deviceId,
         bootstrapped,
       ];
 }

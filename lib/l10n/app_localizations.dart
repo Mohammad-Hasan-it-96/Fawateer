@@ -1333,6 +1333,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Renew / change plan'**
   String get renewSubscription;
+
+  /// No description provided for @deviceIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Device ID'**
+  String get deviceIdLabel;
+
+  /// No description provided for @deviceIdHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Send this ID to support to activate your device.'**
+  String get deviceIdHint;
+
+  /// No description provided for @copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copy;
+
+  /// No description provided for @copied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get copied;
 }
 
 class _AppLocalizationsDelegate
