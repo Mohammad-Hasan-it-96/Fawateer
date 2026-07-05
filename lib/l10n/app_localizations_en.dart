@@ -18,6 +18,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get productsTab => 'Products';
 
   @override
+  String get customersTab => 'Customers';
+
+  @override
   String get settingsTab => 'Settings';
 
   @override
@@ -471,12 +474,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String contactMessage(String plan) {
     return 'Hello, I\'d like to subscribe to the $plan plan for Fawateer.';
   }
-
-  @override
-  String get customersDebtsItem => 'Customers & Debts';
-
-  @override
-  String get customersDebtsSubtitle => 'Track credit sales & payments';
 
   @override
   String get customersTitle => 'Customers';

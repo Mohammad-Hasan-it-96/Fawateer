@@ -135,7 +135,39 @@ final router = GoRouter(
           ],
         ),
 
-        // ── Branch 3: Settings ─────────────────────────────────────────
+        // ── Branch 3: Customers & Debts ────────────────────────────────
+        StatefulShellBranch(
+          routes: [
+            GoRoute(
+              path: '/customers',
+              builder: (context, state) => const CustomersPage(),
+              routes: [
+                GoRoute(
+                  path: 'add',
+                  builder: (context, state) => const AddEditCustomerPage(),
+                ),
+                GoRoute(
+                  path: 'edit/:id',
+                  builder: (context, state) =>
+                      AddEditCustomerPage(customer: state.extra as Customer?),
+                ),
+                GoRoute(
+                  path: 'detail/:id',
+                  builder: (context, state) {
+                    final id = state.pathParameters['id']!;
+                    // LedgerBloc is per-customer, so scope it to this route.
+                    return BlocProvider(
+                      create: (_) => sl<LedgerBloc>()..add(LoadLedger(id)),
+                      child: CustomerDetailPage(customerId: id),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        // ── Branch 4: Settings ─────────────────────────────────────────
         StatefulShellBranch(
           routes: [
             GoRoute(
@@ -156,32 +188,6 @@ final router = GoRouter(
                       path: 'plans',
                       builder: (context, state) =>
                           const SubscriptionPlansPage(),
-                    ),
-                  ],
-                ),
-                GoRoute(
-                  path: 'customers',
-                  builder: (context, state) => const CustomersPage(),
-                  routes: [
-                    GoRoute(
-                      path: 'add',
-                      builder: (context, state) => const AddEditCustomerPage(),
-                    ),
-                    GoRoute(
-                      path: 'edit/:id',
-                      builder: (context, state) => AddEditCustomerPage(
-                          customer: state.extra as Customer?),
-                    ),
-                    GoRoute(
-                      path: 'detail/:id',
-                      builder: (context, state) {
-                        final id = state.pathParameters['id']!;
-                        // LedgerBloc is per-customer, so scope it to this route.
-                        return BlocProvider(
-                          create: (_) => sl<LedgerBloc>()..add(LoadLedger(id)),
-                          child: CustomerDetailPage(customerId: id),
-                        );
-                      },
                     ),
                   ],
                 ),

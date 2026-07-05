@@ -65,7 +65,7 @@ class CustomerDetailPage extends StatelessWidget {
               icon: const Icon(Icons.edit_outlined),
               onPressed: state.customer == null
                   ? null
-                  : () => context.push('/settings/customers/edit/$customerId',
+                  : () => context.push('/customers/edit/$customerId',
                       extra: state.customer),
             ),
           ),

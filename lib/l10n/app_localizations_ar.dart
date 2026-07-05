@@ -18,6 +18,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get productsTab => 'المنتجات';
 
   @override
+  String get customersTab => 'العملاء';
+
+  @override
   String get settingsTab => 'الإعدادات';
 
   @override
@@ -466,12 +469,6 @@ class AppLocalizationsAr extends AppLocalizations {
   String contactMessage(String plan) {
     return 'مرحباً، أرغب في الاشتراك في باقة $plan لتطبيق فواتير.';
   }
-
-  @override
-  String get customersDebtsItem => 'العملاء والديون';
-
-  @override
-  String get customersDebtsSubtitle => 'تتبع البيع الآجل والدفعات';
 
   @override
   String get customersTitle => 'العملاء';

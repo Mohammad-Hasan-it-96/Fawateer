@@ -40,7 +40,7 @@ class CustomersPage extends StatelessWidget {
         centerTitle: true,
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/settings/customers/add'),
+        onPressed: () => context.push('/customers/add'),
         backgroundColor: AppTheme.primaryColor,
         icon: const Icon(Icons.person_add_alt),
         label: Text(l10n.addCustomer),
@@ -99,8 +99,7 @@ class CustomersPage extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
-        onTap: () =>
-            context.push('/settings/customers/detail/${acc.customer.id}'),
+        onTap: () => context.push('/customers/detail/${acc.customer.id}'),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(

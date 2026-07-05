@@ -116,6 +116,12 @@ abstract class AppLocalizations {
   /// **'Products'**
   String get productsTab;
 
+  /// No description provided for @customersTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Customers'**
+  String get customersTab;
+
   /// No description provided for @settingsTab.
   ///
   /// In en, this message translates to:
@@ -973,18 +979,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Hello, I\'d like to subscribe to the {plan} plan for Fawateer.'**
   String contactMessage(String plan);
-
-  /// No description provided for @customersDebtsItem.
-  ///
-  /// In en, this message translates to:
-  /// **'Customers & Debts'**
-  String get customersDebtsItem;
-
-  /// No description provided for @customersDebtsSubtitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Track credit sales & payments'**
-  String get customersDebtsSubtitle;
 
   /// No description provided for @customersTitle.
   ///

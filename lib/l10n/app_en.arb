@@ -4,6 +4,7 @@
   "posTab": "POS",
   "historyTab": "History",
   "productsTab": "Products",
+  "customersTab": "Customers",
   "settingsTab": "Settings",
 
   "scannedItems": "Scanned Items",
@@ -171,8 +172,6 @@
   "contactMessage": "Hello, I'd like to subscribe to the {plan} plan for Fawateer.",
   "@contactMessage": { "placeholders": { "plan": { "type": "String" } } },
 
-  "customersDebtsItem": "Customers & Debts",
-  "customersDebtsSubtitle": "Track credit sales & payments",
   "customersTitle": "Customers",
   "addCustomer": "Add Customer",
   "editCustomer": "Edit Customer",

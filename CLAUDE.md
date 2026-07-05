@@ -130,21 +130,22 @@ Adapted from the Accounts-Ledger reference app onto Fawateer's Drift + Clean-Arc
 - **Money stays `double`** (app-wide convention), rounded to 2 decimals at write time (`LedgerRepositoryDriftImpl.addEntry`) so float noise can't accumulate in a running balance.
 - **Sell on credit**: the checkout's `_CreditAwareConfirm` picks a customer; `ConfirmSaleEvent.customerId` flows to `InvoiceRepository.saveInvoice(..., customerId:)`, which builds a `charge` `LedgerEntriesCompanion` and passes it to `SalesDao.insertInvoiceWithItems` — written in the **same transaction** as the invoice + stock deduction, so a credit sale can't leave an invoice without its debt. A repayment is a manual `payment` entry (invoiceId null).
 - **Delete guard**: `CustomerRepository.deleteCustomer` returns `Left(ConflictFailure)` (new `Failure` subtype) when the customer has any ledger entries — history is never silently discarded. `CustomerBloc` maps it to `CustomerMessage.deleteBlocked`; customers also have an `isArchived` flag for soft-hide.
-- **Reachable** from Settings → "Customers & Debts" (`/settings/customers` → list → `detail/:id` / `add` / `edit/:id`). Not a bottom-nav tab yet (kept the 4-tab shell) — promoting it is a follow-up.
+- **Reachable** via its own **bottom-nav tab** "Customers" (`/customers` → list → `detail/:id` / `add` / `edit/:id`) — the 4th shell branch, between Products and Settings (the shell now has **5** tabs).
 - **Account statement**: the detail page shares a plain-text Arabic statement (`buildCustomerStatement` → `share_plus`) — header, chronological entries, debit/credit totals, final balance. Handy for WhatsApp debt reminders.
 
 **Android manifest**: the app gained `INTERNET` (release builds don't inherit the debug manifest's auto-added copy — required for the license API) and an `https` `VIEW` `<queries>` intent (so `url_launcher.canLaunchUrl` resolves WhatsApp/Telegram links on Android 11+).
 
 ### Navigation (GoRouter)
 
-Routing uses a `StatefulShellRoute.indexedStack` (`AppShell`) with four tab branches; `initialLocation` is `/pos`. `/scanner` is a top-level modal route outside the shell, but is **currently unused** — `HomePage` embeds its own inline live `MobileScanner` for continuous scanning rather than pushing `/scanner`.
+Routing uses a `StatefulShellRoute.indexedStack` (`AppShell`) with five tab branches; `initialLocation` is `/pos`. `/scanner` is a top-level modal route outside the shell, but is **currently unused** — `HomePage` embeds its own inline live `MobileScanner` for continuous scanning rather than pushing `/scanner`.
 
 `HomePage` also has a tap-to-add product picker (a bottom sheet, not a route) for items without a barcode. Leaving checkout via Back preserves the cart (it is only cleared after a confirmed sale or "New Sale"); checkout exits with `context.pop()` so `HomePage`'s awaited `push('/pos/checkout')` resumes the camera.
 
 - Branch 0: `/pos` → `HomePage` → `/pos/checkout` → `CheckoutPage`
 - Branch 1: `/history` → `HistoryPage`
 - Branch 2: `/products` → `ProductListPage` → `/products/add`, `/products/edit/:id` (passes `Product` via `state.extra`)
-- Branch 3: `/settings` → `SettingsPage` → `/settings/shop` → `ShopDetailsPage`
+- Branch 3: `/customers` → `CustomersPage` → `/customers/add`, `/customers/edit/:id` (passes `Customer` via `state.extra`), `/customers/detail/:id` (scopes `LedgerBloc`)
+- Branch 4: `/settings` → `SettingsPage` → `/settings/shop` → `ShopDetailsPage`; `/settings/subscription` → `SubscriptionStatusPage` → `/settings/subscription/plans`
 - Top-level: `/scanner` → `ScannerPage`
 - Top-level (licensing gate, outside the shell): `/splash` → `SplashPage`; `/activation` → `ActivationPage` → `/activation/plans` → `SubscriptionPlansPage`. A `redirect` on the shared `LicenseBloc` state holds unlicensed users here before any tab is reachable.
 

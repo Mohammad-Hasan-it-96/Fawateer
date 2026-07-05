@@ -4,6 +4,7 @@
   "posTab": "نقطة البيع",
   "historyTab": "السجل",
   "productsTab": "المنتجات",
+  "customersTab": "العملاء",
   "settingsTab": "الإعدادات",
 
   "scannedItems": "المنتجات الممسوحة",
@@ -164,8 +165,6 @@
   "contactTelegram": "تيليجرام",
   "contactMessage": "مرحباً، أرغب في الاشتراك في باقة {plan} لتطبيق فواتير.",
 
-  "customersDebtsItem": "العملاء والديون",
-  "customersDebtsSubtitle": "تتبع البيع الآجل والدفعات",
   "customersTitle": "العملاء",
   "addCustomer": "إضافة عميل",
   "editCustomer": "تعديل العميل",
