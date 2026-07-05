@@ -385,4 +385,214 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get printerScanFailed => 'تعذّر البحث عن الطابعات.';
+
+  @override
+  String get licenseChecking => 'جارٍ التحقق من اشتراكك…';
+
+  @override
+  String get licenseErrorNetwork =>
+      'لا يوجد اتصال بالإنترنت. تحقق من الشبكة وحاول مرة أخرى.';
+
+  @override
+  String get licenseErrorServer =>
+      'تعذّر التحقق من اشتراكك حالياً. حاول مرة أخرى.';
+
+  @override
+  String get licenseErrorUnexpected => 'حدث خطأ ما. حاول مرة أخرى.';
+
+  @override
+  String get activationTitle => 'تفعيل فواتير';
+
+  @override
+  String get activationSubtitle =>
+      'أدخل بياناتك للتحقق من اشتراكك، أو اختر باقة للبدء.';
+
+  @override
+  String get activationNameLabel => 'الاسم الكامل';
+
+  @override
+  String get activationPhoneLabel => 'رقم الهاتف';
+
+  @override
+  String get activationCheckButton => 'التحقق من التفعيل';
+
+  @override
+  String get activationViewPlans => 'عرض باقات الاشتراك';
+
+  @override
+  String get licenseExpiredTitle => 'انتهى الاشتراك';
+
+  @override
+  String get licenseExpiredSubtitle => 'جدّد اشتراكك لمواصلة استخدام التطبيق.';
+
+  @override
+  String licenseExpiresOn(String date) {
+    return 'صالح حتى $date';
+  }
+
+  @override
+  String get plansTitle => 'باقات الاشتراك';
+
+  @override
+  String get plansEmpty => 'لا توجد باقات متاحة حالياً.';
+
+  @override
+  String get retry => 'إعادة المحاولة';
+
+  @override
+  String get planRecommended => 'الأفضل قيمة';
+
+  @override
+  String planDurationMonths(int count) {
+    return '$count شهر';
+  }
+
+  @override
+  String get planSubscribe => 'اشترك';
+
+  @override
+  String get planRequestSent => 'تم إرسال طلبك. سنفعّل جهازك قريباً.';
+
+  @override
+  String get contactMethodTitle => 'تواصل معنا لإتمام اشتراكك';
+
+  @override
+  String get contactWhatsApp => 'واتساب';
+
+  @override
+  String get contactTelegram => 'تيليجرام';
+
+  @override
+  String contactMessage(String plan) {
+    return 'مرحباً، أرغب في الاشتراك في باقة $plan لتطبيق فواتير.';
+  }
+
+  @override
+  String get customersDebtsItem => 'العملاء والديون';
+
+  @override
+  String get customersDebtsSubtitle => 'تتبع البيع الآجل والدفعات';
+
+  @override
+  String get customersTitle => 'العملاء';
+
+  @override
+  String get addCustomer => 'إضافة عميل';
+
+  @override
+  String get editCustomer => 'تعديل العميل';
+
+  @override
+  String get customerNameLabel => 'الاسم';
+
+  @override
+  String get customerPhoneLabel => 'الهاتف (اختياري)';
+
+  @override
+  String get customerNoteLabel => 'ملاحظة (اختياري)';
+
+  @override
+  String get customerAdded => 'تمت إضافة العميل';
+
+  @override
+  String get customerUpdated => 'تم تحديث العميل';
+
+  @override
+  String get customerDeleted => 'تم حذف العميل';
+
+  @override
+  String get customerDeleteBlocked => 'لا يمكن حذف عميل له حركات في الدفتر.';
+
+  @override
+  String get customerSaveFailed => 'تعذّر الحفظ. حاول مرة أخرى.';
+
+  @override
+  String get customersLoadFailed => 'تعذّر تحميل العملاء.';
+
+  @override
+  String get noCustomers => 'لا يوجد عملاء بعد';
+
+  @override
+  String get noCustomersHint => 'أضف عميلاً لتتبع البيع الآجل والدفعات.';
+
+  @override
+  String get balanceSettled => 'مسدّد';
+
+  @override
+  String balanceOwed(String amount) {
+    return 'عليه $amount';
+  }
+
+  @override
+  String balanceCredit(String amount) {
+    return 'له $amount';
+  }
+
+  @override
+  String get balanceOwedLabel => 'عليه لك';
+
+  @override
+  String get balanceCreditLabel => 'له عليك';
+
+  @override
+  String get recordPayment => 'تسجيل دفعة';
+
+  @override
+  String get addDebt => 'إضافة دين';
+
+  @override
+  String get noLedgerEntries => 'لا توجد حركات بعد';
+
+  @override
+  String get entryPayment => 'دفعة';
+
+  @override
+  String get entryDebt => 'دين';
+
+  @override
+  String get creditSaleTag => 'بيع آجل';
+
+  @override
+  String get deleteEntryTitle => 'حذف الحركة';
+
+  @override
+  String get deleteEntryConfirm => 'حذف هذه الحركة من الدفتر؟';
+
+  @override
+  String get debtAdded => 'تمت إضافة الدين';
+
+  @override
+  String get paymentRecorded => 'تم تسجيل الدفعة';
+
+  @override
+  String get entryDeleted => 'تم حذف الحركة';
+
+  @override
+  String get ledgerSaveFailed => 'تعذّر الحفظ. حاول مرة أخرى.';
+
+  @override
+  String get ledgerLoadFailed => 'تعذّر تحميل الحساب.';
+
+  @override
+  String get amountLabel => 'المبلغ';
+
+  @override
+  String get noteOptional => 'ملاحظة (اختياري)';
+
+  @override
+  String get amountMustBePositive => 'أدخل مبلغاً أكبر من صفر';
+
+  @override
+  String get sellOnCredit => 'بيع آجل';
+
+  @override
+  String get cashSale => 'نقداً';
+
+  @override
+  String get chooseCustomer => 'اختر العميل';
+
+  @override
+  String creditToLabel(String name) {
+    return 'آجل — $name';
+  }
 }

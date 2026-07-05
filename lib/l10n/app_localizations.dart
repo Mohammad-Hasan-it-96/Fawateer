@@ -829,6 +829,396 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Could not scan for printers.'**
   String get printerScanFailed;
+
+  /// No description provided for @licenseChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking your subscription…'**
+  String get licenseChecking;
+
+  /// No description provided for @licenseErrorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection. Please check your network and try again.'**
+  String get licenseErrorNetwork;
+
+  /// No description provided for @licenseErrorServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t verify your subscription right now. Please try again.'**
+  String get licenseErrorServer;
+
+  /// No description provided for @licenseErrorUnexpected.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get licenseErrorUnexpected;
+
+  /// No description provided for @activationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate Fawateer'**
+  String get activationTitle;
+
+  /// No description provided for @activationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your details to verify your subscription, or choose a plan to get started.'**
+  String get activationSubtitle;
+
+  /// No description provided for @activationNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Name'**
+  String get activationNameLabel;
+
+  /// No description provided for @activationPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone Number'**
+  String get activationPhoneLabel;
+
+  /// No description provided for @activationCheckButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Activation'**
+  String get activationCheckButton;
+
+  /// No description provided for @activationViewPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'View Subscription Plans'**
+  String get activationViewPlans;
+
+  /// No description provided for @licenseExpiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription Expired'**
+  String get licenseExpiredTitle;
+
+  /// No description provided for @licenseExpiredSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Renew your subscription to keep using the app.'**
+  String get licenseExpiredSubtitle;
+
+  /// No description provided for @licenseExpiresOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Valid until {date}'**
+  String licenseExpiresOn(String date);
+
+  /// No description provided for @plansTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription Plans'**
+  String get plansTitle;
+
+  /// No description provided for @plansEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No plans available right now.'**
+  String get plansEmpty;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @planRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'BEST VALUE'**
+  String get planRecommended;
+
+  /// No description provided for @planDurationMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} month(s)'**
+  String planDurationMonths(int count);
+
+  /// No description provided for @planSubscribe.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribe'**
+  String get planSubscribe;
+
+  /// No description provided for @planRequestSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Your request was sent. We\'ll activate your device shortly.'**
+  String get planRequestSent;
+
+  /// No description provided for @contactMethodTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact us to complete your subscription'**
+  String get contactMethodTitle;
+
+  /// No description provided for @contactWhatsApp.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp'**
+  String get contactWhatsApp;
+
+  /// No description provided for @contactTelegram.
+  ///
+  /// In en, this message translates to:
+  /// **'Telegram'**
+  String get contactTelegram;
+
+  /// No description provided for @contactMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello, I\'d like to subscribe to the {plan} plan for Fawateer.'**
+  String contactMessage(String plan);
+
+  /// No description provided for @customersDebtsItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Customers & Debts'**
+  String get customersDebtsItem;
+
+  /// No description provided for @customersDebtsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Track credit sales & payments'**
+  String get customersDebtsSubtitle;
+
+  /// No description provided for @customersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Customers'**
+  String get customersTitle;
+
+  /// No description provided for @addCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Customer'**
+  String get addCustomer;
+
+  /// No description provided for @editCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Customer'**
+  String get editCustomer;
+
+  /// No description provided for @customerNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get customerNameLabel;
+
+  /// No description provided for @customerPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone (optional)'**
+  String get customerPhoneLabel;
+
+  /// No description provided for @customerNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (optional)'**
+  String get customerNoteLabel;
+
+  /// No description provided for @customerAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer added'**
+  String get customerAdded;
+
+  /// No description provided for @customerUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer updated'**
+  String get customerUpdated;
+
+  /// No description provided for @customerDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer deleted'**
+  String get customerDeleted;
+
+  /// No description provided for @customerDeleteBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t delete a customer who has ledger entries.'**
+  String get customerDeleteBlocked;
+
+  /// No description provided for @customerSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save. Please try again.'**
+  String get customerSaveFailed;
+
+  /// No description provided for @customersLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load customers.'**
+  String get customersLoadFailed;
+
+  /// No description provided for @noCustomers.
+  ///
+  /// In en, this message translates to:
+  /// **'No customers yet'**
+  String get noCustomers;
+
+  /// No description provided for @noCustomersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a customer to track credit sales and payments.'**
+  String get noCustomersHint;
+
+  /// No description provided for @balanceSettled.
+  ///
+  /// In en, this message translates to:
+  /// **'Settled'**
+  String get balanceSettled;
+
+  /// No description provided for @balanceOwed.
+  ///
+  /// In en, this message translates to:
+  /// **'Owes {amount}'**
+  String balanceOwed(String amount);
+
+  /// No description provided for @balanceCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit {amount}'**
+  String balanceCredit(String amount);
+
+  /// No description provided for @balanceOwedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Owes you'**
+  String get balanceOwedLabel;
+
+  /// No description provided for @balanceCreditLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'You owe'**
+  String get balanceCreditLabel;
+
+  /// No description provided for @recordPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Record Payment'**
+  String get recordPayment;
+
+  /// No description provided for @addDebt.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Debt'**
+  String get addDebt;
+
+  /// No description provided for @noLedgerEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions yet'**
+  String get noLedgerEntries;
+
+  /// No description provided for @entryPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment'**
+  String get entryPayment;
+
+  /// No description provided for @entryDebt.
+  ///
+  /// In en, this message translates to:
+  /// **'Debt'**
+  String get entryDebt;
+
+  /// No description provided for @creditSaleTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit sale'**
+  String get creditSaleTag;
+
+  /// No description provided for @deleteEntryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Entry'**
+  String get deleteEntryTitle;
+
+  /// No description provided for @deleteEntryConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this ledger entry?'**
+  String get deleteEntryConfirm;
+
+  /// No description provided for @debtAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Debt added'**
+  String get debtAdded;
+
+  /// No description provided for @paymentRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment recorded'**
+  String get paymentRecorded;
+
+  /// No description provided for @entryDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Entry deleted'**
+  String get entryDeleted;
+
+  /// No description provided for @ledgerSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save. Please try again.'**
+  String get ledgerSaveFailed;
+
+  /// No description provided for @ledgerLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the account.'**
+  String get ledgerLoadFailed;
+
+  /// No description provided for @amountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get amountLabel;
+
+  /// No description provided for @noteOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (optional)'**
+  String get noteOptional;
+
+  /// No description provided for @amountMustBePositive.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an amount greater than zero'**
+  String get amountMustBePositive;
+
+  /// No description provided for @sellOnCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Sell on credit'**
+  String get sellOnCredit;
+
+  /// No description provided for @cashSale.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash'**
+  String get cashSale;
+
+  /// No description provided for @chooseCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose customer'**
+  String get chooseCustomer;
+
+  /// No description provided for @creditToLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit — {name}'**
+  String creditToLabel(String name);
 }
 
 class _AppLocalizationsDelegate

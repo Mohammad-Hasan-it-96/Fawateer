@@ -387,4 +387,219 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get printerScanFailed => 'Could not scan for printers.';
+
+  @override
+  String get licenseChecking => 'Checking your subscription…';
+
+  @override
+  String get licenseErrorNetwork =>
+      'No internet connection. Please check your network and try again.';
+
+  @override
+  String get licenseErrorServer =>
+      'Couldn\'t verify your subscription right now. Please try again.';
+
+  @override
+  String get licenseErrorUnexpected =>
+      'Something went wrong. Please try again.';
+
+  @override
+  String get activationTitle => 'Activate Fawateer';
+
+  @override
+  String get activationSubtitle =>
+      'Enter your details to verify your subscription, or choose a plan to get started.';
+
+  @override
+  String get activationNameLabel => 'Full Name';
+
+  @override
+  String get activationPhoneLabel => 'Phone Number';
+
+  @override
+  String get activationCheckButton => 'Verify Activation';
+
+  @override
+  String get activationViewPlans => 'View Subscription Plans';
+
+  @override
+  String get licenseExpiredTitle => 'Subscription Expired';
+
+  @override
+  String get licenseExpiredSubtitle =>
+      'Renew your subscription to keep using the app.';
+
+  @override
+  String licenseExpiresOn(String date) {
+    return 'Valid until $date';
+  }
+
+  @override
+  String get plansTitle => 'Subscription Plans';
+
+  @override
+  String get plansEmpty => 'No plans available right now.';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get planRecommended => 'BEST VALUE';
+
+  @override
+  String planDurationMonths(int count) {
+    return '$count month(s)';
+  }
+
+  @override
+  String get planSubscribe => 'Subscribe';
+
+  @override
+  String get planRequestSent =>
+      'Your request was sent. We\'ll activate your device shortly.';
+
+  @override
+  String get contactMethodTitle => 'Contact us to complete your subscription';
+
+  @override
+  String get contactWhatsApp => 'WhatsApp';
+
+  @override
+  String get contactTelegram => 'Telegram';
+
+  @override
+  String contactMessage(String plan) {
+    return 'Hello, I\'d like to subscribe to the $plan plan for Fawateer.';
+  }
+
+  @override
+  String get customersDebtsItem => 'Customers & Debts';
+
+  @override
+  String get customersDebtsSubtitle => 'Track credit sales & payments';
+
+  @override
+  String get customersTitle => 'Customers';
+
+  @override
+  String get addCustomer => 'Add Customer';
+
+  @override
+  String get editCustomer => 'Edit Customer';
+
+  @override
+  String get customerNameLabel => 'Name';
+
+  @override
+  String get customerPhoneLabel => 'Phone (optional)';
+
+  @override
+  String get customerNoteLabel => 'Note (optional)';
+
+  @override
+  String get customerAdded => 'Customer added';
+
+  @override
+  String get customerUpdated => 'Customer updated';
+
+  @override
+  String get customerDeleted => 'Customer deleted';
+
+  @override
+  String get customerDeleteBlocked =>
+      'Can\'t delete a customer who has ledger entries.';
+
+  @override
+  String get customerSaveFailed => 'Couldn\'t save. Please try again.';
+
+  @override
+  String get customersLoadFailed => 'Couldn\'t load customers.';
+
+  @override
+  String get noCustomers => 'No customers yet';
+
+  @override
+  String get noCustomersHint =>
+      'Add a customer to track credit sales and payments.';
+
+  @override
+  String get balanceSettled => 'Settled';
+
+  @override
+  String balanceOwed(String amount) {
+    return 'Owes $amount';
+  }
+
+  @override
+  String balanceCredit(String amount) {
+    return 'Credit $amount';
+  }
+
+  @override
+  String get balanceOwedLabel => 'Owes you';
+
+  @override
+  String get balanceCreditLabel => 'You owe';
+
+  @override
+  String get recordPayment => 'Record Payment';
+
+  @override
+  String get addDebt => 'Add Debt';
+
+  @override
+  String get noLedgerEntries => 'No transactions yet';
+
+  @override
+  String get entryPayment => 'Payment';
+
+  @override
+  String get entryDebt => 'Debt';
+
+  @override
+  String get creditSaleTag => 'Credit sale';
+
+  @override
+  String get deleteEntryTitle => 'Delete Entry';
+
+  @override
+  String get deleteEntryConfirm => 'Delete this ledger entry?';
+
+  @override
+  String get debtAdded => 'Debt added';
+
+  @override
+  String get paymentRecorded => 'Payment recorded';
+
+  @override
+  String get entryDeleted => 'Entry deleted';
+
+  @override
+  String get ledgerSaveFailed => 'Couldn\'t save. Please try again.';
+
+  @override
+  String get ledgerLoadFailed => 'Couldn\'t load the account.';
+
+  @override
+  String get amountLabel => 'Amount';
+
+  @override
+  String get noteOptional => 'Note (optional)';
+
+  @override
+  String get amountMustBePositive => 'Enter an amount greater than zero';
+
+  @override
+  String get sellOnCredit => 'Sell on credit';
+
+  @override
+  String get cashSale => 'Cash';
+
+  @override
+  String get chooseCustomer => 'Choose customer';
+
+  @override
+  String creditToLabel(String name) {
+    return 'Credit — $name';
+  }
 }

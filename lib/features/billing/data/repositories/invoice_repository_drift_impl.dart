@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:uuid/uuid.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/daos/sales_dao.dart';
 import '../../../../core/error/failure.dart';
@@ -19,8 +20,22 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
 
   @override
   Future<Either<Failure, void>> saveInvoice(
-      Invoice invoice, List<InvoiceItem> items) async {
+      Invoice invoice, List<InvoiceItem> items,
+      {String? customerId}) async {
     try {
+      // On a credit sale, the customer's debt is booked atomically with the
+      // invoice (amount = total, linked back via invoiceId).
+      final creditCharge = customerId == null
+          ? null
+          : LedgerEntriesCompanion(
+              id: Value(const Uuid().v4()),
+              customerId: Value(customerId),
+              invoiceId: Value(invoice.id),
+              entryType: const Value('charge'),
+              amount:
+                  Value((invoice.totalAmount * 100).roundToDouble() / 100),
+              createdAt: Value(invoice.createdAt.millisecondsSinceEpoch),
+            );
       await _dao.insertInvoiceWithItems(
         invoice: SalesInvoicesCompanion(
           id: Value(invoice.id),
@@ -37,6 +52,7 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
                   quantity: Value(i.quantity),
                 ))
             .toList(),
+        creditCharge: creditCharge,
       );
       return const Right(null);
     } catch (e) {

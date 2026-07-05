@@ -2,10 +2,11 @@ import 'package:drift/drift.dart';
 import '../app_database.dart';
 import '../tables/sales_invoices_table.dart';
 import '../tables/sales_items_table.dart';
+import '../tables/ledger_entries_table.dart';
 
 part 'sales_dao.g.dart';
 
-@DriftAccessor(tables: [SalesInvoices, SalesItems])
+@DriftAccessor(tables: [SalesInvoices, SalesItems, LedgerEntries])
 class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   SalesDao(super.db);
 
@@ -37,9 +38,15 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   /// instead of a nonsensical negative. The sale itself always completes and is
   /// recorded in full via the snapshotted line item (name/price/cost) — a POS
   /// must never block a sale the cashier is physically making.
+  ///
+  /// For a **credit sale**, pass [creditCharge] — the customer's ledger `charge`
+  /// entry (amount = invoice total, linked to this invoice). It is written in
+  /// the *same* transaction, so a sale-on-credit can never leave an invoice
+  /// without its matching debt (or vice versa).
   Future<void> insertInvoiceWithItems({
     required SalesInvoicesCompanion invoice,
     required List<SalesItemsCompanion> items,
+    LedgerEntriesCompanion? creditCharge,
   }) =>
       transaction(() async {
         await into(salesInvoices).insert(invoice);
@@ -49,6 +56,9 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
             'UPDATE products SET quantity = MAX(quantity - ?, 0) WHERE id = ?',
             [item.quantity.value, item.productId.value],
           );
+        }
+        if (creditCharge != null) {
+          await into(ledgerEntries).insert(creditCharge);
         }
       });
 

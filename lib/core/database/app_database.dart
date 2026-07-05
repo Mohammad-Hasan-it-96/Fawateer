@@ -6,11 +6,15 @@ import 'tables/shop_settings_table.dart';
 import 'tables/app_settings_table.dart';
 import 'tables/sales_invoices_table.dart';
 import 'tables/sales_items_table.dart';
+import 'tables/customers_table.dart';
+import 'tables/ledger_entries_table.dart';
 
 import 'daos/products_dao.dart';
 import 'daos/shop_dao.dart';
 import 'daos/settings_dao.dart';
 import 'daos/sales_dao.dart';
+import 'daos/customers_dao.dart';
+import 'daos/ledger_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -21,25 +25,30 @@ part 'app_database.g.dart';
     AppSettings,
     SalesInvoices,
     SalesItems,
+    Customers,
+    LedgerEntries,
   ],
   daos: [
     ProductsDao,
     ShopDao,
     SettingsDao,
     SalesDao,
+    CustomersDao,
+    LedgerDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'fawateer'));
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     onCreate: (migrator) async {
       await migrator.createAll();
       await _createIndexes();
+      await _createLedgerIndexes();
     },
     beforeOpen: (details) async {
       // Enforce foreign keys for every connection. Set here (after migrations
@@ -87,6 +96,14 @@ class AppDatabase extends _$AppDatabase {
         await migrator.alterTable(TableMigration(salesItems));
         await _createIndexes();
       }
+      if (from < 7) {
+        // Customer debt ledger: new customers + ledger_entries tables. Additive
+        // — no existing table is touched (the sale↔customer link lives on the
+        // ledger entry's invoiceId, so sales_invoices needs no change).
+        await migrator.createTable(customers);
+        await migrator.createTable(ledgerEntries);
+        await _createLedgerIndexes();
+      }
     },
   );
 
@@ -112,6 +129,16 @@ class AppDatabase extends _$AppDatabase {
         'CREATE INDEX IF NOT EXISTS idx_sales_items_invoice_id ON sales_items (invoice_id)');
     await customStatement(
         'CREATE INDEX IF NOT EXISTS idx_sales_items_product_id ON sales_items (product_id)');
+  }
+
+  /// Idempotent indexes for the debt-ledger tables. Called from [onCreate] and
+  /// the v6→v7 upgrade. Speeds up per-customer entry lookups and the
+  /// invoice→ledger join used to tell whether a sale was on credit.
+  Future<void> _createLedgerIndexes() async {
+    await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_ledger_customer_id ON ledger_entries (customer_id)');
+    await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_ledger_invoice_id ON ledger_entries (invoice_id)');
   }
 }
 

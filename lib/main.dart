@@ -11,6 +11,8 @@ import 'features/product/presentation/bloc/product_bloc.dart';
 import 'features/shop/presentation/bloc/shop_bloc.dart';
 import 'features/settings/presentation/bloc/printer_bloc.dart';
 import 'features/settings/presentation/bloc/printer_event.dart';
+import 'features/licensing/presentation/bloc/license_bloc.dart';
+import 'features/ledger/presentation/bloc/customer_bloc.dart';
 import 'l10n/app_localizations.dart';
 
 void main() async {
@@ -28,6 +30,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiBlocProvider(
       providers: [
+        // LicenseBloc is a shared singleton (also read by the router gate), so
+        // provide the existing instance rather than creating a new one.
+        BlocProvider<LicenseBloc>.value(
+            value: di.sl<LicenseBloc>()..add(CheckLicenseEvent())),
         BlocProvider<ProductBloc>(
             create: (context) => di.sl<ProductBloc>()..add(LoadProducts())),
         BlocProvider<ShopBloc>(
@@ -40,6 +46,9 @@ class MyApp extends StatelessWidget {
         BlocProvider<HistoryBloc>(
             create: (context) =>
                 di.sl<HistoryBloc>()..add(LoadHistoryEvent())),
+        BlocProvider<CustomerBloc>(
+            create: (context) =>
+                di.sl<CustomerBloc>()..add(LoadCustomers())),
       ],
       child: MaterialApp.router(
         title: 'فواتير',

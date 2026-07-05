@@ -28,5 +28,22 @@ class DuplicateFailure extends Failure {
   const DuplicateFailure(super.message);
 }
 
+/// No connectivity / request timed out — the server could not be reached. The
+/// app is likely offline; callers may fall back to cached state within grace.
+class NetworkFailure extends Failure {
+  const NetworkFailure(super.message);
+}
+
+/// The server was reached but returned an error or an unexpected response.
+class ServerFailure extends Failure {
+  const ServerFailure(super.message);
+}
+
+/// The operation conflicts with existing state and was refused (e.g. deleting a
+/// customer who still has ledger entries).
+class ConflictFailure extends Failure {
+  const ConflictFailure(super.message);
+}
+
 // Note: `message` carries developer/debug detail — it is NOT shown to users.
 // Presentation maps the failure *type* to a localized string.

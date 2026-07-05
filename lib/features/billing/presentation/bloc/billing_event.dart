@@ -67,6 +67,10 @@ class ConfirmSaleEvent extends BillingEvent {
   final String footer;
   final String currencySymbol;
 
+  /// When set, the sale is booked on credit to this customer (a matching
+  /// `charge` ledger entry is written atomically). Null = a cash sale.
+  final String? customerId;
+
   const ConfirmSaleEvent({
     required this.shopName,
     required this.address1,
@@ -74,9 +78,10 @@ class ConfirmSaleEvent extends BillingEvent {
     required this.phone,
     required this.footer,
     this.currencySymbol = '',
+    this.customerId,
   });
 
   @override
   List<Object> get props =>
-      [shopName, address1, address2, phone, footer, currencySymbol];
+      [shopName, address1, address2, phone, footer, currencySymbol, customerId ?? ''];
 }

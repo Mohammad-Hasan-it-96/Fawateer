@@ -6,6 +6,27 @@ import 'database/daos/products_dao.dart';
 import 'database/daos/shop_dao.dart';
 import 'database/daos/settings_dao.dart';
 import 'database/daos/sales_dao.dart';
+import 'database/daos/customers_dao.dart';
+import 'database/daos/ledger_dao.dart';
+
+// Core — Network
+import 'network/api_client.dart';
+
+// Features — Ledger (customers & debts)
+import '../features/ledger/data/repositories/customer_repository_drift_impl.dart';
+import '../features/ledger/data/repositories/ledger_repository_drift_impl.dart';
+import '../features/ledger/domain/repositories/customer_repository.dart';
+import '../features/ledger/domain/repositories/ledger_repository.dart';
+import '../features/ledger/presentation/bloc/customer_bloc.dart';
+import '../features/ledger/presentation/bloc/ledger_bloc.dart';
+
+// Features — Licensing (subscription)
+import '../features/licensing/data/datasources/license_local_storage.dart';
+import '../features/licensing/data/datasources/license_remote_datasource.dart';
+import '../features/licensing/data/repositories/license_repository_impl.dart';
+import '../features/licensing/data/services/device_identity_service.dart';
+import '../features/licensing/domain/repositories/license_repository.dart';
+import '../features/licensing/presentation/bloc/license_bloc.dart';
 
 // Features — Product
 import '../features/product/data/repositories/product_repository_drift_impl.dart';
@@ -31,6 +52,9 @@ import '../features/billing/presentation/bloc/history_bloc.dart';
 final sl = GetIt.instance;
 
 Future<void> init() async {
+  // ── Network ──────────────────────────────────────────────────────────────
+  sl.registerLazySingleton<ApiClient>(() => ApiClient());
+
   // ── Database ─────────────────────────────────────────────────────────────
   sl.registerLazySingleton<AppDatabase>(() => AppDatabase());
 
@@ -39,6 +63,8 @@ Future<void> init() async {
   sl.registerLazySingleton<ShopDao>(() => ShopDao(sl()));
   sl.registerLazySingleton<SettingsDao>(() => SettingsDao(sl()));
   sl.registerLazySingleton<SalesDao>(() => SalesDao(sl()));
+  sl.registerLazySingleton<CustomersDao>(() => CustomersDao(sl()));
+  sl.registerLazySingleton<LedgerDao>(() => LedgerDao(sl()));
 
   // ── Repositories ─────────────────────────────────────────────────────────
   sl.registerLazySingleton<ProductRepository>(
@@ -49,6 +75,19 @@ Future<void> init() async {
       () => PrinterRepositoryDriftImpl(sl()));
   sl.registerLazySingleton<InvoiceRepository>(
       () => InvoiceRepositoryDriftImpl(sl()));
+  sl.registerLazySingleton<CustomerRepository>(
+      () => CustomerRepositoryDriftImpl(sl()));
+  sl.registerLazySingleton<LedgerRepository>(
+      () => LedgerRepositoryDriftImpl(sl()));
+
+  // ── Licensing (network-backed; no DAO) ───────────────────────────────────
+  sl.registerLazySingleton<DeviceIdentityService>(
+      () => const DeviceIdentityService());
+  sl.registerLazySingleton<LicenseLocalStorage>(() => LicenseLocalStorage());
+  sl.registerLazySingleton<LicenseRemoteDataSource>(
+      () => LicenseRemoteDataSource(sl()));
+  sl.registerLazySingleton<LicenseRepository>(
+      () => LicenseRepositoryImpl(sl(), sl(), sl()));
 
   // ── BLoCs ─────────────────────────────────────────────────────────────────
   sl.registerFactory(() => ProductBloc(repository: sl()));
@@ -64,4 +103,14 @@ Future<void> init() async {
         printerRepository: sl(),
         invoiceRepository: sl(),
       ));
+
+  sl.registerFactory(() => CustomerBloc(repository: sl()));
+  sl.registerFactory(() => LedgerBloc(
+        customerRepository: sl(),
+        ledgerRepository: sl(),
+      ));
+
+  // LicenseBloc is a SINGLETON (not a factory): the GoRouter gate redirect and
+  // the widget tree must observe the same instance for the gate to react.
+  sl.registerLazySingleton<LicenseBloc>(() => LicenseBloc(repository: sl()));
 }

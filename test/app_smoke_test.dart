@@ -74,6 +74,7 @@ class _FakeInvoiceRepository implements InvoiceRepository {
   int saveCount = 0;
   Invoice? savedInvoice;
   List<InvoiceItem>? savedItems;
+  String? savedCustomerId;
 
   /// Result returned by [getInvoiceItems] — override to simulate a load failure.
   Either<Failure, List<InvoiceItem>> itemsResult = const Right([]);
@@ -84,10 +85,12 @@ class _FakeInvoiceRepository implements InvoiceRepository {
 
   @override
   Future<Either<Failure, void>> saveInvoice(
-      Invoice invoice, List<InvoiceItem> items) async {
+      Invoice invoice, List<InvoiceItem> items,
+      {String? customerId}) async {
     saveCount++;
     savedInvoice = invoice;
     savedItems = items;
+    savedCustomerId = customerId;
     return const Right(null);
   }
 
@@ -204,6 +207,31 @@ void main() {
       expect(invoiceRepo.saveCount, 1);
       expect(invoiceRepo.savedItems!.single.productId, 'p1');
       expect(invoiceRepo.savedItems!.single.quantity, 1.0);
+      expect(invoiceRepo.savedCustomerId, isNull); // cash sale by default
+      await bloc.close();
+    });
+
+    test('credit sale → customerId forwarded to saveInvoice', () async {
+      final invoiceRepo = _FakeInvoiceRepository();
+      final bloc = BillingBloc(
+        productRepository: _FakeProductRepository(),
+        printerRepository: _FakePrinterRepository(),
+        invoiceRepository: invoiceRepo,
+      );
+      final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
+      bloc.add(AddProductToCartEvent(_product()));
+      bloc.add(const ConfirmSaleEvent(
+        shopName: 'Shop',
+        address1: '',
+        address2: '',
+        phone: '',
+        footer: '',
+        customerId: 'cust-1',
+      ));
+
+      await confirmed.timeout(_timeout);
+      expect(invoiceRepo.saveCount, 1);
+      expect(invoiceRepo.savedCustomerId, 'cust-1');
       await bloc.close();
     });
 

@@ -6,6 +6,7 @@ part of 'sales_dao.dart';
 mixin _$SalesDaoMixin on DatabaseAccessor<AppDatabase> {
   $SalesInvoicesTable get salesInvoices => attachedDatabase.salesInvoices;
   $SalesItemsTable get salesItems => attachedDatabase.salesItems;
+  $LedgerEntriesTable get ledgerEntries => attachedDatabase.ledgerEntries;
   SalesDaoManager get managers => SalesDaoManager(this);
 }
 
@@ -16,4 +17,6 @@ class SalesDaoManager {
       $$SalesInvoicesTableTableManager(_db.attachedDatabase, _db.salesInvoices);
   $$SalesItemsTableTableManager get salesItems =>
       $$SalesItemsTableTableManager(_db.attachedDatabase, _db.salesItems);
+  $$LedgerEntriesTableTableManager get ledgerEntries =>
+      $$LedgerEntriesTableTableManager(_db.attachedDatabase, _db.ledgerEntries);
 }

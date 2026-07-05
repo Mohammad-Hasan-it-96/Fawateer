@@ -136,7 +136,8 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     // Persist invoice, line items, and stock deduction in one transaction.
     // Stock is decremented relatively inside the DB, so a failed save leaves
     // inventory untouched and a concurrent product edit is never clobbered.
-    final saveResult = await invoiceRepository.saveInvoice(invoice, items);
+    final saveResult = await invoiceRepository.saveInvoice(invoice, items,
+        customerId: event.customerId);
     if (saveResult.isLeft()) {
       emit(state.copyWith(isSaving: false, error: BillingError.saveFailed));
       return;
