@@ -51,6 +51,45 @@ class ReceiptImage {
     ];
   }
 
+  /// Build ESC/POS bytes for an arbitrary multi-line text block (e.g. a customer
+  /// account statement). Rendered as a raster bitmap — same reason receipts are:
+  /// the OS shapes Arabic (RTL) and we ship pixels, so it prints real Arabic on
+  /// any printer instead of `?`.
+  static Future<List<int>> buildTextEscPosBytes(String text) async {
+    final image = await _renderTextBlock(text);
+    final raster = await _imageToRaster(image);
+    image.dispose();
+    return <int>[
+      0x1B, 0x40, // ESC @  (init)
+      ...raster,
+      0x0A, 0x0A, 0x0A, // feed
+    ];
+  }
+
+  static Future<ui.Image> _renderTextBlock(String text) async {
+    final recorder = ui.PictureRecorder();
+    const maxHeight = 6000.0;
+    final fullRect = Rect.fromLTWH(0, 0, width.toDouble(), maxHeight);
+    final canvas = ui.Canvas(recorder, fullRect);
+    canvas.drawRect(fullRect, Paint()..color = const Color(0xFFFFFFFF));
+
+    const double contentWidth = width - _pad * 2;
+    final tp = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: const TextStyle(color: _black, fontSize: 20, height: 1.4),
+      ),
+      textDirection: ui.TextDirection.rtl,
+      textAlign: TextAlign.right,
+    )..layout(maxWidth: contentWidth);
+    tp.paint(canvas, const Offset(_pad, _pad));
+
+    final picture = recorder.endRecording();
+    final image = await picture.toImage(width, (tp.height + _pad * 2).ceil());
+    picture.dispose();
+    return image;
+  }
+
   static String _money(String currency, num v) =>
       '$currency${v.toStringAsFixed(2)}';
 

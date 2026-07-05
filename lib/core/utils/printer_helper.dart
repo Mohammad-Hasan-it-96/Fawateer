@@ -130,6 +130,20 @@ class PrinterHelper {
     }
   }
 
+  /// Print a multi-line text block (e.g. a customer account statement) as an
+  /// ESC/POS raster image, so Arabic prints correctly. Returns `true` only when
+  /// the bytes were actually written.
+  Future<bool> printStatement(String text) async {
+    if (!await isLiveConnected()) return false;
+    try {
+      final bytes = await ReceiptImage.buildTextEscPosBytes(text);
+      return await PrintBluetoothThermal.writeBytes(bytes)
+          .timeout(_btTimeout, onTimeout: () => false);
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Encode a plain ASCII line for the diagnostic test print only. Sales
   /// receipts go through [ReceiptImage] as a raster bitmap and print full
   /// Arabic; this Latin-1 path is just for the fixed-English "Test Print" line,

@@ -207,6 +207,8 @@
   "creditToLabel": "آجل — {name}",
 
   "shareStatement": "مشاركة كشف الحساب",
+  "printStatement": "طباعة كشف الحساب",
+  "statementPrinted": "تمت طباعة كشف الحساب",
   "statementHeader": "كشف حساب — {shop}",
   "statementDate": "التاريخ",
   "statementTotalDebts": "إجمالي الديون",

@@ -108,6 +108,7 @@ Future<void> init() async {
   sl.registerFactory(() => LedgerBloc(
         customerRepository: sl(),
         ledgerRepository: sl(),
+        printerRepository: sl(),
       ));
 
   // LicenseBloc is a SINGLETON (not a factory): the GoRouter gate redirect and

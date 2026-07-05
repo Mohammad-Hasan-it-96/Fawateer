@@ -26,3 +26,12 @@ class DeleteLedgerEntry extends LedgerEvent {
   @override
   List<Object?> get props => [id];
 }
+
+/// Print the given (pre-formatted, localized) statement text on the thermal
+/// printer. The page builds the text so no user-facing strings live in the BLoC.
+class PrintStatement extends LedgerEvent {
+  final String text;
+  const PrintStatement(this.text);
+  @override
+  List<Object?> get props => [text];
+}

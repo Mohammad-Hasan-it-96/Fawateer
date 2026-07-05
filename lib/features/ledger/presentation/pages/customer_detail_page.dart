@@ -23,6 +23,10 @@ String ledgerMessageText(LedgerMessage m, AppLocalizations l10n) {
       return l10n.paymentRecorded;
     case LedgerMessage.entryDeleted:
       return l10n.entryDeleted;
+    case LedgerMessage.statementPrinted:
+      return l10n.statementPrinted;
+    case LedgerMessage.printerUnavailable:
+      return l10n.printerUnavailable;
     case LedgerMessage.saveFailed:
       return l10n.ledgerSaveFailed;
     case LedgerMessage.loadFailed:
@@ -51,13 +55,27 @@ class CustomerDetailPage extends StatelessWidget {
           BlocBuilder<LedgerBloc, LedgerState>(
             buildWhen: (p, c) =>
                 p.customer != c.customer || p.entries != c.entries,
-            builder: (context, state) => IconButton(
-              icon: const Icon(Icons.share_outlined),
-              tooltip: l10n.shareStatement,
-              onPressed: (state.customer == null || state.entries.isEmpty)
-                  ? null
-                  : () => _shareStatement(context, state, l10n),
-            ),
+            builder: (context, state) {
+              final disabled =
+                  state.customer == null || state.entries.isEmpty;
+              return Row(children: [
+                IconButton(
+                  icon: const Icon(Icons.print_outlined),
+                  tooltip: l10n.printStatement,
+                  onPressed: disabled
+                      ? null
+                      : () => context
+                          .read<LedgerBloc>()
+                          .add(PrintStatement(_statementText(context, state, l10n))),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.share_outlined),
+                  tooltip: l10n.shareStatement,
+                  onPressed:
+                      disabled ? null : () => _shareStatement(context, state, l10n),
+                ),
+              ]);
+            },
           ),
           BlocBuilder<LedgerBloc, LedgerState>(
             buildWhen: (p, c) => p.customer != c.customer,
@@ -75,7 +93,8 @@ class CustomerDetailPage extends StatelessWidget {
         listenWhen: (p, c) => c.message != null,
         listener: (context, state) {
           final isError = state.message == LedgerMessage.saveFailed ||
-              state.message == LedgerMessage.loadFailed;
+              state.message == LedgerMessage.loadFailed ||
+              state.message == LedgerMessage.printerUnavailable;
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(
             content: Text(ledgerMessageText(state.message!, l10n)),
             backgroundColor: isError ? Colors.red : Colors.green,
@@ -105,11 +124,13 @@ class CustomerDetailPage extends StatelessWidget {
     );
   }
 
-  void _shareStatement(
+  /// Build the localized statement text (shared by print & share so both emit
+  /// identical content).
+  String _statementText(
       BuildContext context, LedgerState state, AppLocalizations l10n) {
     final shopState = context.read<ShopBloc>().state;
     final shopName = shopState is ShopLoaded ? shopState.shop.name : '';
-    final text = buildCustomerStatement(
+    return buildCustomerStatement(
       l10n: l10n,
       shopName: shopName,
       customer: state.customer!,
@@ -117,7 +138,14 @@ class CustomerDetailPage extends StatelessWidget {
       balance: state.balance,
       currency: currencyOf(context),
     );
-    Share.share(text, subject: l10n.statementHeader(shopName));
+  }
+
+  void _shareStatement(
+      BuildContext context, LedgerState state, AppLocalizations l10n) {
+    final shopState = context.read<ShopBloc>().state;
+    final shopName = shopState is ShopLoaded ? shopState.shop.name : '';
+    Share.share(_statementText(context, state, l10n),
+        subject: l10n.statementHeader(shopName));
   }
 
   Widget _balanceCard(

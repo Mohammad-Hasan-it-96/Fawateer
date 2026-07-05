@@ -134,6 +134,8 @@ class _FakePrinterRepository implements PrinterRepository {
   Future<Either<Failure, List<PrinterDevice>>> scanDevices() async =>
       const Right([]);
   @override
+  Future<bool> printStatement(String text) async => printerAvailable;
+  @override
   Future<bool> connect(String macAddress) async => false;
   @override
   Future<bool> disconnect() async => true;

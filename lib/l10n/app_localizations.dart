@@ -1220,6 +1220,18 @@ abstract class AppLocalizations {
   /// **'Share statement'**
   String get shareStatement;
 
+  /// No description provided for @printStatement.
+  ///
+  /// In en, this message translates to:
+  /// **'Print statement'**
+  String get printStatement;
+
+  /// No description provided for @statementPrinted.
+  ///
+  /// In en, this message translates to:
+  /// **'Statement printed'**
+  String get statementPrinted;
+
   /// No description provided for @statementHeader.
   ///
   /// In en, this message translates to:

@@ -120,6 +120,12 @@ class PrinterRepositoryDriftImpl implements PrinterRepository {
     );
   }
 
+  @override
+  Future<bool> printStatement(String text) async {
+    if (!await _ensureConnected()) return false;
+    return _printerHelper.printStatement(text);
+  }
+
   /// Make sure we have a *live* connection, reconnecting to the saved printer if
   /// the socket is dead. Returns false when there's nothing to connect to.
   Future<bool> _ensureConnected() async {

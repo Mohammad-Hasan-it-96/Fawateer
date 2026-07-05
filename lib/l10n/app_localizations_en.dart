@@ -604,6 +604,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareStatement => 'Share statement';
 
   @override
+  String get printStatement => 'Print statement';
+
+  @override
+  String get statementPrinted => 'Statement printed';
+
+  @override
   String statementHeader(String shop) {
     return 'Account Statement — $shop';
   }

@@ -597,6 +597,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get shareStatement => 'مشاركة كشف الحساب';
 
   @override
+  String get printStatement => 'طباعة كشف الحساب';
+
+  @override
+  String get statementPrinted => 'تمت طباعة كشف الحساب';
+
+  @override
   String statementHeader(String shop) {
     return 'كشف حساب — $shop';
   }

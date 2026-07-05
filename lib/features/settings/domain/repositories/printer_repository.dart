@@ -27,4 +27,9 @@ abstract class PrinterRepository {
     required List<ReceiptLine> items,
     String currency = '',
   });
+
+  /// Print a plain-text block (e.g. a customer account statement) as a raster
+  /// image so Arabic prints correctly. Ensures/reconnects the printer like
+  /// [printReceipt]; returns `true` only when the bytes were actually written.
+  Future<bool> printStatement(String text);
 }

@@ -7,6 +7,8 @@ enum LedgerMessage {
   chargeAdded,
   paymentAdded,
   entryDeleted,
+  statementPrinted,
+  printerUnavailable,
   saveFailed,
   loadFailed,
 }
