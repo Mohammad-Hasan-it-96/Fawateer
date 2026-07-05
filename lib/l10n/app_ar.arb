@@ -212,5 +212,19 @@
   "statementDate": "التاريخ",
   "statementTotalDebts": "إجمالي الديون",
   "statementTotalPaid": "إجمالي المدفوع",
-  "statementBalance": "الرصيد"
+  "statementBalance": "الرصيد",
+
+  "accountSection": "الحساب",
+  "subscriptionItem": "الاشتراك",
+  "subscriptionSubtitle": "عرض الحالة وتجديد الباقة",
+  "subscriptionTitle": "الاشتراك",
+  "statusActive": "نشط",
+  "statusTrial": "تجريبي",
+  "statusExpired": "منتهي",
+  "statusInactive": "غير مفعّل",
+  "daysRemaining": "{days} يوم متبقٍ",
+  "lastChecked": "آخر تحقق: {date}",
+  "neverChecked": "لم يتم",
+  "refreshStatus": "تحديث الحالة",
+  "renewSubscription": "تجديد / تغيير الباقة"
 }

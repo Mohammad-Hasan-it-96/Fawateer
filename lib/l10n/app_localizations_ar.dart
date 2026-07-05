@@ -615,4 +615,47 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get statementBalance => 'الرصيد';
+
+  @override
+  String get accountSection => 'الحساب';
+
+  @override
+  String get subscriptionItem => 'الاشتراك';
+
+  @override
+  String get subscriptionSubtitle => 'عرض الحالة وتجديد الباقة';
+
+  @override
+  String get subscriptionTitle => 'الاشتراك';
+
+  @override
+  String get statusActive => 'نشط';
+
+  @override
+  String get statusTrial => 'تجريبي';
+
+  @override
+  String get statusExpired => 'منتهي';
+
+  @override
+  String get statusInactive => 'غير مفعّل';
+
+  @override
+  String daysRemaining(int days) {
+    return '$days يوم متبقٍ';
+  }
+
+  @override
+  String lastChecked(String date) {
+    return 'آخر تحقق: $date';
+  }
+
+  @override
+  String get neverChecked => 'لم يتم';
+
+  @override
+  String get refreshStatus => 'تحديث الحالة';
+
+  @override
+  String get renewSubscription => 'تجديد / تغيير الباقة';
 }

@@ -622,4 +622,47 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get statementBalance => 'Balance';
+
+  @override
+  String get accountSection => 'Account';
+
+  @override
+  String get subscriptionItem => 'Subscription';
+
+  @override
+  String get subscriptionSubtitle => 'View status & renew your plan';
+
+  @override
+  String get subscriptionTitle => 'Subscription';
+
+  @override
+  String get statusActive => 'Active';
+
+  @override
+  String get statusTrial => 'Trial';
+
+  @override
+  String get statusExpired => 'Expired';
+
+  @override
+  String get statusInactive => 'Not activated';
+
+  @override
+  String daysRemaining(int days) {
+    return '$days days left';
+  }
+
+  @override
+  String lastChecked(String date) {
+    return 'Last checked: $date';
+  }
+
+  @override
+  String get neverChecked => 'never';
+
+  @override
+  String get refreshStatus => 'Refresh status';
+
+  @override
+  String get renewSubscription => 'Renew / change plan';
 }

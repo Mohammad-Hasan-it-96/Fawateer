@@ -39,6 +39,11 @@ class LicenseState extends Equatable {
   final String agentName;
   final String agentPhone;
 
+  /// True once the first server check has resolved. The router gate only holds
+  /// on `/splash` before this — later re-checks (e.g. a manual refresh from the
+  /// subscription screen) must NOT bounce the user back to the splash.
+  final bool bootstrapped;
+
   const LicenseState({
     this.status = LicenseFlowStatus.initial,
     this.license = LicenseStatus.empty,
@@ -47,14 +52,10 @@ class LicenseState extends Equatable {
     this.error,
     this.agentName = '',
     this.agentPhone = '',
+    this.bootstrapped = false,
   });
 
   bool get isActive => license.isActive;
-
-  /// True until the first server check resolves — the gate holds on the splash.
-  bool get isResolving =>
-      status == LicenseFlowStatus.initial ||
-      status == LicenseFlowStatus.checking;
 
   LicenseState copyWith({
     LicenseFlowStatus? status,
@@ -64,6 +65,7 @@ class LicenseState extends Equatable {
     LicenseError? error,
     String? agentName,
     String? agentPhone,
+    bool? bootstrapped,
   }) {
     return LicenseState(
       status: status ?? this.status,
@@ -73,6 +75,7 @@ class LicenseState extends Equatable {
       error: error,
       agentName: agentName ?? this.agentName,
       agentPhone: agentPhone ?? this.agentPhone,
+      bootstrapped: bootstrapped ?? this.bootstrapped,
     );
   }
 
@@ -85,5 +88,6 @@ class LicenseState extends Equatable {
         error,
         agentName,
         agentPhone,
+        bootstrapped,
       ];
 }

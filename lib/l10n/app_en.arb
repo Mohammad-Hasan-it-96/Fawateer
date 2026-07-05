@@ -223,5 +223,21 @@
   "statementDate": "Date",
   "statementTotalDebts": "Total debts",
   "statementTotalPaid": "Total paid",
-  "statementBalance": "Balance"
+  "statementBalance": "Balance",
+
+  "accountSection": "Account",
+  "subscriptionItem": "Subscription",
+  "subscriptionSubtitle": "View status & renew your plan",
+  "subscriptionTitle": "Subscription",
+  "statusActive": "Active",
+  "statusTrial": "Trial",
+  "statusExpired": "Expired",
+  "statusInactive": "Not activated",
+  "daysRemaining": "{days} days left",
+  "@daysRemaining": { "placeholders": { "days": { "type": "int" } } },
+  "lastChecked": "Last checked: {date}",
+  "@lastChecked": { "placeholders": { "date": { "type": "String" } } },
+  "neverChecked": "never",
+  "refreshStatus": "Refresh status",
+  "renewSubscription": "Renew / change plan"
 }

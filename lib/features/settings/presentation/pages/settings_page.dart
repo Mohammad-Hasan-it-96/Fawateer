@@ -129,6 +129,20 @@ class _SettingsPageState extends State<SettingsPage> {
 
             const SizedBox(height: 24),
 
+            _buildSectionHeader(l10n.accountSection),
+            _buildListGroup(
+              children: [
+                _buildListItem(
+                  icon: Icons.workspace_premium_outlined,
+                  title: l10n.subscriptionItem,
+                  subtitle: l10n.subscriptionSubtitle,
+                  onTap: () => context.push('/settings/subscription'),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
             _buildSectionHeader(l10n.hardwareSection),
             BlocConsumer<PrinterBloc, PrinterState>(
               listener: (context, state) {

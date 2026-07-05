@@ -18,6 +18,7 @@ import '../../features/licensing/presentation/bloc/license_bloc.dart';
 import '../../features/licensing/presentation/pages/activation_page.dart';
 import '../../features/licensing/presentation/pages/splash_page.dart';
 import '../../features/licensing/presentation/pages/subscription_plans_page.dart';
+import '../../features/licensing/presentation/pages/subscription_status_page.dart';
 import '../../features/product/domain/entities/product.dart';
 import '../../features/product/presentation/pages/add_product_page.dart';
 import '../../features/product/presentation/pages/edit_product_page.dart';
@@ -42,8 +43,10 @@ final router = GoRouter(
     final license = _licenseBloc.state;
     final loc = state.matchedLocation;
 
-    // Still verifying at startup → hold on the splash.
-    if (license.isResolving) {
+    // Before the first check resolves → hold on the splash. After bootstrap, an
+    // in-app re-check (e.g. Refresh on the subscription screen) must not bounce
+    // the user back here.
+    if (!license.bootstrapped) {
       return _isGateRoute(loc) ? null : '/splash';
     }
     // No valid subscription → funnel to activation (but let the flow's own
@@ -142,6 +145,19 @@ final router = GoRouter(
                 GoRoute(
                   path: 'shop',
                   builder: (context, state) => const ShopDetailsPage(),
+                ),
+                // Subscription management (reachable only while active; the gate
+                // funnels unlicensed users to /activation instead).
+                GoRoute(
+                  path: 'subscription',
+                  builder: (context, state) => const SubscriptionStatusPage(),
+                  routes: [
+                    GoRoute(
+                      path: 'plans',
+                      builder: (context, state) =>
+                          const SubscriptionPlansPage(),
+                    ),
+                  ],
                 ),
                 GoRoute(
                   path: 'customers',

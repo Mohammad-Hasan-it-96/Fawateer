@@ -37,12 +37,14 @@ class LicenseBloc extends Bloc<LicenseEvent, LicenseState> {
             ? LicenseFlowStatus.active
             : LicenseFlowStatus.unlicensed,
         error: _mapError(failure),
+        bootstrapped: true,
       )),
       (status) => emit(state.copyWith(
         status: status.isActive
             ? LicenseFlowStatus.active
             : LicenseFlowStatus.unlicensed,
         license: status,
+        bootstrapped: true,
       )),
     );
   }
@@ -58,12 +60,15 @@ class LicenseBloc extends Bloc<LicenseEvent, LicenseState> {
         await repository.activate(name: event.name, phone: event.phone);
     result.fold(
       (failure) => emit(state.copyWith(
-          status: LicenseFlowStatus.unlicensed, error: _mapError(failure))),
+          status: LicenseFlowStatus.unlicensed,
+          error: _mapError(failure),
+          bootstrapped: true)),
       (status) => emit(state.copyWith(
         status: status.isActive
             ? LicenseFlowStatus.active
             : LicenseFlowStatus.unlicensed,
         license: status,
+        bootstrapped: true,
       )),
     );
   }

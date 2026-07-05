@@ -1255,6 +1255,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Balance'**
   String get statementBalance;
+
+  /// No description provided for @accountSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get accountSection;
+
+  /// No description provided for @subscriptionItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription'**
+  String get subscriptionItem;
+
+  /// No description provided for @subscriptionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'View status & renew your plan'**
+  String get subscriptionSubtitle;
+
+  /// No description provided for @subscriptionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription'**
+  String get subscriptionTitle;
+
+  /// No description provided for @statusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get statusActive;
+
+  /// No description provided for @statusTrial.
+  ///
+  /// In en, this message translates to:
+  /// **'Trial'**
+  String get statusTrial;
+
+  /// No description provided for @statusExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get statusExpired;
+
+  /// No description provided for @statusInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Not activated'**
+  String get statusInactive;
+
+  /// No description provided for @daysRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days left'**
+  String daysRemaining(int days);
+
+  /// No description provided for @lastChecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Last checked: {date}'**
+  String lastChecked(String date);
+
+  /// No description provided for @neverChecked.
+  ///
+  /// In en, this message translates to:
+  /// **'never'**
+  String get neverChecked;
+
+  /// No description provided for @refreshStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh status'**
+  String get refreshStatus;
+
+  /// No description provided for @renewSubscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Renew / change plan'**
+  String get renewSubscription;
 }
 
 class _AppLocalizationsDelegate
