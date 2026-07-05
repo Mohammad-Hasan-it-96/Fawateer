@@ -602,4 +602,24 @@ class AppLocalizationsEn extends AppLocalizations {
   String creditToLabel(String name) {
     return 'Credit — $name';
   }
+
+  @override
+  String get shareStatement => 'Share statement';
+
+  @override
+  String statementHeader(String shop) {
+    return 'Account Statement — $shop';
+  }
+
+  @override
+  String get statementDate => 'Date';
+
+  @override
+  String get statementTotalDebts => 'Total debts';
+
+  @override
+  String get statementTotalPaid => 'Total paid';
+
+  @override
+  String get statementBalance => 'Balance';
 }

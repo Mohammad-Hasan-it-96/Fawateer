@@ -1,5 +1,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.CAMERA"/>
+    <!-- Required for online subscription/license verification (release builds
+         don't inherit the debug manifest's auto-added INTERNET permission). -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
         android:label="فواتير"
@@ -42,6 +45,13 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- Lets url_launcher's canLaunchUrl resolve https links (WhatsApp/
+             Telegram deep links for the operator-driven activation flow) on
+             Android 11+ package-visibility. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
         </intent>
     </queries>
 </manifest>

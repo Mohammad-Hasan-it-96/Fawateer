@@ -595,4 +595,24 @@ class AppLocalizationsAr extends AppLocalizations {
   String creditToLabel(String name) {
     return 'آجل — $name';
   }
+
+  @override
+  String get shareStatement => 'مشاركة كشف الحساب';
+
+  @override
+  String statementHeader(String shop) {
+    return 'كشف حساب — $shop';
+  }
+
+  @override
+  String get statementDate => 'التاريخ';
+
+  @override
+  String get statementTotalDebts => 'إجمالي الديون';
+
+  @override
+  String get statementTotalPaid => 'إجمالي المدفوع';
+
+  @override
+  String get statementBalance => 'الرصيد';
 }

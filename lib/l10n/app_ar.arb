@@ -205,5 +205,12 @@
   "sellOnCredit": "بيع آجل",
   "cashSale": "نقداً",
   "chooseCustomer": "اختر العميل",
-  "creditToLabel": "آجل — {name}"
+  "creditToLabel": "آجل — {name}",
+
+  "shareStatement": "مشاركة كشف الحساب",
+  "statementHeader": "كشف حساب — {shop}",
+  "statementDate": "التاريخ",
+  "statementTotalDebts": "إجمالي الديون",
+  "statementTotalPaid": "إجمالي المدفوع",
+  "statementBalance": "الرصيد"
 }

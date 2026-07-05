@@ -215,5 +215,13 @@
   "cashSale": "Cash",
   "chooseCustomer": "Choose customer",
   "creditToLabel": "Credit — {name}",
-  "@creditToLabel": { "placeholders": { "name": { "type": "String" } } }
+  "@creditToLabel": { "placeholders": { "name": { "type": "String" } } },
+
+  "shareStatement": "Share statement",
+  "statementHeader": "Account Statement — {shop}",
+  "@statementHeader": { "placeholders": { "shop": { "type": "String" } } },
+  "statementDate": "Date",
+  "statementTotalDebts": "Total debts",
+  "statementTotalPaid": "Total paid",
+  "statementBalance": "Balance"
 }

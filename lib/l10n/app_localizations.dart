@@ -1219,6 +1219,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Credit — {name}'**
   String creditToLabel(String name);
+
+  /// No description provided for @shareStatement.
+  ///
+  /// In en, this message translates to:
+  /// **'Share statement'**
+  String get shareStatement;
+
+  /// No description provided for @statementHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Account Statement — {shop}'**
+  String statementHeader(String shop);
+
+  /// No description provided for @statementDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get statementDate;
+
+  /// No description provided for @statementTotalDebts.
+  ///
+  /// In en, this message translates to:
+  /// **'Total debts'**
+  String get statementTotalDebts;
+
+  /// No description provided for @statementTotalPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Total paid'**
+  String get statementTotalPaid;
+
+  /// No description provided for @statementBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get statementBalance;
 }
 
 class _AppLocalizationsDelegate

@@ -2,13 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/num_input.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../domain/entities/ledger_entry.dart';
 import '../bloc/ledger_bloc.dart';
+import '../customer_statement.dart';
 import '../ledger_money.dart';
 
 /// Map a [LedgerMessage] to a localized string.
@@ -45,6 +48,17 @@ class CustomerDetailPage extends StatelessWidget {
           ),
         ),
         actions: [
+          BlocBuilder<LedgerBloc, LedgerState>(
+            buildWhen: (p, c) =>
+                p.customer != c.customer || p.entries != c.entries,
+            builder: (context, state) => IconButton(
+              icon: const Icon(Icons.share_outlined),
+              tooltip: l10n.shareStatement,
+              onPressed: (state.customer == null || state.entries.isEmpty)
+                  ? null
+                  : () => _shareStatement(context, state, l10n),
+            ),
+          ),
           BlocBuilder<LedgerBloc, LedgerState>(
             buildWhen: (p, c) => p.customer != c.customer,
             builder: (context, state) => IconButton(
@@ -89,6 +103,21 @@ class CustomerDetailPage extends StatelessWidget {
         },
       ),
     );
+  }
+
+  void _shareStatement(
+      BuildContext context, LedgerState state, AppLocalizations l10n) {
+    final shopState = context.read<ShopBloc>().state;
+    final shopName = shopState is ShopLoaded ? shopState.shop.name : '';
+    final text = buildCustomerStatement(
+      l10n: l10n,
+      shopName: shopName,
+      customer: state.customer!,
+      entries: state.entries,
+      balance: state.balance,
+      currency: currencyOf(context),
+    );
+    Share.share(text, subject: l10n.statementHeader(shopName));
   }
 
   Widget _balanceCard(

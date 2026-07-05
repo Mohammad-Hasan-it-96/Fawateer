@@ -130,6 +130,9 @@ Adapted from the Accounts-Ledger reference app onto Fawateer's Drift + Clean-Arc
 - **Sell on credit**: the checkout's `_CreditAwareConfirm` picks a customer; `ConfirmSaleEvent.customerId` flows to `InvoiceRepository.saveInvoice(..., customerId:)`, which builds a `charge` `LedgerEntriesCompanion` and passes it to `SalesDao.insertInvoiceWithItems` — written in the **same transaction** as the invoice + stock deduction, so a credit sale can't leave an invoice without its debt. A repayment is a manual `payment` entry (invoiceId null).
 - **Delete guard**: `CustomerRepository.deleteCustomer` returns `Left(ConflictFailure)` (new `Failure` subtype) when the customer has any ledger entries — history is never silently discarded. `CustomerBloc` maps it to `CustomerMessage.deleteBlocked`; customers also have an `isArchived` flag for soft-hide.
 - **Reachable** from Settings → "Customers & Debts" (`/settings/customers` → list → `detail/:id` / `add` / `edit/:id`). Not a bottom-nav tab yet (kept the 4-tab shell) — promoting it is a follow-up.
+- **Account statement**: the detail page shares a plain-text Arabic statement (`buildCustomerStatement` → `share_plus`) — header, chronological entries, debit/credit totals, final balance. Handy for WhatsApp debt reminders.
+
+**Android manifest**: the app gained `INTERNET` (release builds don't inherit the debug manifest's auto-added copy — required for the license API) and an `https` `VIEW` `<queries>` intent (so `url_launcher.canLaunchUrl` resolves WhatsApp/Telegram links on Android 11+).
 
 ### Navigation (GoRouter)
 
