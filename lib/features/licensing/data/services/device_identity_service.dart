@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -39,12 +40,20 @@ class DeviceIdentityService {
   }
 
   /// The unhashed, platform-native identifier, or `null` when unavailable.
+  ///
+  /// Every platform-channel call is bounded by a short timeout: on some devices
+  /// / ROMs the native side can stall and never respond, and an unbounded await
+  /// here would hang the whole startup license check (the splash would spin
+  /// forever). A timeout throws, is caught by [getDeviceId], and falls back to
+  /// the constant id rather than freezing.
+  static const _channelTimeout = Duration(seconds: 3);
+
   Future<String?> _rawPlatformId() async {
     if (Platform.isAndroid) {
-      return _androidId.getId();
+      return _androidId.getId().timeout(_channelTimeout);
     }
     if (Platform.isIOS) {
-      final info = await DeviceInfoPlugin().iosInfo;
+      final info = await DeviceInfoPlugin().iosInfo.timeout(_channelTimeout);
       return info.identifierForVendor;
     }
     return null;

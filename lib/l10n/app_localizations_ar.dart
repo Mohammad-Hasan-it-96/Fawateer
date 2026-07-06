@@ -466,6 +466,21 @@ class AppLocalizationsAr extends AppLocalizations {
   String get contactTelegram => 'تيليجرام';
 
   @override
+  String get contactEmail => 'البريد الإلكتروني';
+
+  @override
+  String get contactEmailSubject => 'طلب اشتراك فواتير';
+
+  @override
+  String get updateAvailableTitle => 'يتوفر تحديث جديد';
+
+  @override
+  String get updateDownload => 'تحميل التحديث';
+
+  @override
+  String get updateLater => 'لاحقاً';
+
+  @override
   String contactMessage(String plan) {
     return 'مرحباً، أرغب في الاشتراك في باقة $plan لتطبيق فواتير.';
   }

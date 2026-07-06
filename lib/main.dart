@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'config/routes/app_routes.dart';
+import 'core/config/remote_config_service.dart';
 import 'core/service_locator.dart' as di;
 import 'core/theme/app_theme.dart';
 import 'features/billing/presentation/bloc/billing_bloc.dart';
@@ -26,6 +28,19 @@ void main() async {
   // Load locale data (Arabic month names, ص/م) for intl's DateFormat.
   await initializeDateFormatting();
   await di.init();
+
+  // Load the remote config (fawateer_version.json) — applies the API base URL
+  // and support contacts, and flags an available update. Await it briefly so an
+  // overridden base URL is in place before the first license call, but cap the
+  // wait so a slow network can't stall startup; it finishes in the background
+  // either way (the update-checker widget awaits the same shared future).
+  try {
+    await di
+        .sl<RemoteConfigService>()
+        .ensureLoaded()
+        .timeout(const Duration(seconds: 4));
+  } catch (_) {/* keep going; the config applies once it lands */}
+
   runApp(const MyApp());
 
   // Start FCM live-unlock (fire-and-forget; self-disables without Firebase
@@ -55,6 +70,77 @@ void _showSubscriptionActivatedBanner() {
         duration: const Duration(seconds: 5),
       ),
     );
+}
+
+/// Awaits the shared remote-config load, then shows a one-time update dialog if
+/// a newer version is published. Non-blocking and dismissible ("Later").
+class _UpdateChecker extends StatefulWidget {
+  const _UpdateChecker({required this.child});
+  final Widget child;
+
+  @override
+  State<_UpdateChecker> createState() => _UpdateCheckerState();
+}
+
+class _UpdateCheckerState extends State<_UpdateChecker> {
+  bool _prompted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybePrompt());
+  }
+
+  Future<void> _maybePrompt() async {
+    final service = di.sl<RemoteConfigService>();
+    await service.ensureLoaded();
+    if (!mounted || _prompted) return;
+    if (!service.updateAvailable) return;
+    _prompted = true;
+
+    final l10n = AppLocalizations.of(context);
+    final notes = service.current?.updateNotes ?? const [];
+    final url = service.downloadUrl;
+    if (l10n == null) return;
+
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.updateAvailableTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final note in notes)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text('• $note'),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(l10n.updateLater),
+          ),
+          FilledButton(
+            onPressed: (url == null || url.isEmpty)
+                ? null
+                : () async {
+                    Navigator.of(dialogContext).pop();
+                    await launchUrl(Uri.parse(url),
+                        mode: LaunchMode.externalApplication);
+                  },
+            child: Text(l10n.updateDownload),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
 }
 
 class MyApp extends StatelessWidget {
@@ -98,6 +184,11 @@ class MyApp extends StatelessWidget {
           GlobalWidgetsLocalizations.delegate,
           GlobalCupertinoLocalizations.delegate,
         ],
+        // Wraps every route: prompts once if the remote config advertises a
+        // newer app version. Lives here (not on a page) so it fires regardless
+        // of the licensing gate's current screen.
+        builder: (context, child) =>
+            _UpdateChecker(child: child ?? const SizedBox.shrink()),
       ),
     );
   }

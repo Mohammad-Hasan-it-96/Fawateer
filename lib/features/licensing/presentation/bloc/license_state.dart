@@ -61,6 +61,18 @@ class LicenseState extends Equatable {
 
   bool get isActive => license.isActive;
 
+  /// The device has been registered on this install — the user has already
+  /// entered their name/phone (and `create_device` was called). Drives the gate:
+  /// unregistered → name/phone form; registered-but-inactive → plan selection.
+  bool get registered => agentName.trim().isNotEmpty;
+
+  /// A license operation is in flight — used by the gate to avoid bouncing the
+  /// user between activation screens mid-request.
+  bool get isBusy =>
+      status == LicenseFlowStatus.checking ||
+      status == LicenseFlowStatus.activating ||
+      status == LicenseFlowStatus.requesting;
+
   LicenseState copyWith({
     LicenseFlowStatus? status,
     LicenseStatus? license,

@@ -41,12 +41,17 @@ class ApiException implements Exception {
 /// hashed device id sent in the body). Base URL is overridable so staging/prod
 /// or a future Fawateer server can be swapped in without touching callers.
 class ApiClient {
-  final String baseUrl;
+  /// An explicit per-instance override (tests/staging). When null, the client
+  /// reads [ApiConfig.baseUrl] at request time, so a base URL applied by the
+  /// remote config after this client was constructed still takes effect.
+  final String? _baseUrlOverride;
   final http.Client _client;
 
   ApiClient({String? baseUrl, http.Client? client})
-      : baseUrl = baseUrl ?? ApiConfig.defaultBaseUrl,
+      : _baseUrlOverride = baseUrl,
         _client = client ?? http.Client();
+
+  String get baseUrl => _baseUrlOverride ?? ApiConfig.baseUrl;
 
   static const Map<String, String> _headers = {
     'Content-Type': 'application/json',

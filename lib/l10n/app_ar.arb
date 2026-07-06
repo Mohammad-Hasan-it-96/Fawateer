@@ -163,6 +163,11 @@
   "contactMethodTitle": "تواصل معنا لإتمام اشتراكك",
   "contactWhatsApp": "واتساب",
   "contactTelegram": "تيليجرام",
+  "contactEmail": "البريد الإلكتروني",
+  "contactEmailSubject": "طلب اشتراك فواتير",
+  "updateAvailableTitle": "يتوفر تحديث جديد",
+  "updateDownload": "تحميل التحديث",
+  "updateLater": "لاحقاً",
   "contactMessage": "مرحباً، أرغب في الاشتراك في باقة {plan} لتطبيق فواتير.",
 
   "customersTitle": "العملاء",

@@ -155,3 +155,6 @@ Everything so far is validated by **`flutter analyze` only**:
 | `d51d465` | Customers bottom-nav tab |
 | `8a4c6a6` | Thermal-printed statement |
 | `18edcf1` | FCM live-unlock (dormant by default) |
+| `3ff2fe8` | Add ROADMAP.md tracking commercialization progress |
+| `728c342` | iOS device-id via `identifierForVendor` |
+| `d71ab8f` | Foreground in-app banner on live subscription unlock |

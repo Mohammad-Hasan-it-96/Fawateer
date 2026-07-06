@@ -471,6 +471,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get contactTelegram => 'Telegram';
 
   @override
+  String get contactEmail => 'Email';
+
+  @override
+  String get contactEmailSubject => 'Fawateer subscription request';
+
+  @override
+  String get updateAvailableTitle => 'A new update is available';
+
+  @override
+  String get updateDownload => 'Download update';
+
+  @override
+  String get updateLater => 'Later';
+
+  @override
   String contactMessage(String plan) {
     return 'Hello, I\'d like to subscribe to the $plan plan for Fawateer.';
   }

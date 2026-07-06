@@ -30,10 +30,9 @@ import 'app_shell.dart';
 /// The single shared LicenseBloc instance the gate reacts to.
 final _licenseBloc = sl<LicenseBloc>();
 
-/// Locations that stay reachable while unlicensed (the activation flow itself,
-/// plus the splash shown during the initial check).
-bool _isGateRoute(String location) =>
-    location == '/splash' || location.startsWith('/activation');
+/// The activation-flow screens (reachable while unlicensed).
+const _activationForm = '/activation'; // name/phone → create_device
+const _activationPlans = '/activation/plans'; // pick a plan → contact support
 
 final router = GoRouter(
   initialLocation: '/pos',
@@ -43,20 +42,34 @@ final router = GoRouter(
     final license = _licenseBloc.state;
     final loc = state.matchedLocation;
 
-    // Before the first check resolves → hold on the splash. After bootstrap, an
-    // in-app re-check (e.g. Refresh on the subscription screen) must not bounce
-    // the user back here.
+    // 1. Before the first check resolves → hold on the splash.
     if (!license.bootstrapped) {
-      return _isGateRoute(loc) ? null : '/splash';
+      return loc == '/splash' ? null : '/splash';
     }
-    // No valid subscription → funnel to activation (but let the flow's own
-    // screens through).
-    if (!license.isActive) {
-      return _isGateRoute(loc) ? null : '/activation';
+
+    // 2. Active subscription → into the app; never sit on a gate screen.
+    if (license.isActive) {
+      if (loc == '/splash' || loc.startsWith('/activation')) return '/pos';
+      return null;
     }
-    // Active: don't let the user sit on the gate screens.
-    if (loc == '/splash' || loc == '/activation') return '/pos';
-    return null;
+
+    // 3. No valid subscription. Pick the right gate screen:
+    //    - not yet registered (no name/phone) → the activation form, which
+    //      collects the details and calls `create_device`.
+    //    - registered but unverified → the plan catalogue, where the user picks
+    //      a plan and contacts support (WhatsApp / email / Telegram).
+    final target = license.registered ? _activationPlans : _activationForm;
+
+    // Let the activation flow's own screens stay put, but move a registered user
+    // off the bare name form onto plan selection (unless a request is in flight,
+    // so the form's busy overlay isn't yanked away mid-activation).
+    if (loc == _activationForm || loc == _activationPlans) {
+      if (license.registered && loc == _activationForm && !license.isBusy) {
+        return _activationPlans;
+      }
+      return null;
+    }
+    return target;
   },
   routes: [
     // Licensing gate (top-level, outside the tab shell).

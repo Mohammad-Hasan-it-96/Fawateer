@@ -974,6 +974,36 @@ abstract class AppLocalizations {
   /// **'Telegram'**
   String get contactTelegram;
 
+  /// No description provided for @contactEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get contactEmail;
+
+  /// No description provided for @contactEmailSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Fawateer subscription request'**
+  String get contactEmailSubject;
+
+  /// No description provided for @updateAvailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A new update is available'**
+  String get updateAvailableTitle;
+
+  /// No description provided for @updateDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download update'**
+  String get updateDownload;
+
+  /// No description provided for @updateLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get updateLater;
+
   /// No description provided for @contactMessage.
   ///
   /// In en, this message translates to:

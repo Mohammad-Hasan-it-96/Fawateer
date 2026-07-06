@@ -207,6 +207,14 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                 _submit(context, l10n, plan, 'telegram');
               },
             ),
+            ListTile(
+              leading: const Icon(Icons.email_outlined, color: Colors.redAccent),
+              title: Text(l10n.contactEmail),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _submit(context, l10n, plan, 'email');
+              },
+            ),
             const SizedBox(height: 8),
           ],
         ),
@@ -238,7 +246,17 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
           'https://wa.me/${ApiConfig.supportWhatsApp}?text=${Uri.encodeComponent(message)}');
     }
     if (method == 'telegram' && ApiConfig.supportTelegram.isNotEmpty) {
-      return Uri.parse('https://t.me/${ApiConfig.supportTelegram}');
+      final tg = ApiConfig.supportTelegram;
+      // The config may hold a full https://t.me/... link or a bare username.
+      return Uri.parse(tg.startsWith('http') ? tg : 'https://t.me/$tg');
+    }
+    if (method == 'email' && ApiConfig.supportEmail.isNotEmpty) {
+      return Uri(
+        scheme: 'mailto',
+        path: ApiConfig.supportEmail,
+        query: 'subject=${Uri.encodeComponent(l10n.contactEmailSubject)}'
+            '&body=${Uri.encodeComponent(message)}',
+      );
     }
     return null;
   }

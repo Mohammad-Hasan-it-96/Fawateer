@@ -169,6 +169,11 @@
   "contactMethodTitle": "Contact us to complete your subscription",
   "contactWhatsApp": "WhatsApp",
   "contactTelegram": "Telegram",
+  "contactEmail": "Email",
+  "contactEmailSubject": "Fawateer subscription request",
+  "updateAvailableTitle": "A new update is available",
+  "updateDownload": "Download update",
+  "updateLater": "Later",
   "contactMessage": "Hello, I'd like to subscribe to the {plan} plan for Fawateer.",
   "@contactMessage": { "placeholders": { "plan": { "type": "String" } } },
 

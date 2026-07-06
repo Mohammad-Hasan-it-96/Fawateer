@@ -11,6 +11,7 @@ import 'database/daos/ledger_dao.dart';
 
 // Core — Network
 import 'network/api_client.dart';
+import 'config/remote_config_service.dart';
 
 // Features — Ledger (customers & debts)
 import '../features/ledger/data/repositories/customer_repository_drift_impl.dart';
@@ -55,6 +56,7 @@ final sl = GetIt.instance;
 Future<void> init() async {
   // ── Network ──────────────────────────────────────────────────────────────
   sl.registerLazySingleton<ApiClient>(() => ApiClient());
+  sl.registerLazySingleton<RemoteConfigService>(() => RemoteConfigService());
 
   // ── Database ─────────────────────────────────────────────────────────────
   sl.registerLazySingleton<AppDatabase>(() => AppDatabase());

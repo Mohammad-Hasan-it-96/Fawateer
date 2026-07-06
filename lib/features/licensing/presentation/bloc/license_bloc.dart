@@ -24,32 +24,61 @@ class LicenseBloc extends Bloc<LicenseEvent, LicenseState> {
 
   Future<void> _onCheck(
       CheckLicenseEvent event, Emitter<LicenseState> emit) async {
-    final agent = await repository.cachedAgent();
-    final deviceId =
-        state.deviceId.isEmpty ? await repository.deviceId() : state.deviceId;
-    emit(state.copyWith(
-      status: LicenseFlowStatus.checking,
-      agentName: agent.name,
-      agentPhone: agent.phone,
-      deviceId: deviceId,
-    ));
-    final result = await repository.checkLicense();
-    result.fold(
-      (failure) => emit(state.copyWith(
+    try {
+      final agent = await repository.cachedAgent();
+      final deviceId =
+          state.deviceId.isEmpty ? await repository.deviceId() : state.deviceId;
+
+      // Brand-new device (never registered here): skip the server poll and send
+      // the user straight to the activation form to enter name/phone. Only after
+      // they register (create_device) does check_device have anything to find —
+      // polling it first just returns "device not found" (404). This also means
+      // a fresh install performs no network call at startup at all.
+      final neverRegistered = agent.name == null || agent.name!.trim().isEmpty;
+      if (neverRegistered) {
+        emit(state.copyWith(
+          status: LicenseFlowStatus.unlicensed,
+          deviceId: deviceId,
+          bootstrapped: true,
+        ));
+        return;
+      }
+
+      emit(state.copyWith(
+        status: LicenseFlowStatus.checking,
+        agentName: agent.name,
+        agentPhone: agent.phone,
+        deviceId: deviceId,
+      ));
+      final result = await repository.checkLicense();
+      result.fold(
+        (failure) => emit(state.copyWith(
+          status: state.license.isActive
+              ? LicenseFlowStatus.active
+              : LicenseFlowStatus.unlicensed,
+          error: _mapError(failure),
+          bootstrapped: true,
+        )),
+        (status) => emit(state.copyWith(
+          status: status.isActive
+              ? LicenseFlowStatus.active
+              : LicenseFlowStatus.unlicensed,
+          license: status,
+          bootstrapped: true,
+        )),
+      );
+    } catch (e) {
+      // Safety net: nothing in the check must ever leave the splash spinning. On
+      // any unexpected error, bootstrap as unlicensed so the gate can proceed to
+      // the activation screen instead of hanging.
+      emit(state.copyWith(
         status: state.license.isActive
             ? LicenseFlowStatus.active
             : LicenseFlowStatus.unlicensed,
-        error: _mapError(failure),
+        error: LicenseError.unexpected,
         bootstrapped: true,
-      )),
-      (status) => emit(state.copyWith(
-        status: status.isActive
-            ? LicenseFlowStatus.active
-            : LicenseFlowStatus.unlicensed,
-        license: status,
-        bootstrapped: true,
-      )),
-    );
+      ));
+    }
   }
 
   Future<void> _onActivate(
