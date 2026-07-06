@@ -49,7 +49,10 @@ class LicenseRepositoryImpl implements LicenseRepository {
       await _local.saveAgent(name, phone);
       final deviceId = await _identity.getDeviceId();
       final json = await _remote.createDevice(
-          deviceId: deviceId, name: name, phone: phone);
+          deviceId: deviceId,
+          name: name,
+          phone: phone,
+          fcmToken: await _local.loadPushToken());
       await _local.saveStatus(_statusFromJson(json));
       await _local.markSynced(now, serverTime: _parseDate(json['server_time']));
       return Right(await _local.loadStatus(DateTime.now()));
@@ -107,6 +110,19 @@ class LicenseRepositoryImpl implements LicenseRepository {
 
   @override
   Future<String> deviceId() => _identity.getDeviceId();
+
+  @override
+  Future<void> registerPushToken(String token) async {
+    if (token.isEmpty) return;
+    try {
+      // Cache first so activation can attach it even if the update call fails.
+      await _local.savePushToken(token);
+      final deviceId = await _identity.getDeviceId();
+      await _remote.updateFcmToken(deviceId: deviceId, fcmToken: token);
+    } catch (_) {
+      // Non-fatal: token stays cached and re-registers on next launch/rotation.
+    }
+  }
 
   // ── mapping helpers ────────────────────────────────────────────────────────
 

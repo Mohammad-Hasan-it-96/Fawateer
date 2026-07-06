@@ -12,6 +12,7 @@ import 'features/shop/presentation/bloc/shop_bloc.dart';
 import 'features/settings/presentation/bloc/printer_bloc.dart';
 import 'features/settings/presentation/bloc/printer_event.dart';
 import 'features/licensing/presentation/bloc/license_bloc.dart';
+import 'features/licensing/data/services/push_notification_service.dart';
 import 'features/ledger/presentation/bloc/customer_bloc.dart';
 import 'l10n/app_localizations.dart';
 
@@ -21,6 +22,14 @@ void main() async {
   await initializeDateFormatting();
   await di.init();
   runApp(const MyApp());
+
+  // Start FCM live-unlock (fire-and-forget; self-disables without Firebase
+  // config). A license-related push re-checks the subscription on the shared
+  // LicenseBloc, so the router gate unlocks the app the instant the operator
+  // activates the device — no restart needed.
+  di.sl<PushNotificationService>().initialize(
+        onLicenseChanged: () => di.sl<LicenseBloc>().add(CheckLicenseEvent()),
+      );
 }
 
 class MyApp extends StatelessWidget {

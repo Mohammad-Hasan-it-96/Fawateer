@@ -18,6 +18,7 @@ class LicenseLocalStorage {
   static const _kTrusted = 'lic_trusted_time'; // epoch ms (server time baseline)
   static const _kName = 'lic_agent_name';
   static const _kPhone = 'lic_agent_phone';
+  static const _kPushToken = 'lic_push_token'; // last FCM token sent to server
 
   SharedPreferences? _prefs;
   Future<SharedPreferences> get _p async =>
@@ -61,6 +62,13 @@ class LicenseLocalStorage {
     final p = await _p;
     return (name: p.getString(_kName), phone: p.getString(_kPhone));
   }
+
+  /// The last FCM token we successfully handed to the server, so activation can
+  /// attach the current token and we can skip redundant re-registrations.
+  Future<String?> loadPushToken() async => (await _p).getString(_kPushToken);
+
+  Future<void> savePushToken(String token) async =>
+      (await _p).setString(_kPushToken, token);
 
   /// Read the cached status with offline/tamper guards applied against [now].
   Future<LicenseStatus> loadStatus(DateTime now) async {

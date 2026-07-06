@@ -3,6 +3,9 @@
     <!-- Required for online subscription/license verification (release builds
          don't inherit the debug manifest's auto-added INTERNET permission). -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Android 13+ runtime permission for the FCM live-unlock notification.
+         Harmless when Firebase isn't configured (no notifications are posted). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
         android:label="فواتير"

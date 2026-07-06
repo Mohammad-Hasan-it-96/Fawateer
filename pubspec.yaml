@@ -52,6 +52,12 @@ dependencies:
   # Sharing (customer account statements)
   share_plus: ^10.1.4
 
+  # Push notifications (FCM live-unlock of the subscription).
+  # Dormant until a Firebase project is configured (see android/README-fcm.md);
+  # Firebase.initializeApp() fails gracefully and push stays disabled without it.
+  firebase_core: ^4.11.0
+  firebase_messaging: ^16.4.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

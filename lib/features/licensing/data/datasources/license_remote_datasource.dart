@@ -26,16 +26,33 @@ class LicenseRemoteDataSource {
   }
 
   /// `POST create_device` — register the device / (re-)request activation.
+  /// When [fcmToken] is provided it's attached so the server can push the
+  /// live-unlock notification the moment an operator activates the device.
   Future<Map<String, dynamic>> createDevice({
     required String deviceId,
     required String name,
     required String phone,
+    String? fcmToken,
   }) {
     return _client.postJson('create_device', {
       'app_name': ApiConfig.appName,
       'device_id': deviceId,
       'full_name': name,
       'phone': phone,
+      if (fcmToken != null && fcmToken.isNotEmpty) 'fcm_token': fcmToken,
+    });
+  }
+
+  /// `POST update_my_data` — refresh just the FCM token for an already-known
+  /// device (used on token rotation, when name/phone aren't needed).
+  Future<void> updateFcmToken({
+    required String deviceId,
+    required String fcmToken,
+  }) async {
+    await _client.postJson('update_my_data', {
+      'app_name': ApiConfig.appName,
+      'device_id': deviceId,
+      'fcm_token': fcmToken,
     });
   }
 

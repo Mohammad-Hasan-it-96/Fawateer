@@ -25,6 +25,7 @@ import '../features/licensing/data/datasources/license_local_storage.dart';
 import '../features/licensing/data/datasources/license_remote_datasource.dart';
 import '../features/licensing/data/repositories/license_repository_impl.dart';
 import '../features/licensing/data/services/device_identity_service.dart';
+import '../features/licensing/data/services/push_notification_service.dart';
 import '../features/licensing/domain/repositories/license_repository.dart';
 import '../features/licensing/presentation/bloc/license_bloc.dart';
 
@@ -88,6 +89,8 @@ Future<void> init() async {
       () => LicenseRemoteDataSource(sl()));
   sl.registerLazySingleton<LicenseRepository>(
       () => LicenseRepositoryImpl(sl(), sl(), sl()));
+  sl.registerLazySingleton<PushNotificationService>(
+      () => PushNotificationService(sl()));
 
   // ── BLoCs ─────────────────────────────────────────────────────────────────
   sl.registerFactory(() => ProductBloc(repository: sl()));

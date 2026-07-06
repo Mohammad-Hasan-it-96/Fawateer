@@ -3,6 +3,11 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // FCM live-unlock: uncomment together with the plugin line in
+    // settings.gradle.kts once google-services.json is in place (see
+    // android/README-fcm.md). The app builds & runs without it — push simply
+    // stays disabled (Firebase.initializeApp fails gracefully).
+    // id("com.google.gms.google-services")
 }
 
 android {

@@ -43,4 +43,10 @@ abstract class LicenseRepository {
   /// This device's stable identifier (the value sent to the server and that the
   /// user gives to support for operator-driven activation).
   Future<String> deviceId();
+
+  /// Best-effort registration of this device's FCM push [token] with the server
+  /// so it can send the live-unlock notification when the subscription changes.
+  /// Never throws — push is an optional enhancement; a failure just means the
+  /// user re-checks manually or on next launch.
+  Future<void> registerPushToken(String token);
 }
