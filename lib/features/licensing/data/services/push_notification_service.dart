@@ -38,13 +38,24 @@ class PushNotificationService {
   /// `CheckLicenseEvent` so the router gate flips to active automatically.
   void Function()? _onLicenseChanged;
 
+  /// Called only when a license-related push arrives while the app is in the
+  /// **foreground** — the app wires this to a visible in-app banner. (Background
+  /// / terminated deliveries surface as a system tray notification instead, so
+  /// they don't need one.)
+  void Function()? _onForegroundLicenseChange;
+
   /// Idempotent. [onLicenseChanged] is invoked (on the main isolate) whenever a
   /// license-related message is received in the foreground, opened from the
-  /// tray, or launched the app from terminated state.
-  Future<void> initialize({void Function()? onLicenseChanged}) async {
+  /// tray, or launched the app from terminated state. [onForegroundLicenseChange]
+  /// fires additionally, but only for foreground receipts (for an in-app banner).
+  Future<void> initialize({
+    void Function()? onLicenseChanged,
+    void Function()? onForegroundLicenseChange,
+  }) async {
     if (_initialized) return;
     _initialized = true;
     _onLicenseChanged = onLicenseChanged;
+    _onForegroundLicenseChange = onForegroundLicenseChange;
 
     try {
       await Firebase.initializeApp();
@@ -66,12 +77,14 @@ class PushNotificationService {
     await _syncToken(messaging);
     messaging.onTokenRefresh.listen(_repository.registerPushToken);
 
-    FirebaseMessaging.onMessage.listen(_handleMessage);
-    FirebaseMessaging.onMessageOpenedApp.listen(_handleMessage);
+    FirebaseMessaging.onMessage
+        .listen((m) => _handleMessage(m, foreground: true));
+    FirebaseMessaging.onMessageOpenedApp
+        .listen((m) => _handleMessage(m, foreground: false));
 
     // App launched from terminated state by tapping the notification.
     final initial = await messaging.getInitialMessage();
-    if (initial != null) _handleMessage(initial);
+    if (initial != null) _handleMessage(initial, foreground: false);
   }
 
   bool get isEnabled => _enabled;
@@ -87,10 +100,10 @@ class PushNotificationService {
     }
   }
 
-  void _handleMessage(RemoteMessage message) {
+  void _handleMessage(RemoteMessage message, {required bool foreground}) {
     final type = (message.data['type'] ?? '').toString().trim();
-    if (_kLicenseMessageTypes.contains(type)) {
-      _onLicenseChanged?.call();
-    }
+    if (!_kLicenseMessageTypes.contains(type)) return;
+    _onLicenseChanged?.call();
+    if (foreground) _onForegroundLicenseChange?.call();
   }
 }

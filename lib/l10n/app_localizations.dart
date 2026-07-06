@@ -1363,6 +1363,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copied'**
   String get copied;
+
+  /// No description provided for @subscriptionActivatedBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Your subscription has been activated'**
+  String get subscriptionActivatedBanner;
 }
 
 class _AppLocalizationsDelegate

@@ -16,6 +16,11 @@ import 'features/licensing/data/services/push_notification_service.dart';
 import 'features/ledger/presentation/bloc/customer_bloc.dart';
 import 'l10n/app_localizations.dart';
 
+/// Lets the FCM foreground handler surface an in-app banner from outside the
+/// widget tree (no BuildContext at the callsite). Dormant unless FCM is enabled.
+final GlobalKey<ScaffoldMessengerState> rootMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   // Load locale data (Arabic month names, ص/م) for intl's DateFormat.
@@ -26,10 +31,30 @@ void main() async {
   // Start FCM live-unlock (fire-and-forget; self-disables without Firebase
   // config). A license-related push re-checks the subscription on the shared
   // LicenseBloc, so the router gate unlocks the app the instant the operator
-  // activates the device — no restart needed.
+  // activates the device — no restart needed. If it arrives while the app is
+  // open, also show a visible banner (background/terminated get a tray notice).
   di.sl<PushNotificationService>().initialize(
         onLicenseChanged: () => di.sl<LicenseBloc>().add(CheckLicenseEvent()),
+        onForegroundLicenseChange: _showSubscriptionActivatedBanner,
       );
+}
+
+void _showSubscriptionActivatedBanner() {
+  final messenger = rootMessengerKey.currentState;
+  final context = rootMessengerKey.currentContext;
+  if (messenger == null || context == null) return;
+  final l10n = AppLocalizations.of(context);
+  if (l10n == null) return;
+  messenger
+    ..clearSnackBars()
+    ..showSnackBar(
+      SnackBar(
+        content: Text(l10n.subscriptionActivatedBanner),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Colors.green.shade700,
+        duration: const Duration(seconds: 5),
+      ),
+    );
 }
 
 class MyApp extends StatelessWidget {
@@ -62,6 +87,7 @@ class MyApp extends StatelessWidget {
       child: MaterialApp.router(
         title: 'فواتير',
         theme: AppTheme.lightTheme,
+        scaffoldMessengerKey: rootMessengerKey,
         routerConfig: router,
         debugShowCheckedModeBanner: false,
         locale: const Locale('ar'),

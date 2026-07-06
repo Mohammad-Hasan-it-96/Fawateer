@@ -4,7 +4,7 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
 **online-validated subscriptions** and a **customer debt ledger**.
 
 **Branch:** `refactor/architecture-hardening`
-**Last updated:** 2026-07-06 (iOS device-id)
+**Last updated:** 2026-07-06 (iOS device-id + foreground push banner)
 
 ---
 
@@ -39,7 +39,7 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
 | 2 | Account statement — thermal print | ✅ Done |
 | 3 | FCM live-unlock | ✅ Done (dormant until Firebase configured) |
 | 3 | iOS device-id | ✅ Done |
-| 3 | Foreground push banner (optional polish) | ⬜ Not started |
+| 3 | Foreground push banner | ✅ Done |
 | 4+ | Inventory / purchases / expenses / reports / multi-store | ⬜ Future |
 
 ---
@@ -112,13 +112,20 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
   emit interchangeable opaque tokens. A null/empty native id (e.g. iOS before
   first unlock) still falls back to the constant; it never throws.
 
+### ✅ Foreground push banner
+- A license push received while the app is **open** now shows a visible in-app
+  banner (`subscriptionActivatedBanner` SnackBar) in addition to the silent
+  re-check. `PushNotificationService._handleMessage` tags foreground vs
+  background deliveries; only foreground fires `onForegroundLicenseChange`,
+  which `main.dart` routes through a top-level `rootMessengerKey`. Background /
+  terminated deliveries already surface as an OS tray notification, so they
+  don't double up. No new dependency (uses the built-in `ScaffoldMessenger`);
+  stays dormant with the rest of FCM until Firebase is configured.
+
 ---
 
 ## Not started
 
-- ⬜ **Foreground push banner** — a license push while the app is open does a
-  *silent* re-check (no in-app toast). Add `flutter_local_notifications` if a
-  visible "subscription activated" banner is wanted.
 - ⬜ **Larger modules** — inventory management, purchase invoices, expenses,
   reports, multi-store. (Architecture was kept scalable for these.)
 

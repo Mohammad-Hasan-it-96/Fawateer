@@ -673,4 +673,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get copied => 'تم النسخ';
+
+  @override
+  String get subscriptionActivatedBanner => 'تم تفعيل اشتراكك';
 }

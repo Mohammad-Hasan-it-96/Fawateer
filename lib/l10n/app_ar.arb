@@ -232,5 +232,7 @@
   "deviceIdLabel": "معرّف الجهاز",
   "deviceIdHint": "أرسل هذا المعرّف للدعم لتفعيل جهازك.",
   "copy": "نسخ",
-  "copied": "تم النسخ"
+  "copied": "تم النسخ",
+
+  "subscriptionActivatedBanner": "تم تفعيل اشتراكك"
 }

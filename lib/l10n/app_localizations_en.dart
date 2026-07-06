@@ -680,4 +680,8 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get copied => 'Copied';
+
+  @override
+  String get subscriptionActivatedBanner =>
+      'Your subscription has been activated';
 }

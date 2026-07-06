@@ -245,5 +245,7 @@
   "deviceIdLabel": "Device ID",
   "deviceIdHint": "Send this ID to support to activate your device.",
   "copy": "Copy",
-  "copied": "Copied"
+  "copied": "Copied",
+
+  "subscriptionActivatedBanner": "Your subscription has been activated"
 }
