@@ -4,7 +4,7 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
 **online-validated subscriptions** and a **customer debt ledger**.
 
 **Branch:** `refactor/architecture-hardening`
-**Last updated:** 2026-07-06
+**Last updated:** 2026-07-06 (iOS device-id)
 
 ---
 
@@ -38,7 +38,7 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
 | 2 | Ledger bottom-nav tab | ✅ Done |
 | 2 | Account statement — thermal print | ✅ Done |
 | 3 | FCM live-unlock | ✅ Done (dormant until Firebase configured) |
-| 3 | iOS device-id | ⬜ Not started |
+| 3 | iOS device-id | ✅ Done |
 | 3 | Foreground push banner (optional polish) | ⬜ Not started |
 | 4+ | Inventory / purchases / expenses / reports / multi-store | ⬜ Future |
 
@@ -106,12 +106,16 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
   git-ignored.
 - **Enable steps + server payload:** [`android/README-fcm.md`](android/README-fcm.md).
 
+### ✅ iOS device-id
+- `DeviceIdentityService` now hashes `identifierForVendor` (via `device_info_plus`)
+  on iOS, salted identically to the Android `ANDROID_ID` path — the two platforms
+  emit interchangeable opaque tokens. A null/empty native id (e.g. iOS before
+  first unlock) still falls back to the constant; it never throws.
+
 ---
 
 ## Not started
 
-- ⬜ **iOS device-id** — Android uses `ANDROID_ID`; iOS/other currently return a
-  fallback. Add `identifierForVendor` (via `device_info_plus`) for iOS parity.
 - ⬜ **Foreground push banner** — a license push while the app is open does a
   *silent* re-check (no in-app toast). Add `flutter_local_notifications` if a
   visible "subscription activated" banner is wanted.

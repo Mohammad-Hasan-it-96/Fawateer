@@ -45,7 +45,8 @@ dependencies:
   # Networking & Licensing (subscription verification)
   http: ^1.2.0
   crypto: ^3.0.3
-  android_id: ^0.4.0
+  android_id: ^0.4.0            # device-id on Android (ANDROID_ID)
+  device_info_plus: ^12.4.0     # device-id on iOS (identifierForVendor)
   shared_preferences: ^2.2.3
   url_launcher: ^6.2.6
 
