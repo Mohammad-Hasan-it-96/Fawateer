@@ -1358,6 +1358,18 @@ abstract class AppLocalizations {
   /// **'Add a customer to track credit sales and payments.'**
   String get noCustomersHint;
 
+  /// No description provided for @selectCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Select customer'**
+  String get selectCustomer;
+
+  /// No description provided for @addNewCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Add new customer'**
+  String get addNewCustomer;
+
   /// No description provided for @balanceSettled.
   ///
   /// In en, this message translates to:

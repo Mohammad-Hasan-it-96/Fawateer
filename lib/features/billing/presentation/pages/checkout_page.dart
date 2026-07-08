@@ -2,10 +2,12 @@ import 'package:billing_app/core/widgets/primary_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/format.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../ledger/domain/entities/customer.dart';
 import '../../../ledger/domain/entities/customer_account.dart';
 import '../../../ledger/presentation/bloc/customer_bloc.dart';
 import '../../../shop/domain/entities/shop.dart';
@@ -432,39 +434,159 @@ class _CreditAwareConfirmState extends State<_CreditAwareConfirm> {
   }
 
   Future<void> _pickCustomer() async {
+    final l10n = widget.l10n;
     final customers = context.read<CustomerBloc>().state.customers;
-    final selected = await showModalBottomSheet<CustomerAccount>(
+    // Sentinel returned by the "add new customer" tile so we can branch after
+    // the sheet closes (vs. a picked CustomerAccount or a plain dismiss).
+    const addSentinel = Object();
+    final result = await showModalBottomSheet<Object>(
       context: context,
+      // The app theme sets bottomSheet background to transparent, so every
+      // sheet must supply its own surface — otherwise the list renders over
+      // the scrim and looks hidden/see-through.
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (sheetCtx) => SafeArea(
-        child: customers.isEmpty
-            ? Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(widget.l10n.noCustomers,
-                    textAlign: TextAlign.center),
-              )
-            : ListView.builder(
-                shrinkWrap: true,
-                itemCount: customers.length,
-                itemBuilder: (_, i) {
-                  final acc = customers[i];
-                  return ListTile(
-                    leading: const Icon(Icons.person_outline),
-                    title: Text(acc.customer.name),
-                    subtitle: acc.customer.phone.isEmpty
-                        ? null
-                        : Text(acc.customer.phone),
-                    onTap: () => Navigator.pop(sheetCtx, acc),
-                  );
-                },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Row(
+                children: [
+                  Text(l10n.selectCustomer,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
+                ],
               ),
+            ),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: AppTheme.primaryColor,
+                child: Icon(Icons.person_add_alt_1, color: Colors.white),
+              ),
+              title: Text(l10n.addNewCustomer,
+                  style: const TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.w600)),
+              onTap: () => Navigator.pop(sheetCtx, addSentinel),
+            ),
+            const Divider(height: 1),
+            if (customers.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(l10n.noCustomers, textAlign: TextAlign.center),
+              )
+            else
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: customers.length,
+                  itemBuilder: (_, i) {
+                    final acc = customers[i];
+                    return ListTile(
+                      leading: const Icon(Icons.person_outline),
+                      title: Text(acc.customer.name),
+                      subtitle: acc.customer.phone.isEmpty
+                          ? null
+                          : Text(acc.customer.phone),
+                      onTap: () => Navigator.pop(sheetCtx, acc),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
       ),
     );
-    if (selected != null) {
+
+    if (!mounted) return;
+    if (identical(result, addSentinel)) {
+      await _addCustomerInline();
+    } else if (result is CustomerAccount) {
       setState(() {
-        _customerId = selected.customer.id;
-        _customerName = selected.customer.name;
+        _customerId = result.customer.id;
+        _customerName = result.customer.name;
       });
     }
+  }
+
+  /// Quick-add a customer without leaving checkout. Creates the customer with a
+  /// fresh id (so we can select it immediately), dispatches [AddCustomer], and
+  /// marks the sale as credit to that customer.
+  Future<void> _addCustomerInline() async {
+    final l10n = widget.l10n;
+    final nameCtrl = TextEditingController();
+    final phoneCtrl = TextEditingController();
+    final formKey = GlobalKey<FormState>();
+
+    final saved = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text(l10n.addNewCustomer),
+        content: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                controller: nameCtrl,
+                autofocus: true,
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                  labelText: l10n.customerNameLabel,
+                  prefixIcon: const Icon(Icons.person_outline),
+                ),
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? l10n.fieldRequired
+                    : null,
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: phoneCtrl,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: l10n.customerPhoneLabel,
+                  prefixIcon: const Icon(Icons.phone_outlined),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(dialogCtx, true);
+              }
+            },
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+
+    if (saved == true && mounted) {
+      final customer = Customer(
+        id: const Uuid().v4(),
+        name: nameCtrl.text.trim(),
+        phone: phoneCtrl.text.trim(),
+        createdAt: DateTime.now(),
+      );
+      context.read<CustomerBloc>().add(AddCustomer(customer));
+      setState(() {
+        _customerId = customer.id;
+        _customerName = customer.name;
+      });
+    }
+    nameCtrl.dispose();
+    phoneCtrl.dispose();
   }
 
   void _selectCash() => setState(() {

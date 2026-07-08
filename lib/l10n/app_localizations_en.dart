@@ -669,6 +669,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add a customer to track credit sales and payments.';
 
   @override
+  String get selectCustomer => 'Select customer';
+
+  @override
+  String get addNewCustomer => 'Add new customer';
+
+  @override
   String get balanceSettled => 'Settled';
 
   @override

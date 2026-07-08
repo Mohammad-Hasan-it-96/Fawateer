@@ -236,6 +236,8 @@
   "customersLoadFailed": "Couldn't load customers.",
   "noCustomers": "No customers yet",
   "noCustomersHint": "Add a customer to track credit sales and payments.",
+  "selectCustomer": "Select customer",
+  "addNewCustomer": "Add new customer",
   "balanceSettled": "Settled",
   "balanceOwed": "Owes {amount}",
   "@balanceOwed": { "placeholders": { "amount": { "type": "String" } } },

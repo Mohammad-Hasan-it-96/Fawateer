@@ -21,8 +21,14 @@ class AppTheme {
       brightness: Brightness.light,
       primaryColor: primaryColor,
       scaffoldBackgroundColor: backgroundColor,
+      // Sheets must render on an opaque surface — a transparent default makes
+      // any sheet that doesn't set its own background render over the scrim
+      // and look hidden/see-through. Individual sheets may still override.
       bottomSheetTheme: const BottomSheetThemeData(
-        backgroundColor: Colors.transparent,
+        backgroundColor: surfaceColor,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
       ),
       colorScheme: ColorScheme.fromSeed(
         seedColor: primaryColor,

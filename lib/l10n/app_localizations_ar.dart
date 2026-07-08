@@ -662,6 +662,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noCustomersHint => 'أضف عميلاً لتتبع البيع الآجل والدفعات.';
 
   @override
+  String get selectCustomer => 'اختر العميل';
+
+  @override
+  String get addNewCustomer => 'إضافة عميل جديد';
+
+  @override
   String get balanceSettled => 'مسدّد';
 
   @override

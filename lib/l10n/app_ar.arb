@@ -229,6 +229,8 @@
   "customersLoadFailed": "تعذّر تحميل العملاء.",
   "noCustomers": "لا يوجد عملاء بعد",
   "noCustomersHint": "أضف عميلاً لتتبع البيع الآجل والدفعات.",
+  "selectCustomer": "اختر العميل",
+  "addNewCustomer": "إضافة عميل جديد",
   "balanceSettled": "مسدّد",
   "balanceOwed": "عليه {amount}",
   "balanceCredit": "له {amount}",
