@@ -663,7 +663,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   /// no barcode (or when scanning fails). Pauses the camera while open.
   void _showProductPicker(BuildContext context) {
     _scannerController.stop();
-    final products = context.read<ProductBloc>().state.products;
     final shopState = context.read<ShopBloc>().state;
     final currency =
         shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
@@ -676,7 +675,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
       builder: (_) => _ProductPickerSheet(
-        products: products,
         currency: currency,
         onAdd: (product) async {
           context.read<BillingBloc>().add(AddProductToCartEvent(product));
@@ -691,14 +689,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 }
 
 /// Bottom-sheet product picker: search field + tap-to-add grid. Stays open for
-/// multiple adds; the cart total updates live on the screen behind it.
+/// multiple adds; the cart total updates live on the screen behind it. Reads the
+/// product list live from [ProductBloc] (rather than a snapshot taken at open
+/// time) so it isn't empty when the sheet is opened before the first stream
+/// emission, and reflects any product added/edited while it's open.
 class _ProductPickerSheet extends StatefulWidget {
-  final List<Product> products;
   final String currency;
   final void Function(Product) onAdd;
 
   const _ProductPickerSheet({
-    required this.products,
     required this.currency,
     required this.onAdd,
   });
@@ -713,10 +712,17 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
+    final productState = context.watch<ProductBloc>().state;
+    final products = productState.products;
+    // Still awaiting the first stream emission — show a spinner instead of a
+    // misleading "no products" so an empty first open can't look like search
+    // returning nothing.
+    final loading =
+        products.isEmpty && productState.status == ProductStatus.loading;
     final q = _query.trim().toLowerCase();
     final filtered = q.isEmpty
-        ? widget.products
-        : widget.products
+        ? products
+        : products
             .where((p) =>
                 p.name.toLowerCase().contains(q) ||
                 p.barcode.toLowerCase().contains(q))
@@ -769,7 +775,9 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
               ),
               const SizedBox(height: 8),
               Expanded(
-                child: filtered.isEmpty
+                child: loading
+                    ? const Center(child: CircularProgressIndicator())
+                    : filtered.isEmpty
                     ? Center(
                         child: Text(l10n.noProductsFound,
                             style: const TextStyle(color: Colors.grey)))
@@ -784,8 +792,11 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                           mainAxisSpacing: 12,
                         ),
                         itemCount: filtered.length,
-                        itemBuilder: (context, i) =>
-                            _buildTile(context, filtered[i]),
+                        itemBuilder: (context, i) => _ProductTile(
+                          product: filtered[i],
+                          currency: widget.currency,
+                          onAdd: () => widget.onAdd(filtered[i]),
+                        ),
                       ),
               ),
             ],
@@ -795,44 +806,146 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
     );
   }
 
-  Widget _buildTile(BuildContext context, Product p) {
-    return InkWell(
-      onTap: () => widget.onAdd(p),
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey.shade200),
-          boxShadow: const [
-            BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+}
+
+/// A single tappable product tile with add feedback. On tap it fires [onAdd]
+/// and plays a brief scale "pop" + green check flash, and it shows a live badge
+/// with how many of this product are already in the cart — so the cashier can
+/// see, unambiguously, that the tap landed and the item is on the order.
+class _ProductTile extends StatefulWidget {
+  final Product product;
+  final String currency;
+  final VoidCallback onAdd;
+
+  const _ProductTile({
+    required this.product,
+    required this.currency,
+    required this.onAdd,
+  });
+
+  @override
+  State<_ProductTile> createState() => _ProductTileState();
+}
+
+class _ProductTileState extends State<_ProductTile> {
+  /// True for a short window right after a tap, driving the pop + check flash.
+  bool _justAdded = false;
+
+  Future<void> _handleTap() async {
+    widget.onAdd();
+    if (!mounted) return;
+    setState(() => _justAdded = true);
+    await Future.delayed(const Duration(milliseconds: 650));
+    if (mounted) setState(() => _justAdded = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Live quantity of this product already in the cart.
+    double inCart = 0;
+    for (final c in context.watch<BillingBloc>().state.cartItems) {
+      if (c.product.id == widget.product.id) {
+        inCart = c.quantity;
+        break;
+      }
+    }
+    final highlighted = _justAdded || inCart > 0;
+
+    return GestureDetector(
+      onTap: _handleTap,
+      child: AnimatedScale(
+        scale: _justAdded ? 1.05 : 1.0,
+        duration: const Duration(milliseconds: 120),
+        curve: Curves.easeOut,
+        child: Stack(
           children: [
-            Text(p.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                    fontWeight: FontWeight.w600, fontSize: 14)),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Flexible(
-                  child: Text(
-                    '${widget.currency}${p.price.toStringAsFixed(2)}',
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.primaryColor),
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: highlighted
+                    ? AppTheme.primaryColor.withValues(alpha: 0.06)
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: highlighted
+                      ? AppTheme.primaryColor
+                      : Colors.grey.shade200,
+                  width: highlighted ? 1.5 : 1,
+                ),
+                boxShadow: const [
+                  BoxShadow(
+                      color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(widget.product.name,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 14)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          '${widget.currency}${widget.product.price.toStringAsFixed(2)}',
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.primaryColor),
+                        ),
+                      ),
+                      const Icon(Icons.add_circle,
+                          color: AppTheme.primaryColor, size: 24),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+
+            // Live "already in cart" quantity badge (top-start corner).
+            if (inCart > 0)
+              PositionedDirectional(
+                top: 6,
+                start: 6,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(formatQty(inCart),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold)),
+                ),
+              ),
+
+            // Brief green check flash centered on the tile right after a tap.
+            Positioned.fill(
+              child: IgnorePointer(
+                child: AnimatedOpacity(
+                  opacity: _justAdded ? 1 : 0,
+                  duration: const Duration(milliseconds: 150),
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: const BoxDecoration(
+                        color: AppTheme.primaryColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.check,
+                          color: Colors.white, size: 22),
+                    ),
                   ),
                 ),
-                const Icon(Icons.add_circle,
-                    color: AppTheme.primaryColor, size: 24),
-              ],
+              ),
             ),
           ],
         ),
