@@ -1,87 +1,70 @@
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
+import 'package:fpdart/fpdart.dart';
+import '../../../../core/error/failure.dart';
 import '../../domain/entities/product.dart';
-import '../../domain/usecases/product_usecases.dart';
-import '../../../../core/usecase/usecase.dart';
+import '../../domain/repositories/product_repository.dart';
 
 part 'product_event.dart';
 part 'product_state.dart';
 
 class ProductBloc extends Bloc<ProductEvent, ProductState> {
-  final GetProductsUseCase getProductsUseCase;
-  final AddProductUseCase addProductUseCase;
-  final UpdateProductUseCase updateProductUseCase;
-  final DeleteProductUseCase deleteProductUseCase;
+  final ProductRepository repository;
 
-  ProductBloc({
-    required this.getProductsUseCase,
-    required this.addProductUseCase,
-    required this.updateProductUseCase,
-    required this.deleteProductUseCase,
-  }) : super(const ProductState()) {
+  /// Guards against a second [LoadProducts] spinning up a duplicate stream
+  /// subscription (and duplicate emits).
+  bool _watching = false;
+
+  ProductBloc({required this.repository}) : super(const ProductState()) {
     on<LoadProducts>(_onLoadProducts);
-    on<AddProduct>(_onAddProduct);
-    on<UpdateProduct>(_onUpdateProduct);
-    on<DeleteProduct>(_onDeleteProduct);
+    on<AddProduct>((e, emit) =>
+        _runMutation(emit, () => repository.addProduct(e.product),
+            ProductMessage.added));
+    on<UpdateProduct>((e, emit) =>
+        _runMutation(emit, () => repository.updateProduct(e.product),
+            ProductMessage.updated));
+    on<DeleteProduct>((e, emit) =>
+        _runMutation(emit, () => repository.deleteProduct(e.id),
+            ProductMessage.deleted));
   }
 
+  /// Subscribe to the product stream. Dispatched once at startup; the list then
+  /// stays live — add/update/delete and stock changes from a sale all flow in
+  /// automatically, so mutation handlers don't re-fetch.
   Future<void> _onLoadProducts(
       LoadProducts event, Emitter<ProductState> emit) async {
+    if (_watching) return;
+    _watching = true;
     emit(state.copyWith(status: ProductStatus.loading));
-    final result = await getProductsUseCase(NoParams());
-    result.fold(
-      (failure) => emit(state.copyWith(
-          status: ProductStatus.error, message: failure.message)),
-      (products) => emit(
-          state.copyWith(status: ProductStatus.loaded, products: products)),
+    // A transient stream error emits an error state but keeps the subscription
+    // alive (`emit.forEach` doesn't cancel on error), so the list self-recovers
+    // on the next emission.
+    await emit.forEach(
+      repository.watchProducts(),
+      onData: (products) =>
+          state.copyWith(status: ProductStatus.loaded, products: products),
+      onError: (e, _) => state.copyWith(
+          status: ProductStatus.error, message: ProductMessage.loadFailed),
     );
   }
 
-  Future<void> _onAddProduct(
-      AddProduct event, Emitter<ProductState> emit) async {
-    emit(state.copyWith(status: ProductStatus.loading)); // Keep products
-    final result = await addProductUseCase(event.product);
+  /// Run a create/update/delete and emit success or a mapped error. The list
+  /// itself refreshes from the stream, so there's nothing to re-fetch here.
+  Future<void> _runMutation(
+    Emitter<ProductState> emit,
+    Future<Either<Failure, void>> Function() action,
+    ProductMessage successMessage,
+  ) async {
+    final result = await action();
     result.fold(
       (failure) => emit(state.copyWith(
-          status: ProductStatus.error, message: failure.message)),
-      (_) {
-        emit(state.copyWith(
-            status: ProductStatus.success,
-            message: 'Product added successfully'));
-        add(LoadProducts());
-      },
-    );
-  }
-
-  Future<void> _onUpdateProduct(
-      UpdateProduct event, Emitter<ProductState> emit) async {
-    emit(state.copyWith(status: ProductStatus.loading));
-    final result = await updateProductUseCase(event.product);
-    result.fold(
-      (failure) => emit(state.copyWith(
-          status: ProductStatus.error, message: failure.message)),
-      (_) {
-        emit(state.copyWith(
-            status: ProductStatus.success,
-            message: 'Product updated successfully'));
-        add(LoadProducts());
-      },
-    );
-  }
-
-  Future<void> _onDeleteProduct(
-      DeleteProduct event, Emitter<ProductState> emit) async {
-    emit(state.copyWith(status: ProductStatus.loading));
-    final result = await deleteProductUseCase(event.id);
-    result.fold(
-      (failure) => emit(state.copyWith(
-          status: ProductStatus.error, message: failure.message)),
-      (_) {
-        emit(state.copyWith(
-            status: ProductStatus.success,
-            message: 'Product deleted successfully'));
-        add(LoadProducts());
-      },
+        status: ProductStatus.error,
+        message: failure is DuplicateFailure
+            ? ProductMessage.barcodeExists
+            : ProductMessage.saveFailed,
+      )),
+      (_) => emit(state.copyWith(
+          status: ProductStatus.success, message: successMessage)),
     );
   }
 }

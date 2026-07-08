@@ -3,7 +3,10 @@ import 'package:billing_app/features/product/domain/entities/product.dart';
 
 class CartItem extends Equatable {
   final Product product;
-  final int quantity;
+
+  /// Units being sold. A `double` so weight/fractional items (0.5 kg) work —
+  /// matches `Product.quantity` and `salesItems.quantity` in the DB.
+  final double quantity;
 
   const CartItem({
     required this.product,
@@ -14,7 +17,7 @@ class CartItem extends Equatable {
 
   CartItem copyWith({
     Product? product,
-    int? quantity,
+    double? quantity,
   }) {
     return CartItem(
       product: product ?? this.product,

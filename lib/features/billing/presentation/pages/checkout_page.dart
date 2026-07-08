@@ -3,10 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/format.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../ledger/domain/entities/customer_account.dart';
+import '../../../ledger/presentation/bloc/customer_bloc.dart';
+import '../../../shop/domain/entities/shop.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/billing_bloc.dart';
-import '../bloc/history_bloc.dart';
+import '../billing_error_text.dart';
 
 class CheckoutPage extends StatelessWidget {
   const CheckoutPage({super.key});
@@ -53,12 +58,12 @@ class CheckoutPage extends StatelessWidget {
         body: BlocConsumer<BillingBloc, BillingState>(
           listenWhen: (prev, curr) =>
               prev.error != curr.error ||
-              prev.printSuccess != curr.printSuccess ||
-              (!prev.saleConfirmed && curr.saleConfirmed),
+              prev.printSuccess != curr.printSuccess,
           listener: (context, state) {
             if (state.error != null) {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(state.error!),
+                  content: Text(
+                      billingErrorText(state.error!, state.errorBarcode, l10n)),
                   backgroundColor: Colors.red));
             }
             if (state.printSuccess) {
@@ -66,11 +71,8 @@ class CheckoutPage extends StatelessWidget {
                   content: Text(l10n.printedSuccessfully),
                   backgroundColor: Colors.green));
             }
-            if (state.saleConfirmed) {
-              try {
-                context.read<HistoryBloc>().add(LoadHistoryEvent());
-              } catch (_) {}
-            }
+            // History (incl. today's totals) auto-refreshes via the invoice
+            // stream — no manual reload needed here.
           },
           builder: (context, billingState) {
             return BlocBuilder<ShopBloc, ShopState>(
@@ -155,14 +157,20 @@ class CheckoutPage extends StatelessWidget {
                                       ],
                                     ),
                                     ...billingState.cartItems.map((item) {
+                                      final measured =
+                                          item.product.saleType.isMeasured;
                                       return TableRow(
                                         children: [
                                           _dataCell(
-                                            '${item.quantity} x ${item.product.name}',
+                                            measured
+                                                ? '${formatQty(item.quantity)} ${l10n.unitKg} × ${item.product.name}'
+                                                : '${formatQty(item.quantity)} x ${item.product.name}',
                                             TextAlign.start,
                                           ),
                                           _dataCell(
-                                            '$currency${item.product.price.toStringAsFixed(2)}',
+                                            measured
+                                                ? '$currency${item.product.price.toStringAsFixed(2)}/${l10n.unitKg}'
+                                                : '$currency${item.product.price.toStringAsFixed(2)}',
                                             TextAlign.end,
                                             isSubtitle: true,
                                           ),
@@ -234,10 +242,9 @@ class CheckoutPage extends StatelessWidget {
                 Text(
                   l10n.grandTotal,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: 14,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[400],
-                    letterSpacing: 1.2,
+                    color: Colors.grey[700],
                   ),
                 ),
                 Text(
@@ -245,7 +252,6 @@ class CheckoutPage extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 24,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: -0.5,
                     color: Color(0xFF0F172A),
                   ),
                 ),
@@ -298,7 +304,8 @@ class CheckoutPage extends StatelessWidget {
                                         address1: shop.addressLine1,
                                         address2: shop.addressLine2,
                                         phone: shop.phoneNumber,
-                                        footer: shop.footerText));
+                                        footer: shop.footerText,
+                                        currencySymbol: currency));
                               }
                             },
                       icon: billingState.isPrinting
@@ -337,29 +344,11 @@ class CheckoutPage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
           ] else ...[
-            PrimaryButton(
-              onPressed: billingState.isSaving
-                  ? null
-                  : () {
-                      if (shop != null) {
-                        context.read<BillingBloc>().add(ConfirmSaleEvent(
-                              shopName: shop.name,
-                              address1: shop.addressLine1,
-                              address2: shop.addressLine2,
-                              phone: shop.phoneNumber,
-                              footer: shop.footerText,
-                              currencySymbol: shop.currencySymbol,
-                            ));
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                                content: Text(l10n.shopNotLoaded),
-                                backgroundColor: Colors.red));
-                      }
-                    },
-              label: l10n.confirmSale,
-              icon: Icons.check_circle_outline,
-              isLoading: billingState.isSaving,
+            _CreditAwareConfirm(
+              billingState: billingState,
+              shop: shop,
+              currency: currency,
+              l10n: l10n,
             ),
           ],
         ],
@@ -371,13 +360,12 @@ class CheckoutPage extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       child: Text(
-        text.toUpperCase(),
+        text,
         textAlign: align,
-        style: const TextStyle(
-          fontSize: 10,
+        style: TextStyle(
+          fontSize: 13,
           fontWeight: FontWeight.bold,
-          letterSpacing: 1,
-          color: Colors.grey,
+          color: Colors.grey[700],
         ),
       ),
     );
@@ -394,6 +382,178 @@ class CheckoutPage extends StatelessWidget {
           fontSize: isSubtitle ? 12 : 14,
           fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
           color: isSubtitle ? Colors.grey[500] : Colors.black87,
+        ),
+      ),
+    );
+  }
+}
+
+/// Cash/credit selector + the confirm button. Holds the chosen credit customer
+/// locally; on confirm it passes [ConfirmSaleEvent.customerId] (null for cash),
+/// which books the debt atomically with the sale.
+class _CreditAwareConfirm extends StatefulWidget {
+  final BillingState billingState;
+  final Shop? shop;
+  final String currency;
+  final AppLocalizations l10n;
+
+  const _CreditAwareConfirm({
+    required this.billingState,
+    required this.shop,
+    required this.currency,
+    required this.l10n,
+  });
+
+  @override
+  State<_CreditAwareConfirm> createState() => _CreditAwareConfirmState();
+}
+
+class _CreditAwareConfirmState extends State<_CreditAwareConfirm> {
+  String? _customerId;
+  String? _customerName;
+
+  void _confirm() {
+    final shop = widget.shop;
+    if (shop == null) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(widget.l10n.shopNotLoaded),
+          backgroundColor: Colors.red));
+      return;
+    }
+    context.read<BillingBloc>().add(ConfirmSaleEvent(
+          shopName: shop.name,
+          address1: shop.addressLine1,
+          address2: shop.addressLine2,
+          phone: shop.phoneNumber,
+          footer: shop.footerText,
+          currencySymbol: widget.currency,
+          customerId: _customerId,
+        ));
+  }
+
+  Future<void> _pickCustomer() async {
+    final customers = context.read<CustomerBloc>().state.customers;
+    final selected = await showModalBottomSheet<CustomerAccount>(
+      context: context,
+      builder: (sheetCtx) => SafeArea(
+        child: customers.isEmpty
+            ? Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(widget.l10n.noCustomers,
+                    textAlign: TextAlign.center),
+              )
+            : ListView.builder(
+                shrinkWrap: true,
+                itemCount: customers.length,
+                itemBuilder: (_, i) {
+                  final acc = customers[i];
+                  return ListTile(
+                    leading: const Icon(Icons.person_outline),
+                    title: Text(acc.customer.name),
+                    subtitle: acc.customer.phone.isEmpty
+                        ? null
+                        : Text(acc.customer.phone),
+                    onTap: () => Navigator.pop(sheetCtx, acc),
+                  );
+                },
+              ),
+      ),
+    );
+    if (selected != null) {
+      setState(() {
+        _customerId = selected.customer.id;
+        _customerName = selected.customer.name;
+      });
+    }
+  }
+
+  void _selectCash() => setState(() {
+        _customerId = null;
+        _customerName = null;
+      });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = widget.l10n;
+    final isCredit = _customerId != null;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _modeChip(
+                  label: l10n.cashSale,
+                  icon: Icons.payments_outlined,
+                  selected: !isCredit,
+                  onTap: _selectCash,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _modeChip(
+                  label: isCredit
+                      ? l10n.creditToLabel(_customerName ?? '')
+                      : l10n.sellOnCredit,
+                  icon: Icons.account_balance_wallet_outlined,
+                  selected: isCredit,
+                  onTap: _pickCustomer,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          PrimaryButton(
+            onPressed: widget.billingState.isSaving ? null : _confirm,
+            label: l10n.confirmSale,
+            icon: Icons.check_circle_outline,
+            isLoading: widget.billingState.isSaving,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _modeChip({
+    required String label,
+    required IconData icon,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    final color = selected ? AppTheme.primaryColor : Colors.grey;
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? AppTheme.primaryColor.withValues(alpha: 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: selected
+                  ? AppTheme.primaryColor
+                  : Colors.grey.shade300),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: selected ? AppTheme.primaryColor : Colors.grey[700]),
+              ),
+            ),
+          ],
         ),
       ),
     );

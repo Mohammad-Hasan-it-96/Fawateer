@@ -6,29 +6,29 @@ import '../../domain/entities/invoice.dart';
 import '../../domain/entities/invoice_item.dart';
 import '../../domain/repositories/invoice_repository.dart';
 import 'package:billing_app/features/product/domain/entities/product.dart';
-import 'package:billing_app/features/product/domain/usecases/product_usecases.dart';
-import '../../../../core/utils/printer_helper.dart';
+import 'package:billing_app/features/product/domain/repositories/product_repository.dart';
+import 'package:billing_app/features/settings/domain/entities/receipt_line.dart';
 import 'package:billing_app/features/settings/domain/repositories/printer_repository.dart';
 
 part 'billing_event.dart';
 part 'billing_state.dart';
 
 class BillingBloc extends Bloc<BillingEvent, BillingState> {
-  final GetProductByBarcodeUseCase getProductByBarcodeUseCase;
+  final ProductRepository productRepository;
   final PrinterRepository printerRepository;
   final InvoiceRepository invoiceRepository;
-  final UpdateProductUseCase updateProductUseCase;
 
   BillingBloc({
-    required this.getProductByBarcodeUseCase,
+    required this.productRepository,
     required this.printerRepository,
     required this.invoiceRepository,
-    required this.updateProductUseCase,
   }) : super(const BillingState()) {
     on<ScanBarcodeEvent>(_onScanBarcode);
     on<AddProductToCartEvent>(_onAddProductToCart);
     on<RemoveProductFromCartEvent>(_onRemoveProductFromCart);
     on<UpdateQuantityEvent>(_onUpdateQuantity);
+    on<ClearMeasuredPromptEvent>((event, emit) =>
+        emit(state.copyWith(clearMeasuredPrompt: true)));
     on<ClearCartEvent>(_onClearCart);
     on<PrintReceiptEvent>(_onPrintReceipt);
     on<ConfirmSaleEvent>(_onConfirmSale);
@@ -36,19 +36,31 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
 
   Future<void> _onScanBarcode(
       ScanBarcodeEvent event, Emitter<BillingState> emit) async {
-    final result = await getProductByBarcodeUseCase(event.barcode);
+    final result = await productRepository.getProductByBarcode(event.barcode);
     result.fold(
-      (failure) =>
-          emit(state.copyWith(error: 'Product not found: ${event.barcode}')),
+      (failure) => emit(state.copyWith(
+          error: BillingError.productNotFound, errorBarcode: event.barcode)),
       (product) {
-        add(AddProductToCartEvent(product));
+        // A measured product (e.g. sold by weight) needs a weight/amount entry
+        // first — surface it to the UI instead of auto-adding one unit.
+        if (product.saleType.isMeasured) {
+          emit(state.copyWith(measuredPrompt: product, clearError: true));
+        } else {
+          add(AddProductToCartEvent(product));
+        }
       },
     );
   }
 
   void _onAddProductToCart(
       AddProductToCartEvent event, Emitter<BillingState> emit) {
-    final cleanState = state.copyWith(error: null, clearError: true);
+    // Adding an item starts a fresh sale: clear any error, the sticky "sale
+    // confirmed" flags from a previous sale, and any pending measured prompt.
+    final cleanState = state.copyWith(
+        error: null,
+        clearError: true,
+        clearSale: true,
+        clearMeasuredPrompt: true);
 
     final existingIndex = cleanState.cartItems
         .indexWhere((item) => item.product.id == event.product.id);
@@ -57,10 +69,16 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     if (existingIndex >= 0) {
       final existingItem = cleanState.cartItems[existingIndex];
       updatedItems = List<CartItem>.from(cleanState.cartItems);
+      // A measured entry (event.quantity set) sets the line absolutely; a piece
+      // add increments by 1.
+      final newQuantity = event.quantity ?? existingItem.quantity + 1;
       updatedItems[existingIndex] =
-          existingItem.copyWith(quantity: existingItem.quantity + 1);
+          existingItem.copyWith(quantity: newQuantity);
     } else {
-      updatedItems = [...cleanState.cartItems, CartItem(product: event.product)];
+      updatedItems = [
+        ...cleanState.cartItems,
+        CartItem(product: event.product, quantity: event.quantity ?? 1),
+      ];
     }
 
     final warnings = _computeStockWarnings(updatedItems);
@@ -100,6 +118,18 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
 
   Future<void> _onConfirmSale(
       ConfirmSaleEvent event, Emitter<BillingState> emit) async {
+    // Re-entrancy guard: a double-tap enqueues two events. The first flips
+    // isSaving synchronously (before the first await below), so the second is
+    // dropped here — preventing duplicate invoices and double stock deduction.
+    // `saleConfirmed` also blocks a re-confirm of an already-saved sale.
+    if (state.isSaving || state.saleConfirmed) return;
+
+    // Never persist an empty/zero-total sale.
+    if (state.cartItems.isEmpty) {
+      emit(state.copyWith(error: BillingError.emptyCart));
+      return;
+    }
+
     emit(state.copyWith(isSaving: true, clearError: true));
 
     final invoiceId = const Uuid().v4();
@@ -120,19 +150,14 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
             ))
         .toList();
 
-    // Save invoice to DB
-    final saveResult = await invoiceRepository.saveInvoice(invoice, items);
+    // Persist invoice, line items, and stock deduction in one transaction.
+    // Stock is decremented relatively inside the DB, so a failed save leaves
+    // inventory untouched and a concurrent product edit is never clobbered.
+    final saveResult = await invoiceRepository.saveInvoice(invoice, items,
+        customerId: event.customerId);
     if (saveResult.isLeft()) {
-      final failure = saveResult.fold((l) => l, (r) => null)!;
-      emit(state.copyWith(isSaving: false, error: failure.message));
+      emit(state.copyWith(isSaving: false, error: BillingError.saveFailed));
       return;
-    }
-
-    // Deduct on-hand quantity (best-effort — never block a confirmed sale)
-    for (final cartItem in state.cartItems) {
-      final newQuantity = cartItem.product.quantity - cartItem.quantity;
-      await updateProductUseCase(
-          cartItem.product.copyWith(quantity: newQuantity));
     }
 
     emit(state.copyWith(
@@ -141,97 +166,81 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       savedInvoiceId: invoiceId,
     ));
 
-    // Auto-print if printer is connected
-    final printerHelper = PrinterHelper();
-    if (!printerHelper.isConnected) {
-      final savedMac = await printerRepository.getSavedPrinterMac();
-      if (savedMac != null) {
-        await printerHelper.connect(savedMac);
-      }
-    }
-    if (printerHelper.isConnected) {
-      try {
-        final receiptItems = state.cartItems
-            .map((item) => {
-                  'name': item.product.name,
-                  'qty': item.quantity,
-                  'price': item.product.price,
-                  'total': item.total,
-                })
-            .toList();
-        await printerHelper.printReceipt(
-          shopName: event.shopName,
-          address1: event.address1,
-          address2: event.address2,
-          phone: event.phone,
-          items: receiptItems,
-          total: invoice.totalAmount,
-          footer: event.footer,
-        );
-        emit(state.copyWith(printSuccess: true));
-      } catch (_) {
-        // Print failure is non-fatal after a confirmed sale
-      }
+    // Auto-print the receipt (best-effort — a print failure never blocks a
+    // sale that's already committed).
+    try {
+      final printed = await printerRepository.printReceipt(
+        shopName: event.shopName,
+        address1: event.address1,
+        address2: event.address2,
+        phone: event.phone,
+        footer: event.footer,
+        currency: event.currencySymbol,
+        total: invoice.totalAmount,
+        items: _receiptLines(),
+      );
+      if (printed) emit(state.copyWith(printSuccess: true));
+    } catch (_) {
+      // Print failure is non-fatal after a confirmed sale.
     }
   }
 
   Future<void> _onPrintReceipt(
       PrintReceiptEvent event, Emitter<BillingState> emit) async {
-    final printerHelper = PrinterHelper();
-
-    if (!printerHelper.isConnected) {
-      final savedMac = await printerRepository.getSavedPrinterMac();
-      if (savedMac != null) {
-        final connected = await printerHelper.connect(savedMac);
-        if (!connected) {
-          emit(state.copyWith(
-              error: 'Failed to auto-connect to printer!', clearError: false));
-          emit(state.copyWith(clearError: true));
-          return;
-        }
-      } else {
-        emit(state.copyWith(
-            error: 'Printer not connected & no saved printer found!',
-            clearError: false));
-        emit(state.copyWith(clearError: true));
-        return;
-      }
-    }
-
+    // Drop a second tap while a print is already in flight.
+    if (state.isPrinting) return;
     emit(state.copyWith(
         isPrinting: true, printSuccess: false, clearError: true));
 
     try {
-      final items = state.cartItems
-          .map((item) => {
-                'name': item.product.name,
-                'qty': item.quantity,
-                'price': item.product.price,
-                'total': item.total,
-              })
-          .toList();
+      final printed = await printerRepository.printReceipt(
+        shopName: event.shopName,
+        address1: event.address1,
+        address2: event.address2,
+        phone: event.phone,
+        footer: event.footer,
+        currency: event.currencySymbol,
+        total: state.totalAmount,
+        items: _receiptLines(),
+      );
 
-      await printerHelper.printReceipt(
-          shopName: event.shopName,
-          address1: event.address1,
-          address2: event.address2,
-          phone: event.phone,
-          items: items,
-          total: state.totalAmount,
-          footer: event.footer);
-
-      emit(state.copyWith(isPrinting: false, printSuccess: true));
-    } catch (e) {
-      emit(state.copyWith(
-          isPrinting: false, error: 'Print failed: $e', clearError: false));
+      if (printed) {
+        emit(state.copyWith(isPrinting: false, printSuccess: true));
+      } else {
+        emit(state.copyWith(
+            isPrinting: false, error: BillingError.printerUnavailable));
+        emit(state.copyWith(clearError: true));
+      }
+    } catch (_) {
+      emit(state.copyWith(isPrinting: false, error: BillingError.printFailed));
       emit(state.copyWith(clearError: true));
     }
   }
 
+  /// Map the current cart into printable receipt lines.
+  List<ReceiptLine> _receiptLines() => state.cartItems
+      .map((i) => ReceiptLine(
+            name: i.product.name,
+            quantity: i.quantity,
+            price: i.product.price,
+            total: i.total,
+            // Receipts render as an Arabic bitmap; tag weighed lines with the
+            // kg unit so "0.333 كغ × رز" reads clearly.
+            unit: i.product.saleType.isMeasured ? 'كغ' : '',
+          ))
+      .toList();
+
   List<String> _computeStockWarnings(List<CartItem> items) {
     // i.product.quantity = on-hand inventory; i.quantity = units being sold.
+    // Warn when selling more than on-hand for a *tracked* product — one the shop
+    // cares about, i.e. it has a positive on-hand count OR a low-stock alert set.
+    // This surfaces the out-of-stock case (on-hand 0 on a tracked item) that a
+    // bare `quantity > 0` check missed, while staying silent for untracked items
+    // (on-hand 0, no alert) so loose/produce items don't warn on every sale.
     return items
-        .where((i) => i.product.quantity > 0 && i.quantity > i.product.quantity)
+        .where((i) =>
+            (i.product.quantity > 0 || i.product.minStockAlert > 0) &&
+            i.quantity > i.product.quantity)
         .map((i) => i.product.name)
         .toList();
   }

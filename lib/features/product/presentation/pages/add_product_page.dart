@@ -6,10 +6,13 @@ import 'package:go_router/go_router.dart';
 import 'package:uuid/uuid.dart';
 
 import '../bloc/product_bloc.dart';
+import '../widgets/currency_field.dart';
+import '../widgets/sale_type_selector.dart';
 import '../../domain/entities/product.dart';
+import '../../domain/entities/product_sale_type.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
-import '../../../shop/presentation/bloc/shop_bloc.dart';
+import '../../../../core/utils/num_input.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class AddProductPage extends StatefulWidget {
@@ -26,6 +29,8 @@ class _AddProductPageState extends State<AddProductPage> {
   double _price = 0.0;
   double _cost = 0.0;
   double _quantity = 0.0;
+  double _minStockAlert = 0.0;
+  ProductSaleType _saleType = ProductSaleType.piece;
 
   void _scanBarcode() async {
     final result = await context.push<String>('/scanner');
@@ -41,10 +46,12 @@ class _AddProductPageState extends State<AddProductPage> {
       _formKey.currentState!.save();
 
       final productState = context.read<ProductBloc>().state;
-      final existingProduct =
-          productState.products.where((p) => p.barcode == _barcode).firstOrNull;
+      // Only non-empty barcodes must be unique; many items legitimately have no
+      // barcode (loose produce, bakery), so blank barcodes are always allowed.
+      final isDuplicate = _barcode.isNotEmpty &&
+          productState.products.any((p) => p.barcode == _barcode);
 
-      if (existingProduct != null) {
+      if (isDuplicate) {
         final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -62,6 +69,8 @@ class _AddProductPageState extends State<AddProductPage> {
         price: _price,
         cost: _cost,
         quantity: _quantity,
+        minStockAlert: _minStockAlert,
+        saleType: _saleType,
       );
 
       context.read<ProductBloc>().add(AddProduct(product));
@@ -94,6 +103,16 @@ class _AddProductPageState extends State<AddProductPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  InputLabel(text: l10n.productNameLabel),
+                  TextFormField(
+                    decoration: InputDecoration(
+                      hintText: l10n.productNameHint,
+                    ),
+                    textCapitalization: TextCapitalization.words,
+                    validator: AppValidators.required(l10n.fieldRequired),
+                    onSaved: (value) => _name = value!.trim(),
+                  ),
+                  const SizedBox(height: 24),
                   InputLabel(text: l10n.barcodeLabel),
                   Row(
                     children: [
@@ -104,8 +123,9 @@ class _AddProductPageState extends State<AddProductPage> {
                           decoration: InputDecoration(
                             hintText: l10n.scanOrEnterBarcode,
                           ),
-                          validator: AppValidators.required(l10n.fieldRequired),
-                          onSaved: (value) => _barcode = value!,
+                          // Barcode is optional: loose produce/bakery items have
+                          // none. Only non-empty barcodes must be unique.
+                          onSaved: (value) => _barcode = value ?? '',
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -128,73 +148,73 @@ class _AddProductPageState extends State<AddProductPage> {
                       style: const TextStyle(
                           fontSize: 12, color: Color(0xFF4C669A))),
                   const SizedBox(height: 24),
-                  InputLabel(text: l10n.productNameLabel),
-                  TextFormField(
-                    decoration: InputDecoration(
-                      hintText: l10n.productNameHint,
-                    ),
-                    textCapitalization: TextCapitalization.words,
-                    validator: AppValidators.required(l10n.fieldRequired),
-                    onSaved: (value) => _name = value!,
+                  InputLabel(text: l10n.saleTypeLabel),
+                  SaleTypeSelector(
+                    value: _saleType,
+                    onChanged: (t) => setState(() => _saleType = t),
                   ),
                   const SizedBox(height: 24),
-                  InputLabel(text: l10n.priceLabel),
-                  Builder(builder: (context) {
-                    final shopState = context.watch<ShopBloc>().state;
-                    final currency = shopState is ShopLoaded
-                        ? shopState.shop.currencySymbol
-                        : '';
-                    return TextFormField(
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        hintText: '0.00',
-                        prefixText: currency.isNotEmpty ? '$currency ' : null,
-                        prefixStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black),
-                      ),
-                      validator: AppValidators.price,
-                      onSaved: (value) => _price = double.parse(value!),
-                    );
-                  }),
+                  InputLabel(
+                      text: _saleType.isMeasured
+                          ? l10n.pricePerKgLabel
+                          : l10n.priceLabel),
+                  CurrencyField(
+                    validator: AppValidators.price(
+                      requiredMsg: l10n.fieldRequired,
+                      invalidMsg: l10n.invalidPrice,
+                      negativeMsg: l10n.negativePriceError,
+                      mustBePositiveMsg: l10n.priceMustBePositive,
+                    ),
+                    onSaved: (value) =>
+                        _price = NumInput.parseFlexibleNumber(value) ?? 0,
+                  ),
                   const SizedBox(height: 24),
                   InputLabel(text: l10n.costLabel),
-                  Builder(builder: (context) {
-                    final shopState = context.watch<ShopBloc>().state;
-                    final currency = shopState is ShopLoaded
-                        ? shopState.shop.currencySymbol
-                        : '';
-                    return TextFormField(
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        hintText: '0.00',
-                        helperText: l10n.costHint,
-                        prefixText: currency.isNotEmpty ? '$currency ' : null,
-                        prefixStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black),
-                      ),
-                      initialValue: '0',
-                      onSaved: (value) =>
-                          _cost = double.tryParse(value ?? '0') ?? 0,
-                    );
-                  }),
+                  CurrencyField(
+                    initialValue: '0',
+                    helperText: l10n.costHint,
+                    validator: AppValidators.optionalNonNegative(
+                      invalidMsg: l10n.invalidNumber,
+                      negativeMsg: l10n.negativeNotAllowed,
+                    ),
+                    onSaved: (value) =>
+                        _cost = NumInput.parseFlexibleNumber(value) ?? 0,
+                  ),
                   const SizedBox(height: 24),
                   InputLabel(text: l10n.stockLabel),
                   TextFormField(
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: NumInput.decimalFormatters,
                     decoration: InputDecoration(
                       hintText: '0',
                       helperText: l10n.stockHint,
                     ),
                     initialValue: '0',
+                    validator: AppValidators.optionalNonNegative(
+                      invalidMsg: l10n.invalidNumber,
+                      negativeMsg: l10n.negativeNotAllowed,
+                    ),
                     onSaved: (value) =>
-                        _quantity = double.tryParse(value ?? '0') ?? 0,
+                        _quantity = NumInput.parseFlexibleNumber(value) ?? 0,
+                  ),
+                  const SizedBox(height: 24),
+                  InputLabel(text: l10n.lowStockAlertLabel),
+                  TextFormField(
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: NumInput.decimalFormatters,
+                    decoration: InputDecoration(
+                      hintText: '0',
+                      helperText: l10n.lowStockAlertHint,
+                    ),
+                    initialValue: '0',
+                    validator: AppValidators.optionalNonNegative(
+                      invalidMsg: l10n.invalidNumber,
+                      negativeMsg: l10n.negativeNotAllowed,
+                    ),
+                    onSaved: (value) =>
+                        _minStockAlert = NumInput.parseFlexibleNumber(value) ?? 0,
                   ),
                 ],
               ),

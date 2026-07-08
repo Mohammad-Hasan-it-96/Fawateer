@@ -116,6 +116,12 @@ abstract class AppLocalizations {
   /// **'Products'**
   String get productsTab;
 
+  /// No description provided for @customersTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Customers'**
+  String get customersTab;
+
   /// No description provided for @settingsTab.
   ///
   /// In en, this message translates to:
@@ -132,7 +138,7 @@ abstract class AppLocalizations {
   ///
   /// In en, this message translates to:
   /// **'{count} items total'**
-  String itemsCount(int count);
+  String itemsCount(String count);
 
   /// No description provided for @totalPrice.
   ///
@@ -145,6 +151,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Review Order'**
   String get reviewOrder;
+
+  /// No description provided for @cameraUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Camera unavailable'**
+  String get cameraUnavailable;
+
+  /// No description provided for @cameraPermissionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow camera access to scan barcodes, or add items manually below.'**
+  String get cameraPermissionHint;
+
+  /// No description provided for @openSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open Settings'**
+  String get openSettings;
 
   /// No description provided for @cameraOff.
   ///
@@ -266,6 +290,12 @@ abstract class AppLocalizations {
   /// **'Shop details not loaded'**
   String get shopNotLoaded;
 
+  /// No description provided for @cartEmptyError.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an item before confirming the sale.'**
+  String get cartEmptyError;
+
   /// No description provided for @salesHistory.
   ///
   /// In en, this message translates to:
@@ -295,6 +325,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Completed sales will appear here.'**
   String get noSalesHint;
+
+  /// No description provided for @historyLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load sales history.'**
+  String get historyLoadFailed;
+
+  /// No description provided for @itemsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load items. Tap to retry.'**
+  String get itemsLoadFailed;
+
+  /// No description provided for @shopLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load shop details.'**
+  String get shopLoadFailed;
+
+  /// No description provided for @shopSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save. Please try again.'**
+  String get shopSaveFailed;
 
   /// No description provided for @productsTitle.
   ///
@@ -338,6 +392,18 @@ abstract class AppLocalizations {
   /// **'Are you sure you want to delete {name}?'**
   String deleteProductConfirm(String name);
 
+  /// No description provided for @stockCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'In stock: {qty}'**
+  String stockCountLabel(String qty);
+
+  /// No description provided for @lowStockBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Low stock'**
+  String get lowStockBadge;
+
   /// No description provided for @cancel.
   ///
   /// In en, this message translates to:
@@ -350,6 +416,60 @@ abstract class AppLocalizations {
   /// **'Delete'**
   String get delete;
 
+  /// No description provided for @save.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get save;
+
+  /// No description provided for @quantityDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity'**
+  String get quantityDialogTitle;
+
+  /// No description provided for @saleTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale type'**
+  String get saleTypeLabel;
+
+  /// No description provided for @saleTypePiece.
+  ///
+  /// In en, this message translates to:
+  /// **'By piece'**
+  String get saleTypePiece;
+
+  /// No description provided for @saleTypeWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'By weight'**
+  String get saleTypeWeight;
+
+  /// No description provided for @pricePerKgLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Price per kg'**
+  String get pricePerKgLabel;
+
+  /// No description provided for @unitKg.
+  ///
+  /// In en, this message translates to:
+  /// **'kg'**
+  String get unitKg;
+
+  /// No description provided for @weightFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight (kg)'**
+  String get weightFieldLabel;
+
+  /// No description provided for @amountFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get amountFieldLabel;
+
   /// No description provided for @addProductTitle.
   ///
   /// In en, this message translates to:
@@ -359,7 +479,7 @@ abstract class AppLocalizations {
   /// No description provided for @barcodeLabel.
   ///
   /// In en, this message translates to:
-  /// **'Barcode'**
+  /// **'Barcode (optional)'**
   String get barcodeLabel;
 
   /// No description provided for @scanOrEnterBarcode.
@@ -421,6 +541,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A product with this barcode already exists!'**
   String get barcodeExistsError;
+
+  /// No description provided for @lowStockAlertLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Low-stock alert (optional)'**
+  String get lowStockAlertLabel;
+
+  /// No description provided for @lowStockAlertHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Warn when stock reaches this amount. 0 = off'**
+  String get lowStockAlertHint;
+
+  /// No description provided for @productAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Product added'**
+  String get productAdded;
+
+  /// No description provided for @productUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Product updated'**
+  String get productUpdated;
+
+  /// No description provided for @productDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Product deleted'**
+  String get productDeleted;
+
+  /// No description provided for @errorSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save. Please try again.'**
+  String get errorSaveFailed;
+
+  /// No description provided for @errorLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load products.'**
+  String get errorLoadFailed;
 
   /// No description provided for @editProductTitle.
   ///
@@ -638,6 +800,24 @@ abstract class AppLocalizations {
   /// **'Price cannot be negative'**
   String get negativePriceError;
 
+  /// No description provided for @priceMustBePositive.
+  ///
+  /// In en, this message translates to:
+  /// **'Price must be greater than zero'**
+  String get priceMustBePositive;
+
+  /// No description provided for @invalidNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a valid number'**
+  String get invalidNumber;
+
+  /// No description provided for @negativeNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot be negative'**
+  String get negativeNotAllowed;
+
   /// No description provided for @printedSuccessfully.
   ///
   /// In en, this message translates to:
@@ -649,6 +829,648 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No items'**
   String get noItems;
+
+  /// No description provided for @productNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Product not found: {barcode}'**
+  String productNotFound(String barcode);
+
+  /// No description provided for @saleSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the sale. Please try again.'**
+  String get saleSaveFailed;
+
+  /// No description provided for @printerUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No printer is connected.'**
+  String get printerUnavailable;
+
+  /// No description provided for @printFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Printing failed. Please try again.'**
+  String get printFailed;
+
+  /// No description provided for @printerPermissionDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Bluetooth permission is required.'**
+  String get printerPermissionDenied;
+
+  /// No description provided for @printerNoPairedDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'No paired printer found. Pair one in Bluetooth settings.'**
+  String get printerNoPairedDevices;
+
+  /// No description provided for @printerConnectFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not connect to the printer.'**
+  String get printerConnectFailed;
+
+  /// No description provided for @printerScanFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not scan for printers.'**
+  String get printerScanFailed;
+
+  /// No description provided for @licenseChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking your subscription…'**
+  String get licenseChecking;
+
+  /// No description provided for @licenseErrorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection. Please check your network and try again.'**
+  String get licenseErrorNetwork;
+
+  /// No description provided for @licenseErrorServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t verify your subscription right now. Please try again.'**
+  String get licenseErrorServer;
+
+  /// No description provided for @licenseErrorUnexpected.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get licenseErrorUnexpected;
+
+  /// No description provided for @activationTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Activate Fawateer'**
+  String get activationTitle;
+
+  /// No description provided for @activationSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter your details to verify your subscription, or choose a plan to get started.'**
+  String get activationSubtitle;
+
+  /// No description provided for @activationNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Full Name'**
+  String get activationNameLabel;
+
+  /// No description provided for @activationPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone Number'**
+  String get activationPhoneLabel;
+
+  /// No description provided for @activationCheckButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Verify Activation'**
+  String get activationCheckButton;
+
+  /// No description provided for @activationViewPlans.
+  ///
+  /// In en, this message translates to:
+  /// **'View Subscription Plans'**
+  String get activationViewPlans;
+
+  /// No description provided for @licenseExpiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription Expired'**
+  String get licenseExpiredTitle;
+
+  /// No description provided for @licenseExpiredSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Renew your subscription to keep using the app.'**
+  String get licenseExpiredSubtitle;
+
+  /// No description provided for @licenseExpiresOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Valid until {date}'**
+  String licenseExpiresOn(String date);
+
+  /// No description provided for @plansTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription Plans'**
+  String get plansTitle;
+
+  /// No description provided for @plansEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No plans available right now.'**
+  String get plansEmpty;
+
+  /// No description provided for @retry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry'**
+  String get retry;
+
+  /// No description provided for @planRecommended.
+  ///
+  /// In en, this message translates to:
+  /// **'BEST VALUE'**
+  String get planRecommended;
+
+  /// No description provided for @planDurationMonths.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} month(s)'**
+  String planDurationMonths(int count);
+
+  /// No description provided for @planSubscribe.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscribe'**
+  String get planSubscribe;
+
+  /// No description provided for @planRequestSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Your request was sent. We\'ll activate your device shortly.'**
+  String get planRequestSent;
+
+  /// No description provided for @contactMethodTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact us to complete your subscription'**
+  String get contactMethodTitle;
+
+  /// No description provided for @contactWhatsApp.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp'**
+  String get contactWhatsApp;
+
+  /// No description provided for @contactTelegram.
+  ///
+  /// In en, this message translates to:
+  /// **'Telegram'**
+  String get contactTelegram;
+
+  /// No description provided for @contactEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get contactEmail;
+
+  /// No description provided for @contactEmailSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Fawateer subscription request'**
+  String get contactEmailSubject;
+
+  /// No description provided for @updateAvailableTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'A new update is available'**
+  String get updateAvailableTitle;
+
+  /// No description provided for @updateDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download update'**
+  String get updateDownload;
+
+  /// No description provided for @updateLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Later'**
+  String get updateLater;
+
+  /// No description provided for @contactMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Hello, I\'d like to subscribe to the {plan} plan for Fawateer.'**
+  String contactMessage(String plan);
+
+  /// No description provided for @customersTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Customers'**
+  String get customersTitle;
+
+  /// No description provided for @addCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Customer'**
+  String get addCustomer;
+
+  /// No description provided for @editCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit Customer'**
+  String get editCustomer;
+
+  /// No description provided for @customerNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get customerNameLabel;
+
+  /// No description provided for @customerPhoneLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone (optional)'**
+  String get customerPhoneLabel;
+
+  /// No description provided for @customerNoteLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (optional)'**
+  String get customerNoteLabel;
+
+  /// No description provided for @customerAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer added'**
+  String get customerAdded;
+
+  /// No description provided for @customerUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer updated'**
+  String get customerUpdated;
+
+  /// No description provided for @customerDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer deleted'**
+  String get customerDeleted;
+
+  /// No description provided for @customerDeleteBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t delete a customer who has ledger entries.'**
+  String get customerDeleteBlocked;
+
+  /// No description provided for @customerSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save. Please try again.'**
+  String get customerSaveFailed;
+
+  /// No description provided for @customersLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load customers.'**
+  String get customersLoadFailed;
+
+  /// No description provided for @noCustomers.
+  ///
+  /// In en, this message translates to:
+  /// **'No customers yet'**
+  String get noCustomers;
+
+  /// No description provided for @noCustomersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a customer to track credit sales and payments.'**
+  String get noCustomersHint;
+
+  /// No description provided for @balanceSettled.
+  ///
+  /// In en, this message translates to:
+  /// **'Settled'**
+  String get balanceSettled;
+
+  /// No description provided for @balanceOwed.
+  ///
+  /// In en, this message translates to:
+  /// **'Owes {amount}'**
+  String balanceOwed(String amount);
+
+  /// No description provided for @balanceCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit {amount}'**
+  String balanceCredit(String amount);
+
+  /// No description provided for @balanceOwedLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Owes you'**
+  String get balanceOwedLabel;
+
+  /// No description provided for @balanceCreditLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'You owe'**
+  String get balanceCreditLabel;
+
+  /// No description provided for @recordPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Record Payment'**
+  String get recordPayment;
+
+  /// No description provided for @addDebt.
+  ///
+  /// In en, this message translates to:
+  /// **'Add Debt'**
+  String get addDebt;
+
+  /// No description provided for @noLedgerEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'No transactions yet'**
+  String get noLedgerEntries;
+
+  /// No description provided for @entryPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment'**
+  String get entryPayment;
+
+  /// No description provided for @entryDebt.
+  ///
+  /// In en, this message translates to:
+  /// **'Debt'**
+  String get entryDebt;
+
+  /// No description provided for @creditSaleTag.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit sale'**
+  String get creditSaleTag;
+
+  /// No description provided for @deleteEntryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Entry'**
+  String get deleteEntryTitle;
+
+  /// No description provided for @deleteEntryConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this ledger entry?'**
+  String get deleteEntryConfirm;
+
+  /// No description provided for @debtAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Debt added'**
+  String get debtAdded;
+
+  /// No description provided for @paymentRecorded.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment recorded'**
+  String get paymentRecorded;
+
+  /// No description provided for @entryDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Entry deleted'**
+  String get entryDeleted;
+
+  /// No description provided for @ledgerSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t save. Please try again.'**
+  String get ledgerSaveFailed;
+
+  /// No description provided for @ledgerLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the account.'**
+  String get ledgerLoadFailed;
+
+  /// No description provided for @amountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get amountLabel;
+
+  /// No description provided for @noteOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Note (optional)'**
+  String get noteOptional;
+
+  /// No description provided for @amountMustBePositive.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an amount greater than zero'**
+  String get amountMustBePositive;
+
+  /// No description provided for @sellOnCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Sell on credit'**
+  String get sellOnCredit;
+
+  /// No description provided for @cashSale.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash'**
+  String get cashSale;
+
+  /// No description provided for @chooseCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose customer'**
+  String get chooseCustomer;
+
+  /// No description provided for @creditToLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit — {name}'**
+  String creditToLabel(String name);
+
+  /// No description provided for @shareStatement.
+  ///
+  /// In en, this message translates to:
+  /// **'Share statement'**
+  String get shareStatement;
+
+  /// No description provided for @printStatement.
+  ///
+  /// In en, this message translates to:
+  /// **'Print statement'**
+  String get printStatement;
+
+  /// No description provided for @statementPrinted.
+  ///
+  /// In en, this message translates to:
+  /// **'Statement printed'**
+  String get statementPrinted;
+
+  /// No description provided for @statementHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Account Statement — {shop}'**
+  String statementHeader(String shop);
+
+  /// No description provided for @statementDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get statementDate;
+
+  /// No description provided for @statementTotalDebts.
+  ///
+  /// In en, this message translates to:
+  /// **'Total debts'**
+  String get statementTotalDebts;
+
+  /// No description provided for @statementTotalPaid.
+  ///
+  /// In en, this message translates to:
+  /// **'Total paid'**
+  String get statementTotalPaid;
+
+  /// No description provided for @statementBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Balance'**
+  String get statementBalance;
+
+  /// No description provided for @accountSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Account'**
+  String get accountSection;
+
+  /// No description provided for @accountInfoSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Account details'**
+  String get accountInfoSection;
+
+  /// No description provided for @notSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get notSet;
+
+  /// No description provided for @editAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit account details'**
+  String get editAccountTitle;
+
+  /// No description provided for @agentSavedSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved and synced with the server'**
+  String get agentSavedSynced;
+
+  /// No description provided for @agentSavedLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved on this device — couldn\'t reach the server'**
+  String get agentSavedLocal;
+
+  /// No description provided for @subscriptionItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription'**
+  String get subscriptionItem;
+
+  /// No description provided for @subscriptionSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'View status & renew your plan'**
+  String get subscriptionSubtitle;
+
+  /// No description provided for @subscriptionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription'**
+  String get subscriptionTitle;
+
+  /// No description provided for @statusActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get statusActive;
+
+  /// No description provided for @statusTrial.
+  ///
+  /// In en, this message translates to:
+  /// **'Trial'**
+  String get statusTrial;
+
+  /// No description provided for @statusExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Expired'**
+  String get statusExpired;
+
+  /// No description provided for @statusInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Not activated'**
+  String get statusInactive;
+
+  /// No description provided for @daysRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'{days} days left'**
+  String daysRemaining(int days);
+
+  /// No description provided for @lastChecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Last checked: {date}'**
+  String lastChecked(String date);
+
+  /// No description provided for @neverChecked.
+  ///
+  /// In en, this message translates to:
+  /// **'never'**
+  String get neverChecked;
+
+  /// No description provided for @refreshStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh status'**
+  String get refreshStatus;
+
+  /// No description provided for @renewSubscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Renew / change plan'**
+  String get renewSubscription;
+
+  /// No description provided for @deviceIdLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Device ID'**
+  String get deviceIdLabel;
+
+  /// No description provided for @deviceIdHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Send this ID to support to activate your device.'**
+  String get deviceIdHint;
+
+  /// No description provided for @copy.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get copy;
+
+  /// No description provided for @copied.
+  ///
+  /// In en, this message translates to:
+  /// **'Copied'**
+  String get copied;
+
+  /// No description provided for @subscriptionActivatedBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Your subscription has been activated'**
+  String get subscriptionActivatedBanner;
 }
 
 class _AppLocalizationsDelegate

@@ -18,13 +18,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get productsTab => 'Products';
 
   @override
+  String get customersTab => 'Customers';
+
+  @override
   String get settingsTab => 'Settings';
 
   @override
   String get scannedItems => 'Scanned Items';
 
   @override
-  String itemsCount(int count) {
+  String itemsCount(String count) {
     return '$count items total';
   }
 
@@ -33,6 +36,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reviewOrder => 'Review Order';
+
+  @override
+  String get cameraUnavailable => 'Camera unavailable';
+
+  @override
+  String get cameraPermissionHint =>
+      'Allow camera access to scan barcodes, or add items manually below.';
+
+  @override
+  String get openSettings => 'Open Settings';
 
   @override
   String get cameraOff => 'Camera is turned off';
@@ -96,6 +109,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shopNotLoaded => 'Shop details not loaded';
 
   @override
+  String get cartEmptyError => 'Add an item before confirming the sale.';
+
+  @override
   String get salesHistory => 'Sales History';
 
   @override
@@ -109,6 +125,18 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get noSalesHint => 'Completed sales will appear here.';
+
+  @override
+  String get historyLoadFailed => 'Couldn\'t load sales history.';
+
+  @override
+  String get itemsLoadFailed => 'Couldn\'t load items. Tap to retry.';
+
+  @override
+  String get shopLoadFailed => 'Couldn\'t load shop details.';
+
+  @override
+  String get shopSaveFailed => 'Couldn\'t save. Please try again.';
 
   @override
   String get productsTitle => 'Products';
@@ -134,16 +162,51 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String stockCountLabel(String qty) {
+    return 'In stock: $qty';
+  }
+
+  @override
+  String get lowStockBadge => 'Low stock';
+
+  @override
   String get cancel => 'Cancel';
 
   @override
   String get delete => 'Delete';
 
   @override
+  String get save => 'Save';
+
+  @override
+  String get quantityDialogTitle => 'Quantity';
+
+  @override
+  String get saleTypeLabel => 'Sale type';
+
+  @override
+  String get saleTypePiece => 'By piece';
+
+  @override
+  String get saleTypeWeight => 'By weight';
+
+  @override
+  String get pricePerKgLabel => 'Price per kg';
+
+  @override
+  String get unitKg => 'kg';
+
+  @override
+  String get weightFieldLabel => 'Weight (kg)';
+
+  @override
+  String get amountFieldLabel => 'Amount';
+
+  @override
   String get addProductTitle => 'Add Product';
 
   @override
-  String get barcodeLabel => 'Barcode';
+  String get barcodeLabel => 'Barcode (optional)';
 
   @override
   String get scanOrEnterBarcode => 'Scan or enter barcode';
@@ -175,6 +238,28 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get barcodeExistsError =>
       'A product with this barcode already exists!';
+
+  @override
+  String get lowStockAlertLabel => 'Low-stock alert (optional)';
+
+  @override
+  String get lowStockAlertHint =>
+      'Warn when stock reaches this amount. 0 = off';
+
+  @override
+  String get productAdded => 'Product added';
+
+  @override
+  String get productUpdated => 'Product updated';
+
+  @override
+  String get productDeleted => 'Product deleted';
+
+  @override
+  String get errorSaveFailed => 'Couldn\'t save. Please try again.';
+
+  @override
+  String get errorLoadFailed => 'Couldn\'t load products.';
 
   @override
   String get editProductTitle => 'Edit Product';
@@ -286,8 +371,369 @@ class AppLocalizationsEn extends AppLocalizations {
   String get negativePriceError => 'Price cannot be negative';
 
   @override
+  String get priceMustBePositive => 'Price must be greater than zero';
+
+  @override
+  String get invalidNumber => 'Please enter a valid number';
+
+  @override
+  String get negativeNotAllowed => 'Cannot be negative';
+
+  @override
   String get printedSuccessfully => 'Printed successfully';
 
   @override
   String get noItems => 'No items';
+
+  @override
+  String productNotFound(String barcode) {
+    return 'Product not found: $barcode';
+  }
+
+  @override
+  String get saleSaveFailed => 'Could not save the sale. Please try again.';
+
+  @override
+  String get printerUnavailable => 'No printer is connected.';
+
+  @override
+  String get printFailed => 'Printing failed. Please try again.';
+
+  @override
+  String get printerPermissionDenied => 'Bluetooth permission is required.';
+
+  @override
+  String get printerNoPairedDevices =>
+      'No paired printer found. Pair one in Bluetooth settings.';
+
+  @override
+  String get printerConnectFailed => 'Could not connect to the printer.';
+
+  @override
+  String get printerScanFailed => 'Could not scan for printers.';
+
+  @override
+  String get licenseChecking => 'Checking your subscription…';
+
+  @override
+  String get licenseErrorNetwork =>
+      'No internet connection. Please check your network and try again.';
+
+  @override
+  String get licenseErrorServer =>
+      'Couldn\'t verify your subscription right now. Please try again.';
+
+  @override
+  String get licenseErrorUnexpected =>
+      'Something went wrong. Please try again.';
+
+  @override
+  String get activationTitle => 'Activate Fawateer';
+
+  @override
+  String get activationSubtitle =>
+      'Enter your details to verify your subscription, or choose a plan to get started.';
+
+  @override
+  String get activationNameLabel => 'Full Name';
+
+  @override
+  String get activationPhoneLabel => 'Phone Number';
+
+  @override
+  String get activationCheckButton => 'Verify Activation';
+
+  @override
+  String get activationViewPlans => 'View Subscription Plans';
+
+  @override
+  String get licenseExpiredTitle => 'Subscription Expired';
+
+  @override
+  String get licenseExpiredSubtitle =>
+      'Renew your subscription to keep using the app.';
+
+  @override
+  String licenseExpiresOn(String date) {
+    return 'Valid until $date';
+  }
+
+  @override
+  String get plansTitle => 'Subscription Plans';
+
+  @override
+  String get plansEmpty => 'No plans available right now.';
+
+  @override
+  String get retry => 'Retry';
+
+  @override
+  String get planRecommended => 'BEST VALUE';
+
+  @override
+  String planDurationMonths(int count) {
+    return '$count month(s)';
+  }
+
+  @override
+  String get planSubscribe => 'Subscribe';
+
+  @override
+  String get planRequestSent =>
+      'Your request was sent. We\'ll activate your device shortly.';
+
+  @override
+  String get contactMethodTitle => 'Contact us to complete your subscription';
+
+  @override
+  String get contactWhatsApp => 'WhatsApp';
+
+  @override
+  String get contactTelegram => 'Telegram';
+
+  @override
+  String get contactEmail => 'Email';
+
+  @override
+  String get contactEmailSubject => 'Fawateer subscription request';
+
+  @override
+  String get updateAvailableTitle => 'A new update is available';
+
+  @override
+  String get updateDownload => 'Download update';
+
+  @override
+  String get updateLater => 'Later';
+
+  @override
+  String contactMessage(String plan) {
+    return 'Hello, I\'d like to subscribe to the $plan plan for Fawateer.';
+  }
+
+  @override
+  String get customersTitle => 'Customers';
+
+  @override
+  String get addCustomer => 'Add Customer';
+
+  @override
+  String get editCustomer => 'Edit Customer';
+
+  @override
+  String get customerNameLabel => 'Name';
+
+  @override
+  String get customerPhoneLabel => 'Phone (optional)';
+
+  @override
+  String get customerNoteLabel => 'Note (optional)';
+
+  @override
+  String get customerAdded => 'Customer added';
+
+  @override
+  String get customerUpdated => 'Customer updated';
+
+  @override
+  String get customerDeleted => 'Customer deleted';
+
+  @override
+  String get customerDeleteBlocked =>
+      'Can\'t delete a customer who has ledger entries.';
+
+  @override
+  String get customerSaveFailed => 'Couldn\'t save. Please try again.';
+
+  @override
+  String get customersLoadFailed => 'Couldn\'t load customers.';
+
+  @override
+  String get noCustomers => 'No customers yet';
+
+  @override
+  String get noCustomersHint =>
+      'Add a customer to track credit sales and payments.';
+
+  @override
+  String get balanceSettled => 'Settled';
+
+  @override
+  String balanceOwed(String amount) {
+    return 'Owes $amount';
+  }
+
+  @override
+  String balanceCredit(String amount) {
+    return 'Credit $amount';
+  }
+
+  @override
+  String get balanceOwedLabel => 'Owes you';
+
+  @override
+  String get balanceCreditLabel => 'You owe';
+
+  @override
+  String get recordPayment => 'Record Payment';
+
+  @override
+  String get addDebt => 'Add Debt';
+
+  @override
+  String get noLedgerEntries => 'No transactions yet';
+
+  @override
+  String get entryPayment => 'Payment';
+
+  @override
+  String get entryDebt => 'Debt';
+
+  @override
+  String get creditSaleTag => 'Credit sale';
+
+  @override
+  String get deleteEntryTitle => 'Delete Entry';
+
+  @override
+  String get deleteEntryConfirm => 'Delete this ledger entry?';
+
+  @override
+  String get debtAdded => 'Debt added';
+
+  @override
+  String get paymentRecorded => 'Payment recorded';
+
+  @override
+  String get entryDeleted => 'Entry deleted';
+
+  @override
+  String get ledgerSaveFailed => 'Couldn\'t save. Please try again.';
+
+  @override
+  String get ledgerLoadFailed => 'Couldn\'t load the account.';
+
+  @override
+  String get amountLabel => 'Amount';
+
+  @override
+  String get noteOptional => 'Note (optional)';
+
+  @override
+  String get amountMustBePositive => 'Enter an amount greater than zero';
+
+  @override
+  String get sellOnCredit => 'Sell on credit';
+
+  @override
+  String get cashSale => 'Cash';
+
+  @override
+  String get chooseCustomer => 'Choose customer';
+
+  @override
+  String creditToLabel(String name) {
+    return 'Credit — $name';
+  }
+
+  @override
+  String get shareStatement => 'Share statement';
+
+  @override
+  String get printStatement => 'Print statement';
+
+  @override
+  String get statementPrinted => 'Statement printed';
+
+  @override
+  String statementHeader(String shop) {
+    return 'Account Statement — $shop';
+  }
+
+  @override
+  String get statementDate => 'Date';
+
+  @override
+  String get statementTotalDebts => 'Total debts';
+
+  @override
+  String get statementTotalPaid => 'Total paid';
+
+  @override
+  String get statementBalance => 'Balance';
+
+  @override
+  String get accountSection => 'Account';
+
+  @override
+  String get accountInfoSection => 'Account details';
+
+  @override
+  String get notSet => 'Not set';
+
+  @override
+  String get editAccountTitle => 'Edit account details';
+
+  @override
+  String get agentSavedSynced => 'Saved and synced with the server';
+
+  @override
+  String get agentSavedLocal =>
+      'Saved on this device — couldn\'t reach the server';
+
+  @override
+  String get subscriptionItem => 'Subscription';
+
+  @override
+  String get subscriptionSubtitle => 'View status & renew your plan';
+
+  @override
+  String get subscriptionTitle => 'Subscription';
+
+  @override
+  String get statusActive => 'Active';
+
+  @override
+  String get statusTrial => 'Trial';
+
+  @override
+  String get statusExpired => 'Expired';
+
+  @override
+  String get statusInactive => 'Not activated';
+
+  @override
+  String daysRemaining(int days) {
+    return '$days days left';
+  }
+
+  @override
+  String lastChecked(String date) {
+    return 'Last checked: $date';
+  }
+
+  @override
+  String get neverChecked => 'never';
+
+  @override
+  String get refreshStatus => 'Refresh status';
+
+  @override
+  String get renewSubscription => 'Renew / change plan';
+
+  @override
+  String get deviceIdLabel => 'Device ID';
+
+  @override
+  String get deviceIdHint => 'Send this ID to support to activate your device.';
+
+  @override
+  String get copy => 'Copy';
+
+  @override
+  String get copied => 'Copied';
+
+  @override
+  String get subscriptionActivatedBanner =>
+      'Your subscription has been activated';
 }

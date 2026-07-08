@@ -5,11 +5,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../bloc/product_bloc.dart';
+import '../widgets/currency_field.dart';
+import '../widgets/sale_type_selector.dart';
 import '../../domain/entities/product.dart';
+import '../../domain/entities/product_sale_type.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
-import '../../../shop/presentation/bloc/shop_bloc.dart';
+import '../../../../core/utils/num_input.dart';
 import '../../../../l10n/app_localizations.dart';
+
+/// Show a whole-number quantity as `5`, not `5.0`.
+String _formatQty(double q) =>
+    q == q.truncateToDouble() ? q.toInt().toString() : q.toString();
 
 class EditProductPage extends StatefulWidget {
   final Product product;
@@ -25,6 +32,8 @@ class _EditProductPageState extends State<EditProductPage> {
   late double _price;
   late double _cost;
   late double _quantity;
+  late double _minStockAlert;
+  late ProductSaleType _saleType;
 
   @override
   void initState() {
@@ -33,19 +42,22 @@ class _EditProductPageState extends State<EditProductPage> {
     _price = widget.product.price;
     _cost = widget.product.cost;
     _quantity = widget.product.quantity;
+    _minStockAlert = widget.product.minStockAlert;
+    _saleType = widget.product.saleType;
   }
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
-      final updatedProduct = Product(
-        id: widget.product.id,
+      // copyWith so fields not on this form (id, barcode, …) are preserved.
+      final updatedProduct = widget.product.copyWith(
         name: _name,
-        barcode: widget.product.barcode,
         price: _price,
         cost: _cost,
         quantity: _quantity,
+        minStockAlert: _minStockAlert,
+        saleType: _saleType,
       );
 
       context.read<ProductBloc>().add(UpdateProduct(updatedProduct));
@@ -94,9 +106,9 @@ class _EditProductPageState extends State<EditProductPage> {
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(l10n.barcodeDisplay.toUpperCase(),
+                            Text(l10n.barcodeDisplay,
                                 style: TextStyle(
-                                    fontSize: 12,
+                                    fontSize: 13,
                                     fontWeight: FontWeight.bold,
                                     color: AppTheme.primaryColor
                                         .withValues(alpha: 0.7))),
@@ -117,67 +129,81 @@ class _EditProductPageState extends State<EditProductPage> {
                     initialValue: _name,
                     textCapitalization: TextCapitalization.words,
                     validator: AppValidators.required(l10n.fieldRequired),
-                    onSaved: (value) => _name = value!,
+                    onSaved: (value) => _name = value!.trim(),
                   ),
                   const SizedBox(height: 24),
 
-                  InputLabel(text: l10n.priceLabel),
-                  Builder(builder: (context) {
-                    final shopState = context.watch<ShopBloc>().state;
-                    final currency = shopState is ShopLoaded
-                        ? shopState.shop.currencySymbol
-                        : '';
-                    return TextFormField(
-                      initialValue: _price.toStringAsFixed(2),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        prefixText: currency.isNotEmpty ? '$currency ' : null,
-                        prefixStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black),
-                      ),
-                      validator: AppValidators.price,
-                      onSaved: (value) => _price = double.parse(value!),
-                    );
-                  }),
+                  InputLabel(text: l10n.saleTypeLabel),
+                  SaleTypeSelector(
+                    value: _saleType,
+                    onChanged: (t) => setState(() => _saleType = t),
+                  ),
+                  const SizedBox(height: 24),
+
+                  InputLabel(
+                      text: _saleType.isMeasured
+                          ? l10n.pricePerKgLabel
+                          : l10n.priceLabel),
+                  CurrencyField(
+                    initialValue: _price.toStringAsFixed(2),
+                    validator: AppValidators.price(
+                      requiredMsg: l10n.fieldRequired,
+                      invalidMsg: l10n.invalidPrice,
+                      negativeMsg: l10n.negativePriceError,
+                      mustBePositiveMsg: l10n.priceMustBePositive,
+                    ),
+                    onSaved: (value) =>
+                        _price = NumInput.parseFlexibleNumber(value) ?? 0,
+                  ),
                   const SizedBox(height: 24),
 
                   InputLabel(text: l10n.costLabel),
-                  Builder(builder: (context) {
-                    final shopState = context.watch<ShopBloc>().state;
-                    final currency = shopState is ShopLoaded
-                        ? shopState.shop.currencySymbol
-                        : '';
-                    return TextFormField(
-                      initialValue: _cost.toStringAsFixed(2),
-                      keyboardType:
-                          const TextInputType.numberWithOptions(decimal: true),
-                      decoration: InputDecoration(
-                        helperText: l10n.costHint,
-                        prefixText: currency.isNotEmpty ? '$currency ' : null,
-                        prefixStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                            color: Colors.black),
-                      ),
-                      onSaved: (value) =>
-                          _cost = double.tryParse(value ?? '0') ?? 0,
-                    );
-                  }),
+                  CurrencyField(
+                    initialValue: _cost.toStringAsFixed(2),
+                    helperText: l10n.costHint,
+                    validator: AppValidators.optionalNonNegative(
+                      invalidMsg: l10n.invalidNumber,
+                      negativeMsg: l10n.negativeNotAllowed,
+                    ),
+                    onSaved: (value) =>
+                        _cost = NumInput.parseFlexibleNumber(value) ?? 0,
+                  ),
                   const SizedBox(height: 24),
 
                   InputLabel(text: l10n.stockEditLabel),
                   TextFormField(
-                    initialValue: _quantity.toString(),
+                    initialValue: _formatQty(_quantity),
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: NumInput.decimalFormatters,
                     decoration: InputDecoration(
                       helperText: l10n.stockEditHint,
                     ),
+                    validator: AppValidators.optionalNonNegative(
+                      invalidMsg: l10n.invalidNumber,
+                      negativeMsg: l10n.negativeNotAllowed,
+                    ),
                     onSaved: (value) =>
-                        _quantity = double.tryParse(value ?? '0') ?? 0,
+                        _quantity = NumInput.parseFlexibleNumber(value) ?? 0,
+                  ),
+                  const SizedBox(height: 24),
+
+                  InputLabel(text: l10n.lowStockAlertLabel),
+                  TextFormField(
+                    initialValue: _formatQty(_minStockAlert),
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: NumInput.decimalFormatters,
+                    decoration: InputDecoration(
+                      hintText: '0',
+                      helperText: l10n.lowStockAlertHint,
+                    ),
+                    validator: AppValidators.optionalNonNegative(
+                      invalidMsg: l10n.invalidNumber,
+                      negativeMsg: l10n.negativeNotAllowed,
+                    ),
+                    onSaved: (value) =>
+                        _minStockAlert = NumInput.parseFlexibleNumber(value) ?? 0,
                   ),
                 ],
               ),

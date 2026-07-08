@@ -20,7 +20,14 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
       (select(products)..where((p) => p.barcode.equals(barcode)))
           .getSingleOrNull();
 
-  /// Insert or replace (used for both add and update).
+  /// Insert a brand-new product. Throws on a duplicate barcode (the partial-
+  /// unique index) instead of silently replacing the existing row — unlike
+  /// [insertProduct]'s insert-or-replace. Use this for "add".
+  Future<void> createProduct(ProductsCompanion product) =>
+      into(products).insert(product);
+
+  /// Insert or replace by id (used for "update"; the barcode is immutable in
+  /// the edit form, so this can't clobber a different product).
   Future<void> insertProduct(ProductsCompanion product) =>
       into(products).insert(product, mode: InsertMode.insertOrReplace);
 

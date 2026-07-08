@@ -4,6 +4,7 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/database/daos/products_dao.dart';
 import '../../../../core/error/failure.dart';
 import '../../domain/entities/product.dart';
+import '../../domain/entities/product_sale_type.dart';
 import '../../domain/repositories/product_repository.dart';
 
 class ProductRepositoryDriftImpl implements ProductRepository {
@@ -21,6 +22,7 @@ class ProductRepositoryDriftImpl implements ProductRepository {
         cost: row.cost,
         quantity: row.quantity,
         minStockAlert: row.minStockAlert,
+        saleType: ProductSaleType.fromName(row.saleType),
       );
 
   static ProductsCompanion _toCompanion(Product p) => ProductsCompanion(
@@ -31,6 +33,7 @@ class ProductRepositoryDriftImpl implements ProductRepository {
         cost: Value(p.cost),
         quantity: Value(p.quantity),
         minStockAlert: Value(p.minStockAlert),
+        saleType: Value(p.saleType.name),
       );
 
   // ── repository interface ──────────────────────────────────────────────────
@@ -46,10 +49,16 @@ class ProductRepositoryDriftImpl implements ProductRepository {
   }
 
   @override
+  Stream<List<Product>> watchProducts() =>
+      _dao.watchAllProducts().map((rows) => rows.map(_toEntity).toList());
+
+  @override
   Future<Either<Failure, Product>> getProductByBarcode(String barcode) async {
     try {
       final row = await _dao.getByBarcode(barcode);
-      if (row == null) throw Exception('Product not found for barcode: $barcode');
+      if (row == null) {
+        return Left(NotFoundFailure('No product for barcode: $barcode'));
+      }
       return Right(_toEntity(row));
     } catch (e) {
       return Left(CacheFailure(e.toString()));
@@ -59,9 +68,14 @@ class ProductRepositoryDriftImpl implements ProductRepository {
   @override
   Future<Either<Failure, void>> addProduct(Product product) async {
     try {
-      await _dao.insertProduct(_toCompanion(product));
+      await _dao.createProduct(_toCompanion(product));
       return const Right(null);
     } catch (e) {
+      // A non-empty barcode that already exists trips the partial-unique index.
+      if (e.toString().contains('UNIQUE')) {
+        return const Left(
+            DuplicateFailure('A product with this barcode already exists'));
+      }
       return Left(CacheFailure(e.toString()));
     }
   }

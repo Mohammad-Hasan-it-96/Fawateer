@@ -9,6 +9,16 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
 import '../../../../l10n/app_localizations.dart';
 
+/// Map a [ShopFailure] to a localized, user-facing string.
+String _shopErrorText(ShopFailure failure, AppLocalizations l10n) {
+  switch (failure) {
+    case ShopFailure.loadFailed:
+      return l10n.shopLoadFailed;
+    case ShopFailure.saveFailed:
+      return l10n.shopSaveFailed;
+  }
+}
+
 class ShopDetailsPage extends StatefulWidget {
   const ShopDetailsPage({super.key});
 
@@ -94,7 +104,8 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
               context.pop();
             } else if (state is ShopError) {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(state.message), backgroundColor: Colors.red));
+                  content: Text(_shopErrorText(state.failure, l10n)),
+                  backgroundColor: Colors.red));
             }
           },
           buildWhen: (previous, current) =>
@@ -113,9 +124,8 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
                   children: [
                     Text(l10n.generalInfo,
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: 13,
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
                           color: AppTheme.primaryColor.withValues(alpha: 0.8),
                         )),
                     const SizedBox(height: 5),

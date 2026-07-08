@@ -6,17 +6,38 @@ import 'database/daos/products_dao.dart';
 import 'database/daos/shop_dao.dart';
 import 'database/daos/settings_dao.dart';
 import 'database/daos/sales_dao.dart';
+import 'database/daos/customers_dao.dart';
+import 'database/daos/ledger_dao.dart';
+
+// Core — Network
+import 'network/api_client.dart';
+import 'config/remote_config_service.dart';
+
+// Features — Ledger (customers & debts)
+import '../features/ledger/data/repositories/customer_repository_drift_impl.dart';
+import '../features/ledger/data/repositories/ledger_repository_drift_impl.dart';
+import '../features/ledger/domain/repositories/customer_repository.dart';
+import '../features/ledger/domain/repositories/ledger_repository.dart';
+import '../features/ledger/presentation/bloc/customer_bloc.dart';
+import '../features/ledger/presentation/bloc/ledger_bloc.dart';
+
+// Features — Licensing (subscription)
+import '../features/licensing/data/datasources/license_local_storage.dart';
+import '../features/licensing/data/datasources/license_remote_datasource.dart';
+import '../features/licensing/data/repositories/license_repository_impl.dart';
+import '../features/licensing/data/services/device_identity_service.dart';
+import '../features/licensing/data/services/push_notification_service.dart';
+import '../features/licensing/domain/repositories/license_repository.dart';
+import '../features/licensing/presentation/bloc/license_bloc.dart';
 
 // Features — Product
 import '../features/product/data/repositories/product_repository_drift_impl.dart';
 import '../features/product/domain/repositories/product_repository.dart';
-import '../features/product/domain/usecases/product_usecases.dart';
 import '../features/product/presentation/bloc/product_bloc.dart';
 
 // Features — Shop
 import '../features/shop/data/repositories/shop_repository_drift_impl.dart';
 import '../features/shop/domain/repositories/shop_repository.dart';
-import '../features/shop/domain/usecases/shop_usecases.dart';
 import '../features/shop/presentation/bloc/shop_bloc.dart';
 
 // Features — Settings / Printer
@@ -27,13 +48,16 @@ import '../features/settings/presentation/bloc/printer_bloc.dart';
 // Features — Billing (invoices)
 import '../features/billing/data/repositories/invoice_repository_drift_impl.dart';
 import '../features/billing/domain/repositories/invoice_repository.dart';
-import '../features/billing/domain/usecases/invoice_usecases.dart';
 import '../features/billing/presentation/bloc/billing_bloc.dart';
 import '../features/billing/presentation/bloc/history_bloc.dart';
 
 final sl = GetIt.instance;
 
 Future<void> init() async {
+  // ── Network ──────────────────────────────────────────────────────────────
+  sl.registerLazySingleton<ApiClient>(() => ApiClient());
+  sl.registerLazySingleton<RemoteConfigService>(() => RemoteConfigService());
+
   // ── Database ─────────────────────────────────────────────────────────────
   sl.registerLazySingleton<AppDatabase>(() => AppDatabase());
 
@@ -42,6 +66,8 @@ Future<void> init() async {
   sl.registerLazySingleton<ShopDao>(() => ShopDao(sl()));
   sl.registerLazySingleton<SettingsDao>(() => SettingsDao(sl()));
   sl.registerLazySingleton<SalesDao>(() => SalesDao(sl()));
+  sl.registerLazySingleton<CustomersDao>(() => CustomersDao(sl()));
+  sl.registerLazySingleton<LedgerDao>(() => LedgerDao(sl()));
 
   // ── Repositories ─────────────────────────────────────────────────────────
   sl.registerLazySingleton<ProductRepository>(
@@ -52,44 +78,45 @@ Future<void> init() async {
       () => PrinterRepositoryDriftImpl(sl()));
   sl.registerLazySingleton<InvoiceRepository>(
       () => InvoiceRepositoryDriftImpl(sl()));
+  sl.registerLazySingleton<CustomerRepository>(
+      () => CustomerRepositoryDriftImpl(sl()));
+  sl.registerLazySingleton<LedgerRepository>(
+      () => LedgerRepositoryDriftImpl(sl()));
 
-  // ── Use Cases ─────────────────────────────────────────────────────────────
-  sl.registerLazySingleton(() => GetProductsUseCase(sl()));
-  sl.registerLazySingleton(() => AddProductUseCase(sl()));
-  sl.registerLazySingleton(() => UpdateProductUseCase(sl()));
-  sl.registerLazySingleton(() => DeleteProductUseCase(sl()));
-  sl.registerLazySingleton(() => GetProductByBarcodeUseCase(sl()));
-
-  sl.registerLazySingleton(() => GetShopUseCase(sl()));
-  sl.registerLazySingleton(() => UpdateShopUseCase(sl()));
-
-  sl.registerLazySingleton(() => GetAllInvoicesUseCase(sl()));
-  sl.registerLazySingleton(() => GetInvoiceItemsUseCase(sl()));
+  // ── Licensing (network-backed; no DAO) ───────────────────────────────────
+  sl.registerLazySingleton<DeviceIdentityService>(
+      () => const DeviceIdentityService());
+  sl.registerLazySingleton<LicenseLocalStorage>(() => LicenseLocalStorage());
+  sl.registerLazySingleton<LicenseRemoteDataSource>(
+      () => LicenseRemoteDataSource(sl()));
+  sl.registerLazySingleton<LicenseRepository>(
+      () => LicenseRepositoryImpl(sl(), sl(), sl()));
+  sl.registerLazySingleton<PushNotificationService>(
+      () => PushNotificationService(sl()));
 
   // ── BLoCs ─────────────────────────────────────────────────────────────────
-  sl.registerFactory(() => ProductBloc(
-        getProductsUseCase: sl(),
-        addProductUseCase: sl(),
-        updateProductUseCase: sl(),
-        deleteProductUseCase: sl(),
-      ));
+  sl.registerFactory(() => ProductBloc(repository: sl()));
 
-  sl.registerFactory(() => ShopBloc(
-        getShopUseCase: sl(),
-        updateShopUseCase: sl(),
-      ));
+  sl.registerFactory(() => ShopBloc(repository: sl()));
 
   sl.registerFactory(() => PrinterBloc(repository: sl()));
 
-  sl.registerFactory(() => HistoryBloc(
-        getAllInvoicesUseCase: sl(),
-        getInvoiceItemsUseCase: sl(),
-      ));
+  sl.registerFactory(() => HistoryBloc(repository: sl()));
 
   sl.registerFactory(() => BillingBloc(
-        getProductByBarcodeUseCase: sl(),
+        productRepository: sl(),
         printerRepository: sl(),
         invoiceRepository: sl(),
-        updateProductUseCase: sl(),
       ));
+
+  sl.registerFactory(() => CustomerBloc(repository: sl()));
+  sl.registerFactory(() => LedgerBloc(
+        customerRepository: sl(),
+        ledgerRepository: sl(),
+        printerRepository: sl(),
+      ));
+
+  // LicenseBloc is a SINGLETON (not a factory): the GoRouter gate redirect and
+  // the widget tree must observe the same instance for the gate to react.
+  sl.registerLazySingleton<LicenseBloc>(() => LicenseBloc(repository: sl()));
 }

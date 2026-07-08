@@ -42,6 +42,24 @@ dependencies:
   uuid: ^4.5.2
   app_settings: ^7.0.0
 
+  # Networking & Licensing (subscription verification)
+  http: ^1.2.0
+  crypto: ^3.0.3
+  android_id: ^0.4.0            # device-id on Android (ANDROID_ID)
+  device_info_plus: ^12.4.0     # device-id on iOS (identifierForVendor)
+  shared_preferences: ^2.2.3
+  url_launcher: ^6.2.6
+  package_info_plus: ^8.0.0     # installed app version (remote update check)
+
+  # Sharing (customer account statements)
+  share_plus: ^10.1.4
+
+  # Push notifications (FCM live-unlock of the subscription).
+  # Dormant until a Firebase project is configured (see android/README-fcm.md);
+  # Firebase.initializeApp() fails gracefully and push stays disabled without it.
+  firebase_core: ^4.11.0
+  firebase_messaging: ^16.4.1
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

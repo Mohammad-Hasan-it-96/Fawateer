@@ -8,6 +8,10 @@ import '../../domain/entities/invoice_item.dart';
 import '../bloc/history_bloc.dart';
 import '../../../../l10n/app_localizations.dart';
 
+/// Format a line quantity: whole numbers print as `2`, fractional as `1.5`.
+String _qtyLabel(double q) =>
+    q == q.truncateToDouble() ? q.toInt().toString() : '$q';
+
 class HistoryPage extends StatelessWidget {
   const HistoryPage({super.key});
 
@@ -31,7 +35,7 @@ class HistoryPage extends StatelessWidget {
 
           if (state.status == HistoryStatus.error) {
             return Center(
-              child: Text('Error: ${state.error}',
+              child: Text(l10n.historyLoadFailed,
                   style: const TextStyle(color: Colors.red)),
             );
           }
@@ -62,6 +66,7 @@ class HistoryPage extends StatelessWidget {
                             invoice: invoice,
                             currency: currency,
                             items: state.itemsCache[invoice.id],
+                            failed: state.failedItems.contains(invoice.id),
                             onExpand: () => context
                                 .read<HistoryBloc>()
                                 .add(LoadInvoiceDetailsEvent(invoice.id)),
@@ -180,10 +185,9 @@ class _DailySummaryCard extends StatelessWidget {
                 Text(
                   l10n.todaysSales,
                   style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 11,
+                    color: Colors.white,
+                    fontSize: 13,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: 1.2,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -193,7 +197,6 @@ class _DailySummaryCard extends StatelessWidget {
                     color: Colors.white,
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
-                    letterSpacing: -0.5,
                   ),
                 ),
               ],
@@ -226,12 +229,14 @@ class _InvoiceCard extends StatefulWidget {
   final Invoice invoice;
   final String currency;
   final List<InvoiceItem>? items;
+  final bool failed;
   final VoidCallback onExpand;
 
   const _InvoiceCard({
     required this.invoice,
     required this.currency,
     required this.items,
+    required this.failed,
     required this.onExpand,
   });
 
@@ -245,8 +250,11 @@ class _InvoiceCardState extends State<_InvoiceCard> {
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final dateStr =
-        DateFormat('dd MMM yyyy  hh:mm a').format(widget.invoice.createdAt);
+    // Locale-aware date: Arabic month names + ص/م instead of English AM/PM.
+    final locale = Localizations.localeOf(context).toString();
+    final dateStr = DateFormat.yMMMd(locale)
+        .add_jm()
+        .format(widget.invoice.createdAt);
     final shortId = widget.invoice.id.length > 8
         ? '...${widget.invoice.id.substring(widget.invoice.id.length - 8)}'
         : widget.invoice.id;
@@ -267,7 +275,9 @@ class _InvoiceCardState extends State<_InvoiceCard> {
             borderRadius: BorderRadius.circular(12),
             onTap: () {
               setState(() => _expanded = !_expanded);
-              if (!_expanded && widget.items == null) {
+              // Load (or retry) the line items when expanding and we don't have
+              // them cached yet.
+              if (_expanded && widget.items == null) {
                 widget.onExpand();
               }
             },
@@ -318,9 +328,14 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                     const BorderRadius.vertical(bottom: Radius.circular(12)),
               ),
               child: widget.items == null
-                  ? const Padding(
-                      padding: EdgeInsets.all(16),
-                      child: Center(child: CircularProgressIndicator()))
+                  ? (widget.failed
+                      ? Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Text(l10n.itemsLoadFailed,
+                              style: const TextStyle(color: Colors.red)))
+                      : const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Center(child: CircularProgressIndicator())))
                   : widget.items!.isEmpty
                       ? Padding(
                           padding: const EdgeInsets.all(16),
@@ -335,7 +350,7 @@ class _InvoiceCardState extends State<_InvoiceCard> {
                                 children: [
                                   Expanded(
                                     child: Text(
-                                      '${item.quantity}x ${item.productName}',
+                                      '${_qtyLabel(item.quantity)}x ${item.productName}',
                                       style: const TextStyle(fontSize: 14),
                                     ),
                                   ),

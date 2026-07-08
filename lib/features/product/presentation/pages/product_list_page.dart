@@ -5,6 +5,7 @@ import '../bloc/product_bloc.dart';
 import '../../domain/entities/product.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
+import '../../../../core/utils/format.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../../../l10n/app_localizations.dart';
 
@@ -13,6 +14,24 @@ class ProductListPage extends StatefulWidget {
 
   @override
   State<ProductListPage> createState() => _ProductListPageState();
+}
+
+/// Map a [ProductMessage] to a localized, user-facing string.
+String _productMessageText(ProductMessage m, AppLocalizations l10n) {
+  switch (m) {
+    case ProductMessage.added:
+      return l10n.productAdded;
+    case ProductMessage.updated:
+      return l10n.productUpdated;
+    case ProductMessage.deleted:
+      return l10n.productDeleted;
+    case ProductMessage.barcodeExists:
+      return l10n.barcodeExistsError;
+    case ProductMessage.saveFailed:
+      return l10n.errorSaveFailed;
+    case ProductMessage.loadFailed:
+      return l10n.errorLoadFailed;
+  }
 }
 
 class _ProductListPageState extends State<ProductListPage> {
@@ -114,21 +133,15 @@ class _ProductListPageState extends State<ProductListPage> {
           Expanded(
             child: BlocConsumer<ProductBloc, ProductState>(
               listener: (context, state) {
-                if (state.status == ProductStatus.success &&
-                    state.message != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text(state.message!),
-                        backgroundColor: Colors.green),
-                  );
-                } else if (state.status == ProductStatus.error &&
-                    state.message != null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                        content: Text(state.message!),
-                        backgroundColor: Colors.red),
-                  );
-                }
+                final message = state.message;
+                if (message == null) return;
+                final isError = state.status == ProductStatus.error;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(_productMessageText(message, l10n)),
+                    backgroundColor: isError ? Colors.red : Colors.green,
+                  ),
+                );
               },
               builder: (context, state) {
                 if (state.status == ProductStatus.loading &&
@@ -138,7 +151,9 @@ class _ProductListPageState extends State<ProductListPage> {
 
                 if (state.products.isEmpty) {
                   if (state.status == ProductStatus.error) {
-                    return Center(child: Text('Error: ${state.message}'));
+                    return Center(
+                        child: Text(_productMessageText(
+                            state.message ?? ProductMessage.loadFailed, l10n)));
                   }
                   return Center(child: Text(l10n.noProductsFound));
                 }
@@ -197,10 +212,16 @@ class _ProductListPageState extends State<ProductListPage> {
                                   return Text(
                                     '$currency${product.price.toStringAsFixed(2)}',
                                     style: TextStyle(
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.grey[600]),
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15,
+                                        color: Colors.grey[700]),
                                   );
                                 }),
+                                if (product.minStockAlert > 0 ||
+                                    product.quantity > 0) ...[
+                                  const SizedBox(height: 8),
+                                  _buildStockRow(context, product, l10n),
+                                ],
                               ],
                             ),
                           ),
@@ -211,30 +232,30 @@ class _ProductListPageState extends State<ProductListPage> {
                                 decoration: BoxDecoration(
                                   color: AppTheme.primaryColor
                                       .withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: IconButton(
                                   icon: const Icon(Icons.edit_rounded,
-                                      color: AppTheme.primaryColor, size: 20),
-                                  constraints: const BoxConstraints(),
-                                  padding: const EdgeInsets.all(8),
+                                      color: AppTheme.primaryColor, size: 22),
+                                  constraints: const BoxConstraints(
+                                      minWidth: 48, minHeight: 48),
                                   onPressed: () {
                                     context.push('/products/edit/${product.id}',
                                         extra: product);
                                   },
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: 16),
                               Container(
                                 decoration: BoxDecoration(
                                   color: Colors.red.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: IconButton(
                                   icon: const Icon(Icons.delete_outline_rounded,
-                                      color: Colors.red, size: 20),
-                                  constraints: const BoxConstraints(),
-                                  padding: const EdgeInsets.all(8),
+                                      color: Colors.red, size: 22),
+                                  constraints: const BoxConstraints(
+                                      minWidth: 48, minHeight: 48),
                                   onPressed: () =>
                                       _confirmDelete(context, product),
                                 ),
@@ -258,6 +279,51 @@ class _ProductListPageState extends State<ProductListPage> {
         shape: const CircleBorder(),
         child: const Icon(Icons.add, size: 32),
       ),
+    );
+  }
+
+  /// On-hand quantity plus a red "low stock" chip when the product has hit its
+  /// alert threshold — so the owner sees what's running low without opening it.
+  Widget _buildStockRow(
+      BuildContext context, Product product, AppLocalizations l10n) {
+    final low = product.isLowStock;
+    return Row(
+      children: [
+        Icon(Icons.inventory_2_outlined,
+            size: 16, color: low ? Colors.red : Colors.grey[600]),
+        const SizedBox(width: 4),
+        Text(
+          l10n.stockCountLabel(formatQty(product.quantity)),
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: low ? FontWeight.bold : FontWeight.w500,
+            color: low ? Colors.red : Colors.grey[700],
+          ),
+        ),
+        if (low) ...[
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: Colors.red.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.warning_amber_rounded,
+                    size: 14, color: Colors.red),
+                const SizedBox(width: 4),
+                Text(l10n.lowStockBadge,
+                    style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.red)),
+              ],
+            ),
+          ),
+        ],
+      ],
     );
   }
 
