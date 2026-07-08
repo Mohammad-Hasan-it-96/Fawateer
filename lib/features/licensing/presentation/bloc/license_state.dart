@@ -27,6 +27,11 @@ enum LicenseFlowStatus {
 /// English lives in the BLoC.
 enum LicenseError { network, server, unexpected }
 
+/// One-shot result of an agent name/phone edit: either it synced to the server
+/// or it only saved locally (server unreachable). The page maps it to a
+/// snackbar, then it clears.
+enum AgentSaveOutcome { synced, localOnly }
+
 class LicenseState extends Equatable {
   final LicenseFlowStatus status;
   final LicenseStatus license;
@@ -47,6 +52,12 @@ class LicenseState extends Equatable {
   /// subscription screen) must NOT bounce the user back to the splash.
   final bool bootstrapped;
 
+  /// True while an agent name/phone edit is being saved.
+  final bool isSavingAgent;
+
+  /// Transient one-shot result of the last agent edit; cleared on the next emit.
+  final AgentSaveOutcome? agentSaveOutcome;
+
   const LicenseState({
     this.status = LicenseFlowStatus.initial,
     this.license = LicenseStatus.empty,
@@ -57,6 +68,8 @@ class LicenseState extends Equatable {
     this.agentPhone = '',
     this.deviceId = '',
     this.bootstrapped = false,
+    this.isSavingAgent = false,
+    this.agentSaveOutcome,
   });
 
   bool get isActive => license.isActive;
@@ -83,6 +96,8 @@ class LicenseState extends Equatable {
     String? agentPhone,
     String? deviceId,
     bool? bootstrapped,
+    bool? isSavingAgent,
+    AgentSaveOutcome? agentSaveOutcome,
   }) {
     return LicenseState(
       status: status ?? this.status,
@@ -94,6 +109,9 @@ class LicenseState extends Equatable {
       agentPhone: agentPhone ?? this.agentPhone,
       deviceId: deviceId ?? this.deviceId,
       bootstrapped: bootstrapped ?? this.bootstrapped,
+      isSavingAgent: isSavingAgent ?? this.isSavingAgent,
+      // One-shot (like [error]): defaults to null each emit unless set.
+      agentSaveOutcome: agentSaveOutcome,
     );
   }
 
@@ -108,5 +126,7 @@ class LicenseState extends Equatable {
         agentPhone,
         deviceId,
         bootstrapped,
+        isSavingAgent,
+        agentSaveOutcome,
       ];
 }

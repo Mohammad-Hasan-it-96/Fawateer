@@ -229,6 +229,11 @@
   "statementBalance": "الرصيد",
 
   "accountSection": "الحساب",
+  "accountInfoSection": "معلومات الحساب",
+  "notSet": "لم يتم التعيين",
+  "editAccountTitle": "تعديل بيانات الحساب",
+  "agentSavedSynced": "تم الحفظ ومزامنة السيرفر",
+  "agentSavedLocal": "تم الحفظ محلياً — تعذّر الاتصال بالسيرفر",
   "subscriptionItem": "الاشتراك",
   "subscriptionSubtitle": "عرض الحالة وتجديد الباقة",
   "subscriptionTitle": "الاشتراك",

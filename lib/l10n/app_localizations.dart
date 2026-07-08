@@ -1340,6 +1340,36 @@ abstract class AppLocalizations {
   /// **'Account'**
   String get accountSection;
 
+  /// No description provided for @accountInfoSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Account details'**
+  String get accountInfoSection;
+
+  /// No description provided for @notSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get notSet;
+
+  /// No description provided for @editAccountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit account details'**
+  String get editAccountTitle;
+
+  /// No description provided for @agentSavedSynced.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved and synced with the server'**
+  String get agentSavedSynced;
+
+  /// No description provided for @agentSavedLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved on this device — couldn\'t reach the server'**
+  String get agentSavedLocal;
+
   /// No description provided for @subscriptionItem.
   ///
   /// In en, this message translates to:

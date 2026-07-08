@@ -240,6 +240,11 @@
   "statementBalance": "Balance",
 
   "accountSection": "Account",
+  "accountInfoSection": "Account details",
+  "notSet": "Not set",
+  "editAccountTitle": "Edit account details",
+  "agentSavedSynced": "Saved and synced with the server",
+  "agentSavedLocal": "Saved on this device — couldn't reach the server",
   "subscriptionItem": "Subscription",
   "subscriptionSubtitle": "View status & renew your plan",
   "subscriptionTitle": "Subscription",

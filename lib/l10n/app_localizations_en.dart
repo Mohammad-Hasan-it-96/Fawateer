@@ -666,6 +666,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get accountSection => 'Account';
 
   @override
+  String get accountInfoSection => 'Account details';
+
+  @override
+  String get notSet => 'Not set';
+
+  @override
+  String get editAccountTitle => 'Edit account details';
+
+  @override
+  String get agentSavedSynced => 'Saved and synced with the server';
+
+  @override
+  String get agentSavedLocal =>
+      'Saved on this device — couldn\'t reach the server';
+
+  @override
   String get subscriptionItem => 'Subscription';
 
   @override

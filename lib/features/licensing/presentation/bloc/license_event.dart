@@ -21,6 +21,15 @@ class ActivateLicenseEvent extends LicenseEvent {
   List<Object?> get props => [name, phone];
 }
 
+/// Edit the stored agent name/phone from Settings (already-registered device).
+class UpdateAgentEvent extends LicenseEvent {
+  final String name;
+  final String phone;
+  const UpdateAgentEvent({required this.name, required this.phone});
+  @override
+  List<Object?> get props => [name, phone];
+}
+
 /// File an operator-driven purchase request for [plan] via [contactMethod].
 class RequestPlanEvent extends LicenseEvent {
   final String name;

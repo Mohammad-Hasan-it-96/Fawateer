@@ -18,6 +18,7 @@ class LicenseBloc extends Bloc<LicenseEvent, LicenseState> {
   LicenseBloc({required this.repository}) : super(const LicenseState()) {
     on<CheckLicenseEvent>(_onCheck);
     on<ActivateLicenseEvent>(_onActivate);
+    on<UpdateAgentEvent>(_onUpdateAgent);
     on<LoadPlansEvent>(_onLoadPlans);
     on<RequestPlanEvent>(_onRequestPlan);
   }
@@ -103,6 +104,23 @@ class LicenseBloc extends Bloc<LicenseEvent, LicenseState> {
         bootstrapped: true,
       )),
     );
+  }
+
+  Future<void> _onUpdateAgent(
+      UpdateAgentEvent event, Emitter<LicenseState> emit) async {
+    emit(state.copyWith(isSavingAgent: true));
+    final result =
+        await repository.updateAgent(name: event.name, phone: event.phone);
+    // The local save always succeeds, so reflect the new name/phone regardless;
+    // the outcome only tells the user whether the server was synced too.
+    emit(state.copyWith(
+      isSavingAgent: false,
+      agentName: event.name,
+      agentPhone: event.phone,
+      agentSaveOutcome: result.isRight()
+          ? AgentSaveOutcome.synced
+          : AgentSaveOutcome.localOnly,
+    ));
   }
 
   Future<void> _onLoadPlans(

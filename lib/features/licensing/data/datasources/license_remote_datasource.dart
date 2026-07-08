@@ -56,6 +56,22 @@ class LicenseRemoteDataSource {
     });
   }
 
+  /// `POST update_my_data` — update the agent's name/phone for an already-known
+  /// device (edited from Settings). Throws [ApiException] on transport errors so
+  /// the caller can report whether the server was synced.
+  Future<void> updateAgentData({
+    required String deviceId,
+    required String name,
+    required String phone,
+  }) async {
+    await _client.postJson('update_my_data', {
+      'app_name': ApiConfig.appName,
+      'device_id': deviceId,
+      'full_name': name,
+      'phone': phone,
+    });
+  }
+
   /// `POST create_device` with a pending plan request (operator-driven flow).
   Future<Map<String, dynamic>> requestPlan({
     required String deviceId,

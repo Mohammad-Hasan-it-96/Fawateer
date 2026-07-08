@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app_settings/app_settings.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../licensing/presentation/bloc/license_bloc.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/printer_bloc.dart';
 import '../bloc/printer_event.dart';
@@ -108,6 +110,73 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
 
             const SizedBox(height: 24),
+
+            // Account details — the agent's name/phone (editable) + device id.
+            BlocConsumer<LicenseBloc, LicenseState>(
+              listenWhen: (prev, curr) =>
+                  prev.agentSaveOutcome != curr.agentSaveOutcome &&
+                  curr.agentSaveOutcome != null,
+              listener: (context, state) {
+                final synced =
+                    state.agentSaveOutcome == AgentSaveOutcome.synced;
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(
+                      synced ? l10n.agentSavedSynced : l10n.agentSavedLocal),
+                  backgroundColor: synced ? Colors.green : Colors.orange,
+                ));
+              },
+              builder: (context, state) {
+                return Column(
+                  children: [
+                    _buildSectionHeader(l10n.accountInfoSection),
+                    _buildListGroup(
+                      children: [
+                        _buildListItem(
+                          icon: Icons.badge_outlined,
+                          title: l10n.activationNameLabel,
+                          subtitle: state.agentName.isEmpty
+                              ? l10n.notSet
+                              : state.agentName,
+                          trailingIcon: Icons.edit_outlined,
+                          onTap: () =>
+                              _showEditAccountSheet(context, l10n, state),
+                        ),
+                        _buildListItem(
+                          icon: Icons.phone_outlined,
+                          title: l10n.activationPhoneLabel,
+                          subtitle: state.agentPhone.isEmpty
+                              ? l10n.notSet
+                              : state.agentPhone,
+                          trailingIcon: Icons.edit_outlined,
+                          onTap: () =>
+                              _showEditAccountSheet(context, l10n, state),
+                        ),
+                        _buildListItem(
+                          icon: Icons.fingerprint,
+                          title: l10n.deviceIdLabel,
+                          subtitle: state.deviceId,
+                          trailingWidget: IconButton(
+                            icon: const Icon(Icons.copy_rounded, size: 20),
+                            tooltip: l10n.copy,
+                            color: AppTheme.primaryColor,
+                            onPressed: state.deviceId.isEmpty
+                                ? null
+                                : () {
+                                    Clipboard.setData(
+                                        ClipboardData(text: state.deviceId));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(l10n.copied)),
+                                    );
+                                  },
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                );
+              },
+            ),
 
             _buildSectionHeader(l10n.managementSection),
             _buildListGroup(
@@ -235,6 +304,101 @@ class _SettingsPageState extends State<SettingsPage> {
         ),
       ),
     );
+  }
+
+  /// Bottom sheet to edit the agent's name + phone. Saving dispatches
+  /// [UpdateAgentEvent]; the outcome snackbar is shown by the section's
+  /// [BlocConsumer] listener.
+  void _showEditAccountSheet(
+      BuildContext context, AppLocalizations l10n, LicenseState state) {
+    final nameC = TextEditingController(text: state.agentName);
+    final phoneC = TextEditingController(text: state.agentPhone);
+    final formKey = GlobalKey<FormState>();
+    final bloc = context.read<LicenseBloc>();
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.fromLTRB(
+            20, 16, 20, MediaQuery.of(ctx).viewInsets.bottom + 20),
+        child: Form(
+          key: formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+              Text(l10n.editAccountTitle,
+                  style: const TextStyle(
+                      fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 20),
+              TextFormField(
+                controller: nameC,
+                textInputAction: TextInputAction.next,
+                decoration: InputDecoration(
+                  labelText: l10n.activationNameLabel,
+                  prefixIcon: const Icon(Icons.person_outline),
+                  border: const OutlineInputBorder(),
+                ),
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? l10n.fieldRequired
+                    : null,
+              ),
+              const SizedBox(height: 14),
+              TextFormField(
+                controller: phoneC,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  labelText: l10n.activationPhoneLabel,
+                  prefixIcon: const Icon(Icons.phone_outlined),
+                  border: const OutlineInputBorder(),
+                ),
+                validator: (v) => (v == null || v.trim().isEmpty)
+                    ? l10n.fieldRequired
+                    : null,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: FilledButton(
+                  style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.primaryColor),
+                  onPressed: () {
+                    if (!formKey.currentState!.validate()) return;
+                    bloc.add(UpdateAgentEvent(
+                      name: nameC.text.trim(),
+                      phone: phoneC.text.trim(),
+                    ));
+                    Navigator.pop(ctx);
+                  },
+                  child: Text(l10n.save,
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ).whenComplete(() {
+      // Dispose after the sheet's close transition finishes.
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        nameC.dispose();
+        phoneC.dispose();
+      });
+    });
   }
 
   Widget _buildSectionHeader(String title) {

@@ -659,6 +659,21 @@ class AppLocalizationsAr extends AppLocalizations {
   String get accountSection => 'الحساب';
 
   @override
+  String get accountInfoSection => 'معلومات الحساب';
+
+  @override
+  String get notSet => 'لم يتم التعيين';
+
+  @override
+  String get editAccountTitle => 'تعديل بيانات الحساب';
+
+  @override
+  String get agentSavedSynced => 'تم الحفظ ومزامنة السيرفر';
+
+  @override
+  String get agentSavedLocal => 'تم الحفظ محلياً — تعذّر الاتصال بالسيرفر';
+
+  @override
   String get subscriptionItem => 'الاشتراك';
 
   @override

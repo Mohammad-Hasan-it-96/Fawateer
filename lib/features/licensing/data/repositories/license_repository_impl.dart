@@ -109,6 +109,26 @@ class LicenseRepositoryImpl implements LicenseRepository {
   Future<({String? name, String? phone})> cachedAgent() => _local.loadAgent();
 
   @override
+  Future<Either<Failure, void>> updateAgent({
+    required String name,
+    required String phone,
+  }) async {
+    // Persist locally first so the edit is never lost, even if the server is
+    // unreachable; then try to sync so the operator sees the new details.
+    await _local.saveAgent(name, phone);
+    try {
+      final deviceId = await _identity.getDeviceId();
+      await _remote.updateAgentData(deviceId: deviceId, name: name, phone: phone);
+      return const Right(null);
+    } on ApiException catch (e) {
+      return Left(
+          e.isOffline ? NetworkFailure(e.message) : ServerFailure(e.message));
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<String> deviceId() => _identity.getDeviceId();
 
   @override

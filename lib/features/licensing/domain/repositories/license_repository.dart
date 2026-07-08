@@ -40,6 +40,15 @@ abstract class LicenseRepository {
   /// The agent identity captured at first activation (name, phone), if any.
   Future<({String? name, String? phone})> cachedAgent();
 
+  /// Update the stored agent name/phone (edited from Settings). Always persists
+  /// locally first; then best-effort pushes to the server (`update_my_data`).
+  /// Returns `Left` when the server sync failed — the local save still
+  /// succeeded, so callers can tell the user "saved, but not synced".
+  Future<Either<Failure, void>> updateAgent({
+    required String name,
+    required String phone,
+  });
+
   /// This device's stable identifier (the value sent to the server and that the
   /// user gives to support for operator-driven activation).
   Future<String> deviceId();
