@@ -7,7 +7,9 @@ import 'package:uuid/uuid.dart';
 
 import '../bloc/product_bloc.dart';
 import '../widgets/currency_field.dart';
+import '../widgets/sale_type_selector.dart';
 import '../../domain/entities/product.dart';
+import '../../domain/entities/product_sale_type.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
 import '../../../../core/utils/num_input.dart';
@@ -28,6 +30,7 @@ class _AddProductPageState extends State<AddProductPage> {
   double _cost = 0.0;
   double _quantity = 0.0;
   double _minStockAlert = 0.0;
+  ProductSaleType _saleType = ProductSaleType.piece;
 
   void _scanBarcode() async {
     final result = await context.push<String>('/scanner');
@@ -67,6 +70,7 @@ class _AddProductPageState extends State<AddProductPage> {
         cost: _cost,
         quantity: _quantity,
         minStockAlert: _minStockAlert,
+        saleType: _saleType,
       );
 
       context.read<ProductBloc>().add(AddProduct(product));
@@ -144,7 +148,16 @@ class _AddProductPageState extends State<AddProductPage> {
                       style: const TextStyle(
                           fontSize: 12, color: Color(0xFF4C669A))),
                   const SizedBox(height: 24),
-                  InputLabel(text: l10n.priceLabel),
+                  InputLabel(text: l10n.saleTypeLabel),
+                  SaleTypeSelector(
+                    value: _saleType,
+                    onChanged: (t) => setState(() => _saleType = t),
+                  ),
+                  const SizedBox(height: 24),
+                  InputLabel(
+                      text: _saleType.isMeasured
+                          ? l10n.pricePerKgLabel
+                          : l10n.priceLabel),
                   CurrencyField(
                     validator: AppValidators.price(
                       requiredMsg: l10n.fieldRequired,

@@ -182,7 +182,9 @@ class ReceiptImage {
     for (final item in items) {
       final qty = formatQty(item['qty'] as num);
       final name = item['name'].toString();
-      row('$qty × $name', _money(currency, item['total'] as num), 22,
+      final unit = (item['unit'] ?? '').toString();
+      final qtyLabel = unit.isEmpty ? qty : '$qty $unit';
+      row('$qtyLabel × $name', _money(currency, item['total'] as num), 22,
           FontWeight.normal);
     }
     divider();

@@ -157,14 +157,20 @@ class CheckoutPage extends StatelessWidget {
                                       ],
                                     ),
                                     ...billingState.cartItems.map((item) {
+                                      final measured =
+                                          item.product.saleType.isMeasured;
                                       return TableRow(
                                         children: [
                                           _dataCell(
-                                            '${formatQty(item.quantity)} x ${item.product.name}',
+                                            measured
+                                                ? '${formatQty(item.quantity)} ${l10n.unitKg} × ${item.product.name}'
+                                                : '${formatQty(item.quantity)} x ${item.product.name}',
                                             TextAlign.start,
                                           ),
                                           _dataCell(
-                                            '$currency${item.product.price.toStringAsFixed(2)}',
+                                            measured
+                                                ? '$currency${item.product.price.toStringAsFixed(2)}/${l10n.unitKg}'
+                                                : '$currency${item.product.price.toStringAsFixed(2)}',
                                             TextAlign.end,
                                             isSubtitle: true,
                                           ),

@@ -24,6 +24,11 @@ class BillingState extends Equatable {
   final String? savedInvoiceId;
   final List<String> lowStockWarnings;
 
+  /// Set when a measured product (e.g. sold by weight) is scanned and needs the
+  /// cashier to enter a weight/amount before it's added. The POS page listens
+  /// for this, opens the entry dialog, then clears it. Null otherwise.
+  final Product? measuredPrompt;
+
   const BillingState({
     this.cartItems = const [],
     this.error,
@@ -34,6 +39,7 @@ class BillingState extends Equatable {
     this.saleConfirmed = false,
     this.savedInvoiceId,
     this.lowStockWarnings = const [],
+    this.measuredPrompt,
   });
 
   double get totalAmount => cartItems.fold(0, (sum, item) => sum + item.total);
@@ -50,6 +56,8 @@ class BillingState extends Equatable {
     String? savedInvoiceId,
     bool clearSale = false,
     List<String>? lowStockWarnings,
+    Product? measuredPrompt,
+    bool clearMeasuredPrompt = false,
   }) {
     return BillingState(
       cartItems: cartItems ?? this.cartItems,
@@ -62,6 +70,8 @@ class BillingState extends Equatable {
       savedInvoiceId:
           clearSale ? null : (savedInvoiceId ?? this.savedInvoiceId),
       lowStockWarnings: lowStockWarnings ?? this.lowStockWarnings,
+      measuredPrompt:
+          clearMeasuredPrompt ? null : (measuredPrompt ?? this.measuredPrompt),
     );
   }
 
@@ -76,5 +86,6 @@ class BillingState extends Equatable {
         saleConfirmed,
         savedInvoiceId,
         lowStockWarnings,
+        measuredPrompt,
       ];
 }

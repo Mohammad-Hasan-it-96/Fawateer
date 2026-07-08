@@ -61,6 +61,14 @@
   "save": "حفظ",
   "quantityDialogTitle": "الكمية",
 
+  "saleTypeLabel": "نوع البيع",
+  "saleTypePiece": "بالقطعة",
+  "saleTypeWeight": "بالوزن",
+  "pricePerKgLabel": "السعر لكل كغ",
+  "unitKg": "كغ",
+  "weightFieldLabel": "الوزن (كغ)",
+  "amountFieldLabel": "المبلغ",
+
   "addProductTitle": "إضافة منتج",
   "barcodeLabel": "الباركود (اختياري)",
   "scanOrEnterBarcode": "امسح أو أدخل الباركود",

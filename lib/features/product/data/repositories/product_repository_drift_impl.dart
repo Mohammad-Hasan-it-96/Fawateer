@@ -4,6 +4,7 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/database/daos/products_dao.dart';
 import '../../../../core/error/failure.dart';
 import '../../domain/entities/product.dart';
+import '../../domain/entities/product_sale_type.dart';
 import '../../domain/repositories/product_repository.dart';
 
 class ProductRepositoryDriftImpl implements ProductRepository {
@@ -21,6 +22,7 @@ class ProductRepositoryDriftImpl implements ProductRepository {
         cost: row.cost,
         quantity: row.quantity,
         minStockAlert: row.minStockAlert,
+        saleType: ProductSaleType.fromName(row.saleType),
       );
 
   static ProductsCompanion _toCompanion(Product p) => ProductsCompanion(
@@ -31,6 +33,7 @@ class ProductRepositoryDriftImpl implements ProductRepository {
         cost: Value(p.cost),
         quantity: Value(p.quantity),
         minStockAlert: Value(p.minStockAlert),
+        saleType: Value(p.saleType.name),
       );
 
   // ── repository interface ──────────────────────────────────────────────────

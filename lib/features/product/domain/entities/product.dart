@@ -1,14 +1,17 @@
 import 'package:equatable/equatable.dart';
 
+import 'product_sale_type.dart';
+
 class Product extends Equatable {
   final String
       id; // Using barcode as ID usually, but keeping separate ID is safer
   final String name;
   final String barcode;
-  final double price;
+  final double price; // per-piece price, or per-kg price when sold by weight
   final double cost; // purchase cost, for margin/profit reporting
   final double quantity; // on-hand inventory (was stock); supports weight/fractions
   final double minStockAlert; // low-stock threshold; 0 = no alert
+  final ProductSaleType saleType; // piece (default) vs a measured type (weight)
 
   const Product({
     required this.id,
@@ -18,6 +21,7 @@ class Product extends Equatable {
     this.cost = 0,
     this.quantity = 0,
     this.minStockAlert = 0,
+    this.saleType = ProductSaleType.piece,
   });
 
   /// True when a low-stock alert is set and on-hand has reached it.
@@ -31,6 +35,7 @@ class Product extends Equatable {
     double? cost,
     double? quantity,
     double? minStockAlert,
+    ProductSaleType? saleType,
   }) {
     return Product(
       id: id ?? this.id,
@@ -40,10 +45,11 @@ class Product extends Equatable {
       cost: cost ?? this.cost,
       quantity: quantity ?? this.quantity,
       minStockAlert: minStockAlert ?? this.minStockAlert,
+      saleType: saleType ?? this.saleType,
     );
   }
 
   @override
   List<Object?> get props =>
-      [id, name, barcode, price, cost, quantity, minStockAlert];
+      [id, name, barcode, price, cost, quantity, minStockAlert, saleType];
 }

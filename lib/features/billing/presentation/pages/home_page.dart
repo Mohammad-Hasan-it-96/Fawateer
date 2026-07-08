@@ -122,6 +122,24 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               ));
             },
           ),
+          // A measured product (e.g. weight) was scanned: prompt for the
+          // weight/amount, then add it (or clear the prompt on cancel).
+          BlocListener<BillingBloc, BillingState>(
+            listenWhen: (prev, curr) =>
+                prev.measuredPrompt != curr.measuredPrompt &&
+                curr.measuredPrompt != null,
+            listener: (context, state) async {
+              final bloc = context.read<BillingBloc>();
+              final product = state.measuredPrompt!;
+              final weight = await _promptMeasuredEntry(context, product);
+              if (!mounted) return;
+              if (weight != null) {
+                bloc.add(AddProductToCartEvent(product, quantity: weight));
+              } else {
+                bloc.add(const ClearMeasuredPromptEvent());
+              }
+            },
+          ),
           // Restart camera when returning from checkout (cart cleared)
           BlocListener<BillingBloc, BillingState>(
             listenWhen: (prev, curr) =>
@@ -543,6 +561,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   }
 
   Widget _buildCartItemCard(BuildContext context, CartItem item) {
+    final l10n = AppLocalizations.of(context)!;
+    final measured = item.product.saleType.isMeasured;
+    final shopState = context.watch<ShopBloc>().state;
+    final currency =
+        shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -566,66 +590,109 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis),
                 const SizedBox(height: 4),
-                Builder(builder: (context) {
-                  final shopState = context.watch<ShopBloc>().state;
-                  final currency = shopState is ShopLoaded
-                      ? shopState.shop.currencySymbol
-                      : '';
-                  return Text(
-                    '$currency${item.product.price.toStringAsFixed(2)}',
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Colors.grey[600]),
-                  );
-                }),
+                Text(
+                  measured
+                      // e.g. "0.333 كغ × 15000.00" then the line total below.
+                      ? '${formatQty(item.quantity)} ${l10n.unitKg} × $currency${item.product.price.toStringAsFixed(2)}'
+                      : '$currency${item.product.price.toStringAsFixed(2)}',
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: measured ? 12 : 14,
+                      color: Colors.grey[600]),
+                ),
+                if (measured) ...[
+                  const SizedBox(height: 2),
+                  Text('$currency${item.total.toStringAsFixed(2)}',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: AppTheme.primaryColor)),
+                ],
               ],
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.grey[100],
-              borderRadius: BorderRadius.circular(8),
-            ),
-            padding: const EdgeInsets.all(4),
-            child: Row(
+          if (measured)
+            // A weight line isn't stepped by 1 — tap to re-enter weight/amount.
+            Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                _qtyButton(
-                  icon: Icons.remove,
-                  onPressed: () {
-                    if (item.quantity > 1) {
-                      context.read<BillingBloc>().add(
-                          UpdateQuantityEvent(item.product.id, item.quantity - 1));
-                    } else {
-                      context.read<BillingBloc>().add(
-                          RemoveProductFromCartEvent(item.product.id));
-                    }
-                  },
-                ),
                 InkWell(
-                  onTap: () => _editQuantity(context, item),
-                  borderRadius: BorderRadius.circular(6),
+                  onTap: () => _editMeasured(context, item),
+                  borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    constraints:
-                        const BoxConstraints(minWidth: 48, minHeight: 44),
-                    alignment: Alignment.center,
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                    child: Text(formatQty(item.quantity),
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                            fontWeight: FontWeight.bold, fontSize: 16)),
+                    constraints: const BoxConstraints(minHeight: 44),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('${formatQty(item.quantity)} ${l10n.unitKg}',
+                            style: const TextStyle(
+                                fontWeight: FontWeight.bold, fontSize: 15)),
+                        const SizedBox(width: 6),
+                        const Icon(Icons.edit,
+                            size: 16, color: AppTheme.primaryColor),
+                      ],
+                    ),
                   ),
                 ),
                 _qtyButton(
-                  icon: Icons.add,
-                  onPressed: () => context.read<BillingBloc>().add(
-                      UpdateQuantityEvent(item.product.id, item.quantity + 1)),
+                  icon: Icons.delete_outline,
+                  onPressed: () => context
+                      .read<BillingBloc>()
+                      .add(RemoveProductFromCartEvent(item.product.id)),
                 ),
               ],
+            )
+          else
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              padding: const EdgeInsets.all(4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _qtyButton(
+                    icon: Icons.remove,
+                    onPressed: () {
+                      if (item.quantity > 1) {
+                        context.read<BillingBloc>().add(UpdateQuantityEvent(
+                            item.product.id, item.quantity - 1));
+                      } else {
+                        context.read<BillingBloc>().add(
+                            RemoveProductFromCartEvent(item.product.id));
+                      }
+                    },
+                  ),
+                  InkWell(
+                    onTap: () => _editQuantity(context, item),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      constraints:
+                          const BoxConstraints(minWidth: 48, minHeight: 44),
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 6),
+                      child: Text(formatQty(item.quantity),
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.bold, fontSize: 16)),
+                    ),
+                  ),
+                  _qtyButton(
+                    icon: Icons.add,
+                    onPressed: () => context.read<BillingBloc>().add(
+                        UpdateQuantityEvent(item.product.id, item.quantity + 1)),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );
@@ -659,6 +726,41 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     }
   }
 
+  /// Re-enter the weight/amount for a measured cart line (add-or-replace: the
+  /// line is set to the new weight, not incremented).
+  Future<void> _editMeasured(BuildContext context, CartItem item) async {
+    final bloc = context.read<BillingBloc>();
+    final weight = await _promptMeasuredEntry(context, item.product);
+    if (weight != null) {
+      bloc.add(AddProductToCartEvent(item.product, quantity: weight));
+    }
+  }
+
+  /// Opens the dual-field weight/amount dialog for a measured product,
+  /// pre-filled with the product's current cart weight (0 if not yet in cart).
+  /// Returns the chosen weight in kg, or null if cancelled.
+  Future<double?> _promptMeasuredEntry(
+      BuildContext context, Product product) {
+    final shopState = context.read<ShopBloc>().state;
+    final currency =
+        shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
+    double existing = 0;
+    for (final c in context.read<BillingBloc>().state.cartItems) {
+      if (c.product.id == product.id) {
+        existing = c.quantity;
+        break;
+      }
+    }
+    return showDialog<double>(
+      context: context,
+      builder: (_) => _MeasuredEntryDialog(
+        product: product,
+        currency: currency,
+        initialWeight: existing,
+      ),
+    );
+  }
+
   /// Opens a searchable product grid so the cashier can add items that have
   /// no barcode (or when scanning fails). Pauses the camera while open.
   void _showProductPicker(BuildContext context) {
@@ -677,7 +779,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       builder: (_) => _ProductPickerSheet(
         currency: currency,
         onAdd: (product) async {
-          context.read<BillingBloc>().add(AddProductToCartEvent(product));
+          final bloc = context.read<BillingBloc>();
+          if (product.saleType.isMeasured) {
+            // Ask for weight/amount before adding a measured product.
+            final weight = await _promptMeasuredEntry(context, product);
+            if (weight == null) return;
+            bloc.add(AddProductToCartEvent(product, quantity: weight));
+          } else {
+            bloc.add(AddProductToCartEvent(product));
+          }
           final canVibrate = await Vibrate.canVibrate;
           if (canVibrate) Vibrate.feedback(FeedbackType.success);
         },
@@ -1004,6 +1114,135 @@ class _QuantityDialogState extends State<_QuantityDialog> {
         ),
         ElevatedButton(
           onPressed: _submit,
+          child: Text(l10n.save),
+        ),
+      ],
+    );
+  }
+}
+
+/// Dual-field entry for a measured product (priced per kg). Weight and amount
+/// are shown together and stay in sync: typing in one recomputes the other
+/// (weight → amount = weight × price; amount → weight = amount / price). The
+/// field being edited is the source of truth — the callback only writes the
+/// *other* controller, so there's no feedback loop. Returns the chosen weight
+/// (kg) at full precision, so `price × weight` reconstructs the exact money
+/// amount the cashier entered.
+class _MeasuredEntryDialog extends StatefulWidget {
+  final Product product;
+  final String currency;
+  final double initialWeight;
+
+  const _MeasuredEntryDialog({
+    required this.product,
+    required this.currency,
+    this.initialWeight = 0,
+  });
+
+  @override
+  State<_MeasuredEntryDialog> createState() => _MeasuredEntryDialogState();
+}
+
+class _MeasuredEntryDialogState extends State<_MeasuredEntryDialog> {
+  late final TextEditingController _weightCtrl;
+  late final TextEditingController _amountCtrl;
+  double _weight = 0;
+
+  double get _price => widget.product.price;
+
+  @override
+  void initState() {
+    super.initState();
+    _weight = widget.initialWeight;
+    _weightCtrl = TextEditingController(
+        text: _weight > 0 ? formatQty(_weight) : '');
+    _amountCtrl = TextEditingController(
+        text: _weight > 0 ? (_weight * _price).toStringAsFixed(2) : '');
+  }
+
+  @override
+  void dispose() {
+    _weightCtrl.dispose();
+    _amountCtrl.dispose();
+    super.dispose();
+  }
+
+  // Setting `controller.text` does not fire the other field's onChanged, so
+  // these two handlers can't recurse into each other.
+  void _onWeightChanged(String v) {
+    final w = NumInput.parseFlexibleNumber(v) ?? 0;
+    _weight = w;
+    _amountCtrl.text = w > 0 ? (w * _price).toStringAsFixed(2) : '';
+    setState(() {});
+  }
+
+  void _onAmountChanged(String v) {
+    final a = NumInput.parseFlexibleNumber(v) ?? 0;
+    final w = _price > 0 ? a / _price : 0.0;
+    _weight = w;
+    _weightCtrl.text = w > 0 ? formatQty(w) : '';
+    setState(() {});
+  }
+
+  void _confirm() =>
+      Navigator.of(context).pop(_weight > 0 ? _weight : null);
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final canAmount = _price > 0;
+    return AlertDialog(
+      title: Text(widget.product.name,
+          maxLines: 1, overflow: TextOverflow.ellipsis),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '${l10n.priceLabel}: ${widget.currency}${_price.toStringAsFixed(2)} / ${l10n.unitKg}',
+            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _weightCtrl,
+            autofocus: true,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: NumInput.decimalFormatters,
+            decoration: InputDecoration(
+              labelText: l10n.weightFieldLabel,
+              suffixText: l10n.unitKg,
+            ),
+            onChanged: _onWeightChanged,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _amountCtrl,
+            enabled: canAmount,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            inputFormatters: NumInput.decimalFormatters,
+            decoration: InputDecoration(
+              labelText: l10n.amountFieldLabel,
+              suffixText: widget.currency,
+            ),
+            onChanged: _onAmountChanged,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            '${l10n.colTotal}: ${widget.currency}${(_weight * _price).toStringAsFixed(2)}',
+            style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+                color: AppTheme.primaryColor),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(l10n.cancel),
+        ),
+        ElevatedButton(
+          onPressed: _weight > 0 ? _confirm : null,
           child: Text(l10n.save),
         ),
       ],

@@ -41,7 +41,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'fawateer'));
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -103,6 +103,11 @@ class AppDatabase extends _$AppDatabase {
         await migrator.createTable(customers);
         await migrator.createTable(ledgerEntries);
         await _createLedgerIndexes();
+      }
+      if (from < 8) {
+        // Sale type (piece vs weight/…): additive text column, defaults 'piece'
+        // so every existing product keeps its current per-piece behavior.
+        await migrator.addColumn(products, products.saleType);
       }
     },
   );

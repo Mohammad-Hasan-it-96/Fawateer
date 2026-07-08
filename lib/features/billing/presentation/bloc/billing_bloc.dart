@@ -27,6 +27,8 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     on<AddProductToCartEvent>(_onAddProductToCart);
     on<RemoveProductFromCartEvent>(_onRemoveProductFromCart);
     on<UpdateQuantityEvent>(_onUpdateQuantity);
+    on<ClearMeasuredPromptEvent>((event, emit) =>
+        emit(state.copyWith(clearMeasuredPrompt: true)));
     on<ClearCartEvent>(_onClearCart);
     on<PrintReceiptEvent>(_onPrintReceipt);
     on<ConfirmSaleEvent>(_onConfirmSale);
@@ -39,17 +41,26 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       (failure) => emit(state.copyWith(
           error: BillingError.productNotFound, errorBarcode: event.barcode)),
       (product) {
-        add(AddProductToCartEvent(product));
+        // A measured product (e.g. sold by weight) needs a weight/amount entry
+        // first — surface it to the UI instead of auto-adding one unit.
+        if (product.saleType.isMeasured) {
+          emit(state.copyWith(measuredPrompt: product, clearError: true));
+        } else {
+          add(AddProductToCartEvent(product));
+        }
       },
     );
   }
 
   void _onAddProductToCart(
       AddProductToCartEvent event, Emitter<BillingState> emit) {
-    // Adding an item starts a fresh sale: clear any error and the sticky
-    // "sale confirmed" flags left from a previous completed sale.
-    final cleanState =
-        state.copyWith(error: null, clearError: true, clearSale: true);
+    // Adding an item starts a fresh sale: clear any error, the sticky "sale
+    // confirmed" flags from a previous sale, and any pending measured prompt.
+    final cleanState = state.copyWith(
+        error: null,
+        clearError: true,
+        clearSale: true,
+        clearMeasuredPrompt: true);
 
     final existingIndex = cleanState.cartItems
         .indexWhere((item) => item.product.id == event.product.id);
@@ -58,10 +69,16 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     if (existingIndex >= 0) {
       final existingItem = cleanState.cartItems[existingIndex];
       updatedItems = List<CartItem>.from(cleanState.cartItems);
+      // A measured entry (event.quantity set) sets the line absolutely; a piece
+      // add increments by 1.
+      final newQuantity = event.quantity ?? existingItem.quantity + 1;
       updatedItems[existingIndex] =
-          existingItem.copyWith(quantity: existingItem.quantity + 1);
+          existingItem.copyWith(quantity: newQuantity);
     } else {
-      updatedItems = [...cleanState.cartItems, CartItem(product: event.product)];
+      updatedItems = [
+        ...cleanState.cartItems,
+        CartItem(product: event.product, quantity: event.quantity ?? 1),
+      ];
     }
 
     final warnings = _computeStockWarnings(updatedItems);
@@ -207,6 +224,9 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
             quantity: i.quantity,
             price: i.product.price,
             total: i.total,
+            // Receipts render as an Arabic bitmap; tag weighed lines with the
+            // kg unit so "0.333 كغ × رز" reads clearly.
+            unit: i.product.saleType.isMeasured ? 'كغ' : '',
           ))
       .toList();
 

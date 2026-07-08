@@ -15,9 +15,21 @@ class ScanBarcodeEvent extends BillingEvent {
 
 class AddProductToCartEvent extends BillingEvent {
   final Product product;
-  const AddProductToCartEvent(this.product);
+
+  /// When null, a piece add: appends a new line at qty 1 or increments the
+  /// existing line by 1. When set (a measured entry — weight in kg), the line is
+  /// **set** to this absolute quantity (add-or-replace), never incremented.
+  final double? quantity;
+
+  const AddProductToCartEvent(this.product, {this.quantity});
   @override
-  List<Object> get props => [product];
+  List<Object> get props => [product, quantity ?? -1];
+}
+
+/// Dismisses a pending measured-entry prompt (see [BillingState.measuredPrompt])
+/// when the cashier cancels the weight/amount dialog without adding.
+class ClearMeasuredPromptEvent extends BillingEvent {
+  const ClearMeasuredPromptEvent();
 }
 
 class RemoveProductFromCartEvent extends BillingEvent {

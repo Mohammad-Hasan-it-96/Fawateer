@@ -428,6 +428,48 @@ abstract class AppLocalizations {
   /// **'Quantity'**
   String get quantityDialogTitle;
 
+  /// No description provided for @saleTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale type'**
+  String get saleTypeLabel;
+
+  /// No description provided for @saleTypePiece.
+  ///
+  /// In en, this message translates to:
+  /// **'By piece'**
+  String get saleTypePiece;
+
+  /// No description provided for @saleTypeWeight.
+  ///
+  /// In en, this message translates to:
+  /// **'By weight'**
+  String get saleTypeWeight;
+
+  /// No description provided for @pricePerKgLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Price per kg'**
+  String get pricePerKgLabel;
+
+  /// No description provided for @unitKg.
+  ///
+  /// In en, this message translates to:
+  /// **'kg'**
+  String get unitKg;
+
+  /// No description provided for @weightFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Weight (kg)'**
+  String get weightFieldLabel;
+
+  /// No description provided for @amountFieldLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get amountFieldLabel;
+
   /// No description provided for @addProductTitle.
   ///
   /// In en, this message translates to:

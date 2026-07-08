@@ -182,6 +182,27 @@ class AppLocalizationsEn extends AppLocalizations {
   String get quantityDialogTitle => 'Quantity';
 
   @override
+  String get saleTypeLabel => 'Sale type';
+
+  @override
+  String get saleTypePiece => 'By piece';
+
+  @override
+  String get saleTypeWeight => 'By weight';
+
+  @override
+  String get pricePerKgLabel => 'Price per kg';
+
+  @override
+  String get unitKg => 'kg';
+
+  @override
+  String get weightFieldLabel => 'Weight (kg)';
+
+  @override
+  String get amountFieldLabel => 'Amount';
+
+  @override
   String get addProductTitle => 'Add Product';
 
   @override

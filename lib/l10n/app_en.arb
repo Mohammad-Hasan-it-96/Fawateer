@@ -64,6 +64,14 @@
   "save": "Save",
   "quantityDialogTitle": "Quantity",
 
+  "saleTypeLabel": "Sale type",
+  "saleTypePiece": "By piece",
+  "saleTypeWeight": "By weight",
+  "pricePerKgLabel": "Price per kg",
+  "unitKg": "kg",
+  "weightFieldLabel": "Weight (kg)",
+  "amountFieldLabel": "Amount",
+
   "addProductTitle": "Add Product",
   "barcodeLabel": "Barcode (optional)",
   "scanOrEnterBarcode": "Scan or enter barcode",

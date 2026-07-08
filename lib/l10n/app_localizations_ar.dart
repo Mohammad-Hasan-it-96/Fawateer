@@ -181,6 +181,27 @@ class AppLocalizationsAr extends AppLocalizations {
   String get quantityDialogTitle => 'الكمية';
 
   @override
+  String get saleTypeLabel => 'نوع البيع';
+
+  @override
+  String get saleTypePiece => 'بالقطعة';
+
+  @override
+  String get saleTypeWeight => 'بالوزن';
+
+  @override
+  String get pricePerKgLabel => 'السعر لكل كغ';
+
+  @override
+  String get unitKg => 'كغ';
+
+  @override
+  String get weightFieldLabel => 'الوزن (كغ)';
+
+  @override
+  String get amountFieldLabel => 'المبلغ';
+
+  @override
   String get addProductTitle => 'إضافة منتج';
 
   @override

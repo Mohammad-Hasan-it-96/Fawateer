@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 
 import '../bloc/product_bloc.dart';
 import '../widgets/currency_field.dart';
+import '../widgets/sale_type_selector.dart';
 import '../../domain/entities/product.dart';
+import '../../domain/entities/product_sale_type.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
 import '../../../../core/utils/num_input.dart';
@@ -31,6 +33,7 @@ class _EditProductPageState extends State<EditProductPage> {
   late double _cost;
   late double _quantity;
   late double _minStockAlert;
+  late ProductSaleType _saleType;
 
   @override
   void initState() {
@@ -40,6 +43,7 @@ class _EditProductPageState extends State<EditProductPage> {
     _cost = widget.product.cost;
     _quantity = widget.product.quantity;
     _minStockAlert = widget.product.minStockAlert;
+    _saleType = widget.product.saleType;
   }
 
   void _submit() {
@@ -53,6 +57,7 @@ class _EditProductPageState extends State<EditProductPage> {
         cost: _cost,
         quantity: _quantity,
         minStockAlert: _minStockAlert,
+        saleType: _saleType,
       );
 
       context.read<ProductBloc>().add(UpdateProduct(updatedProduct));
@@ -128,7 +133,17 @@ class _EditProductPageState extends State<EditProductPage> {
                   ),
                   const SizedBox(height: 24),
 
-                  InputLabel(text: l10n.priceLabel),
+                  InputLabel(text: l10n.saleTypeLabel),
+                  SaleTypeSelector(
+                    value: _saleType,
+                    onChanged: (t) => setState(() => _saleType = t),
+                  ),
+                  const SizedBox(height: 24),
+
+                  InputLabel(
+                      text: _saleType.isMeasured
+                          ? l10n.pricePerKgLabel
+                          : l10n.priceLabel),
                   CurrencyField(
                     initialValue: _price.toStringAsFixed(2),
                     validator: AppValidators.price(

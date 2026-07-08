@@ -12,6 +12,10 @@ class Products extends Table {
   RealColumn get quantity => real().withDefault(const Constant(0))();
   // Low-stock threshold; 0 disables the alert.
   RealColumn get minStockAlert => real().withDefault(const Constant(0))();
+  // How the product is sold: the ProductSaleType name ('piece' | 'weight' | …).
+  // Stored as a name string (not an index) so future enum cases/reordering can't
+  // remap existing rows; unknown values decode back to 'piece'.
+  TextColumn get saleType => text().withDefault(const Constant('piece'))();
 
   @override
   Set<Column> get primaryKey => {id};
