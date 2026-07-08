@@ -16,6 +16,7 @@ import 'features/settings/presentation/bloc/printer_event.dart';
 import 'features/licensing/presentation/bloc/license_bloc.dart';
 import 'features/licensing/data/services/push_notification_service.dart';
 import 'features/ledger/presentation/bloc/customer_bloc.dart';
+import 'features/cashbox/presentation/bloc/cashbox_bloc.dart';
 import 'l10n/app_localizations.dart';
 
 /// Lets the FCM foreground handler surface an in-app banner from outside the
@@ -169,6 +170,9 @@ class MyApp extends StatelessWidget {
         BlocProvider<CustomerBloc>(
             create: (context) =>
                 di.sl<CustomerBloc>()..add(LoadCustomers())),
+        BlocProvider<CashboxBloc>(
+            create: (context) =>
+                di.sl<CashboxBloc>()..add(const LoadCashbox())),
       ],
       child: MaterialApp.router(
         title: 'فواتير',

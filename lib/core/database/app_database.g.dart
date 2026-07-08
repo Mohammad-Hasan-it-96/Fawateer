@@ -2364,6 +2364,406 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntryRow> {
   }
 }
 
+class $CashboxTransactionsTable extends CashboxTransactions
+    with TableInfo<$CashboxTransactionsTable, CashboxTransactionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $CashboxTransactionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+      'type', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+      'amount', aliasedName, false,
+      type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+      'note', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _relatedIdMeta =
+      const VerificationMeta('relatedId');
+  @override
+  late final GeneratedColumn<String> relatedId = GeneratedColumn<String>(
+      'related_id', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _occurredAtMeta =
+      const VerificationMeta('occurredAt');
+  @override
+  late final GeneratedColumn<int> occurredAt = GeneratedColumn<int>(
+      'occurred_at', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, type, amount, note, relatedId, occurredAt, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'cashbox_transactions';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<CashboxTransactionRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+          _typeMeta, type.isAcceptableOrUnknown(data['type']!, _typeMeta));
+    } else if (isInserting) {
+      context.missing(_typeMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(_amountMeta,
+          amount.isAcceptableOrUnknown(data['amount']!, _amountMeta));
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    if (data.containsKey('related_id')) {
+      context.handle(_relatedIdMeta,
+          relatedId.isAcceptableOrUnknown(data['related_id']!, _relatedIdMeta));
+    }
+    if (data.containsKey('occurred_at')) {
+      context.handle(
+          _occurredAtMeta,
+          occurredAt.isAcceptableOrUnknown(
+              data['occurred_at']!, _occurredAtMeta));
+    } else if (isInserting) {
+      context.missing(_occurredAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  CashboxTransactionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return CashboxTransactionRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      type: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}type'])!,
+      amount: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}amount'])!,
+      note: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note'])!,
+      relatedId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}related_id']),
+      occurredAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}occurred_at'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $CashboxTransactionsTable createAlias(String alias) {
+    return $CashboxTransactionsTable(attachedDatabase, alias);
+  }
+}
+
+class CashboxTransactionRow extends DataClass
+    implements Insertable<CashboxTransactionRow> {
+  final String id;
+
+  /// `CashTransactionType.name` — persisted by name string, never index.
+  final String type;
+
+  /// Signed: `+` = cash in, `−` = cash out. Balance = `SUM(amount)`. Money stays
+  /// `double` (app-wide convention), rounded to 2 decimals at write time.
+  final double amount;
+  final String note;
+
+  /// Source link: invoice id (cash sale) or ledger-entry id (debt payment);
+  /// null for a manual entry.
+  final String? relatedId;
+
+  /// Transaction (business) date — the Today/date-range filters key off this.
+  /// Stored as milliseconds since epoch.
+  final int occurredAt;
+
+  /// Audit insertion time (milliseconds since epoch).
+  final int createdAt;
+  const CashboxTransactionRow(
+      {required this.id,
+      required this.type,
+      required this.amount,
+      required this.note,
+      this.relatedId,
+      required this.occurredAt,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['type'] = Variable<String>(type);
+    map['amount'] = Variable<double>(amount);
+    map['note'] = Variable<String>(note);
+    if (!nullToAbsent || relatedId != null) {
+      map['related_id'] = Variable<String>(relatedId);
+    }
+    map['occurred_at'] = Variable<int>(occurredAt);
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  CashboxTransactionsCompanion toCompanion(bool nullToAbsent) {
+    return CashboxTransactionsCompanion(
+      id: Value(id),
+      type: Value(type),
+      amount: Value(amount),
+      note: Value(note),
+      relatedId: relatedId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(relatedId),
+      occurredAt: Value(occurredAt),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory CashboxTransactionRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return CashboxTransactionRow(
+      id: serializer.fromJson<String>(json['id']),
+      type: serializer.fromJson<String>(json['type']),
+      amount: serializer.fromJson<double>(json['amount']),
+      note: serializer.fromJson<String>(json['note']),
+      relatedId: serializer.fromJson<String?>(json['relatedId']),
+      occurredAt: serializer.fromJson<int>(json['occurredAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'type': serializer.toJson<String>(type),
+      'amount': serializer.toJson<double>(amount),
+      'note': serializer.toJson<String>(note),
+      'relatedId': serializer.toJson<String?>(relatedId),
+      'occurredAt': serializer.toJson<int>(occurredAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  CashboxTransactionRow copyWith(
+          {String? id,
+          String? type,
+          double? amount,
+          String? note,
+          Value<String?> relatedId = const Value.absent(),
+          int? occurredAt,
+          int? createdAt}) =>
+      CashboxTransactionRow(
+        id: id ?? this.id,
+        type: type ?? this.type,
+        amount: amount ?? this.amount,
+        note: note ?? this.note,
+        relatedId: relatedId.present ? relatedId.value : this.relatedId,
+        occurredAt: occurredAt ?? this.occurredAt,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  CashboxTransactionRow copyWithCompanion(CashboxTransactionsCompanion data) {
+    return CashboxTransactionRow(
+      id: data.id.present ? data.id.value : this.id,
+      type: data.type.present ? data.type.value : this.type,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      note: data.note.present ? data.note.value : this.note,
+      relatedId: data.relatedId.present ? data.relatedId.value : this.relatedId,
+      occurredAt:
+          data.occurredAt.present ? data.occurredAt.value : this.occurredAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CashboxTransactionRow(')
+          ..write('id: $id, ')
+          ..write('type: $type, ')
+          ..write('amount: $amount, ')
+          ..write('note: $note, ')
+          ..write('relatedId: $relatedId, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, type, amount, note, relatedId, occurredAt, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is CashboxTransactionRow &&
+          other.id == this.id &&
+          other.type == this.type &&
+          other.amount == this.amount &&
+          other.note == this.note &&
+          other.relatedId == this.relatedId &&
+          other.occurredAt == this.occurredAt &&
+          other.createdAt == this.createdAt);
+}
+
+class CashboxTransactionsCompanion
+    extends UpdateCompanion<CashboxTransactionRow> {
+  final Value<String> id;
+  final Value<String> type;
+  final Value<double> amount;
+  final Value<String> note;
+  final Value<String?> relatedId;
+  final Value<int> occurredAt;
+  final Value<int> createdAt;
+  final Value<int> rowid;
+  const CashboxTransactionsCompanion({
+    this.id = const Value.absent(),
+    this.type = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.note = const Value.absent(),
+    this.relatedId = const Value.absent(),
+    this.occurredAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  CashboxTransactionsCompanion.insert({
+    required String id,
+    required String type,
+    required double amount,
+    this.note = const Value.absent(),
+    this.relatedId = const Value.absent(),
+    required int occurredAt,
+    required int createdAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        type = Value(type),
+        amount = Value(amount),
+        occurredAt = Value(occurredAt),
+        createdAt = Value(createdAt);
+  static Insertable<CashboxTransactionRow> custom({
+    Expression<String>? id,
+    Expression<String>? type,
+    Expression<double>? amount,
+    Expression<String>? note,
+    Expression<String>? relatedId,
+    Expression<int>? occurredAt,
+    Expression<int>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (type != null) 'type': type,
+      if (amount != null) 'amount': amount,
+      if (note != null) 'note': note,
+      if (relatedId != null) 'related_id': relatedId,
+      if (occurredAt != null) 'occurred_at': occurredAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  CashboxTransactionsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? type,
+      Value<double>? amount,
+      Value<String>? note,
+      Value<String?>? relatedId,
+      Value<int>? occurredAt,
+      Value<int>? createdAt,
+      Value<int>? rowid}) {
+    return CashboxTransactionsCompanion(
+      id: id ?? this.id,
+      type: type ?? this.type,
+      amount: amount ?? this.amount,
+      note: note ?? this.note,
+      relatedId: relatedId ?? this.relatedId,
+      occurredAt: occurredAt ?? this.occurredAt,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (relatedId.present) {
+      map['related_id'] = Variable<String>(relatedId.value);
+    }
+    if (occurredAt.present) {
+      map['occurred_at'] = Variable<int>(occurredAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('CashboxTransactionsCompanion(')
+          ..write('id: $id, ')
+          ..write('type: $type, ')
+          ..write('amount: $amount, ')
+          ..write('note: $note, ')
+          ..write('relatedId: $relatedId, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -2374,12 +2774,15 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $SalesItemsTable salesItems = $SalesItemsTable(this);
   late final $CustomersTable customers = $CustomersTable(this);
   late final $LedgerEntriesTable ledgerEntries = $LedgerEntriesTable(this);
+  late final $CashboxTransactionsTable cashboxTransactions =
+      $CashboxTransactionsTable(this);
   late final ProductsDao productsDao = ProductsDao(this as AppDatabase);
   late final ShopDao shopDao = ShopDao(this as AppDatabase);
   late final SettingsDao settingsDao = SettingsDao(this as AppDatabase);
   late final SalesDao salesDao = SalesDao(this as AppDatabase);
   late final CustomersDao customersDao = CustomersDao(this as AppDatabase);
   late final LedgerDao ledgerDao = LedgerDao(this as AppDatabase);
+  late final CashboxDao cashboxDao = CashboxDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -2391,7 +2794,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         salesInvoices,
         salesItems,
         customers,
-        ledgerEntries
+        ledgerEntries,
+        cashboxTransactions
       ];
 }
 
@@ -3650,6 +4054,214 @@ typedef $$LedgerEntriesTableProcessedTableManager = ProcessedTableManager<
     ),
     LedgerEntryRow,
     PrefetchHooks Function()>;
+typedef $$CashboxTransactionsTableCreateCompanionBuilder
+    = CashboxTransactionsCompanion Function({
+  required String id,
+  required String type,
+  required double amount,
+  Value<String> note,
+  Value<String?> relatedId,
+  required int occurredAt,
+  required int createdAt,
+  Value<int> rowid,
+});
+typedef $$CashboxTransactionsTableUpdateCompanionBuilder
+    = CashboxTransactionsCompanion Function({
+  Value<String> id,
+  Value<String> type,
+  Value<double> amount,
+  Value<String> note,
+  Value<String?> relatedId,
+  Value<int> occurredAt,
+  Value<int> createdAt,
+  Value<int> rowid,
+});
+
+class $$CashboxTransactionsTableFilterComposer
+    extends Composer<_$AppDatabase, $CashboxTransactionsTable> {
+  $$CashboxTransactionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get type => $composableBuilder(
+      column: $table.type, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get amount => $composableBuilder(
+      column: $table.amount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get relatedId => $composableBuilder(
+      column: $table.relatedId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get occurredAt => $composableBuilder(
+      column: $table.occurredAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$CashboxTransactionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $CashboxTransactionsTable> {
+  $$CashboxTransactionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get type => $composableBuilder(
+      column: $table.type, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get amount => $composableBuilder(
+      column: $table.amount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get relatedId => $composableBuilder(
+      column: $table.relatedId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get occurredAt => $composableBuilder(
+      column: $table.occurredAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$CashboxTransactionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $CashboxTransactionsTable> {
+  $$CashboxTransactionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<double> get amount =>
+      $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<String> get relatedId =>
+      $composableBuilder(column: $table.relatedId, builder: (column) => column);
+
+  GeneratedColumn<int> get occurredAt => $composableBuilder(
+      column: $table.occurredAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$CashboxTransactionsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $CashboxTransactionsTable,
+    CashboxTransactionRow,
+    $$CashboxTransactionsTableFilterComposer,
+    $$CashboxTransactionsTableOrderingComposer,
+    $$CashboxTransactionsTableAnnotationComposer,
+    $$CashboxTransactionsTableCreateCompanionBuilder,
+    $$CashboxTransactionsTableUpdateCompanionBuilder,
+    (
+      CashboxTransactionRow,
+      BaseReferences<_$AppDatabase, $CashboxTransactionsTable,
+          CashboxTransactionRow>
+    ),
+    CashboxTransactionRow,
+    PrefetchHooks Function()> {
+  $$CashboxTransactionsTableTableManager(
+      _$AppDatabase db, $CashboxTransactionsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$CashboxTransactionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$CashboxTransactionsTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$CashboxTransactionsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> type = const Value.absent(),
+            Value<double> amount = const Value.absent(),
+            Value<String> note = const Value.absent(),
+            Value<String?> relatedId = const Value.absent(),
+            Value<int> occurredAt = const Value.absent(),
+            Value<int> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              CashboxTransactionsCompanion(
+            id: id,
+            type: type,
+            amount: amount,
+            note: note,
+            relatedId: relatedId,
+            occurredAt: occurredAt,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String type,
+            required double amount,
+            Value<String> note = const Value.absent(),
+            Value<String?> relatedId = const Value.absent(),
+            required int occurredAt,
+            required int createdAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              CashboxTransactionsCompanion.insert(
+            id: id,
+            type: type,
+            amount: amount,
+            note: note,
+            relatedId: relatedId,
+            occurredAt: occurredAt,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$CashboxTransactionsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $CashboxTransactionsTable,
+    CashboxTransactionRow,
+    $$CashboxTransactionsTableFilterComposer,
+    $$CashboxTransactionsTableOrderingComposer,
+    $$CashboxTransactionsTableAnnotationComposer,
+    $$CashboxTransactionsTableCreateCompanionBuilder,
+    $$CashboxTransactionsTableUpdateCompanionBuilder,
+    (
+      CashboxTransactionRow,
+      BaseReferences<_$AppDatabase, $CashboxTransactionsTable,
+          CashboxTransactionRow>
+    ),
+    CashboxTransactionRow,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -3668,4 +4280,6 @@ class $AppDatabaseManager {
       $$CustomersTableTableManager(_db, _db.customers);
   $$LedgerEntriesTableTableManager get ledgerEntries =>
       $$LedgerEntriesTableTableManager(_db, _db.ledgerEntries);
+  $$CashboxTransactionsTableTableManager get cashboxTransactions =>
+      $$CashboxTransactionsTableTableManager(_db, _db.cashboxTransactions);
 }

@@ -7,6 +7,8 @@ mixin _$SalesDaoMixin on DatabaseAccessor<AppDatabase> {
   $SalesInvoicesTable get salesInvoices => attachedDatabase.salesInvoices;
   $SalesItemsTable get salesItems => attachedDatabase.salesItems;
   $LedgerEntriesTable get ledgerEntries => attachedDatabase.ledgerEntries;
+  $CashboxTransactionsTable get cashboxTransactions =>
+      attachedDatabase.cashboxTransactions;
   SalesDaoManager get managers => SalesDaoManager(this);
 }
 
@@ -19,4 +21,7 @@ class SalesDaoManager {
       $$SalesItemsTableTableManager(_db.attachedDatabase, _db.salesItems);
   $$LedgerEntriesTableTableManager get ledgerEntries =>
       $$LedgerEntriesTableTableManager(_db.attachedDatabase, _db.ledgerEntries);
+  $$CashboxTransactionsTableTableManager get cashboxTransactions =>
+      $$CashboxTransactionsTableTableManager(
+          _db.attachedDatabase, _db.cashboxTransactions);
 }

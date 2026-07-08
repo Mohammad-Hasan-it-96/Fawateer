@@ -8,6 +8,7 @@ import 'tables/sales_invoices_table.dart';
 import 'tables/sales_items_table.dart';
 import 'tables/customers_table.dart';
 import 'tables/ledger_entries_table.dart';
+import 'tables/cashbox_transactions_table.dart';
 
 import 'daos/products_dao.dart';
 import 'daos/shop_dao.dart';
@@ -15,6 +16,7 @@ import 'daos/settings_dao.dart';
 import 'daos/sales_dao.dart';
 import 'daos/customers_dao.dart';
 import 'daos/ledger_dao.dart';
+import 'daos/cashbox_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -27,6 +29,7 @@ part 'app_database.g.dart';
     SalesItems,
     Customers,
     LedgerEntries,
+    CashboxTransactions,
   ],
   daos: [
     ProductsDao,
@@ -35,13 +38,14 @@ part 'app_database.g.dart';
     SalesDao,
     CustomersDao,
     LedgerDao,
+    CashboxDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'fawateer'));
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -49,6 +53,7 @@ class AppDatabase extends _$AppDatabase {
       await migrator.createAll();
       await _createIndexes();
       await _createLedgerIndexes();
+      await _createCashboxIndexes();
     },
     beforeOpen: (details) async {
       // Enforce foreign keys for every connection. Set here (after migrations
@@ -109,6 +114,13 @@ class AppDatabase extends _$AppDatabase {
         // so every existing product keeps its current per-piece behavior.
         await migrator.addColumn(products, products.saleType);
       }
+      if (from < 9) {
+        // Cashbox: new signed-entry cash ledger. Additive — no existing table is
+        // touched. (A same-named `cashbox_entries` from a removed pre-v3 feature
+        // was already dropped in the v2→v3 step; this uses a distinct name.)
+        await migrator.createTable(cashboxTransactions);
+        await _createCashboxIndexes();
+      }
     },
   );
 
@@ -144,6 +156,17 @@ class AppDatabase extends _$AppDatabase {
         'CREATE INDEX IF NOT EXISTS idx_ledger_customer_id ON ledger_entries (customer_id)');
     await customStatement(
         'CREATE INDEX IF NOT EXISTS idx_ledger_invoice_id ON ledger_entries (invoice_id)');
+  }
+
+  /// Idempotent indexes for the cashbox table. Called from [onCreate] and the
+  /// v8→v9 upgrade. Speeds up the date-ordered history and the source→entry
+  /// lookup used to reverse a cashbox entry when its invoice/ledger row is
+  /// deleted.
+  Future<void> _createCashboxIndexes() async {
+    await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_cashbox_occurred_at ON cashbox_transactions (occurred_at)');
+    await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_cashbox_related_id ON cashbox_transactions (related_id)');
   }
 }
 

@@ -638,6 +638,228 @@ abstract class AppLocalizations {
   /// **'Edit business info & address'**
   String get shopDetailsSubtitle;
 
+  /// No description provided for @cashboxItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Cashbox'**
+  String get cashboxItem;
+
+  /// No description provided for @cashboxSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash on hand, deposits & expenses'**
+  String get cashboxSubtitle;
+
+  /// No description provided for @cashboxTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cashbox'**
+  String get cashboxTitle;
+
+  /// No description provided for @cashboxBalanceLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Current cash balance'**
+  String get cashboxBalanceLabel;
+
+  /// No description provided for @todayCashIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s cash in'**
+  String get todayCashIn;
+
+  /// No description provided for @todayCashOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Today\'s cash out'**
+  String get todayCashOut;
+
+  /// No description provided for @addDeposit.
+  ///
+  /// In en, this message translates to:
+  /// **'Add deposit'**
+  String get addDeposit;
+
+  /// No description provided for @withdrawMoney.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdraw'**
+  String get withdrawMoney;
+
+  /// No description provided for @addExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Add expense'**
+  String get addExpense;
+
+  /// No description provided for @viewHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'History'**
+  String get viewHistory;
+
+  /// No description provided for @addCashTransaction.
+  ///
+  /// In en, this message translates to:
+  /// **'Add transaction'**
+  String get addCashTransaction;
+
+  /// No description provided for @selectType.
+  ///
+  /// In en, this message translates to:
+  /// **'Select type'**
+  String get selectType;
+
+  /// No description provided for @recentTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'Recent activity'**
+  String get recentTransactions;
+
+  /// No description provided for @noCashTransactions.
+  ///
+  /// In en, this message translates to:
+  /// **'No cash transactions yet'**
+  String get noCashTransactions;
+
+  /// No description provided for @cashHistoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction history'**
+  String get cashHistoryTitle;
+
+  /// No description provided for @cashInflow.
+  ///
+  /// In en, this message translates to:
+  /// **'In'**
+  String get cashInflow;
+
+  /// No description provided for @cashOutflow.
+  ///
+  /// In en, this message translates to:
+  /// **'Out'**
+  String get cashOutflow;
+
+  /// No description provided for @filterAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get filterAll;
+
+  /// No description provided for @filterToday.
+  ///
+  /// In en, this message translates to:
+  /// **'Today'**
+  String get filterToday;
+
+  /// No description provided for @filterDateRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Date range'**
+  String get filterDateRange;
+
+  /// No description provided for @filterByType.
+  ///
+  /// In en, this message translates to:
+  /// **'Type'**
+  String get filterByType;
+
+  /// No description provided for @cashDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete transaction?'**
+  String get cashDeleteTitle;
+
+  /// No description provided for @cashDeleteConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'This cash transaction will be removed and the balance recalculated.'**
+  String get cashDeleteConfirm;
+
+  /// No description provided for @cashTransactionAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction saved'**
+  String get cashTransactionAdded;
+
+  /// No description provided for @cashTransactionDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Transaction deleted'**
+  String get cashTransactionDeleted;
+
+  /// No description provided for @cashDeleteNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Auto-created entries are removed by deleting their sale or payment'**
+  String get cashDeleteNotAllowed;
+
+  /// No description provided for @cashSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the transaction'**
+  String get cashSaveFailed;
+
+  /// No description provided for @cashLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the cashbox'**
+  String get cashLoadFailed;
+
+  /// No description provided for @cashTypeOpeningBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening balance'**
+  String get cashTypeOpeningBalance;
+
+  /// No description provided for @cashTypeCashSale.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash sale'**
+  String get cashTypeCashSale;
+
+  /// No description provided for @cashTypeCustomerDebtPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Debt payment'**
+  String get cashTypeCustomerDebtPayment;
+
+  /// No description provided for @cashTypeManualDeposit.
+  ///
+  /// In en, this message translates to:
+  /// **'Deposit'**
+  String get cashTypeManualDeposit;
+
+  /// No description provided for @cashTypeExpense.
+  ///
+  /// In en, this message translates to:
+  /// **'Expense'**
+  String get cashTypeExpense;
+
+  /// No description provided for @cashTypePersonalWithdrawal.
+  ///
+  /// In en, this message translates to:
+  /// **'Personal withdrawal'**
+  String get cashTypePersonalWithdrawal;
+
+  /// No description provided for @cashTypePurchasePayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase payment'**
+  String get cashTypePurchasePayment;
+
+  /// No description provided for @cashTypeSupplierPayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Supplier payment'**
+  String get cashTypeSupplierPayment;
+
+  /// No description provided for @cashTypeManualAdjustment.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjustment'**
+  String get cashTypeManualAdjustment;
+
   /// No description provided for @hardwareSection.
   ///
   /// In en, this message translates to:

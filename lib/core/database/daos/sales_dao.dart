@@ -3,10 +3,12 @@ import '../app_database.dart';
 import '../tables/sales_invoices_table.dart';
 import '../tables/sales_items_table.dart';
 import '../tables/ledger_entries_table.dart';
+import '../tables/cashbox_transactions_table.dart';
 
 part 'sales_dao.g.dart';
 
-@DriftAccessor(tables: [SalesInvoices, SalesItems, LedgerEntries])
+@DriftAccessor(
+    tables: [SalesInvoices, SalesItems, LedgerEntries, CashboxTransactions])
 class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   SalesDao(super.db);
 
@@ -43,10 +45,17 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   /// entry (amount = invoice total, linked to this invoice). It is written in
   /// the *same* transaction, so a sale-on-credit can never leave an invoice
   /// without its matching debt (or vice versa).
+  ///
+  /// For a **cash sale**, pass [cashReceipt] — a positive cashbox entry (amount
+  /// = invoice total, linked to this invoice), likewise written in the same
+  /// transaction so the cash-on-hand balance can't drift from the sale.
+  /// [creditCharge] and [cashReceipt] are mutually exclusive by construction
+  /// (cash → cashbox, credit → ledger, never both).
   Future<void> insertInvoiceWithItems({
     required SalesInvoicesCompanion invoice,
     required List<SalesItemsCompanion> items,
     LedgerEntriesCompanion? creditCharge,
+    CashboxTransactionsCompanion? cashReceipt,
   }) =>
       transaction(() async {
         await into(salesInvoices).insert(invoice);
@@ -60,13 +69,21 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         if (creditCharge != null) {
           await into(ledgerEntries).insert(creditCharge);
         }
+        if (cashReceipt != null) {
+          await into(cashboxTransactions).insert(cashReceipt);
+        }
       });
 
   /// Delete an invoice together with its line items in one transaction, so no
-  /// orphaned `sales_items` rows are left behind.
+  /// orphaned `sales_items` rows are left behind. Also reverses the invoice's
+  /// cashbox entry (if it was a cash sale) so the cash-on-hand balance stays
+  /// honest; no-op for a credit sale (nothing was posted there).
   Future<void> deleteInvoice(String id) => transaction(() async {
         await (delete(salesItems)..where((i) => i.invoiceId.equals(id))).go();
         await (delete(salesInvoices)..where((i) => i.id.equals(id))).go();
+        await (delete(cashboxTransactions)
+              ..where((c) => c.relatedId.equals(id)))
+            .go();
       });
 }
 

@@ -8,6 +8,7 @@ import 'database/daos/settings_dao.dart';
 import 'database/daos/sales_dao.dart';
 import 'database/daos/customers_dao.dart';
 import 'database/daos/ledger_dao.dart';
+import 'database/daos/cashbox_dao.dart';
 
 // Core — Network
 import 'network/api_client.dart';
@@ -20,6 +21,11 @@ import '../features/ledger/domain/repositories/customer_repository.dart';
 import '../features/ledger/domain/repositories/ledger_repository.dart';
 import '../features/ledger/presentation/bloc/customer_bloc.dart';
 import '../features/ledger/presentation/bloc/ledger_bloc.dart';
+
+// Features — Cashbox (cash ledger)
+import '../features/cashbox/data/repositories/cashbox_repository_drift_impl.dart';
+import '../features/cashbox/domain/repositories/cashbox_repository.dart';
+import '../features/cashbox/presentation/bloc/cashbox_bloc.dart';
 
 // Features — Licensing (subscription)
 import '../features/licensing/data/datasources/license_local_storage.dart';
@@ -68,6 +74,7 @@ Future<void> init() async {
   sl.registerLazySingleton<SalesDao>(() => SalesDao(sl()));
   sl.registerLazySingleton<CustomersDao>(() => CustomersDao(sl()));
   sl.registerLazySingleton<LedgerDao>(() => LedgerDao(sl()));
+  sl.registerLazySingleton<CashboxDao>(() => CashboxDao(sl()));
 
   // ── Repositories ─────────────────────────────────────────────────────────
   sl.registerLazySingleton<ProductRepository>(
@@ -81,7 +88,9 @@ Future<void> init() async {
   sl.registerLazySingleton<CustomerRepository>(
       () => CustomerRepositoryDriftImpl(sl()));
   sl.registerLazySingleton<LedgerRepository>(
-      () => LedgerRepositoryDriftImpl(sl()));
+      () => LedgerRepositoryDriftImpl(sl(), sl(), sl()));
+  sl.registerLazySingleton<CashboxRepository>(
+      () => CashboxRepositoryDriftImpl(sl()));
 
   // ── Licensing (network-backed; no DAO) ───────────────────────────────────
   sl.registerLazySingleton<DeviceIdentityService>(
@@ -115,6 +124,8 @@ Future<void> init() async {
         ledgerRepository: sl(),
         printerRepository: sl(),
       ));
+
+  sl.registerFactory(() => CashboxBloc(repository: sl()));
 
   // LicenseBloc is a SINGLETON (not a factory): the GoRouter gate redirect and
   // the widget tree must observe the same instance for the gate to react.

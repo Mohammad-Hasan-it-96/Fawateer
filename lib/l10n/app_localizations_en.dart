@@ -289,6 +289,119 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shopDetailsSubtitle => 'Edit business info & address';
 
   @override
+  String get cashboxItem => 'Cashbox';
+
+  @override
+  String get cashboxSubtitle => 'Cash on hand, deposits & expenses';
+
+  @override
+  String get cashboxTitle => 'Cashbox';
+
+  @override
+  String get cashboxBalanceLabel => 'Current cash balance';
+
+  @override
+  String get todayCashIn => 'Today\'s cash in';
+
+  @override
+  String get todayCashOut => 'Today\'s cash out';
+
+  @override
+  String get addDeposit => 'Add deposit';
+
+  @override
+  String get withdrawMoney => 'Withdraw';
+
+  @override
+  String get addExpense => 'Add expense';
+
+  @override
+  String get viewHistory => 'History';
+
+  @override
+  String get addCashTransaction => 'Add transaction';
+
+  @override
+  String get selectType => 'Select type';
+
+  @override
+  String get recentTransactions => 'Recent activity';
+
+  @override
+  String get noCashTransactions => 'No cash transactions yet';
+
+  @override
+  String get cashHistoryTitle => 'Transaction history';
+
+  @override
+  String get cashInflow => 'In';
+
+  @override
+  String get cashOutflow => 'Out';
+
+  @override
+  String get filterAll => 'All';
+
+  @override
+  String get filterToday => 'Today';
+
+  @override
+  String get filterDateRange => 'Date range';
+
+  @override
+  String get filterByType => 'Type';
+
+  @override
+  String get cashDeleteTitle => 'Delete transaction?';
+
+  @override
+  String get cashDeleteConfirm =>
+      'This cash transaction will be removed and the balance recalculated.';
+
+  @override
+  String get cashTransactionAdded => 'Transaction saved';
+
+  @override
+  String get cashTransactionDeleted => 'Transaction deleted';
+
+  @override
+  String get cashDeleteNotAllowed =>
+      'Auto-created entries are removed by deleting their sale or payment';
+
+  @override
+  String get cashSaveFailed => 'Could not save the transaction';
+
+  @override
+  String get cashLoadFailed => 'Could not load the cashbox';
+
+  @override
+  String get cashTypeOpeningBalance => 'Opening balance';
+
+  @override
+  String get cashTypeCashSale => 'Cash sale';
+
+  @override
+  String get cashTypeCustomerDebtPayment => 'Debt payment';
+
+  @override
+  String get cashTypeManualDeposit => 'Deposit';
+
+  @override
+  String get cashTypeExpense => 'Expense';
+
+  @override
+  String get cashTypePersonalWithdrawal => 'Personal withdrawal';
+
+  @override
+  String get cashTypePurchasePayment => 'Purchase payment';
+
+  @override
+  String get cashTypeSupplierPayment => 'Supplier payment';
+
+  @override
+  String get cashTypeManualAdjustment => 'Adjustment';
+
+  @override
   String get hardwareSection => 'Hardware';
 
   @override

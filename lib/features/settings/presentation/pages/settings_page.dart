@@ -187,6 +187,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   subtitle: l10n.shopDetailsSubtitle,
                   onTap: () => context.push('/settings/shop'),
                 ),
+                _buildListItem(
+                  icon: Icons.savings,
+                  title: l10n.cashboxItem,
+                  subtitle: l10n.cashboxSubtitle,
+                  onTap: () => context.push('/settings/cashbox'),
+                ),
               ],
             ),
 

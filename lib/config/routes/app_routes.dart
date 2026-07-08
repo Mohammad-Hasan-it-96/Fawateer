@@ -25,6 +25,8 @@ import '../../features/product/presentation/pages/edit_product_page.dart';
 import '../../features/product/presentation/pages/product_list_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/shop/presentation/pages/shop_details_page.dart';
+import '../../features/cashbox/presentation/pages/cashbox_page.dart';
+import '../../features/cashbox/presentation/pages/cashbox_history_page.dart';
 import 'app_shell.dart';
 
 /// The single shared LicenseBloc instance the gate reacts to.
@@ -190,6 +192,18 @@ final router = GoRouter(
                 GoRoute(
                   path: 'shop',
                   builder: (context, state) => const ShopDetailsPage(),
+                ),
+                // Cashbox (cash ledger). The CashboxBloc is app-wide (provided
+                // in main.dart), so these routes need no scoped BlocProvider.
+                GoRoute(
+                  path: 'cashbox',
+                  builder: (context, state) => const CashboxPage(),
+                  routes: [
+                    GoRoute(
+                      path: 'history',
+                      builder: (context, state) => const CashboxHistoryPage(),
+                    ),
+                  ],
                 ),
                 // Subscription management (reachable only while active; the gate
                 // funnels unlicensed users to /activation instead).

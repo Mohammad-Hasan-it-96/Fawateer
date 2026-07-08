@@ -23,6 +23,7 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
       Invoice invoice, List<InvoiceItem> items,
       {String? customerId}) async {
     try {
+      final amount = (invoice.totalAmount * 100).roundToDouble() / 100;
       // On a credit sale, the customer's debt is booked atomically with the
       // invoice (amount = total, linked back via invoiceId).
       final creditCharge = customerId == null
@@ -32,8 +33,22 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
               customerId: Value(customerId),
               invoiceId: Value(invoice.id),
               entryType: const Value('charge'),
-              amount:
-                  Value((invoice.totalAmount * 100).roundToDouble() / 100),
+              amount: Value(amount),
+              createdAt: Value(invoice.createdAt.millisecondsSinceEpoch),
+            );
+      // The inverse: a **cash** sale (no customer) posts a positive cashbox
+      // entry, atomically with the invoice. Mutually exclusive with
+      // creditCharge — a sale is either cash or credit, never both. Type is the
+      // `CashTransactionType.cashSale` name string (kept as a literal here so
+      // the billing layer needn't import the cashbox domain enum).
+      final cashReceipt = customerId != null
+          ? null
+          : CashboxTransactionsCompanion(
+              id: Value(const Uuid().v4()),
+              type: const Value('cashSale'),
+              amount: Value(amount),
+              relatedId: Value(invoice.id),
+              occurredAt: Value(invoice.createdAt.millisecondsSinceEpoch),
               createdAt: Value(invoice.createdAt.millisecondsSinceEpoch),
             );
       await _dao.insertInvoiceWithItems(
@@ -53,6 +68,7 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
                 ))
             .toList(),
         creditCharge: creditCharge,
+        cashReceipt: cashReceipt,
       );
       return const Right(null);
     } catch (e) {

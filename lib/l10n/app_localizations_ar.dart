@@ -287,6 +287,119 @@ class AppLocalizationsAr extends AppLocalizations {
   String get shopDetailsSubtitle => 'تعديل معلومات المحل والعنوان';
 
   @override
+  String get cashboxItem => 'الصندوق';
+
+  @override
+  String get cashboxSubtitle => 'النقد المتوفر والإيداعات والمصروفات';
+
+  @override
+  String get cashboxTitle => 'الصندوق';
+
+  @override
+  String get cashboxBalanceLabel => 'الرصيد النقدي الحالي';
+
+  @override
+  String get todayCashIn => 'وارد اليوم';
+
+  @override
+  String get todayCashOut => 'صادر اليوم';
+
+  @override
+  String get addDeposit => 'إيداع';
+
+  @override
+  String get withdrawMoney => 'سحب';
+
+  @override
+  String get addExpense => 'مصروف';
+
+  @override
+  String get viewHistory => 'السجل';
+
+  @override
+  String get addCashTransaction => 'إضافة حركة';
+
+  @override
+  String get selectType => 'اختر النوع';
+
+  @override
+  String get recentTransactions => 'أحدث الحركات';
+
+  @override
+  String get noCashTransactions => 'لا توجد حركات نقدية بعد';
+
+  @override
+  String get cashHistoryTitle => 'سجل الحركات';
+
+  @override
+  String get cashInflow => 'وارد';
+
+  @override
+  String get cashOutflow => 'صادر';
+
+  @override
+  String get filterAll => 'الكل';
+
+  @override
+  String get filterToday => 'اليوم';
+
+  @override
+  String get filterDateRange => 'فترة';
+
+  @override
+  String get filterByType => 'النوع';
+
+  @override
+  String get cashDeleteTitle => 'حذف الحركة؟';
+
+  @override
+  String get cashDeleteConfirm =>
+      'سيتم حذف هذه الحركة النقدية وإعادة حساب الرصيد.';
+
+  @override
+  String get cashTransactionAdded => 'تم حفظ الحركة';
+
+  @override
+  String get cashTransactionDeleted => 'تم حذف الحركة';
+
+  @override
+  String get cashDeleteNotAllowed =>
+      'الحركات التلقائية تُحذف بحذف بيعها أو دفعتها';
+
+  @override
+  String get cashSaveFailed => 'تعذّر حفظ الحركة';
+
+  @override
+  String get cashLoadFailed => 'تعذّر تحميل الصندوق';
+
+  @override
+  String get cashTypeOpeningBalance => 'رصيد افتتاحي';
+
+  @override
+  String get cashTypeCashSale => 'بيع نقدي';
+
+  @override
+  String get cashTypeCustomerDebtPayment => 'سداد دين';
+
+  @override
+  String get cashTypeManualDeposit => 'إيداع';
+
+  @override
+  String get cashTypeExpense => 'مصروف';
+
+  @override
+  String get cashTypePersonalWithdrawal => 'سحب شخصي';
+
+  @override
+  String get cashTypePurchasePayment => 'دفعة شراء';
+
+  @override
+  String get cashTypeSupplierPayment => 'دفعة مورّد';
+
+  @override
+  String get cashTypeManualAdjustment => 'تسوية';
+
+  @override
   String get hardwareSection => 'الأجهزة';
 
   @override
