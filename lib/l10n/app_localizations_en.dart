@@ -133,6 +133,89 @@ class AppLocalizationsEn extends AppLocalizations {
   String get itemsLoadFailed => 'Couldn\'t load items. Tap to retry.';
 
   @override
+  String get filterYesterday => 'Yesterday';
+
+  @override
+  String get filterThisWeek => 'This Week';
+
+  @override
+  String get filterThisMonth => 'This Month';
+
+  @override
+  String get paymentCash => 'Cash';
+
+  @override
+  String get paymentCredit => 'Credit';
+
+  @override
+  String get paymentType => 'Payment';
+
+  @override
+  String get sortBy => 'Sort';
+
+  @override
+  String get sortNewest => 'Newest';
+
+  @override
+  String get sortOldest => 'Oldest';
+
+  @override
+  String get sortHighest => 'Highest amount';
+
+  @override
+  String get sortLowest => 'Lowest amount';
+
+  @override
+  String get summaryInvoices => 'Invoices';
+
+  @override
+  String get summaryTotal => 'Total';
+
+  @override
+  String get summaryCash => 'Cash';
+
+  @override
+  String get summaryCredit => 'Credit';
+
+  @override
+  String get summaryAverage => 'Average';
+
+  @override
+  String get searchInvoicesHint => 'Search invoice # or customer…';
+
+  @override
+  String get noSalesMatch => 'No sales match your filters.';
+
+  @override
+  String itemCountLabel(int count) {
+    return '$count items';
+  }
+
+  @override
+  String get invoiceDetails => 'Invoice Details';
+
+  @override
+  String get invoiceNumber => 'Invoice #';
+
+  @override
+  String get dateLabel => 'Date';
+
+  @override
+  String get timeLabel => 'Time';
+
+  @override
+  String get customerLabel => 'Customer';
+
+  @override
+  String get unitPrice => 'Unit Price';
+
+  @override
+  String get walkInCustomer => 'Walk-in customer';
+
+  @override
+  String get reprint => 'Reprint';
+
+  @override
   String get shopLoadFailed => 'Couldn\'t load shop details.';
 
   @override

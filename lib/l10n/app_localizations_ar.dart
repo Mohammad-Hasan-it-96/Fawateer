@@ -132,6 +132,89 @@ class AppLocalizationsAr extends AppLocalizations {
   String get itemsLoadFailed => 'تعذّر تحميل الأصناف. اضغط لإعادة المحاولة.';
 
   @override
+  String get filterYesterday => 'أمس';
+
+  @override
+  String get filterThisWeek => 'هذا الأسبوع';
+
+  @override
+  String get filterThisMonth => 'هذا الشهر';
+
+  @override
+  String get paymentCash => 'نقدي';
+
+  @override
+  String get paymentCredit => 'آجل';
+
+  @override
+  String get paymentType => 'الدفع';
+
+  @override
+  String get sortBy => 'ترتيب';
+
+  @override
+  String get sortNewest => 'الأحدث';
+
+  @override
+  String get sortOldest => 'الأقدم';
+
+  @override
+  String get sortHighest => 'الأعلى قيمة';
+
+  @override
+  String get sortLowest => 'الأقل قيمة';
+
+  @override
+  String get summaryInvoices => 'الفواتير';
+
+  @override
+  String get summaryTotal => 'الإجمالي';
+
+  @override
+  String get summaryCash => 'نقدي';
+
+  @override
+  String get summaryCredit => 'آجل';
+
+  @override
+  String get summaryAverage => 'المتوسط';
+
+  @override
+  String get searchInvoicesHint => 'ابحث برقم الفاتورة أو اسم العميل…';
+
+  @override
+  String get noSalesMatch => 'لا توجد مبيعات مطابقة للتصفية.';
+
+  @override
+  String itemCountLabel(int count) {
+    return '$count صنف';
+  }
+
+  @override
+  String get invoiceDetails => 'تفاصيل الفاتورة';
+
+  @override
+  String get invoiceNumber => 'رقم الفاتورة';
+
+  @override
+  String get dateLabel => 'التاريخ';
+
+  @override
+  String get timeLabel => 'الوقت';
+
+  @override
+  String get customerLabel => 'العميل';
+
+  @override
+  String get unitPrice => 'سعر الوحدة';
+
+  @override
+  String get walkInCustomer => 'عميل نقدي';
+
+  @override
+  String get reprint => 'إعادة الطباعة';
+
+  @override
   String get shopLoadFailed => 'تعذّر تحميل بيانات المحل.';
 
   @override

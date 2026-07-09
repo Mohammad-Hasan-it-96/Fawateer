@@ -10,6 +10,9 @@ import 'dart:async';
 import 'package:billing_app/core/error/failure.dart';
 import 'package:billing_app/features/billing/domain/entities/invoice.dart';
 import 'package:billing_app/features/billing/domain/entities/invoice_item.dart';
+import 'package:billing_app/features/billing/domain/entities/invoice_list_item.dart';
+import 'package:billing_app/features/billing/domain/entities/sales_filter.dart';
+import 'package:billing_app/features/billing/domain/entities/sales_summary.dart';
 import 'package:billing_app/features/billing/domain/repositories/invoice_repository.dart';
 import 'package:billing_app/features/billing/presentation/bloc/billing_bloc.dart';
 import 'package:billing_app/features/billing/presentation/bloc/history_bloc.dart';
@@ -79,9 +82,39 @@ class _FakeInvoiceRepository implements InvoiceRepository {
   /// Result returned by [getInvoiceItems] — override to simulate a load failure.
   Either<Failure, List<InvoiceItem>> itemsResult = const Right([]);
 
+  // Audit-center streams. Broadcast + last-value replay so an emit that lands
+  // before the bloc subscribes (or across a re-subscribe on filter change) is
+  // still delivered.
+  final _listController = StreamController<List<InvoiceListItem>>.broadcast();
+  final _summaryController = StreamController<SalesSummary>.broadcast();
+  List<InvoiceListItem>? _lastList;
+  SalesSummary? _lastSummary;
+  Object? _pendingListError;
+
   void emit(List<Invoice> invoices) => _controller.add(invoices);
   void emitError(Object e) => _controller.addError(e);
-  Future<void> dispose() => _controller.close();
+  void emitList(List<InvoiceListItem> items) {
+    _lastList = items;
+    _listController.add(items);
+  }
+
+  void emitListError(Object e) {
+    _pendingListError = e; // replayed if the bloc subscribes after this
+    _listController.addError(e);
+  }
+
+  void emitSummary(SalesSummary summary) {
+    _lastSummary = summary;
+    _summaryController.add(summary);
+  }
+
+  // Fire-and-forget: a never-listened single-subscription controller's close()
+  // never completes, so don't await it (would hang the test).
+  Future<void> dispose() async {
+    unawaited(_controller.close());
+    unawaited(_listController.close());
+    unawaited(_summaryController.close());
+  }
 
   @override
   Future<Either<Failure, void>> saveInvoice(
@@ -96,6 +129,27 @@ class _FakeInvoiceRepository implements InvoiceRepository {
 
   @override
   Stream<List<Invoice>> watchInvoices() => _controller.stream;
+
+  @override
+  Stream<List<InvoiceListItem>> watchFilteredInvoices(
+    SalesFilter filter, {
+    int limit = 30,
+    int offset = 0,
+  }) async* {
+    if (_lastList != null) yield _lastList!;
+    final err = _pendingListError;
+    if (err != null) {
+      _pendingListError = null;
+      throw err; // an error emitted before we subscribed still reaches the bloc
+    }
+    yield* _listController.stream;
+  }
+
+  @override
+  Stream<SalesSummary> watchSummary(SalesFilter filter) async* {
+    if (_lastSummary != null) yield _lastSummary!;
+    yield* _summaryController.stream;
+  }
 
   @override
   Future<Either<Failure, List<Invoice>>> getAllInvoices() async =>
@@ -367,16 +421,30 @@ void main() {
   });
 
   group('HistoryBloc', () {
-    test('watchInvoices stream drives today total/count', () async {
+    test('filtered stream drives the list + summary cards', () async {
       final repo = _FakeInvoiceRepository();
-      final bloc = HistoryBloc(repository: repo);
-      final loaded = bloc.stream.firstWhere((s) => s.invoices.isNotEmpty);
+      final bloc = HistoryBloc(
+          repository: repo, printerRepository: _FakePrinterRepository());
+      // The list and summary arrive as two independent stream updates, so wait
+      // for the state that has both settled.
+      final loaded = bloc.stream.firstWhere(
+          (s) => s.invoices.isNotEmpty && s.summary.count > 0);
       bloc.add(LoadHistoryEvent());
-      repo.emit([Invoice(id: 'i1', createdAt: DateTime.now(), totalAmount: 25)]);
+      repo.emitList([
+        InvoiceListItem(
+            id: 'i1',
+            createdAt: DateTime.now(),
+            total: 25,
+            itemCount: 2,
+            isCredit: false),
+      ]);
+      repo.emitSummary(
+          const SalesSummary(count: 1, total: 25, cashTotal: 25));
 
       final state = await loaded.timeout(_timeout);
-      expect(state.todayCount, 1);
-      expect(state.todayTotal, 25);
+      expect(state.invoices.length, 1);
+      expect(state.summary.count, 1);
+      expect(state.summary.total, 25);
       await bloc.close();
       await repo.dispose();
     });
@@ -384,11 +452,12 @@ void main() {
     test('stream error → typed HistoryError.loadFailed (no raw string)',
         () async {
       final repo = _FakeInvoiceRepository();
-      final bloc = HistoryBloc(repository: repo);
+      final bloc = HistoryBloc(
+          repository: repo, printerRepository: _FakePrinterRepository());
       final errored =
           bloc.stream.firstWhere((s) => s.status == HistoryStatus.error);
       bloc.add(LoadHistoryEvent());
-      repo.emitError(Exception('db boom'));
+      repo.emitListError(Exception('db boom'));
 
       final state = await errored.timeout(_timeout);
       expect(state.error, HistoryError.loadFailed);
@@ -399,10 +468,15 @@ void main() {
     test('item-load failure → invoice recorded in failedItems (retryable)',
         () async {
       final repo = _FakeInvoiceRepository()
-        ..itemsResult = const Right([]);
-      final bloc = HistoryBloc(repository: repo);
-      await Future<void>.delayed(const Duration(milliseconds: 200));
-      expect(bloc.state.status, HistoryStatus.initial);
+        ..itemsResult = const Left(CacheFailure('boom'));
+      final bloc = HistoryBloc(
+          repository: repo, printerRepository: _FakePrinterRepository());
+      final failed =
+          bloc.stream.firstWhere((s) => s.failedItems.contains('i1'));
+      bloc.add(const LoadInvoiceDetailsEvent('i1'));
+
+      final state = await failed.timeout(_timeout);
+      expect(state.failedItems, contains('i1'));
       await bloc.close();
       await repo.dispose();
     });

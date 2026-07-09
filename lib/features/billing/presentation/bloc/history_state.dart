@@ -6,57 +6,95 @@ enum HistoryStatus { initial, loading, loaded, error }
 /// translated string — no user-facing English lives in the BLoC.
 enum HistoryError { loadFailed }
 
+/// One-shot outcome of a reprint, mapped to an ARB string in the page.
+enum ReprintStatus { idle, printing, done, failed }
+
 class HistoryState extends Equatable {
   final HistoryStatus status;
-  final List<Invoice> invoices;
+
+  /// The active query (date range, payment, sort, search).
+  final SalesFilter filter;
+
+  /// The current list window (first N rows for the filter; grows on LoadMore).
+  final List<InvoiceListItem> invoices;
+
+  /// Aggregate totals for the filtered set (drives the summary cards).
+  final SalesSummary summary;
+
+  /// Whether the window might have more rows to page in.
+  final bool hasMore;
+
+  /// A page load is in flight (shows a footer spinner).
+  final bool loadingMore;
+
+  /// Line items per invoice, lazy-loaded for the detail page.
   final Map<String, List<InvoiceItem>> itemsCache;
+
+  /// Invoice IDs whose line-item load failed, so the UI can show a retry hint.
+  final Set<String> failedItems;
+
   final HistoryError? error;
 
-  /// Invoice IDs whose line-item load failed, so the UI can show a retry hint
-  /// instead of an endless spinner. Cleared for an invoice once its items load.
-  final Set<String> failedItems;
-  final double todayTotal;
-  final int todayCount;
+  /// Transient reprint outcome + which invoice it applies to.
+  final ReprintStatus reprintStatus;
+  final String? reprintingId;
 
   const HistoryState({
     this.status = HistoryStatus.initial,
+    required this.filter,
     this.invoices = const [],
+    this.summary = const SalesSummary(),
+    this.hasMore = false,
+    this.loadingMore = false,
     this.itemsCache = const {},
-    this.error,
     this.failedItems = const {},
-    this.todayTotal = 0,
-    this.todayCount = 0,
+    this.error,
+    this.reprintStatus = ReprintStatus.idle,
+    this.reprintingId,
   });
 
   HistoryState copyWith({
     HistoryStatus? status,
-    List<Invoice>? invoices,
+    SalesFilter? filter,
+    List<InvoiceListItem>? invoices,
+    SalesSummary? summary,
+    bool? hasMore,
+    bool? loadingMore,
     Map<String, List<InvoiceItem>>? itemsCache,
+    Set<String>? failedItems,
     HistoryError? error,
     bool clearError = false,
-    Set<String>? failedItems,
-    double? todayTotal,
-    int? todayCount,
+    ReprintStatus? reprintStatus,
+    String? reprintingId,
+    bool clearReprintingId = false,
   }) {
     return HistoryState(
       status: status ?? this.status,
+      filter: filter ?? this.filter,
       invoices: invoices ?? this.invoices,
+      summary: summary ?? this.summary,
+      hasMore: hasMore ?? this.hasMore,
+      loadingMore: loadingMore ?? this.loadingMore,
       itemsCache: itemsCache ?? this.itemsCache,
-      error: clearError ? null : (error ?? this.error),
       failedItems: failedItems ?? this.failedItems,
-      todayTotal: todayTotal ?? this.todayTotal,
-      todayCount: todayCount ?? this.todayCount,
+      error: clearError ? null : (error ?? this.error),
+      reprintStatus: reprintStatus ?? this.reprintStatus,
+      reprintingId: clearReprintingId ? null : (reprintingId ?? this.reprintingId),
     );
   }
 
   @override
   List<Object?> get props => [
         status,
+        filter,
         invoices,
+        summary,
+        hasMore,
+        loadingMore,
         itemsCache,
-        error,
         failedItems,
-        todayTotal,
-        todayCount,
+        error,
+        reprintStatus,
+        reprintingId,
       ];
 }

@@ -4,11 +4,17 @@ import '../tables/sales_invoices_table.dart';
 import '../tables/sales_items_table.dart';
 import '../tables/ledger_entries_table.dart';
 import '../tables/cashbox_transactions_table.dart';
+import '../tables/customers_table.dart';
 
 part 'sales_dao.g.dart';
 
-@DriftAccessor(
-    tables: [SalesInvoices, SalesItems, LedgerEntries, CashboxTransactions])
+@DriftAccessor(tables: [
+  SalesInvoices,
+  SalesItems,
+  LedgerEntries,
+  CashboxTransactions,
+  Customers,
+])
 class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   SalesDao(super.db);
 
@@ -27,6 +33,111 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   /// All line items belonging to a specific invoice.
   Future<List<SalesItemRow>> getItemsForInvoice(String invoiceId) =>
       (select(salesItems)..where((i) => i.invoiceId.equals(invoiceId))).get();
+
+  // ── Audit center (filtered list + summary) ─────────────────────────────────
+  //
+  // `sales_invoices` is intentionally minimal (id, created_at, total_amount).
+  // Payment type and customer are *derived*: an invoice is CREDIT iff a
+  // `ledger_entries` `charge` row references it (that row also carries the
+  // customer); otherwise it's a CASH (anonymous) sale. So both queries LEFT
+  // JOIN the ledger (one charge row per invoice at most → no fan-out) and the
+  // customer. Reactive via `.watch()` with an explicit `readsFrom` so they
+  // re-emit after every new sale. Indexes already back these: created_at,
+  // sales_items.invoice_id, ledger_entries.invoice_id.
+
+  /// Build the shared `WHERE` clause + bound variables for both audit queries.
+  /// [payment] is `'all' | 'cash' | 'credit'`; [search] matches invoice id or
+  /// customer name (empty = no text filter).
+  (String, List<Variable>) _auditWhere({
+    required int fromMs,
+    required int toMs,
+    required String payment,
+    required String search,
+  }) {
+    final where = StringBuffer('WHERE i.created_at BETWEEN ? AND ?');
+    final vars = <Variable>[Variable.withInt(fromMs), Variable.withInt(toMs)];
+    if (payment == 'credit') {
+      where.write(' AND le.invoice_id IS NOT NULL');
+    } else if (payment == 'cash') {
+      where.write(' AND le.invoice_id IS NULL');
+    }
+    if (search.isNotEmpty) {
+      where.write(' AND (i.id LIKE ? OR c.name LIKE ?)');
+      final like = '%$search%';
+      vars..add(Variable.withString(like))..add(Variable.withString(like));
+    }
+    return (where.toString(), vars);
+  }
+
+  /// Reactive, paginated audit list. [orderBySql] MUST be a caller-whitelisted
+  /// fragment (never user input) — the repository maps [SalesSort] to it.
+  Stream<List<AuditInvoiceRow>> watchAuditInvoices({
+    required int fromMs,
+    required int toMs,
+    required String payment,
+    required String search,
+    required String orderBySql,
+    required int limit,
+    required int offset,
+  }) {
+    final (whereSql, vars) = _auditWhere(
+        fromMs: fromMs, toMs: toMs, payment: payment, search: search);
+    final sql = '''
+SELECT i.id AS id, i.created_at AS created_at, i.total_amount AS total_amount,
+       c.name AS customer_name,
+       (le.invoice_id IS NOT NULL) AS is_credit,
+       (SELECT COUNT(*) FROM sales_items si WHERE si.invoice_id = i.id) AS item_count
+FROM sales_invoices i
+LEFT JOIN ledger_entries le ON le.invoice_id = i.id AND le.entry_type = 'charge'
+LEFT JOIN customers c ON c.id = le.customer_id
+$whereSql
+ORDER BY $orderBySql
+LIMIT ? OFFSET ?''';
+    final allVars = [...vars, Variable.withInt(limit), Variable.withInt(offset)];
+    return customSelect(
+      sql,
+      variables: allVars,
+      readsFrom: {salesInvoices, salesItems, ledgerEntries, customers},
+    ).watch().map((rows) => rows
+        .map((r) => AuditInvoiceRow(
+              id: r.read<String>('id'),
+              createdAt: r.read<int>('created_at'),
+              totalAmount: r.read<double>('total_amount'),
+              customerName: r.readNullable<String>('customer_name'),
+              isCredit: r.read<int>('is_credit') != 0,
+              itemCount: r.read<int>('item_count'),
+            ))
+        .toList());
+  }
+
+  /// Reactive summary aggregate over the same filter (no pagination). Cash total
+  /// is derived in Dart as `total - creditTotal`.
+  Stream<AuditSummaryRow> watchAuditSummary({
+    required int fromMs,
+    required int toMs,
+    required String payment,
+    required String search,
+  }) {
+    final (whereSql, vars) = _auditWhere(
+        fromMs: fromMs, toMs: toMs, payment: payment, search: search);
+    final sql = '''
+SELECT COUNT(*) AS cnt,
+       COALESCE(SUM(i.total_amount), 0.0) AS total,
+       COALESCE(SUM(CASE WHEN le.invoice_id IS NOT NULL THEN i.total_amount ELSE 0 END), 0.0) AS credit_total
+FROM sales_invoices i
+LEFT JOIN ledger_entries le ON le.invoice_id = i.id AND le.entry_type = 'charge'
+LEFT JOIN customers c ON c.id = le.customer_id
+$whereSql''';
+    return customSelect(
+      sql,
+      variables: vars,
+      readsFrom: {salesInvoices, ledgerEntries, customers},
+    ).map((r) => AuditSummaryRow(
+          count: r.read<int>('cnt'),
+          total: r.read<double>('total'),
+          creditTotal: r.read<double>('credit_total'),
+        )).watchSingle();
+  }
 
   /// Record a sale atomically: insert the invoice, insert its line items, and
   /// deduct each sold quantity from product on-hand stock — all in one
@@ -85,5 +196,36 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
               ..where((c) => c.relatedId.equals(id)))
             .go();
       });
+}
+
+/// Projection returned by [SalesDao.watchAuditInvoices]: an invoice with its
+/// derived payment type, customer, and item count.
+class AuditInvoiceRow {
+  final String id;
+  final int createdAt; // ms since epoch
+  final double totalAmount;
+  final String? customerName;
+  final bool isCredit;
+  final int itemCount;
+  const AuditInvoiceRow({
+    required this.id,
+    required this.createdAt,
+    required this.totalAmount,
+    required this.customerName,
+    required this.isCredit,
+    required this.itemCount,
+  });
+}
+
+/// Projection returned by [SalesDao.watchAuditSummary].
+class AuditSummaryRow {
+  final int count;
+  final double total;
+  final double creditTotal;
+  const AuditSummaryRow({
+    required this.count,
+    required this.total,
+    required this.creditTotal,
+  });
 }
 

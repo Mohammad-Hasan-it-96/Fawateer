@@ -6,6 +6,9 @@ import '../../../../core/database/daos/sales_dao.dart';
 import '../../../../core/error/failure.dart';
 import '../../domain/entities/invoice.dart';
 import '../../domain/entities/invoice_item.dart';
+import '../../domain/entities/invoice_list_item.dart';
+import '../../domain/entities/sales_filter.dart';
+import '../../domain/entities/sales_summary.dart';
 import '../../domain/repositories/invoice_repository.dart';
 
 class InvoiceRepositoryDriftImpl implements InvoiceRepository {
@@ -17,6 +20,32 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
         createdAt: DateTime.fromMillisecondsSinceEpoch(r.createdAt),
         totalAmount: r.totalAmount,
       );
+
+  /// Whitelisted `ORDER BY` fragment per sort — never interpolate user input.
+  /// A stable secondary key keeps pagination deterministic across equal values.
+  static String _orderBySql(SalesSort sort) {
+    switch (sort) {
+      case SalesSort.newest:
+        return 'i.created_at DESC, i.id DESC';
+      case SalesSort.oldest:
+        return 'i.created_at ASC, i.id ASC';
+      case SalesSort.highest:
+        return 'i.total_amount DESC, i.created_at DESC';
+      case SalesSort.lowest:
+        return 'i.total_amount ASC, i.created_at DESC';
+    }
+  }
+
+  static String _paymentSql(PaymentFilter p) {
+    switch (p) {
+      case PaymentFilter.all:
+        return 'all';
+      case PaymentFilter.cash:
+        return 'cash';
+      case PaymentFilter.credit:
+        return 'credit';
+    }
+  }
 
   @override
   Future<Either<Failure, void>> saveInvoice(
@@ -89,6 +118,51 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
   @override
   Stream<List<Invoice>> watchInvoices() =>
       _dao.watchAllInvoices().map((rows) => rows.map(_toEntity).toList());
+
+  @override
+  Stream<List<InvoiceListItem>> watchFilteredInvoices(
+    SalesFilter filter, {
+    int limit = 30,
+    int offset = 0,
+  }) {
+    return _dao
+        .watchAuditInvoices(
+          fromMs: filter.from.millisecondsSinceEpoch,
+          toMs: filter.to.millisecondsSinceEpoch,
+          payment: _paymentSql(filter.payment),
+          search: filter.search.trim(),
+          orderBySql: _orderBySql(filter.sort),
+          limit: limit,
+          offset: offset,
+        )
+        .map((rows) => rows
+            .map((r) => InvoiceListItem(
+                  id: r.id,
+                  createdAt: DateTime.fromMillisecondsSinceEpoch(r.createdAt),
+                  total: r.totalAmount,
+                  itemCount: r.itemCount,
+                  isCredit: r.isCredit,
+                  customerName: r.customerName,
+                ))
+            .toList());
+  }
+
+  @override
+  Stream<SalesSummary> watchSummary(SalesFilter filter) {
+    return _dao
+        .watchAuditSummary(
+          fromMs: filter.from.millisecondsSinceEpoch,
+          toMs: filter.to.millisecondsSinceEpoch,
+          payment: _paymentSql(filter.payment),
+          search: filter.search.trim(),
+        )
+        .map((r) => SalesSummary(
+              count: r.count,
+              total: r.total,
+              creditTotal: r.creditTotal,
+              cashTotal: r.total - r.creditTotal,
+            ));
+  }
 
   @override
   Future<Either<Failure, List<InvoiceItem>>> getInvoiceItems(

@@ -5,8 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/service_locator.dart';
+import '../../features/billing/domain/entities/invoice_list_item.dart';
 import '../../features/billing/presentation/pages/checkout_page.dart';
 import '../../features/billing/presentation/pages/history_page.dart';
+import '../../features/billing/presentation/pages/invoice_detail_page.dart';
 import '../../features/billing/presentation/pages/home_page.dart';
 import '../../features/billing/presentation/pages/scanner_page.dart';
 import '../../features/ledger/domain/entities/customer.dart';
@@ -122,6 +124,16 @@ final router = GoRouter(
             GoRoute(
               path: '/history',
               builder: (context, state) => const HistoryPage(),
+              routes: [
+                GoRoute(
+                  path: 'detail/:id',
+                  builder: (context, state) {
+                    final invoice = state.extra as InvoiceListItem?;
+                    if (invoice == null) return const HistoryPage();
+                    return InvoiceDetailPage(invoice: invoice);
+                  },
+                ),
+              ],
             ),
           ],
         ),

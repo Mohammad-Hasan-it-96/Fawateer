@@ -110,7 +110,8 @@ Future<void> init() async {
 
   sl.registerFactory(() => PrinterBloc(repository: sl()));
 
-  sl.registerFactory(() => HistoryBloc(repository: sl()));
+  sl.registerFactory(
+      () => HistoryBloc(repository: sl(), printerRepository: sl()));
 
   sl.registerFactory(() => BillingBloc(
         productRepository: sl(),

@@ -338,6 +338,168 @@ abstract class AppLocalizations {
   /// **'Couldn\'t load items. Tap to retry.'**
   String get itemsLoadFailed;
 
+  /// No description provided for @filterYesterday.
+  ///
+  /// In en, this message translates to:
+  /// **'Yesterday'**
+  String get filterYesterday;
+
+  /// No description provided for @filterThisWeek.
+  ///
+  /// In en, this message translates to:
+  /// **'This Week'**
+  String get filterThisWeek;
+
+  /// No description provided for @filterThisMonth.
+  ///
+  /// In en, this message translates to:
+  /// **'This Month'**
+  String get filterThisMonth;
+
+  /// No description provided for @paymentCash.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash'**
+  String get paymentCash;
+
+  /// No description provided for @paymentCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit'**
+  String get paymentCredit;
+
+  /// No description provided for @paymentType.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment'**
+  String get paymentType;
+
+  /// No description provided for @sortBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sort'**
+  String get sortBy;
+
+  /// No description provided for @sortNewest.
+  ///
+  /// In en, this message translates to:
+  /// **'Newest'**
+  String get sortNewest;
+
+  /// No description provided for @sortOldest.
+  ///
+  /// In en, this message translates to:
+  /// **'Oldest'**
+  String get sortOldest;
+
+  /// No description provided for @sortHighest.
+  ///
+  /// In en, this message translates to:
+  /// **'Highest amount'**
+  String get sortHighest;
+
+  /// No description provided for @sortLowest.
+  ///
+  /// In en, this message translates to:
+  /// **'Lowest amount'**
+  String get sortLowest;
+
+  /// No description provided for @summaryInvoices.
+  ///
+  /// In en, this message translates to:
+  /// **'Invoices'**
+  String get summaryInvoices;
+
+  /// No description provided for @summaryTotal.
+  ///
+  /// In en, this message translates to:
+  /// **'Total'**
+  String get summaryTotal;
+
+  /// No description provided for @summaryCash.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash'**
+  String get summaryCash;
+
+  /// No description provided for @summaryCredit.
+  ///
+  /// In en, this message translates to:
+  /// **'Credit'**
+  String get summaryCredit;
+
+  /// No description provided for @summaryAverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Average'**
+  String get summaryAverage;
+
+  /// No description provided for @searchInvoicesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search invoice # or customer…'**
+  String get searchInvoicesHint;
+
+  /// No description provided for @noSalesMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No sales match your filters.'**
+  String get noSalesMatch;
+
+  /// No description provided for @itemCountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items'**
+  String itemCountLabel(int count);
+
+  /// No description provided for @invoiceDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Invoice Details'**
+  String get invoiceDetails;
+
+  /// No description provided for @invoiceNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Invoice #'**
+  String get invoiceNumber;
+
+  /// No description provided for @dateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get dateLabel;
+
+  /// No description provided for @timeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get timeLabel;
+
+  /// No description provided for @customerLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Customer'**
+  String get customerLabel;
+
+  /// No description provided for @unitPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit Price'**
+  String get unitPrice;
+
+  /// No description provided for @walkInCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Walk-in customer'**
+  String get walkInCustomer;
+
+  /// No description provided for @reprint.
+  ///
+  /// In en, this message translates to:
+  /// **'Reprint'**
+  String get reprint;
+
   /// No description provided for @shopLoadFailed.
   ///
   /// In en, this message translates to:
