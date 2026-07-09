@@ -13,6 +13,15 @@ class LoadLedger extends LedgerEvent {
   List<Object?> get props => [customerId];
 }
 
+/// Internal: emitted from the customer stream so a live edit (rename) updates
+/// the detail view immediately.
+class _CustomerChanged extends LedgerEvent {
+  final Customer? customer;
+  const _CustomerChanged(this.customer);
+  @override
+  List<Object?> get props => [customer];
+}
+
 class AddLedgerEntry extends LedgerEvent {
   final LedgerEntry entry;
   const AddLedgerEntry(this.entry);

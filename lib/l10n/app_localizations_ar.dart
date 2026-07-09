@@ -668,6 +668,20 @@ class AppLocalizationsAr extends AppLocalizations {
   String get addNewCustomer => 'إضافة عميل جديد';
 
   @override
+  String get searchCustomerHint => 'ابحث عن عميل';
+
+  @override
+  String get noMatchingCustomers => 'لا يوجد عملاء مطابقون';
+
+  @override
+  String get duplicateCustomerName => 'يوجد عميل بهذا الاسم بالفعل';
+
+  @override
+  String andMoreTypeToSearch(int count) {
+    return '+$count آخرين — اكتب للبحث';
+  }
+
+  @override
   String get balanceSettled => 'مسدّد';
 
   @override
@@ -709,6 +723,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get deleteEntryConfirm => 'حذف هذه الحركة من الدفتر؟';
+
+  @override
+  String get deleteCustomerTitle => 'حذف العميل';
+
+  @override
+  String get deleteCustomerConfirm =>
+      'حذف هذا العميل؟ لا يمكن التراجع عن هذا الإجراء.';
 
   @override
   String get debtAdded => 'تمت إضافة الدين';

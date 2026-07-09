@@ -1370,6 +1370,30 @@ abstract class AppLocalizations {
   /// **'Add new customer'**
   String get addNewCustomer;
 
+  /// No description provided for @searchCustomerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search customers'**
+  String get searchCustomerHint;
+
+  /// No description provided for @noMatchingCustomers.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching customers'**
+  String get noMatchingCustomers;
+
+  /// No description provided for @duplicateCustomerName.
+  ///
+  /// In en, this message translates to:
+  /// **'A customer with this name already exists'**
+  String get duplicateCustomerName;
+
+  /// No description provided for @andMoreTypeToSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'+{count} more — type to search'**
+  String andMoreTypeToSearch(int count);
+
   /// No description provided for @balanceSettled.
   ///
   /// In en, this message translates to:
@@ -1447,6 +1471,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Delete this ledger entry?'**
   String get deleteEntryConfirm;
+
+  /// No description provided for @deleteCustomerTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete Customer'**
+  String get deleteCustomerTitle;
+
+  /// No description provided for @deleteCustomerConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this customer? This can\'t be undone.'**
+  String get deleteCustomerConfirm;
 
   /// No description provided for @debtAdded.
   ///

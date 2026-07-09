@@ -10,9 +10,11 @@ import '../../../../core/utils/num_input.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../domain/entities/ledger_entry.dart';
+import '../bloc/customer_bloc.dart';
 import '../bloc/ledger_bloc.dart';
 import '../customer_statement.dart';
 import '../ledger_money.dart';
+import 'customers_page.dart' show customerMessageText;
 
 /// Map a [LedgerMessage] to a localized string.
 String ledgerMessageText(LedgerMessage m, AppLocalizations l10n) {
@@ -86,6 +88,24 @@ class CustomerDetailPage extends StatelessWidget {
                   : () => context.push('/customers/edit/$customerId',
                       extra: state.customer),
             ),
+          ),
+          // Delete is only offered once the account is settled (zero balance);
+          // the repository still guards against dropping a customer who has
+          // ledger history (archive instead).
+          BlocBuilder<LedgerBloc, LedgerState>(
+            buildWhen: (p, c) =>
+                p.customer != c.customer || p.balance != c.balance,
+            builder: (context, state) {
+              final canDelete =
+                  state.customer != null && state.balance.abs() < 0.005;
+              if (!canDelete) return const SizedBox.shrink();
+              return IconButton(
+                icon: const Icon(Icons.delete_outline),
+                tooltip: l10n.delete,
+                color: Colors.red.shade400,
+                onPressed: () => _confirmDeleteCustomer(context, l10n),
+              );
+            },
           ),
         ],
       ),
@@ -286,6 +306,52 @@ class CustomerDetailPage extends StatelessWidget {
       ),
     );
     if (ok == true) bloc.add(DeleteLedgerEntry(e.id));
+  }
+
+  /// Delete the whole customer (only reachable when the balance is settled).
+  /// Routed through the app-wide [CustomerBloc]; on success we leave the detail
+  /// route, otherwise (e.g. the customer still has ledger history) we surface the
+  /// localized reason.
+  Future<void> _confirmDeleteCustomer(
+      BuildContext context, AppLocalizations l10n) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.deleteCustomerTitle),
+        content: Text(l10n.deleteCustomerConfirm),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancel)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final bloc = context.read<CustomerBloc>();
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+
+    // Subscribe before dispatching so we don't miss the outcome.
+    final outcome = bloc.stream.firstWhere((s) =>
+        s.message == CustomerMessage.deleted ||
+        s.message == CustomerMessage.deleteBlocked ||
+        s.message == CustomerMessage.saveFailed);
+    bloc.add(DeleteCustomer(customerId));
+    final result = await outcome;
+
+    if (result.message == CustomerMessage.deleted) {
+      router.go('/customers');
+    } else {
+      messenger.showSnackBar(SnackBar(
+        content: Text(customerMessageText(result.message!, l10n)),
+        backgroundColor: Colors.red,
+      ));
+    }
   }
 
   void _showEntrySheet(

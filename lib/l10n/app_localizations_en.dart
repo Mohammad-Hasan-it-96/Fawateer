@@ -675,6 +675,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get addNewCustomer => 'Add new customer';
 
   @override
+  String get searchCustomerHint => 'Search customers';
+
+  @override
+  String get noMatchingCustomers => 'No matching customers';
+
+  @override
+  String get duplicateCustomerName =>
+      'A customer with this name already exists';
+
+  @override
+  String andMoreTypeToSearch(int count) {
+    return '+$count more — type to search';
+  }
+
+  @override
   String get balanceSettled => 'Settled';
 
   @override
@@ -716,6 +731,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteEntryConfirm => 'Delete this ledger entry?';
+
+  @override
+  String get deleteCustomerTitle => 'Delete Customer';
+
+  @override
+  String get deleteCustomerConfirm =>
+      'Delete this customer? This can\'t be undone.';
 
   @override
   String get debtAdded => 'Debt added';

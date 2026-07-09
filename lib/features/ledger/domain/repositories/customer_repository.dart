@@ -9,6 +9,10 @@ abstract class CustomerRepository {
   Stream<List<CustomerAccount>> watchCustomers();
 
   Future<Either<Failure, Customer>> getCustomer(String id);
+
+  /// Reactive single customer (null if it doesn't exist / was deleted) — lets a
+  /// detail view reflect edits immediately.
+  Stream<Customer?> watchCustomer(String id);
   Future<Either<Failure, void>> addCustomer(Customer customer);
   Future<Either<Failure, void>> updateCustomer(Customer customer);
 

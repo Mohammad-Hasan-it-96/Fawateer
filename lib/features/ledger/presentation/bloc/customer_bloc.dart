@@ -61,8 +61,12 @@ class CustomerBloc extends Bloc<CustomerEvent, CustomerState> {
   ) async {
     final result = await action();
     result.fold(
-      (_) => emit(state.copyWith(
-          status: CustomerStatus.error, message: CustomerMessage.saveFailed)),
+      (failure) => emit(state.copyWith(
+        status: CustomerStatus.error,
+        message: failure is DuplicateFailure
+            ? CustomerMessage.duplicateName
+            : CustomerMessage.saveFailed,
+      )),
       (_) => emit(
           state.copyWith(status: CustomerStatus.loaded, message: successMessage)),
     );

@@ -238,6 +238,17 @@
   "noCustomersHint": "Add a customer to track credit sales and payments.",
   "selectCustomer": "Select customer",
   "addNewCustomer": "Add new customer",
+  "searchCustomerHint": "Search customers",
+  "noMatchingCustomers": "No matching customers",
+  "duplicateCustomerName": "A customer with this name already exists",
+  "andMoreTypeToSearch": "+{count} more — type to search",
+  "@andMoreTypeToSearch": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "balanceSettled": "Settled",
   "balanceOwed": "Owes {amount}",
   "@balanceOwed": { "placeholders": { "amount": { "type": "String" } } },
@@ -253,6 +264,8 @@
   "creditSaleTag": "Credit sale",
   "deleteEntryTitle": "Delete Entry",
   "deleteEntryConfirm": "Delete this ledger entry?",
+  "deleteCustomerTitle": "Delete Customer",
+  "deleteCustomerConfirm": "Delete this customer? This can't be undone.",
   "debtAdded": "Debt added",
   "paymentRecorded": "Payment recorded",
   "entryDeleted": "Entry deleted",

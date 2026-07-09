@@ -9,6 +9,7 @@ enum CustomerMessage {
   updated,
   deleted,
   deleteBlocked,
+  duplicateName,
   saveFailed,
   loadFailed,
 }

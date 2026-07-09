@@ -19,6 +19,8 @@ String customerMessageText(CustomerMessage m, AppLocalizations l10n) {
       return l10n.customerDeleted;
     case CustomerMessage.deleteBlocked:
       return l10n.customerDeleteBlocked;
+    case CustomerMessage.duplicateName:
+      return l10n.duplicateCustomerName;
     case CustomerMessage.saveFailed:
       return l10n.customerSaveFailed;
     case CustomerMessage.loadFailed:
