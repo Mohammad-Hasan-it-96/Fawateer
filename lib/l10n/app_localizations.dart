@@ -1903,6 +1903,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your subscription has been activated'**
   String get subscriptionActivatedBanner;
+
+  /// No description provided for @backupTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup & Restore'**
+  String get backupTitle;
+
+  /// No description provided for @backupItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup & Restore'**
+  String get backupItem;
+
+  /// No description provided for @backupSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Protect your data with Google Drive'**
+  String get backupSubtitle;
+
+  /// No description provided for @backupSignInPrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with your Google account to keep a safe copy of all your data (sales, products, customers, debts, cash) in your own Google Drive. If your phone is lost or broken, you can restore everything on a new device.'**
+  String get backupSignInPrompt;
+
+  /// No description provided for @backupSignInButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with Google'**
+  String get backupSignInButton;
+
+  /// No description provided for @backupSignOut.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get backupSignOut;
+
+  /// No description provided for @backupAccountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Signed-in account'**
+  String get backupAccountLabel;
+
+  /// No description provided for @backupNowButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Back up now'**
+  String get backupNowButton;
+
+  /// No description provided for @backupExportButton.
+  ///
+  /// In en, this message translates to:
+  /// **'Export a copy to share'**
+  String get backupExportButton;
+
+  /// No description provided for @backupLastLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Last backup'**
+  String get backupLastLabel;
+
+  /// No description provided for @backupNever.
+  ///
+  /// In en, this message translates to:
+  /// **'No backup yet — your data is not protected'**
+  String get backupNever;
+
+  /// No description provided for @backupListTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Your backups'**
+  String get backupListTitle;
+
+  /// No description provided for @backupListEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No backups found in this account'**
+  String get backupListEmpty;
+
+  /// No description provided for @backupRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get backupRestore;
+
+  /// No description provided for @backupThisDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'This device'**
+  String get backupThisDevice;
+
+  /// No description provided for @backupRestoreConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore this backup?'**
+  String get backupRestoreConfirmTitle;
+
+  /// No description provided for @backupRestoreConfirmBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This will replace ALL current data on this device with the selected backup. This cannot be undone. The app will close so you can reopen it fresh.'**
+  String get backupRestoreConfirmBody;
+
+  /// No description provided for @backupRestartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore complete'**
+  String get backupRestartTitle;
+
+  /// No description provided for @backupRestartBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data has been restored. Please reopen the app to finish.'**
+  String get backupRestartBody;
+
+  /// No description provided for @backupRestartAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Close app'**
+  String get backupRestartAction;
+
+  /// No description provided for @backupSuccessBackedUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Backup completed successfully'**
+  String get backupSuccessBackedUp;
+
+  /// No description provided for @backupSuccessExported.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy ready — choose where to share it'**
+  String get backupSuccessExported;
+
+  /// No description provided for @backupErrorNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'No internet connection. Connect and try again.'**
+  String get backupErrorNetwork;
+
+  /// No description provided for @backupErrorServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Google Drive error. Please try again.'**
+  String get backupErrorServer;
+
+  /// No description provided for @backupErrorSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in was cancelled or not completed.'**
+  String get backupErrorSignIn;
+
+  /// No description provided for @backupErrorIncompatibleNew.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup was made by a newer version of the app. Please update the app before restoring.'**
+  String get backupErrorIncompatibleNew;
+
+  /// No description provided for @backupErrorCorrupt.
+  ///
+  /// In en, this message translates to:
+  /// **'This backup file is damaged and cannot be restored.'**
+  String get backupErrorCorrupt;
+
+  /// No description provided for @backupErrorUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get backupErrorUnknown;
+
+  /// No description provided for @backupBusyBackingUp.
+  ///
+  /// In en, this message translates to:
+  /// **'Backing up…'**
+  String get backupBusyBackingUp;
+
+  /// No description provided for @backupBusyRestoring.
+  ///
+  /// In en, this message translates to:
+  /// **'Restoring…'**
+  String get backupBusyRestoring;
 }
 
 class _AppLocalizationsDelegate

@@ -4,7 +4,7 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
 **online-validated subscriptions** and a **customer debt ledger**.
 
 **Branch:** `refactor/architecture-hardening`
-**Last updated:** 2026-07-08 (remote config + in-app updates, editable account, product-picker UX, sell-by-weight)
+**Last updated:** 2026-07-11 (cashbox / cash drawer, sales audit center, customer duplicate-name guard, Android release-build fix)
 
 ---
 
@@ -45,6 +45,10 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
 | 3.5 | Editable account (name/phone) in Settings | ✅ Done |
 | POS | Product picker — live list + tap-add feedback | ✅ Done |
 | POS | Sell by weight / sale type (schema **v8**) | ✅ Done |
+| POS | Sales **audit center** (filter / summary / pagination) | ✅ Done |
+| Cash | **Cashbox** / cash drawer (schema **v9**) | ✅ Done |
+| Ledger | Customer duplicate-name guard | ✅ Done |
+| Build | Android release-build fix (`flutter_vibrate` lStar) | ✅ Done |
 | 4+ | Inventory / purchases / expenses / reports / multi-store | ⬜ Future |
 
 ---
@@ -187,6 +191,56 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
   exactly (`5000` → `5000.00`) — no stored line-total column needed. Checkout
   and the Arabic raster receipt render the weight + `كغ` unit.
 
+### ✅ POS — Sales audit center  *(reworked History tab)*
+- `HistoryBloc` / `HistoryPage` became a **filter-driven, paginated audit center**:
+  a `SalesFilter` (date preset `today`/`yesterday`/`thisWeek`/`thisMonth`/`custom`,
+  `PaymentFilter` `all`/`cash`/`credit`, text search, sort — defaults to **today**)
+  plus a live **summary aggregate** (count / total / credit total).
+- Cash-vs-credit is **derived** per invoice (credit iff the invoice has a `charge`
+  ledger entry). New DAO projections `AuditInvoiceRow` (with `isCredit`,
+  `customerName`, `itemCount`) + `AuditSummaryRow`, via
+  `SalesDao.watchAuditInvoices` / `watchAuditSummary`.
+- **Live + paginated**: list and summary each ride a `StreamSubscription` feeding
+  internal `_InvoicesUpdated` / `_SummaryUpdated` events (can't `emit` outside a
+  handler); a filter change or `LoadMoreEvent` (`_kPageSize = 30`) re-subscribes.
+  Invoice line items lazy-load + cache for `/history/detail/:id` →
+  `InvoiceDetailPage`; reprint reuses `PrinterRepository.printReceipt`.
+
+### ✅ Cashbox — cash drawer  *(Drift schema v9)*
+- New `features/cashbox/` — a **single-entry, signed, derived-balance** cash
+  ledger (same shape as the debt ledger). One `cashbox_transactions` row per
+  movement; balance = `SUM(amount)` (`amount` signed, `+` in / `−` out), never
+  stored. Money `double`, rounded 2dp at write time. Additive **schema v8 → v9**
+  (`createTable` + `_createCashboxIndexes()`); no existing table touched.
+- Extensible `CashTransactionType` enum, persisted **by name** (never index),
+  each with a `defaultDirection`. `purchasePayment` / `supplierPayment` are
+  **reserved** for the not-yet-built purchases/suppliers modules — they can post
+  here with no migration when those ship.
+- **Auto-posting, source-owned**: a **cash sale** posts a `cashSale` inflow inside
+  the sale's transaction (`SalesDao.insertInvoiceWithItems`); a **debt repayment**
+  posts a `customerDebtPayment` inflow inside the payment's transaction
+  (`LedgerRepositoryDriftImpl` — `LedgerRepository` now also depends on
+  `CashboxDao`). Both link via `relatedId`, are `isSystemGenerated` (not
+  user-deletable), and are **reversed** when their source invoice / ledger entry
+  is deleted (`CashboxDao.deleteByRelatedId`) so the balance stays honest.
+- Reachable from **Settings → Cashbox** (`/settings/cashbox` → `/history`), not a
+  new tab (shell stays 5 tabs). `CashboxBloc` is app-wide (`LoadCashbox` at
+  startup). Shared `core/utils/money_display.dart` formatting with the ledger.
+
+### ✅ Ledger — customer duplicate-name guard
+- Adding/editing a customer with a name another customer already uses now returns
+  `Left(DuplicateFailure)` (new `Failure` subtype), mapped to
+  `CustomerMessage.duplicateName` → the localized `duplicateCustomerName` string.
+  The add/edit form also validates inline (`CustomersDao.nameExists(exceptId:)`).
+
+### ✅ Build — Android release-build fix
+- `flutter build apk` failed on `flutter_vibrate` (discontinued): it links its
+  resources against an SDK older than API 31 → `android:attr/lStar not found`.
+  `android/build.gradle.kts` now bumps any stale subproject's `compileSdkVersion`
+  to 34 via a `subprojects { afterEvaluate { … } }` block, registered **before**
+  the `evaluationDependsOn(":app")` block (you can't `afterEvaluate` an
+  already-evaluated project). Verified: `--split-per-abi` produces all three APKs.
+
 ---
 
 ## Not started
@@ -204,11 +258,12 @@ Everything so far is validated by **`flutter analyze` only**:
 - Nothing has been exercised on a **real device** — especially the printer /
   Arabic-raster path, the licensing HTTP calls, and the FCM flow (which also
   needs a live Firebase project + server-side push).
-- **Newly untested on-device flows:** the **v7→v8 migration** (`saleType`
-  column) over a real pre-existing DB; the **sell-by-weight** entry + exact-money
-  total + weighed receipt line; **editable account** name/phone sync
-  (`update_my_data`); and the **in-app update** dialog (needs a bumped
-  `latest_version` in the hosted JSON to trigger).
+- **Newly untested on-device flows:** the **v8→v9 migration** (cashbox table)
+  over a real pre-existing DB; the **cashbox** auto-post + reversal (cash sale,
+  debt repayment, and deleting either source) and the derived-balance math; the
+  **sales audit center** filters/summary/pagination over real data; the
+  duplicate-name guard; and — still pending from before — the **sell-by-weight**
+  entry, **editable account** sync, and **in-app update** dialog.
 
 **Recommended:** a device smoke-test pass before further feature work.
 
@@ -232,3 +287,10 @@ Everything so far is validated by **`flutter analyze` only**:
 | `9927e82` | Product picker — live list + tap-add feedback |
 | `abba223` | Sale type: sell products by weight/amount (schema v8) |
 | `f02617d` | Editable account name/phone in Settings (+ new l10n strings) |
+| `1c2d765` | docs: record weight sales, remote config, editable account, picker UX |
+| `4f2a774` | Cashbox transactions table + localization (schema v9) |
+| `9bf5378` | Cash transaction model + repository |
+| `0c69c32` | Customer select/add localization |
+| `b9e41b8` | Customer duplicate-name validation + localization |
+| `3e1e961` | Sales history & audit center |
+| `f6b5e82` | Android release-build fix (`flutter_vibrate` lStar / compileSdk 34) |

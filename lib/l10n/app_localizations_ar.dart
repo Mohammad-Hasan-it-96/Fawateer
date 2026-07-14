@@ -950,4 +950,100 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get subscriptionActivatedBanner => 'تم تفعيل اشتراكك';
+
+  @override
+  String get backupTitle => 'النسخ الاحتياطي والاستعادة';
+
+  @override
+  String get backupItem => 'النسخ الاحتياطي والاستعادة';
+
+  @override
+  String get backupSubtitle => 'احمِ بياناتك عبر Google Drive';
+
+  @override
+  String get backupSignInPrompt =>
+      'سجّل الدخول بحساب Google الخاص بك للاحتفاظ بنسخة آمنة من جميع بياناتك (المبيعات، المنتجات، العملاء، الديون، الصندوق) في Google Drive الخاص بك. إذا فُقد هاتفك أو تعطّل، يمكنك استعادة كل شيء على جهاز جديد.';
+
+  @override
+  String get backupSignInButton => 'تسجيل الدخول عبر Google';
+
+  @override
+  String get backupSignOut => 'تسجيل الخروج';
+
+  @override
+  String get backupAccountLabel => 'الحساب المسجّل';
+
+  @override
+  String get backupNowButton => 'أنشئ نسخة الآن';
+
+  @override
+  String get backupExportButton => 'تصدير نسخة للمشاركة';
+
+  @override
+  String get backupLastLabel => 'آخر نسخة احتياطية';
+
+  @override
+  String get backupNever => 'لا توجد نسخة احتياطية بعد — بياناتك غير محمية';
+
+  @override
+  String get backupListTitle => 'نسخك الاحتياطية';
+
+  @override
+  String get backupListEmpty => 'لا توجد نسخ احتياطية في هذا الحساب';
+
+  @override
+  String get backupRestore => 'استعادة';
+
+  @override
+  String get backupThisDevice => 'هذا الجهاز';
+
+  @override
+  String get backupRestoreConfirmTitle => 'استعادة هذه النسخة؟';
+
+  @override
+  String get backupRestoreConfirmBody =>
+      'سيؤدي هذا إلى استبدال جميع البيانات الحالية على هذا الجهاز بالنسخة المحددة. لا يمكن التراجع عن ذلك. سيُغلق التطبيق لتعيد فتحه من جديد.';
+
+  @override
+  String get backupRestartTitle => 'اكتملت الاستعادة';
+
+  @override
+  String get backupRestartBody =>
+      'تمت استعادة بياناتك. من فضلك أعد فتح التطبيق للإنهاء.';
+
+  @override
+  String get backupRestartAction => 'إغلاق التطبيق';
+
+  @override
+  String get backupSuccessBackedUp => 'تم إنشاء النسخة الاحتياطية بنجاح';
+
+  @override
+  String get backupSuccessExported => 'النسخة جاهزة — اختر مكان المشاركة';
+
+  @override
+  String get backupErrorNetwork =>
+      'لا يوجد اتصال بالإنترنت. اتصل وحاول مرة أخرى.';
+
+  @override
+  String get backupErrorServer => 'خطأ في Google Drive. حاول مرة أخرى.';
+
+  @override
+  String get backupErrorSignIn => 'تم إلغاء تسجيل الدخول أو لم يكتمل.';
+
+  @override
+  String get backupErrorIncompatibleNew =>
+      'أُنشئت هذه النسخة بإصدار أحدث من التطبيق. رجاءً حدّث التطبيق قبل الاستعادة.';
+
+  @override
+  String get backupErrorCorrupt =>
+      'ملف النسخة الاحتياطية تالف ولا يمكن استعادته.';
+
+  @override
+  String get backupErrorUnknown => 'حدث خطأ ما. حاول مرة أخرى.';
+
+  @override
+  String get backupBusyBackingUp => 'جارٍ النسخ…';
+
+  @override
+  String get backupBusyRestoring => 'جارٍ الاستعادة…';
 }

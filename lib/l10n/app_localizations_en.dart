@@ -960,4 +960,100 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get subscriptionActivatedBanner =>
       'Your subscription has been activated';
+
+  @override
+  String get backupTitle => 'Backup & Restore';
+
+  @override
+  String get backupItem => 'Backup & Restore';
+
+  @override
+  String get backupSubtitle => 'Protect your data with Google Drive';
+
+  @override
+  String get backupSignInPrompt =>
+      'Sign in with your Google account to keep a safe copy of all your data (sales, products, customers, debts, cash) in your own Google Drive. If your phone is lost or broken, you can restore everything on a new device.';
+
+  @override
+  String get backupSignInButton => 'Sign in with Google';
+
+  @override
+  String get backupSignOut => 'Sign out';
+
+  @override
+  String get backupAccountLabel => 'Signed-in account';
+
+  @override
+  String get backupNowButton => 'Back up now';
+
+  @override
+  String get backupExportButton => 'Export a copy to share';
+
+  @override
+  String get backupLastLabel => 'Last backup';
+
+  @override
+  String get backupNever => 'No backup yet — your data is not protected';
+
+  @override
+  String get backupListTitle => 'Your backups';
+
+  @override
+  String get backupListEmpty => 'No backups found in this account';
+
+  @override
+  String get backupRestore => 'Restore';
+
+  @override
+  String get backupThisDevice => 'This device';
+
+  @override
+  String get backupRestoreConfirmTitle => 'Restore this backup?';
+
+  @override
+  String get backupRestoreConfirmBody =>
+      'This will replace ALL current data on this device with the selected backup. This cannot be undone. The app will close so you can reopen it fresh.';
+
+  @override
+  String get backupRestartTitle => 'Restore complete';
+
+  @override
+  String get backupRestartBody =>
+      'Your data has been restored. Please reopen the app to finish.';
+
+  @override
+  String get backupRestartAction => 'Close app';
+
+  @override
+  String get backupSuccessBackedUp => 'Backup completed successfully';
+
+  @override
+  String get backupSuccessExported => 'Copy ready — choose where to share it';
+
+  @override
+  String get backupErrorNetwork =>
+      'No internet connection. Connect and try again.';
+
+  @override
+  String get backupErrorServer => 'Google Drive error. Please try again.';
+
+  @override
+  String get backupErrorSignIn => 'Sign-in was cancelled or not completed.';
+
+  @override
+  String get backupErrorIncompatibleNew =>
+      'This backup was made by a newer version of the app. Please update the app before restoring.';
+
+  @override
+  String get backupErrorCorrupt =>
+      'This backup file is damaged and cannot be restored.';
+
+  @override
+  String get backupErrorUnknown => 'Something went wrong. Please try again.';
+
+  @override
+  String get backupBusyBackingUp => 'Backing up…';
+
+  @override
+  String get backupBusyRestoring => 'Restoring…';
 }

@@ -193,6 +193,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   subtitle: l10n.cashboxSubtitle,
                   onTap: () => context.push('/settings/cashbox'),
                 ),
+                _buildListItem(
+                  icon: Icons.cloud_upload_outlined,
+                  title: l10n.backupItem,
+                  subtitle: l10n.backupSubtitle,
+                  onTap: () => context.push('/settings/backup'),
+                ),
               ],
             ),
 

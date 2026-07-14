@@ -29,6 +29,8 @@ import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/shop/presentation/pages/shop_details_page.dart';
 import '../../features/cashbox/presentation/pages/cashbox_page.dart';
 import '../../features/cashbox/presentation/pages/cashbox_history_page.dart';
+import '../../features/backup/presentation/bloc/backup_bloc.dart';
+import '../../features/backup/presentation/pages/backup_page.dart';
 import 'app_shell.dart';
 
 /// The single shared LicenseBloc instance the gate reacts to.
@@ -216,6 +218,15 @@ final router = GoRouter(
                       builder: (context, state) => const CashboxHistoryPage(),
                     ),
                   ],
+                ),
+                // Backup & Restore (Google Drive). BackupBloc is scoped to this
+                // route (like LedgerBloc) — only needed while this page is open.
+                GoRoute(
+                  path: 'backup',
+                  builder: (context, state) => BlocProvider(
+                    create: (_) => sl<BackupBloc>(),
+                    child: const BackupPage(),
+                  ),
                 ),
                 // Subscription management (reachable only while active; the gate
                 // funnels unlicensed users to /activation instead).

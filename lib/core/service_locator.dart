@@ -27,6 +27,13 @@ import '../features/cashbox/data/repositories/cashbox_repository_drift_impl.dart
 import '../features/cashbox/domain/repositories/cashbox_repository.dart';
 import '../features/cashbox/presentation/bloc/cashbox_bloc.dart';
 
+// Features — Backup (cloud backup / restore)
+import '../features/backup/data/backup_engine.dart';
+import '../features/backup/data/backup_repository_impl.dart';
+import '../features/backup/data/google_drive_backup_target.dart';
+import '../features/backup/domain/repositories/backup_repository.dart';
+import '../features/backup/presentation/bloc/backup_bloc.dart';
+
 // Features — Licensing (subscription)
 import '../features/licensing/data/datasources/license_local_storage.dart';
 import '../features/licensing/data/datasources/license_remote_datasource.dart';
@@ -92,6 +99,14 @@ Future<void> init() async {
   sl.registerLazySingleton<CashboxRepository>(
       () => CashboxRepositoryDriftImpl(sl()));
 
+  // ── Backup (Drift snapshot + Google Drive target) ────────────────────────
+  sl.registerLazySingleton<BackupEngine>(() => BackupEngine(sl(), sl()));
+  sl.registerLazySingleton<GoogleDriveBackupTarget>(
+      () => GoogleDriveBackupTarget());
+  sl.registerLazySingleton<BackupRepository>(
+      () => BackupRepositoryImpl(sl<BackupEngine>(),
+          sl<GoogleDriveBackupTarget>(), sl<SettingsDao>(), sl()));
+
   // ── Licensing (network-backed; no DAO) ───────────────────────────────────
   sl.registerLazySingleton<DeviceIdentityService>(
       () => const DeviceIdentityService());
@@ -127,6 +142,8 @@ Future<void> init() async {
       ));
 
   sl.registerFactory(() => CashboxBloc(repository: sl()));
+
+  sl.registerFactory(() => BackupBloc(repository: sl<BackupRepository>()));
 
   // LicenseBloc is a SINGLETON (not a factory): the GoRouter gate redirect and
   // the widget tree must observe the same instance for the gate to react.

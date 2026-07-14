@@ -45,5 +45,12 @@ class ConflictFailure extends Failure {
   const ConflictFailure(super.message);
 }
 
+/// A backup file cannot be restored into this app: it was produced by a NEWER
+/// app version (its schemaVersion is ahead of ours — restoring would corrupt
+/// data via a missing downgrade path) or its checksum failed (corrupt/tampered).
+class IncompatibleFailure extends Failure {
+  const IncompatibleFailure(super.message);
+}
+
 // Note: `message` carries developer/debug detail — it is NOT shown to users.
 // Presentation maps the failure *type* to a localized string.

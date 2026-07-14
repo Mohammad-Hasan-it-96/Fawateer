@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Fawateer** (Arabic: فواتير, "invoices") is a simple offline-first POS app for small shops (package name: `billing_app`). It supports barcode scanning, Bluetooth thermal printing, product/inventory management, and sales invoices with history. The UI is **Arabic-first (RTL)** with English as a secondary locale.
+**Fawateer** (Arabic: فواتير, "invoices") is an offline-first POS app for small shops (package name: `billing_app`) with an online-validated **subscription gate** on top. It supports barcode scanning, Bluetooth thermal printing, product/inventory management, sales invoices with a filter/summary **audit center**, a **customer debt ledger** (credit sales), and a **cash drawer** (cashbox). The UI is **Arabic-first (RTL)** with English as a secondary locale.
 
 ## Commands
 
@@ -53,7 +53,7 @@ Note: there is **no use case layer** — BLoCs depend on repository interfaces d
 ### Core
 
 - `lib/core/database/` — Drift `AppDatabase`, all table definitions (`tables/`), and DAOs (`daos/`)
-- `lib/core/error/failure.dart` — `Failure` base class + typed subclasses: `CacheFailure` (DB/unexpected), `NotFoundFailure` (entity missing), `PermissionFailure` (OS permission denied). `Failure.message` is debug detail only — never shown to users.
+- `lib/core/error/failure.dart` — `Failure` base class + typed subclasses: `CacheFailure` (DB/unexpected), `NotFoundFailure` (entity missing), `PermissionFailure` (OS permission denied), `DuplicateFailure` (unique-name clash, e.g. a second customer with the same name), `ConflictFailure` (delete blocked by existing history), `NetworkFailure` (offline/timeout) and `ServerFailure` (server reached but errored). `Failure.message` is debug detail only — never shown to users.
 - `lib/core/service_locator.dart` — All GetIt registrations
 - `lib/core/theme/app_theme.dart` — `AppTheme.lightTheme`
 - `lib/config/routes/app_routes.dart` — GoRouter config; `app_shell.dart` — bottom-nav tab shell
@@ -73,13 +73,15 @@ Reuse these for any money/quantity field or displayed number — don't hand-roll
 3. Repositories (lazy singletons, each receives its DAO)
 4. BLoCs (factories, each receives the repository interface(s) it needs)
 
-`main.dart` provides app-wide BLoCs through a `MultiBlocProvider` and dispatches initial load events (`LoadProducts`, `LoadShopEvent`, `InitPrinterEvent`, `LoadHistoryEvent`).
+`main.dart` provides app-wide BLoCs through a `MultiBlocProvider` and dispatches initial load events (`LoadProducts`, `LoadShopEvent`, `InitPrinterEvent`, `LoadHistoryEvent`, `LoadCustomers`, `LoadCashbox`, `CheckLicenseEvent`). `LicenseBloc` is a `.value` provider (the shared singleton). The per-customer `LedgerBloc` is *not* here — it's scoped to the `/customers/detail/:id` route.
 
 ### Database
 
 Drift (SQLite) backed by `driftDatabase(name: 'fawateer')`. All tables and DAOs are declared in the `@DriftDatabase(...)` annotation on `AppDatabase`. Generated code lives in `*.g.dart` files — **never edit these manually**.
 
-Schema is at **version 8** with a `MigrationStrategy`. When changing tables, bump `schemaVersion` and **append** a new `if (from < N)` block to `onUpgrade` — never edit a shipped block (old installs have already run it). Existing steps:
+There's also a generic `AppSettings` key-value table (`SettingRow`, `key`/`value` PK) for small app-level prefs (e.g. `printer_mac`, `printer_name`) that don't warrant their own typed table.
+
+Schema is at **version 9** with a `MigrationStrategy`. When changing tables, bump `schemaVersion` and **append** a new `if (from < N)` block to `onUpgrade` — never edit a shipped block (old installs have already run it). Existing steps:
 - v1→v2: added `shopSettings.currencySymbol`
 - v2→v3: dropped removed `customers`/`debts`/`purchase_invoices`/`purchase_items`/`cashbox_entries` tables
 - v3→v4: added `cost` column to `products` and `salesItems`; created barcode/sales indexes
@@ -87,10 +89,11 @@ Schema is at **version 8** with a `MigrationStrategy`. When changing tables, bum
 - v5→v6: `salesItems.quantity` int→double (matches `products.quantity` for weight/fractional sales). SQLite can't change a column type in place, so this rebuilds the table via `migrator.alterTable(TableMigration(salesItems))` then re-runs `_createIndexes()` (the rebuild drops the table's indexes).
 - v6→v7: debt ledger — created `customers` + `ledger_entries` tables and `_createLedgerIndexes()`. **Purely additive**: no existing table is touched. The sale↔customer link deliberately lives on `ledger_entries.invoiceId` (a credit sale writes a `charge` entry referencing the invoice) rather than a column on `sales_invoices` — this avoids the landmine that the old `customer_id` column is still physically present (orphaned) in pre-removal DBs, which would make `addColumn` throw "duplicate column".
 - v7→v8: added `products.saleType` (text, default `'piece'`) for sell-by-weight. Additive `addColumn`; every existing product decodes as `piece`.
+- v8→v9: cashbox — created the `cashbox_transactions` table and `_createCashboxIndexes()`. **Purely additive**: no existing table is touched. Uses the name `cashbox_transactions` deliberately (not `cashbox_entries`, which was a *different* removed pre-v3 table already dropped in the v2→v3 step) so there's no collision.
 
 **Foreign keys** are enforced per-connection via `PRAGMA foreign_keys = ON` in `MigrationStrategy.beforeOpen` (runs after migrations — table rebuilds need FKs off). No FK constraints are declared on the tables yet, so it's currently a no-op guard; any FK a future feature adds (e.g. `references(...)`) will actually be enforced. Don't set this pragma inside `onUpgrade`.
 
-Indexes are built by `_createIndexes()` (idempotent `CREATE [UNIQUE] INDEX IF NOT EXISTS`), called from both `onCreate` and the v3→v4 step: a **partial-unique** `idx_products_barcode` (`WHERE barcode != ''`, so many barcode-less items are allowed but non-empty barcodes stay unique), plus `idx_sales_invoices_created_at`, `idx_sales_items_invoice_id`, `idx_sales_items_product_id`. Index/table names use Drift's snake_case. Note: the partial-unique index throws mid-migration if existing rows already share a non-empty barcode.
+Indexes are built by three idempotent (`CREATE [UNIQUE] INDEX IF NOT EXISTS`) helpers, each called from `onCreate` and from the migration step that first needs it: `_createIndexes()` (POS — partial-unique `idx_products_barcode` `WHERE barcode != ''` so barcode-less items are allowed but non-empty barcodes stay unique, plus `idx_sales_invoices_created_at`, `idx_sales_items_invoice_id`, `idx_sales_items_product_id`), `_createLedgerIndexes()` (`idx_ledger_customer_id`, `idx_ledger_invoice_id`), and `_createCashboxIndexes()` (`idx_cashbox_occurred_at`, `idx_cashbox_related_id`). Index/table names use Drift's snake_case. Note: before creating the partial-unique barcode index, `_createIndexes()` first de-dups (blanks the barcode on all-but-the-earliest row per non-empty barcode) — otherwise the index would throw mid-migration and brick the DB on a legacy v1–v3 install that holds two products with the same barcode.
 
 The `products` table carries a `cost` column (purchase cost, default 0) used for profit-margin reporting; `salesItems` snapshots it at sale time (alongside `productName`/`price`) so historical cost is preserved even if the product is later edited or deleted. Inventory is tracked by `quantity` (double, on-hand) with a `minStockAlert` threshold (`Product.isLowStock` = `minStockAlert > 0 && quantity <= minStockAlert`); the sale flow deducts `quantity` on confirm. The old physical `stock` column is left orphaned by the v4→v5 migration (has `DEFAULT 0`, ignored by Drift) — same approach used when `upiId` was removed; `addColumn`-only migrations avoid table rebuilds. The `sales_invoices.customerId`/`customerName` columns were likewise removed from the table class (and the `Invoice` entity) but stay physically present in existing DBs, ignored by Drift — no migration or `schemaVersion` bump needed, since dropping a column requires no DDL. `SalesDao.deleteInvoice` deletes an invoice and its `sales_items` rows in one transaction (no orphans).
 
@@ -112,12 +115,13 @@ The `products` table carries a `cost` column (purchase cost, default 0) used for
 
 | Feature | BLoCs registered | Notes |
 |---|---|---|
-| billing | `BillingBloc`, `HistoryBloc` | Cart management, barcode scan, sales history. Receipt printing is delegated to `PrinterRepository.printReceipt` (which ensures/reconnects the printer); the BLoC builds `ReceiptLine`s and never touches `PrinterHelper` directly. |
+| billing | `BillingBloc`, `HistoryBloc` | Cart management, barcode scan, and the sales-history **audit center** (see below). Receipt printing is delegated to `PrinterRepository.printReceipt` (which ensures/reconnects the printer); the BLoC builds `ReceiptLine`s and never touches `PrinterHelper` directly. |
 | product | `ProductBloc` | CRUD + barcode lookup |
 | shop | `ShopBloc` | Shop profile/settings |
 | settings | `PrinterBloc` | Bluetooth printer pairing/config. Domain exposes `PrinterDevice` (not the plugin's `BluetoothInfo`) and `ReceiptLine`; only `core/utils/printer_helper.dart` and the repo impl touch `print_bluetooth_thermal`. `scanDevices` returns `Either<Failure, List<PrinterDevice>>`. |
 | licensing | `LicenseBloc` | Subscription/activation gate (see below). The only network-backed feature; has **no DAO** — state lives in `SharedPreferences`, not Drift. Registered as a **singleton** (not a factory) so the router gate and the widget tree share one instance. |
 | ledger | `CustomerBloc`, `LedgerBloc` | Customers + debt ledger (see below). `CustomerBloc` (app-wide) is the stream-backed list with derived balances; `LedgerBloc` is per-customer (scoped to the detail route). |
+| cashbox | `CashboxBloc` | Cash drawer / signed cash ledger (see below). App-wide, stream-backed; auto-posts on cash sales & debt repayments. |
 
 ### Licensing & networking (subscription gate)
 
@@ -140,12 +144,30 @@ Adapted from the Accounts-Ledger reference app onto Fawateer's Drift + Clean-Arc
 
 - **Single-entry, derived-balance model** (like the reference): one `ledger_entries` row per movement, `entryType` ∈ {`charge`, `payment`}. The balance is **never stored** — it's `SUM(CASE WHEN entry_type='charge' THEN amount ELSE -amount END)`, computed in SQL (`CustomersDao.watchCustomersWithBalance` for the list; `LedgerDao.watchBalance` for one customer) or summed in `LedgerBloc` from the entries stream. Positive balance = customer owes the shop.
 - **Money stays `double`** (app-wide convention), rounded to 2 decimals at write time (`LedgerRepositoryDriftImpl.addEntry`) so float noise can't accumulate in a running balance.
-- **Sell on credit**: the checkout's `_CreditAwareConfirm` picks a customer; `ConfirmSaleEvent.customerId` flows to `InvoiceRepository.saveInvoice(..., customerId:)`, which builds a `charge` `LedgerEntriesCompanion` and passes it to `SalesDao.insertInvoiceWithItems` — written in the **same transaction** as the invoice + stock deduction, so a credit sale can't leave an invoice without its debt. A repayment is a manual `payment` entry (invoiceId null).
+- **Sell on credit**: the checkout's `_CreditAwareConfirm` picks a customer; `ConfirmSaleEvent.customerId` flows to `InvoiceRepository.saveInvoice(..., customerId:)`. A sale is **either cash or credit, never both** (keyed off `customerId == null`): a credit sale builds a `charge` `LedgerEntriesCompanion`, a cash sale builds a `cashSale` `CashboxTransactionsCompanion` — one of the two is passed to `SalesDao.insertInvoiceWithItems` and written in the **same transaction** as the invoice + stock deduction, so a sale can never leave an invoice without its matching debt (or its cash-drawer entry). A repayment is a manual `payment` entry (invoiceId null) which **also** posts a matching cashbox inflow (below).
 - **Delete guard**: `CustomerRepository.deleteCustomer` returns `Left(ConflictFailure)` (new `Failure` subtype) when the customer has any ledger entries — history is never silently discarded. `CustomerBloc` maps it to `CustomerMessage.deleteBlocked`; customers also have an `isArchived` flag for soft-hide.
 - **Reachable** via its own **bottom-nav tab** "Customers" (`/customers` → list → `detail/:id` / `add` / `edit/:id`) — the 4th shell branch, between Products and Settings (the shell now has **5** tabs).
 - **Account statement**: `buildCustomerStatement` produces one Arabic text statement (header, chronological entries, debit/credit totals, final balance) used by **both** the detail page's **share** (`share_plus` — WhatsApp reminders) and **print** actions. Printing goes `PrintStatement` event → `PrinterRepository.printStatement(text)` → `PrinterHelper.printStatement` → `ReceiptImage.buildTextEscPosBytes` (renders the text to a **raster bitmap**, since the plain-text ESC/POS path replaces non-Latin with `?` — Arabic must be shipped as pixels). `LedgerBloc` therefore also depends on `PrinterRepository`.
 
+### Cashbox (cash drawer)
+
+A **single-entry, derived-balance** cash ledger (same model as the debt ledger), in `features/cashbox/`. One `cashbox_transactions` row per movement; the balance is **never stored** — it's `SUM(amount)` where `amount` is **signed** (`+` in, `−` out), simpler than the debt ledger's `SUM(CASE …)` because the sign already lives in the value. `CashboxDao.watchBalance` computes it. Money stays `double`, rounded to 2 decimals at write time (`CashboxRepositoryDriftImpl.addTransaction`).
+
+- **`CashTransactionType`** (`cash_transaction_type.dart`) is an extensible enum persisted **by name** (never index — same rule as `ProductSaleType`/ledger entry types). Each type has a `defaultDirection` (`inflow`/`outflow`/`either`); `manualAdjustment` is the only bidirectional one (the entry UI shows an in/out toggle). `purchasePayment`/`supplierPayment` are **reserved** — no purchases/suppliers module exists yet, but those flows can post here with no migration when they ship. `manualTypes` is the user-pickable subset for a manual entry.
+- **Auto-posted, source-owned entries**: a **cash sale** posts a `cashSale` inflow (from `SalesDao.insertInvoiceWithItems`, in the sale's transaction — see the ledger section) and a **debt repayment** posts a `customerDebtPayment` inflow (from `LedgerRepositoryDriftImpl.addEntry`, in the payment's transaction — so `LedgerRepository` also depends on `CashboxDao`). Both link back via `relatedId` (invoice id / ledger-entry id) and are flagged `isSystemGenerated`: the cashbox UI **won't let you delete them** (`CashboxMessage.deleteNotAllowed`) — you delete the *source* instead, which **reverses** the cashbox entry (`CashboxDao.deleteByRelatedId`, called from `SalesDao.deleteInvoice` / `LedgerDao` delete) so the derived balance stays honest.
+- **Reachable** from **Settings → Cashbox** (`/settings/cashbox` → `/settings/cashbox/history`), *not* its own tab — the shell still has 5 tabs. `CashboxBloc` is app-wide (provided in `main.dart`, dispatched `LoadCashbox` at startup).
+- **Shared money formatting**: `core/utils/money_display.dart` is used by both the cashbox and the ledger presentation layers.
+
+### Sales history / audit center
+
+The History tab (`HistoryBloc` + `HistoryPage`) is a **filter-driven, paginated audit center**, not a flat list:
+- **Filter** (`SalesFilter`): a `DatePreset` (`today`/`yesterday`/`thisWeek`/`thisMonth`/`custom`), a `PaymentFilter` (`all`/`cash`/`credit`), a text `search`, and a `SalesSort`. `SalesFilter.initial()` defaults to **today**. Cash-vs-credit is *derived* per invoice (an invoice is credit iff it has a `charge` ledger entry) — `SalesDao.watchAuditInvoices` returns `AuditInvoiceRow`s (with `isCredit`, `customerName`, `itemCount`) and `watchAuditSummary` returns an `AuditSummaryRow` (count/total/creditTotal).
+- **Live + paginated**: the list and the summary aggregate are each backed by a `StreamSubscription` that feeds **internal** events (`_InvoicesUpdated`/`_SummaryUpdated`) — you can't `emit` outside a handler. Changing the filter, or paging in more rows (`LoadMoreEvent`, `_kPageSize = 30`), cancels and re-subscribes with the new query/window. Both re-emit automatically after every sale.
+- Line items for the detail page (`/history/detail/:id` → `InvoiceDetailPage`) are **lazy-loaded and cached** (`LoadInvoiceDetailsEvent`); a load failure is recorded (not cached) so the UI can retry. `ReprintInvoiceEvent` reprints a stored invoice via the same `PrinterRepository.printReceipt` the checkout uses.
+
 **Android manifest**: the app gained `INTERNET` (release builds don't inherit the debug manifest's auto-added copy — required for the license API) and an `https` `VIEW` `<queries>` intent (so `url_launcher.canLaunchUrl` resolves WhatsApp/Telegram links on Android 11+).
+
+**Android release build**: `flutter_vibrate` (discontinued) links its resources against an SDK older than API 31, breaking release resource linking (`android:attr/lStar not found`). `android/build.gradle.kts` has a `subprojects { afterEvaluate { … } }` block that bumps any stale subproject's `compileSdkVersion` to 34 — registered **before** the `evaluationDependsOn(":app")` block so the hook attaches while subprojects are still unevaluated (you can't `afterEvaluate` an already-evaluated project).
 
 ### Navigation (GoRouter)
 
@@ -154,10 +176,10 @@ Routing uses a `StatefulShellRoute.indexedStack` (`AppShell`) with five tab bran
 `HomePage` also has a tap-to-add product picker (a bottom sheet, not a route) for items without a barcode. The picker reads the product list **live** from `ProductBloc` (via `context.watch`, not a one-time snapshot — so it isn't empty when opened before the first stream emission), and each tile gives add feedback (scale pop + green check flash + a live cart-count badge). Leaving checkout via Back preserves the cart (it is only cleared after a confirmed sale or "New Sale"); checkout exits with `context.pop()` so `HomePage`'s awaited `push('/pos/checkout')` resumes the camera.
 
 - Branch 0: `/pos` → `HomePage` → `/pos/checkout` → `CheckoutPage`
-- Branch 1: `/history` → `HistoryPage`
+- Branch 1: `/history` → `HistoryPage` → `/history/detail/:id` → `InvoiceDetailPage` (passes `InvoiceListItem` via `state.extra`)
 - Branch 2: `/products` → `ProductListPage` → `/products/add`, `/products/edit/:id` (passes `Product` via `state.extra`)
 - Branch 3: `/customers` → `CustomersPage` → `/customers/add`, `/customers/edit/:id` (passes `Customer` via `state.extra`), `/customers/detail/:id` (scopes `LedgerBloc`)
-- Branch 4: `/settings` → `SettingsPage` → `/settings/shop` → `ShopDetailsPage`; `/settings/subscription` → `SubscriptionStatusPage` → `/settings/subscription/plans`
+- Branch 4: `/settings` → `SettingsPage` → `/settings/shop` → `ShopDetailsPage`; `/settings/cashbox` → `CashboxPage` → `/settings/cashbox/history`; `/settings/subscription` → `SubscriptionStatusPage` → `/settings/subscription/plans`
 - Top-level: `/scanner` → `ScannerPage`
 - Top-level (licensing gate, outside the shell): `/splash` → `SplashPage`; `/activation` → `ActivationPage` → `/activation/plans` → `SubscriptionPlansPage`. A `redirect` on the shared `LicenseBloc` state holds unlicensed users here before any tab is reachable.
 

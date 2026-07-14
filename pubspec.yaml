@@ -54,6 +54,14 @@ dependencies:
   # Sharing (customer account statements)
   share_plus: ^10.1.4
 
+  # Cloud backup (Plan 001) — Google Drive via the user's own account.
+  # drive.file scope only (non-sensitive; no Play Console). See
+  # docs/plans/001-backup-system.md and docs/google-drive-api-setup.md.
+  google_sign_in: ^6.2.2
+  googleapis: ^13.2.0
+  extension_google_sign_in_as_googleapis_auth: ^2.0.12
+  path_provider: ^2.1.5
+
   # Push notifications (FCM live-unlock of the subscription).
   # Dormant until a Firebase project is configured (see android/README-fcm.md);
   # Firebase.initializeApp() fails gracefully and push stays disabled without it.
