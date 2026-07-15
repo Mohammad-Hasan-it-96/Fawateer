@@ -13,6 +13,7 @@ import 'database/daos/cashbox_dao.dart';
 // Core — Network
 import 'network/api_client.dart';
 import 'config/remote_config_service.dart';
+import 'currency/exchange_rate_service.dart';
 
 // Features — Ledger (customers & debts)
 import '../features/ledger/data/repositories/customer_repository_drift_impl.dart';
@@ -83,6 +84,10 @@ Future<void> init() async {
   sl.registerLazySingleton<LedgerDao>(() => LedgerDao(sl()));
   sl.registerLazySingleton<CashboxDao>(() => CashboxDao(sl()));
 
+  // ── Services ─────────────────────────────────────────────────────────────
+  sl.registerLazySingleton<ExchangeRateService>(
+      () => ExchangeRateService(sl<SettingsDao>()));
+
   // ── Repositories ─────────────────────────────────────────────────────────
   sl.registerLazySingleton<ProductRepository>(
       () => ProductRepositoryDriftImpl(sl()));
@@ -132,6 +137,7 @@ Future<void> init() async {
         productRepository: sl(),
         printerRepository: sl(),
         invoiceRepository: sl(),
+        exchangeRateService: sl(),
       ));
 
   sl.registerFactory(() => CustomerBloc(repository: sl()));

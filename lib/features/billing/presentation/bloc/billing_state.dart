@@ -8,7 +8,12 @@ enum BillingError {
   printerUnavailable,
   printFailed,
   emptyCart,
+  exchangeRateMissing,
 }
+
+/// Sentinel so [BillingState.copyWith] can distinguish "leave the nullable rate
+/// unchanged" from "set it to null" (an unset rate is a real state).
+const Object _unset = Object();
 
 class BillingState extends Equatable {
   final List<CartItem> cartItems;
@@ -29,6 +34,13 @@ class BillingState extends Equatable {
   /// for this, opens the entry dialog, then clears it. Null otherwise.
   final Product? measuredPrompt;
 
+  /// Current USD→SP rate (SP per 1 USD), or null if the owner hasn't set one.
+  /// Used to price USD products into SP as they enter the cart.
+  final double? exchangeRate;
+
+  /// When [exchangeRate] was last set — drives a "your rate is stale" hint.
+  final DateTime? rateUpdatedAt;
+
   const BillingState({
     this.cartItems = const [],
     this.error,
@@ -40,9 +52,15 @@ class BillingState extends Equatable {
     this.savedInvoiceId,
     this.lowStockWarnings = const [],
     this.measuredPrompt,
+    this.exchangeRate,
+    this.rateUpdatedAt,
   });
 
   double get totalAmount => cartItems.fold(0, (sum, item) => sum + item.total);
+
+  /// True when any cart line is a USD product that couldn't be converted (no
+  /// rate set) — the checkout guard uses this to block the sale.
+  bool get hasUnpricedItems => cartItems.any((i) => i.isUnpriced);
 
   BillingState copyWith({
     List<CartItem>? cartItems,
@@ -58,6 +76,8 @@ class BillingState extends Equatable {
     List<String>? lowStockWarnings,
     Product? measuredPrompt,
     bool clearMeasuredPrompt = false,
+    Object? exchangeRate = _unset,
+    Object? rateUpdatedAt = _unset,
   }) {
     return BillingState(
       cartItems: cartItems ?? this.cartItems,
@@ -72,6 +92,12 @@ class BillingState extends Equatable {
       lowStockWarnings: lowStockWarnings ?? this.lowStockWarnings,
       measuredPrompt:
           clearMeasuredPrompt ? null : (measuredPrompt ?? this.measuredPrompt),
+      exchangeRate: identical(exchangeRate, _unset)
+          ? this.exchangeRate
+          : exchangeRate as double?,
+      rateUpdatedAt: identical(rateUpdatedAt, _unset)
+          ? this.rateUpdatedAt
+          : rateUpdatedAt as DateTime?,
     );
   }
 
@@ -87,5 +113,7 @@ class BillingState extends Equatable {
         savedInvoiceId,
         lowStockWarnings,
         measuredPrompt,
+        exchangeRate,
+        rateUpdatedAt,
       ];
 }

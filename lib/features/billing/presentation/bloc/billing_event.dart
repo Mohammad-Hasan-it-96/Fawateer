@@ -49,6 +49,13 @@ class UpdateQuantityEvent extends BillingEvent {
 
 class ClearCartEvent extends BillingEvent {}
 
+/// Load (or reload) the USD→SP exchange rate into the bloc and re-price any
+/// foreign lines in the cart. Dispatched at startup and after the rate is
+/// edited in Settings → Currency.
+class LoadExchangeRateEvent extends BillingEvent {
+  const LoadExchangeRateEvent();
+}
+
 class PrintReceiptEvent extends BillingEvent {
   final String shopName;
   final String address1;

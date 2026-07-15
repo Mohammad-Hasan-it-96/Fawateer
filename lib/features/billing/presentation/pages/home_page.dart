@@ -12,6 +12,8 @@ import '../billing_error_text.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../../product/presentation/bloc/product_bloc.dart';
 import '../../../product/domain/entities/product.dart';
+import '../../../product/domain/entities/price_currency.dart';
+import '../../../../core/currency/exchange_rate_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/format.dart';
 import '../../../../core/widgets/primary_button.dart';
@@ -593,13 +595,20 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 Text(
                   measured
                       // e.g. "0.333 كغ × 15000.00" then the line total below.
-                      ? '${formatQty(item.quantity)} ${l10n.unitKg} × $currency${item.product.price.toStringAsFixed(2)}'
-                      : '$currency${item.product.price.toStringAsFixed(2)}',
+                      ? '${formatQty(item.quantity)} ${l10n.unitKg} × $currency${item.unitPriceSp.toStringAsFixed(2)}'
+                      : '$currency${item.unitPriceSp.toStringAsFixed(2)}',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: measured ? 12 : 14,
                       color: Colors.grey[600]),
                 ),
+                if (item.isForeign) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    item.sellCurrency.label(item.product.price, ''),
+                    style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                  ),
+                ],
                 if (measured) ...[
                   const SizedBox(height: 2),
                   Text('$currency${item.total.toStringAsFixed(2)}',
@@ -744,8 +753,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final shopState = context.read<ShopBloc>().state;
     final currency =
         shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
+    final billingState = context.read<BillingBloc>().state;
+    // Work the weight↔amount linkage in SP: a USD-priced weighed item is
+    // resolved to its SP per-kg price at the current rate so the dialog's money
+    // field is in SP (matching the cart total). 0 if no rate yet → amount field
+    // disabled and the checkout guard blocks the sale.
+    final spPerUnit = product.priceCurrency == PriceCurrency.usd
+        ? (usdToSp(product.price, billingState.exchangeRate) ?? 0)
+        : product.price;
     double existing = 0;
-    for (final c in context.read<BillingBloc>().state.cartItems) {
+    for (final c in billingState.cartItems) {
       if (c.product.id == product.id) {
         existing = c.quantity;
         break;
@@ -756,6 +773,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       builder: (_) => _MeasuredEntryDialog(
         product: product,
         currency: currency,
+        pricePerUnit: spPerUnit,
         initialWeight: existing,
       ),
     );
@@ -1002,7 +1020,8 @@ class _ProductTileState extends State<_ProductTile> {
                     children: [
                       Flexible(
                         child: Text(
-                          '${widget.currency}${widget.product.price.toStringAsFixed(2)}',
+                          widget.product.priceCurrency
+                              .label(widget.product.price, widget.currency),
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                               fontWeight: FontWeight.bold,
@@ -1131,11 +1150,17 @@ class _QuantityDialogState extends State<_QuantityDialog> {
 class _MeasuredEntryDialog extends StatefulWidget {
   final Product product;
   final String currency;
+
+  /// The per-unit (per-kg) price **in SP** — already resolved from the product's
+  /// currency at the current rate, so weight↔amount linkage and the shown total
+  /// are all in SP.
+  final double pricePerUnit;
   final double initialWeight;
 
   const _MeasuredEntryDialog({
     required this.product,
     required this.currency,
+    required this.pricePerUnit,
     this.initialWeight = 0,
   });
 
@@ -1148,7 +1173,7 @@ class _MeasuredEntryDialogState extends State<_MeasuredEntryDialog> {
   late final TextEditingController _amountCtrl;
   double _weight = 0;
 
-  double get _price => widget.product.price;
+  double get _price => widget.pricePerUnit;
 
   @override
   void initState() {

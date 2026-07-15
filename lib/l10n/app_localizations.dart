@@ -2083,6 +2083,90 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Restoring…'**
   String get backupBusyRestoring;
+
+  /// No description provided for @priceCurrencyLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Price currency'**
+  String get priceCurrencyLabel;
+
+  /// No description provided for @currencySp.
+  ///
+  /// In en, this message translates to:
+  /// **'SP'**
+  String get currencySp;
+
+  /// No description provided for @currencyUsd.
+  ///
+  /// In en, this message translates to:
+  /// **'USD'**
+  String get currencyUsd;
+
+  /// No description provided for @currencySettingsItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency & Exchange Rate'**
+  String get currencySettingsItem;
+
+  /// No description provided for @currencySettingsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the USD → SP rate for dollar-priced products'**
+  String get currencySettingsSubtitle;
+
+  /// No description provided for @currencySettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Currency & Exchange Rate'**
+  String get currencySettingsTitle;
+
+  /// No description provided for @currencySettingsNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Syrian Pound is your main currency. Products priced in US Dollars are converted to SP at this rate when you sell them. Changing the rate only affects new sales — past invoices keep their original rate.'**
+  String get currencySettingsNote;
+
+  /// No description provided for @exchangeRateLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'SP per 1 USD'**
+  String get exchangeRateLabel;
+
+  /// No description provided for @exchangeRateHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. 15000'**
+  String get exchangeRateHint;
+
+  /// No description provided for @exchangeRateInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a rate greater than zero'**
+  String get exchangeRateInvalid;
+
+  /// No description provided for @exchangeRateSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Exchange rate saved'**
+  String get exchangeRateSaved;
+
+  /// No description provided for @exchangeRateNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set yet'**
+  String get exchangeRateNever;
+
+  /// No description provided for @exchangeRateUpdatedAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Last updated: {date}'**
+  String exchangeRateUpdatedAt(String date);
+
+  /// No description provided for @exchangeRateMissingError.
+  ///
+  /// In en, this message translates to:
+  /// **'Set the USD exchange rate in Settings → Currency before selling a dollar-priced item.'**
+  String get exchangeRateMissingError;
 }
 
 class _AppLocalizationsDelegate

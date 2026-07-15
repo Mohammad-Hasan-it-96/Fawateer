@@ -378,5 +378,21 @@
   "backupErrorCorrupt": "This backup file is damaged and cannot be restored.",
   "backupErrorUnknown": "Something went wrong. Please try again.",
   "backupBusyBackingUp": "Backing up…",
-  "backupBusyRestoring": "Restoring…"
+  "backupBusyRestoring": "Restoring…",
+
+  "priceCurrencyLabel": "Price currency",
+  "currencySp": "SP",
+  "currencyUsd": "USD",
+  "currencySettingsItem": "Currency & Exchange Rate",
+  "currencySettingsSubtitle": "Set the USD → SP rate for dollar-priced products",
+  "currencySettingsTitle": "Currency & Exchange Rate",
+  "currencySettingsNote": "Syrian Pound is your main currency. Products priced in US Dollars are converted to SP at this rate when you sell them. Changing the rate only affects new sales — past invoices keep their original rate.",
+  "exchangeRateLabel": "SP per 1 USD",
+  "exchangeRateHint": "e.g. 15000",
+  "exchangeRateInvalid": "Enter a rate greater than zero",
+  "exchangeRateSaved": "Exchange rate saved",
+  "exchangeRateNever": "Not set yet",
+  "exchangeRateUpdatedAt": "Last updated: {date}",
+  "@exchangeRateUpdatedAt": { "placeholders": { "date": { "type": "String" } } },
+  "exchangeRateMissingError": "Set the USD exchange rate in Settings → Currency before selling a dollar-priced item."
 }

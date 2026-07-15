@@ -94,6 +94,9 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
                   price: Value(i.price),
                   cost: Value(i.cost),
                   quantity: Value(i.quantity),
+                  priceCurrency: Value(i.priceCurrency),
+                  fxRate: Value(i.fxRate),
+                  priceOriginal: Value(i.priceOriginal),
                 ))
             .toList(),
         creditCharge: creditCharge,
@@ -178,6 +181,9 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
                 price: r.price,
                 cost: r.cost,
                 quantity: r.quantity,
+                priceCurrency: r.priceCurrency,
+                fxRate: r.fxRate,
+                priceOriginal: r.priceOriginal,
               ))
           .toList());
     } catch (e) {

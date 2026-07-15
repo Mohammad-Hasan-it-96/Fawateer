@@ -210,7 +210,8 @@ class _ProductListPageState extends State<ProductListPage> {
                                       ? shopState.shop.currencySymbol
                                       : '';
                                   return Text(
-                                    '$currency${product.price.toStringAsFixed(2)}',
+                                    product.priceCurrency
+                                        .label(product.price, currency),
                                     style: TextStyle(
                                         fontWeight: FontWeight.w600,
                                         fontSize: 15,

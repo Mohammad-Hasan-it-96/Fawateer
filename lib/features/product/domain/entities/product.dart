@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 
+import 'price_currency.dart';
 import 'product_sale_type.dart';
 
 class Product extends Equatable {
@@ -12,6 +13,7 @@ class Product extends Equatable {
   final double quantity; // on-hand inventory (was stock); supports weight/fractions
   final double minStockAlert; // low-stock threshold; 0 = no alert
   final ProductSaleType saleType; // piece (default) vs a measured type (weight)
+  final PriceCurrency priceCurrency; // currency of price/cost (SP base, or USD)
 
   const Product({
     required this.id,
@@ -22,6 +24,7 @@ class Product extends Equatable {
     this.quantity = 0,
     this.minStockAlert = 0,
     this.saleType = ProductSaleType.piece,
+    this.priceCurrency = PriceCurrency.sp,
   });
 
   /// True when a low-stock alert is set and on-hand has reached it.
@@ -36,6 +39,7 @@ class Product extends Equatable {
     double? quantity,
     double? minStockAlert,
     ProductSaleType? saleType,
+    PriceCurrency? priceCurrency,
   }) {
     return Product(
       id: id ?? this.id,
@@ -46,10 +50,20 @@ class Product extends Equatable {
       quantity: quantity ?? this.quantity,
       minStockAlert: minStockAlert ?? this.minStockAlert,
       saleType: saleType ?? this.saleType,
+      priceCurrency: priceCurrency ?? this.priceCurrency,
     );
   }
 
   @override
-  List<Object?> get props =>
-      [id, name, barcode, price, cost, quantity, minStockAlert, saleType];
+  List<Object?> get props => [
+        id,
+        name,
+        barcode,
+        price,
+        cost,
+        quantity,
+        minStockAlert,
+        saleType,
+        priceCurrency,
+      ];
 }

@@ -7,7 +7,9 @@ import 'package:uuid/uuid.dart';
 
 import '../bloc/product_bloc.dart';
 import '../widgets/currency_field.dart';
+import '../widgets/price_currency_selector.dart';
 import '../widgets/sale_type_selector.dart';
+import '../../domain/entities/price_currency.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/product_sale_type.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -31,6 +33,7 @@ class _AddProductPageState extends State<AddProductPage> {
   double _quantity = 0.0;
   double _minStockAlert = 0.0;
   ProductSaleType _saleType = ProductSaleType.piece;
+  PriceCurrency _priceCurrency = PriceCurrency.sp;
 
   void _scanBarcode() async {
     final result = await context.push<String>('/scanner');
@@ -71,6 +74,7 @@ class _AddProductPageState extends State<AddProductPage> {
         quantity: _quantity,
         minStockAlert: _minStockAlert,
         saleType: _saleType,
+        priceCurrency: _priceCurrency,
       );
 
       context.read<ProductBloc>().add(AddProduct(product));
@@ -154,11 +158,19 @@ class _AddProductPageState extends State<AddProductPage> {
                     onChanged: (t) => setState(() => _saleType = t),
                   ),
                   const SizedBox(height: 24),
+                  InputLabel(text: l10n.priceCurrencyLabel),
+                  PriceCurrencySelector(
+                    value: _priceCurrency,
+                    onChanged: (c) => setState(() => _priceCurrency = c),
+                  ),
+                  const SizedBox(height: 24),
                   InputLabel(
                       text: _saleType.isMeasured
                           ? l10n.pricePerKgLabel
                           : l10n.priceLabel),
                   CurrencyField(
+                    currencySymbol:
+                        _priceCurrency == PriceCurrency.usd ? '\$' : null,
                     validator: AppValidators.price(
                       requiredMsg: l10n.fieldRequired,
                       invalidMsg: l10n.invalidPrice,
@@ -172,6 +184,8 @@ class _AddProductPageState extends State<AddProductPage> {
                   InputLabel(text: l10n.costLabel),
                   CurrencyField(
                     initialValue: '0',
+                    currencySymbol:
+                        _priceCurrency == PriceCurrency.usd ? '\$' : null,
                     helperText: l10n.costHint,
                     validator: AppValidators.optionalNonNegative(
                       invalidMsg: l10n.invalidNumber,

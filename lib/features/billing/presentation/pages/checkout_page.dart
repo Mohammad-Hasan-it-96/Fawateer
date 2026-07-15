@@ -90,6 +90,34 @@ class CheckoutPage extends StatelessWidget {
                             horizontal: 16, vertical: 16),
                         child: Column(
                           children: [
+                            if (billingState.hasUnpricedItems)
+                              Container(
+                                width: double.infinity,
+                                margin: const EdgeInsets.only(bottom: 16),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFDE2E1),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border:
+                                      Border.all(color: const Color(0xFFE57373)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.currency_exchange,
+                                        color: Color(0xFFC62828), size: 20),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        l10n.exchangeRateMissingError,
+                                        style: const TextStyle(
+                                            fontSize: 13,
+                                            color: Color(0xFFC62828)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             if (billingState.lowStockWarnings.isNotEmpty)
                               Container(
                                 width: double.infinity,
@@ -161,6 +189,13 @@ class CheckoutPage extends StatelessWidget {
                                     ...billingState.cartItems.map((item) {
                                       final measured =
                                           item.product.saleType.isMeasured;
+                                      // Resolved SP unit price; USD lines also
+                                      // show their original "$X" sticker.
+                                      final spPrice =
+                                          '$currency${item.unitPriceSp.toStringAsFixed(2)}${measured ? '/${l10n.unitKg}' : ''}';
+                                      final priceStr = item.isForeign
+                                          ? '$spPrice (${item.sellCurrency.label(item.product.price, '')})'
+                                          : spPrice;
                                       return TableRow(
                                         children: [
                                           _dataCell(
@@ -170,9 +205,7 @@ class CheckoutPage extends StatelessWidget {
                                             TextAlign.start,
                                           ),
                                           _dataCell(
-                                            measured
-                                                ? '$currency${item.product.price.toStringAsFixed(2)}/${l10n.unitKg}'
-                                                : '$currency${item.product.price.toStringAsFixed(2)}',
+                                            priceStr,
                                             TextAlign.end,
                                             isSubtitle: true,
                                           ),

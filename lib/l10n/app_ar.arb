@@ -358,5 +358,21 @@
   "backupErrorCorrupt": "ملف النسخة الاحتياطية تالف ولا يمكن استعادته.",
   "backupErrorUnknown": "حدث خطأ ما. حاول مرة أخرى.",
   "backupBusyBackingUp": "جارٍ النسخ…",
-  "backupBusyRestoring": "جارٍ الاستعادة…"
+  "backupBusyRestoring": "جارٍ الاستعادة…",
+
+  "priceCurrencyLabel": "عملة السعر",
+  "currencySp": "ل.س",
+  "currencyUsd": "دولار",
+  "currencySettingsItem": "العملة وسعر الصرف",
+  "currencySettingsSubtitle": "حدّد سعر تحويل الدولار إلى الليرة للمنتجات المسعّرة بالدولار",
+  "currencySettingsTitle": "العملة وسعر الصرف",
+  "currencySettingsNote": "الليرة السورية هي عملتك الأساسية. المنتجات المسعّرة بالدولار تُحوَّل إلى الليرة بهذا السعر عند البيع. تغيير السعر يؤثّر على المبيعات الجديدة فقط — الفواتير السابقة تحتفظ بسعرها الأصلي.",
+  "exchangeRateLabel": "الليرة مقابل ١ دولار",
+  "exchangeRateHint": "مثال: ١٥٠٠٠",
+  "exchangeRateInvalid": "أدخل سعراً أكبر من صفر",
+  "exchangeRateSaved": "تم حفظ سعر الصرف",
+  "exchangeRateNever": "غير محدّد بعد",
+  "exchangeRateUpdatedAt": "آخر تحديث: {date}",
+  "@exchangeRateUpdatedAt": { "placeholders": { "date": { "type": "String" } } },
+  "exchangeRateMissingError": "حدّد سعر صرف الدولار من الإعدادات ← العملة قبل بيع منتج مسعّر بالدولار."
 }

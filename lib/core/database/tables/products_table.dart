@@ -16,6 +16,11 @@ class Products extends Table {
   // Stored as a name string (not an index) so future enum cases/reordering can't
   // remap existing rows; unknown values decode back to 'piece'.
   TextColumn get saleType => text().withDefault(const Constant('piece'))();
+  // Currency the `price`/`cost` are entered in: the PriceCurrency name
+  // ('sp' | 'usd' | …). SP is the base/book currency; a 'usd' product is
+  // converted to SP at sale time. Stored by name (not index) — unknown/legacy
+  // values decode back to 'sp'. Additive: every existing product decodes as SP.
+  TextColumn get priceCurrency => text().withDefault(const Constant('sp'))();
 
   @override
   Set<Column> get primaryKey => {id};

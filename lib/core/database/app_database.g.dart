@@ -63,9 +63,26 @@ class $ProductsTable extends Products
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant('piece'));
+  static const VerificationMeta _priceCurrencyMeta =
+      const VerificationMeta('priceCurrency');
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, name, barcode, price, cost, quantity, minStockAlert, saleType];
+  late final GeneratedColumn<String> priceCurrency = GeneratedColumn<String>(
+      'price_currency', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('sp'));
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        name,
+        barcode,
+        price,
+        cost,
+        quantity,
+        minStockAlert,
+        saleType,
+        priceCurrency
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -115,6 +132,12 @@ class $ProductsTable extends Products
       context.handle(_saleTypeMeta,
           saleType.isAcceptableOrUnknown(data['sale_type']!, _saleTypeMeta));
     }
+    if (data.containsKey('price_currency')) {
+      context.handle(
+          _priceCurrencyMeta,
+          priceCurrency.isAcceptableOrUnknown(
+              data['price_currency']!, _priceCurrencyMeta));
+    }
     return context;
   }
 
@@ -140,6 +163,8 @@ class $ProductsTable extends Products
           DriftSqlType.double, data['${effectivePrefix}min_stock_alert'])!,
       saleType: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}sale_type'])!,
+      priceCurrency: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}price_currency'])!,
     );
   }
 
@@ -158,6 +183,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
   final double quantity;
   final double minStockAlert;
   final String saleType;
+  final String priceCurrency;
   const ProductRow(
       {required this.id,
       required this.name,
@@ -166,7 +192,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       required this.cost,
       required this.quantity,
       required this.minStockAlert,
-      required this.saleType});
+      required this.saleType,
+      required this.priceCurrency});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -178,6 +205,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     map['quantity'] = Variable<double>(quantity);
     map['min_stock_alert'] = Variable<double>(minStockAlert);
     map['sale_type'] = Variable<String>(saleType);
+    map['price_currency'] = Variable<String>(priceCurrency);
     return map;
   }
 
@@ -191,6 +219,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       quantity: Value(quantity),
       minStockAlert: Value(minStockAlert),
       saleType: Value(saleType),
+      priceCurrency: Value(priceCurrency),
     );
   }
 
@@ -206,6 +235,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       quantity: serializer.fromJson<double>(json['quantity']),
       minStockAlert: serializer.fromJson<double>(json['minStockAlert']),
       saleType: serializer.fromJson<String>(json['saleType']),
+      priceCurrency: serializer.fromJson<String>(json['priceCurrency']),
     );
   }
   @override
@@ -220,6 +250,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       'quantity': serializer.toJson<double>(quantity),
       'minStockAlert': serializer.toJson<double>(minStockAlert),
       'saleType': serializer.toJson<String>(saleType),
+      'priceCurrency': serializer.toJson<String>(priceCurrency),
     };
   }
 
@@ -231,7 +262,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           double? cost,
           double? quantity,
           double? minStockAlert,
-          String? saleType}) =>
+          String? saleType,
+          String? priceCurrency}) =>
       ProductRow(
         id: id ?? this.id,
         name: name ?? this.name,
@@ -241,6 +273,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
         quantity: quantity ?? this.quantity,
         minStockAlert: minStockAlert ?? this.minStockAlert,
         saleType: saleType ?? this.saleType,
+        priceCurrency: priceCurrency ?? this.priceCurrency,
       );
   ProductRow copyWithCompanion(ProductsCompanion data) {
     return ProductRow(
@@ -254,6 +287,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ? data.minStockAlert.value
           : this.minStockAlert,
       saleType: data.saleType.present ? data.saleType.value : this.saleType,
+      priceCurrency: data.priceCurrency.present
+          ? data.priceCurrency.value
+          : this.priceCurrency,
     );
   }
 
@@ -267,14 +303,15 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ..write('cost: $cost, ')
           ..write('quantity: $quantity, ')
           ..write('minStockAlert: $minStockAlert, ')
-          ..write('saleType: $saleType')
+          ..write('saleType: $saleType, ')
+          ..write('priceCurrency: $priceCurrency')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(
-      id, name, barcode, price, cost, quantity, minStockAlert, saleType);
+  int get hashCode => Object.hash(id, name, barcode, price, cost, quantity,
+      minStockAlert, saleType, priceCurrency);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -286,7 +323,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           other.cost == this.cost &&
           other.quantity == this.quantity &&
           other.minStockAlert == this.minStockAlert &&
-          other.saleType == this.saleType);
+          other.saleType == this.saleType &&
+          other.priceCurrency == this.priceCurrency);
 }
 
 class ProductsCompanion extends UpdateCompanion<ProductRow> {
@@ -298,6 +336,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
   final Value<double> quantity;
   final Value<double> minStockAlert;
   final Value<String> saleType;
+  final Value<String> priceCurrency;
   final Value<int> rowid;
   const ProductsCompanion({
     this.id = const Value.absent(),
@@ -308,6 +347,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.quantity = const Value.absent(),
     this.minStockAlert = const Value.absent(),
     this.saleType = const Value.absent(),
+    this.priceCurrency = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProductsCompanion.insert({
@@ -319,6 +359,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.quantity = const Value.absent(),
     this.minStockAlert = const Value.absent(),
     this.saleType = const Value.absent(),
+    this.priceCurrency = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         name = Value(name),
@@ -332,6 +373,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     Expression<double>? quantity,
     Expression<double>? minStockAlert,
     Expression<String>? saleType,
+    Expression<String>? priceCurrency,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -343,6 +385,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       if (quantity != null) 'quantity': quantity,
       if (minStockAlert != null) 'min_stock_alert': minStockAlert,
       if (saleType != null) 'sale_type': saleType,
+      if (priceCurrency != null) 'price_currency': priceCurrency,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -356,6 +399,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       Value<double>? quantity,
       Value<double>? minStockAlert,
       Value<String>? saleType,
+      Value<String>? priceCurrency,
       Value<int>? rowid}) {
     return ProductsCompanion(
       id: id ?? this.id,
@@ -366,6 +410,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       quantity: quantity ?? this.quantity,
       minStockAlert: minStockAlert ?? this.minStockAlert,
       saleType: saleType ?? this.saleType,
+      priceCurrency: priceCurrency ?? this.priceCurrency,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -397,6 +442,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     if (saleType.present) {
       map['sale_type'] = Variable<String>(saleType.value);
     }
+    if (priceCurrency.present) {
+      map['price_currency'] = Variable<String>(priceCurrency.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -414,6 +462,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
           ..write('quantity: $quantity, ')
           ..write('minStockAlert: $minStockAlert, ')
           ..write('saleType: $saleType, ')
+          ..write('priceCurrency: $priceCurrency, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1297,9 +1346,42 @@ class $SalesItemsTable extends SalesItems
   late final GeneratedColumn<double> quantity = GeneratedColumn<double>(
       'quantity', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _priceCurrencyMeta =
+      const VerificationMeta('priceCurrency');
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, invoiceId, productId, productName, price, cost, quantity];
+  late final GeneratedColumn<String> priceCurrency = GeneratedColumn<String>(
+      'price_currency', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('sp'));
+  static const VerificationMeta _fxRateMeta = const VerificationMeta('fxRate');
+  @override
+  late final GeneratedColumn<double> fxRate = GeneratedColumn<double>(
+      'fx_rate', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _priceOriginalMeta =
+      const VerificationMeta('priceOriginal');
+  @override
+  late final GeneratedColumn<double> priceOriginal = GeneratedColumn<double>(
+      'price_original', aliasedName, false,
+      type: DriftSqlType.double,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        invoiceId,
+        productId,
+        productName,
+        price,
+        cost,
+        quantity,
+        priceCurrency,
+        fxRate,
+        priceOriginal
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1349,6 +1431,22 @@ class $SalesItemsTable extends SalesItems
     } else if (isInserting) {
       context.missing(_quantityMeta);
     }
+    if (data.containsKey('price_currency')) {
+      context.handle(
+          _priceCurrencyMeta,
+          priceCurrency.isAcceptableOrUnknown(
+              data['price_currency']!, _priceCurrencyMeta));
+    }
+    if (data.containsKey('fx_rate')) {
+      context.handle(_fxRateMeta,
+          fxRate.isAcceptableOrUnknown(data['fx_rate']!, _fxRateMeta));
+    }
+    if (data.containsKey('price_original')) {
+      context.handle(
+          _priceOriginalMeta,
+          priceOriginal.isAcceptableOrUnknown(
+              data['price_original']!, _priceOriginalMeta));
+    }
     return context;
   }
 
@@ -1372,6 +1470,12 @@ class $SalesItemsTable extends SalesItems
           .read(DriftSqlType.double, data['${effectivePrefix}cost'])!,
       quantity: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}quantity'])!,
+      priceCurrency: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}price_currency'])!,
+      fxRate: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}fx_rate'])!,
+      priceOriginal: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}price_original'])!,
     );
   }
 
@@ -1389,6 +1493,9 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
   final double price;
   final double cost;
   final double quantity;
+  final String priceCurrency;
+  final double fxRate;
+  final double priceOriginal;
   const SalesItemRow(
       {required this.id,
       required this.invoiceId,
@@ -1396,7 +1503,10 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       required this.productName,
       required this.price,
       required this.cost,
-      required this.quantity});
+      required this.quantity,
+      required this.priceCurrency,
+      required this.fxRate,
+      required this.priceOriginal});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1407,6 +1517,9 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
     map['price'] = Variable<double>(price);
     map['cost'] = Variable<double>(cost);
     map['quantity'] = Variable<double>(quantity);
+    map['price_currency'] = Variable<String>(priceCurrency);
+    map['fx_rate'] = Variable<double>(fxRate);
+    map['price_original'] = Variable<double>(priceOriginal);
     return map;
   }
 
@@ -1419,6 +1532,9 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       price: Value(price),
       cost: Value(cost),
       quantity: Value(quantity),
+      priceCurrency: Value(priceCurrency),
+      fxRate: Value(fxRate),
+      priceOriginal: Value(priceOriginal),
     );
   }
 
@@ -1433,6 +1549,9 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       price: serializer.fromJson<double>(json['price']),
       cost: serializer.fromJson<double>(json['cost']),
       quantity: serializer.fromJson<double>(json['quantity']),
+      priceCurrency: serializer.fromJson<String>(json['priceCurrency']),
+      fxRate: serializer.fromJson<double>(json['fxRate']),
+      priceOriginal: serializer.fromJson<double>(json['priceOriginal']),
     );
   }
   @override
@@ -1446,6 +1565,9 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       'price': serializer.toJson<double>(price),
       'cost': serializer.toJson<double>(cost),
       'quantity': serializer.toJson<double>(quantity),
+      'priceCurrency': serializer.toJson<String>(priceCurrency),
+      'fxRate': serializer.toJson<double>(fxRate),
+      'priceOriginal': serializer.toJson<double>(priceOriginal),
     };
   }
 
@@ -1456,7 +1578,10 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
           String? productName,
           double? price,
           double? cost,
-          double? quantity}) =>
+          double? quantity,
+          String? priceCurrency,
+          double? fxRate,
+          double? priceOriginal}) =>
       SalesItemRow(
         id: id ?? this.id,
         invoiceId: invoiceId ?? this.invoiceId,
@@ -1465,6 +1590,9 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
         price: price ?? this.price,
         cost: cost ?? this.cost,
         quantity: quantity ?? this.quantity,
+        priceCurrency: priceCurrency ?? this.priceCurrency,
+        fxRate: fxRate ?? this.fxRate,
+        priceOriginal: priceOriginal ?? this.priceOriginal,
       );
   SalesItemRow copyWithCompanion(SalesItemsCompanion data) {
     return SalesItemRow(
@@ -1476,6 +1604,13 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       price: data.price.present ? data.price.value : this.price,
       cost: data.cost.present ? data.cost.value : this.cost,
       quantity: data.quantity.present ? data.quantity.value : this.quantity,
+      priceCurrency: data.priceCurrency.present
+          ? data.priceCurrency.value
+          : this.priceCurrency,
+      fxRate: data.fxRate.present ? data.fxRate.value : this.fxRate,
+      priceOriginal: data.priceOriginal.present
+          ? data.priceOriginal.value
+          : this.priceOriginal,
     );
   }
 
@@ -1488,14 +1623,17 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
           ..write('productName: $productName, ')
           ..write('price: $price, ')
           ..write('cost: $cost, ')
-          ..write('quantity: $quantity')
+          ..write('quantity: $quantity, ')
+          ..write('priceCurrency: $priceCurrency, ')
+          ..write('fxRate: $fxRate, ')
+          ..write('priceOriginal: $priceOriginal')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, invoiceId, productId, productName, price, cost, quantity);
+  int get hashCode => Object.hash(id, invoiceId, productId, productName, price,
+      cost, quantity, priceCurrency, fxRate, priceOriginal);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1506,7 +1644,10 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
           other.productName == this.productName &&
           other.price == this.price &&
           other.cost == this.cost &&
-          other.quantity == this.quantity);
+          other.quantity == this.quantity &&
+          other.priceCurrency == this.priceCurrency &&
+          other.fxRate == this.fxRate &&
+          other.priceOriginal == this.priceOriginal);
 }
 
 class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
@@ -1517,6 +1658,9 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
   final Value<double> price;
   final Value<double> cost;
   final Value<double> quantity;
+  final Value<String> priceCurrency;
+  final Value<double> fxRate;
+  final Value<double> priceOriginal;
   const SalesItemsCompanion({
     this.id = const Value.absent(),
     this.invoiceId = const Value.absent(),
@@ -1525,6 +1669,9 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
     this.price = const Value.absent(),
     this.cost = const Value.absent(),
     this.quantity = const Value.absent(),
+    this.priceCurrency = const Value.absent(),
+    this.fxRate = const Value.absent(),
+    this.priceOriginal = const Value.absent(),
   });
   SalesItemsCompanion.insert({
     this.id = const Value.absent(),
@@ -1534,6 +1681,9 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
     required double price,
     this.cost = const Value.absent(),
     required double quantity,
+    this.priceCurrency = const Value.absent(),
+    this.fxRate = const Value.absent(),
+    this.priceOriginal = const Value.absent(),
   })  : invoiceId = Value(invoiceId),
         productId = Value(productId),
         productName = Value(productName),
@@ -1547,6 +1697,9 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
     Expression<double>? price,
     Expression<double>? cost,
     Expression<double>? quantity,
+    Expression<String>? priceCurrency,
+    Expression<double>? fxRate,
+    Expression<double>? priceOriginal,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1556,6 +1709,9 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
       if (price != null) 'price': price,
       if (cost != null) 'cost': cost,
       if (quantity != null) 'quantity': quantity,
+      if (priceCurrency != null) 'price_currency': priceCurrency,
+      if (fxRate != null) 'fx_rate': fxRate,
+      if (priceOriginal != null) 'price_original': priceOriginal,
     });
   }
 
@@ -1566,7 +1722,10 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
       Value<String>? productName,
       Value<double>? price,
       Value<double>? cost,
-      Value<double>? quantity}) {
+      Value<double>? quantity,
+      Value<String>? priceCurrency,
+      Value<double>? fxRate,
+      Value<double>? priceOriginal}) {
     return SalesItemsCompanion(
       id: id ?? this.id,
       invoiceId: invoiceId ?? this.invoiceId,
@@ -1575,6 +1734,9 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
       price: price ?? this.price,
       cost: cost ?? this.cost,
       quantity: quantity ?? this.quantity,
+      priceCurrency: priceCurrency ?? this.priceCurrency,
+      fxRate: fxRate ?? this.fxRate,
+      priceOriginal: priceOriginal ?? this.priceOriginal,
     );
   }
 
@@ -1602,6 +1764,15 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
     if (quantity.present) {
       map['quantity'] = Variable<double>(quantity.value);
     }
+    if (priceCurrency.present) {
+      map['price_currency'] = Variable<String>(priceCurrency.value);
+    }
+    if (fxRate.present) {
+      map['fx_rate'] = Variable<double>(fxRate.value);
+    }
+    if (priceOriginal.present) {
+      map['price_original'] = Variable<double>(priceOriginal.value);
+    }
     return map;
   }
 
@@ -1614,7 +1785,10 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
           ..write('productName: $productName, ')
           ..write('price: $price, ')
           ..write('cost: $cost, ')
-          ..write('quantity: $quantity')
+          ..write('quantity: $quantity, ')
+          ..write('priceCurrency: $priceCurrency, ')
+          ..write('fxRate: $fxRate, ')
+          ..write('priceOriginal: $priceOriginal')
           ..write(')'))
         .toString();
   }
@@ -2808,6 +2982,7 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   Value<double> quantity,
   Value<double> minStockAlert,
   Value<String> saleType,
+  Value<String> priceCurrency,
   Value<int> rowid,
 });
 typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
@@ -2819,6 +2994,7 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<double> quantity,
   Value<double> minStockAlert,
   Value<String> saleType,
+  Value<String> priceCurrency,
   Value<int> rowid,
 });
 
@@ -2854,6 +3030,9 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<String> get saleType => $composableBuilder(
       column: $table.saleType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get priceCurrency => $composableBuilder(
+      column: $table.priceCurrency, builder: (column) => ColumnFilters(column));
 }
 
 class $$ProductsTableOrderingComposer
@@ -2889,6 +3068,10 @@ class $$ProductsTableOrderingComposer
 
   ColumnOrderings<String> get saleType => $composableBuilder(
       column: $table.saleType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get priceCurrency => $composableBuilder(
+      column: $table.priceCurrency,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$ProductsTableAnnotationComposer
@@ -2923,6 +3106,9 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<String> get saleType =>
       $composableBuilder(column: $table.saleType, builder: (column) => column);
+
+  GeneratedColumn<String> get priceCurrency => $composableBuilder(
+      column: $table.priceCurrency, builder: (column) => column);
 }
 
 class $$ProductsTableTableManager extends RootTableManager<
@@ -2956,6 +3142,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<double> quantity = const Value.absent(),
             Value<double> minStockAlert = const Value.absent(),
             Value<String> saleType = const Value.absent(),
+            Value<String> priceCurrency = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               ProductsCompanion(
@@ -2967,6 +3154,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             quantity: quantity,
             minStockAlert: minStockAlert,
             saleType: saleType,
+            priceCurrency: priceCurrency,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -2978,6 +3166,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<double> quantity = const Value.absent(),
             Value<double> minStockAlert = const Value.absent(),
             Value<String> saleType = const Value.absent(),
+            Value<String> priceCurrency = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               ProductsCompanion.insert(
@@ -2989,6 +3178,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             quantity: quantity,
             minStockAlert: minStockAlert,
             saleType: saleType,
+            priceCurrency: priceCurrency,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -3484,6 +3674,9 @@ typedef $$SalesItemsTableCreateCompanionBuilder = SalesItemsCompanion Function({
   required double price,
   Value<double> cost,
   required double quantity,
+  Value<String> priceCurrency,
+  Value<double> fxRate,
+  Value<double> priceOriginal,
 });
 typedef $$SalesItemsTableUpdateCompanionBuilder = SalesItemsCompanion Function({
   Value<int> id,
@@ -3493,6 +3686,9 @@ typedef $$SalesItemsTableUpdateCompanionBuilder = SalesItemsCompanion Function({
   Value<double> price,
   Value<double> cost,
   Value<double> quantity,
+  Value<String> priceCurrency,
+  Value<double> fxRate,
+  Value<double> priceOriginal,
 });
 
 class $$SalesItemsTableFilterComposer
@@ -3524,6 +3720,15 @@ class $$SalesItemsTableFilterComposer
 
   ColumnFilters<double> get quantity => $composableBuilder(
       column: $table.quantity, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get priceCurrency => $composableBuilder(
+      column: $table.priceCurrency, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get fxRate => $composableBuilder(
+      column: $table.fxRate, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get priceOriginal => $composableBuilder(
+      column: $table.priceOriginal, builder: (column) => ColumnFilters(column));
 }
 
 class $$SalesItemsTableOrderingComposer
@@ -3555,6 +3760,17 @@ class $$SalesItemsTableOrderingComposer
 
   ColumnOrderings<double> get quantity => $composableBuilder(
       column: $table.quantity, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get priceCurrency => $composableBuilder(
+      column: $table.priceCurrency,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get fxRate => $composableBuilder(
+      column: $table.fxRate, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get priceOriginal => $composableBuilder(
+      column: $table.priceOriginal,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$SalesItemsTableAnnotationComposer
@@ -3586,6 +3802,15 @@ class $$SalesItemsTableAnnotationComposer
 
   GeneratedColumn<double> get quantity =>
       $composableBuilder(column: $table.quantity, builder: (column) => column);
+
+  GeneratedColumn<String> get priceCurrency => $composableBuilder(
+      column: $table.priceCurrency, builder: (column) => column);
+
+  GeneratedColumn<double> get fxRate =>
+      $composableBuilder(column: $table.fxRate, builder: (column) => column);
+
+  GeneratedColumn<double> get priceOriginal => $composableBuilder(
+      column: $table.priceOriginal, builder: (column) => column);
 }
 
 class $$SalesItemsTableTableManager extends RootTableManager<
@@ -3621,6 +3846,9 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             Value<double> price = const Value.absent(),
             Value<double> cost = const Value.absent(),
             Value<double> quantity = const Value.absent(),
+            Value<String> priceCurrency = const Value.absent(),
+            Value<double> fxRate = const Value.absent(),
+            Value<double> priceOriginal = const Value.absent(),
           }) =>
               SalesItemsCompanion(
             id: id,
@@ -3630,6 +3858,9 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             price: price,
             cost: cost,
             quantity: quantity,
+            priceCurrency: priceCurrency,
+            fxRate: fxRate,
+            priceOriginal: priceOriginal,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -3639,6 +3870,9 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             required double price,
             Value<double> cost = const Value.absent(),
             required double quantity,
+            Value<String> priceCurrency = const Value.absent(),
+            Value<double> fxRate = const Value.absent(),
+            Value<double> priceOriginal = const Value.absent(),
           }) =>
               SalesItemsCompanion.insert(
             id: id,
@@ -3648,6 +3882,9 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             price: price,
             cost: cost,
             quantity: quantity,
+            priceCurrency: priceCurrency,
+            fxRate: fxRate,
+            priceOriginal: priceOriginal,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))

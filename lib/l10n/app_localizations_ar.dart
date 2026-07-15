@@ -1046,4 +1046,51 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get backupBusyRestoring => 'جارٍ الاستعادة…';
+
+  @override
+  String get priceCurrencyLabel => 'عملة السعر';
+
+  @override
+  String get currencySp => 'ل.س';
+
+  @override
+  String get currencyUsd => 'دولار';
+
+  @override
+  String get currencySettingsItem => 'العملة وسعر الصرف';
+
+  @override
+  String get currencySettingsSubtitle =>
+      'حدّد سعر تحويل الدولار إلى الليرة للمنتجات المسعّرة بالدولار';
+
+  @override
+  String get currencySettingsTitle => 'العملة وسعر الصرف';
+
+  @override
+  String get currencySettingsNote =>
+      'الليرة السورية هي عملتك الأساسية. المنتجات المسعّرة بالدولار تُحوَّل إلى الليرة بهذا السعر عند البيع. تغيير السعر يؤثّر على المبيعات الجديدة فقط — الفواتير السابقة تحتفظ بسعرها الأصلي.';
+
+  @override
+  String get exchangeRateLabel => 'الليرة مقابل ١ دولار';
+
+  @override
+  String get exchangeRateHint => 'مثال: ١٥٠٠٠';
+
+  @override
+  String get exchangeRateInvalid => 'أدخل سعراً أكبر من صفر';
+
+  @override
+  String get exchangeRateSaved => 'تم حفظ سعر الصرف';
+
+  @override
+  String get exchangeRateNever => 'غير محدّد بعد';
+
+  @override
+  String exchangeRateUpdatedAt(String date) {
+    return 'آخر تحديث: $date';
+  }
+
+  @override
+  String get exchangeRateMissingError =>
+      'حدّد سعر صرف الدولار من الإعدادات ← العملة قبل بيع منتج مسعّر بالدولار.';
 }

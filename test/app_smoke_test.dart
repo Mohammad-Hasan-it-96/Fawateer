@@ -7,6 +7,7 @@
 //   - product list & history are driven by repository streams
 import 'dart:async';
 
+import 'package:billing_app/core/currency/exchange_rate_service.dart';
 import 'package:billing_app/core/error/failure.dart';
 import 'package:billing_app/features/billing/domain/entities/invoice.dart';
 import 'package:billing_app/features/billing/domain/entities/invoice_item.dart';
@@ -16,6 +17,7 @@ import 'package:billing_app/features/billing/domain/entities/sales_summary.dart'
 import 'package:billing_app/features/billing/domain/repositories/invoice_repository.dart';
 import 'package:billing_app/features/billing/presentation/bloc/billing_bloc.dart';
 import 'package:billing_app/features/billing/presentation/bloc/history_bloc.dart';
+import 'package:billing_app/features/product/domain/entities/price_currency.dart';
 import 'package:billing_app/features/product/domain/entities/product.dart';
 import 'package:billing_app/features/product/domain/repositories/product_repository.dart';
 import 'package:billing_app/features/product/presentation/bloc/product_bloc.dart';
@@ -36,6 +38,19 @@ Product _product({
     Product(id: id, name: 'Test', barcode: barcode, price: price, quantity: quantity);
 
 // ── Fakes ───────────────────────────────────────────────────────────────────
+
+/// Configurable rate fake. Defaults to null (unset) — the SP-only BillingBloc
+/// tests never consult it; the dual-currency tests pass an explicit rate.
+class _FakeExchangeRateService implements ExchangeRateService {
+  final double? rate;
+  _FakeExchangeRateService({this.rate});
+  @override
+  Future<double?> getRate() async => rate;
+  @override
+  Future<DateTime?> getUpdatedAt() async => null;
+  @override
+  Future<void> setRate(double rate) async {}
+}
 
 class _FakeProductRepository implements ProductRepository {
   final Map<String, Product> byBarcode;
@@ -215,6 +230,7 @@ void main() {
         productRepository: _FakeProductRepository(),
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: _FakeInvoiceRepository(),
+        exchangeRateService: _FakeExchangeRateService(),
       );
       final next = bloc.stream.firstWhere((s) => s.error != null);
       bloc.add(const ScanBarcodeEvent('999'));
@@ -231,6 +247,7 @@ void main() {
             _FakeProductRepository(byBarcode: {'123': _product()}),
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: _FakeInvoiceRepository(),
+        exchangeRateService: _FakeExchangeRateService(),
       );
       final next = bloc.stream.firstWhere((s) => s.cartItems.isNotEmpty);
       bloc.add(const ScanBarcodeEvent('123'));
@@ -247,6 +264,7 @@ void main() {
         productRepository: _FakeProductRepository(),
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: invoiceRepo,
+        exchangeRateService: _FakeExchangeRateService(),
       );
       final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
       bloc.add(AddProductToCartEvent(_product()));
@@ -273,6 +291,7 @@ void main() {
         productRepository: _FakeProductRepository(),
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: invoiceRepo,
+        exchangeRateService: _FakeExchangeRateService(),
       );
       final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
       bloc.add(AddProductToCartEvent(_product()));
@@ -296,6 +315,7 @@ void main() {
         productRepository: _FakeProductRepository(),
         printerRepository: _FakePrinterRepository(printerAvailable: false),
         invoiceRepository: _FakeInvoiceRepository(),
+        exchangeRateService: _FakeExchangeRateService(),
       );
       final next = bloc.stream.firstWhere((s) => s.error != null);
       bloc.add(const PrintReceiptEvent(
@@ -316,6 +336,7 @@ void main() {
         productRepository: _FakeProductRepository(),
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: _FakeInvoiceRepository(),
+        exchangeRateService: _FakeExchangeRateService(),
       );
 
       // Tracked item, on-hand 1: selling 2 (add twice) must warn.
@@ -344,6 +365,7 @@ void main() {
         productRepository: _FakeProductRepository(),
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: invoiceRepo,
+        exchangeRateService: _FakeExchangeRateService(),
       );
       final errored = bloc.stream.firstWhere((s) => s.error != null);
       bloc.add(const ConfirmSaleEvent(
@@ -362,6 +384,7 @@ void main() {
         productRepository: _FakeProductRepository(),
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: invoiceRepo,
+        exchangeRateService: _FakeExchangeRateService(),
       );
       final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
       bloc.add(AddProductToCartEvent(_product()));
@@ -375,6 +398,76 @@ void main() {
       // Let any second handler run before asserting.
       await Future<void>.delayed(const Duration(milliseconds: 50));
       expect(invoiceRepo.saveCount, 1);
+      await bloc.close();
+    });
+
+    test('USD product is priced into whole SP at the loaded rate', () async {
+      final invoiceRepo = _FakeInvoiceRepository();
+      final bloc = BillingBloc(
+        productRepository: _FakeProductRepository(),
+        printerRepository: _FakePrinterRepository(),
+        invoiceRepository: invoiceRepo,
+        exchangeRateService: _FakeExchangeRateService(rate: 15000),
+      );
+      bloc.add(const LoadExchangeRateEvent());
+      await bloc.stream
+          .firstWhere((s) => s.exchangeRate == 15000)
+          .timeout(_timeout);
+
+      const usd = Product(
+          id: 'd1',
+          name: 'Phone',
+          barcode: '',
+          price: 10, // $10
+          quantity: 5,
+          priceCurrency: PriceCurrency.usd);
+      final added = bloc.stream.firstWhere((s) => s.cartItems.isNotEmpty);
+      bloc.add(const AddProductToCartEvent(usd));
+      final s = await added.timeout(_timeout);
+
+      // $10 × 15000 = 150,000 SP, settled and totalled in SP.
+      expect(s.cartItems.single.unitPriceSp, 150000);
+      expect(s.totalAmount, 150000);
+      expect(s.hasUnpricedItems, isFalse);
+
+      // The sale persists SP price + the FX snapshot for audit.
+      final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
+      bloc.add(const ConfirmSaleEvent(
+          shopName: 'Shop', address1: '', address2: '', phone: '', footer: ''));
+      await confirmed.timeout(_timeout);
+      final item = invoiceRepo.savedItems!.single;
+      expect(item.price, 150000); // resolved SP
+      expect(item.priceCurrency, 'usd');
+      expect(item.fxRate, 15000);
+      expect(item.priceOriginal, 10);
+      await bloc.close();
+    });
+
+    test('USD product with no rate → unpriced line blocks the sale', () async {
+      final invoiceRepo = _FakeInvoiceRepository();
+      final bloc = BillingBloc(
+        productRepository: _FakeProductRepository(),
+        printerRepository: _FakePrinterRepository(),
+        invoiceRepository: invoiceRepo,
+        exchangeRateService: _FakeExchangeRateService(), // no rate set
+      );
+      bloc.add(const LoadExchangeRateEvent());
+
+      const usd = Product(
+          id: 'd1',
+          name: 'Phone',
+          barcode: '',
+          price: 10,
+          quantity: 5,
+          priceCurrency: PriceCurrency.usd);
+      bloc.add(const AddProductToCartEvent(usd));
+      final errored = bloc.stream.firstWhere((s) => s.error != null);
+      bloc.add(const ConfirmSaleEvent(
+          shopName: 'Shop', address1: '', address2: '', phone: '', footer: ''));
+      final s = await errored.timeout(_timeout);
+
+      expect(s.error, BillingError.exchangeRateMissing);
+      expect(invoiceRepo.saveCount, 0);
       await bloc.close();
     });
   });

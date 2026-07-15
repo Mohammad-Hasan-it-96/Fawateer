@@ -6,7 +6,9 @@ import 'package:go_router/go_router.dart';
 
 import '../bloc/product_bloc.dart';
 import '../widgets/currency_field.dart';
+import '../widgets/price_currency_selector.dart';
 import '../widgets/sale_type_selector.dart';
+import '../../domain/entities/price_currency.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/product_sale_type.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -34,6 +36,7 @@ class _EditProductPageState extends State<EditProductPage> {
   late double _quantity;
   late double _minStockAlert;
   late ProductSaleType _saleType;
+  late PriceCurrency _priceCurrency;
 
   @override
   void initState() {
@@ -44,6 +47,7 @@ class _EditProductPageState extends State<EditProductPage> {
     _quantity = widget.product.quantity;
     _minStockAlert = widget.product.minStockAlert;
     _saleType = widget.product.saleType;
+    _priceCurrency = widget.product.priceCurrency;
   }
 
   void _submit() {
@@ -58,6 +62,7 @@ class _EditProductPageState extends State<EditProductPage> {
         quantity: _quantity,
         minStockAlert: _minStockAlert,
         saleType: _saleType,
+        priceCurrency: _priceCurrency,
       );
 
       context.read<ProductBloc>().add(UpdateProduct(updatedProduct));
@@ -140,12 +145,21 @@ class _EditProductPageState extends State<EditProductPage> {
                   ),
                   const SizedBox(height: 24),
 
+                  InputLabel(text: l10n.priceCurrencyLabel),
+                  PriceCurrencySelector(
+                    value: _priceCurrency,
+                    onChanged: (c) => setState(() => _priceCurrency = c),
+                  ),
+                  const SizedBox(height: 24),
+
                   InputLabel(
                       text: _saleType.isMeasured
                           ? l10n.pricePerKgLabel
                           : l10n.priceLabel),
                   CurrencyField(
                     initialValue: _price.toStringAsFixed(2),
+                    currencySymbol:
+                        _priceCurrency == PriceCurrency.usd ? '\$' : null,
                     validator: AppValidators.price(
                       requiredMsg: l10n.fieldRequired,
                       invalidMsg: l10n.invalidPrice,
@@ -160,6 +174,8 @@ class _EditProductPageState extends State<EditProductPage> {
                   InputLabel(text: l10n.costLabel),
                   CurrencyField(
                     initialValue: _cost.toStringAsFixed(2),
+                    currencySymbol:
+                        _priceCurrency == PriceCurrency.usd ? '\$' : null,
                     helperText: l10n.costHint,
                     validator: AppValidators.optionalNonNegative(
                       invalidMsg: l10n.invalidNumber,

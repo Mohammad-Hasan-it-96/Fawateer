@@ -5,6 +5,8 @@ import '../../domain/entities/cart_item.dart';
 import '../../domain/entities/invoice.dart';
 import '../../domain/entities/invoice_item.dart';
 import '../../domain/repositories/invoice_repository.dart';
+import 'package:billing_app/core/currency/exchange_rate_service.dart';
+import 'package:billing_app/features/product/domain/entities/price_currency.dart';
 import 'package:billing_app/features/product/domain/entities/product.dart';
 import 'package:billing_app/features/product/domain/repositories/product_repository.dart';
 import 'package:billing_app/features/settings/domain/entities/receipt_line.dart';
@@ -17,11 +19,13 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
   final ProductRepository productRepository;
   final PrinterRepository printerRepository;
   final InvoiceRepository invoiceRepository;
+  final ExchangeRateService exchangeRateService;
 
   BillingBloc({
     required this.productRepository,
     required this.printerRepository,
     required this.invoiceRepository,
+    required this.exchangeRateService,
   }) : super(const BillingState()) {
     on<ScanBarcodeEvent>(_onScanBarcode);
     on<AddProductToCartEvent>(_onAddProductToCart);
@@ -32,6 +36,51 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     on<ClearCartEvent>(_onClearCart);
     on<PrintReceiptEvent>(_onPrintReceipt);
     on<ConfirmSaleEvent>(_onConfirmSale);
+    on<LoadExchangeRateEvent>(_onLoadExchangeRate);
+  }
+
+  /// Build a cart line, resolving a USD-priced product to whole SP at the
+  /// current rate. SP products pass through unchanged. A USD product with no
+  /// valid rate is left *unpriced* (fxRate 0) so the checkout guard blocks it.
+  CartItem _priceLine(Product p, double qty) {
+    if (p.priceCurrency == PriceCurrency.usd) {
+      final rate = state.exchangeRate;
+      final sp = usdToSp(p.price, rate);
+      if (sp != null) {
+        return CartItem(
+          product: p,
+          quantity: qty,
+          unitPriceSp: sp,
+          unitCostSp: usdToSp(p.cost, rate) ?? 0,
+          fxRate: rate!,
+        );
+      }
+      return CartItem(
+          product: p, quantity: qty, unitPriceSp: 0, unitCostSp: 0, fxRate: 0);
+    }
+    return CartItem(
+        product: p, quantity: qty, unitPriceSp: p.price, unitCostSp: p.cost);
+  }
+
+  /// Load the current exchange rate and re-price any foreign lines already in
+  /// the cart, so setting/changing the rate keeps the displayed SP consistent.
+  Future<void> _onLoadExchangeRate(
+      LoadExchangeRateEvent event, Emitter<BillingState> emit) async {
+    final rate = await exchangeRateService.getRate();
+    final updatedAt = await exchangeRateService.getUpdatedAt();
+    final rebuilt = state.cartItems.map((i) {
+      if (!i.isForeign) return i;
+      final sp = usdToSp(i.product.price, rate);
+      if (sp == null) {
+        return i.copyWith(unitPriceSp: 0, unitCostSp: 0, fxRate: 0);
+      }
+      return i.copyWith(
+          unitPriceSp: sp,
+          unitCostSp: usdToSp(i.product.cost, rate) ?? 0,
+          fxRate: rate!);
+    }).toList();
+    emit(state.copyWith(
+        cartItems: rebuilt, exchangeRate: rate, rateUpdatedAt: updatedAt));
   }
 
   Future<void> _onScanBarcode(
@@ -77,7 +126,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     } else {
       updatedItems = [
         ...cleanState.cartItems,
-        CartItem(product: event.product, quantity: event.quantity ?? 1),
+        _priceLine(event.product, event.quantity ?? 1),
       ];
     }
 
@@ -130,6 +179,14 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       return;
     }
 
+    // A USD-priced line with no exchange rate can't be converted to SP — block
+    // the sale rather than book a wrong (or zero) total. The owner sets the
+    // rate in Settings → Currency.
+    if (state.cartItems.any((i) => i.isUnpriced)) {
+      emit(state.copyWith(error: BillingError.exchangeRateMissing));
+      return;
+    }
+
     emit(state.copyWith(isSaving: true, clearError: true));
 
     final invoiceId = const Uuid().v4();
@@ -143,10 +200,16 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         .map((cartItem) => InvoiceItem(
               invoiceId: invoiceId,
               productId: cartItem.product.id,
+              // Resolved SP values — the books settle in SP regardless of how
+              // the product was priced. The original currency/rate/price are
+              // snapshotted for display & audit only.
               productName: cartItem.product.name,
-              price: cartItem.product.price,
-              cost: cartItem.product.cost,
+              price: cartItem.unitPriceSp,
+              cost: cartItem.unitCostSp,
               quantity: cartItem.quantity,
+              priceCurrency: cartItem.sellCurrency.name,
+              fxRate: cartItem.fxRate,
+              priceOriginal: cartItem.product.price,
             ))
         .toList();
 
@@ -222,7 +285,9 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       .map((i) => ReceiptLine(
             name: i.product.name,
             quantity: i.quantity,
-            price: i.product.price,
+            // Print the resolved SP unit price so the receipt reconciles with
+            // the SP grand total (a USD sticker is converted before printing).
+            price: i.unitPriceSp,
             total: i.total,
             // Receipts render as an Arabic bitmap; tag weighed lines with the
             // kg unit so "0.333 كغ × رز" reads clearly.

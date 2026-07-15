@@ -1056,4 +1056,51 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupBusyRestoring => 'Restoring…';
+
+  @override
+  String get priceCurrencyLabel => 'Price currency';
+
+  @override
+  String get currencySp => 'SP';
+
+  @override
+  String get currencyUsd => 'USD';
+
+  @override
+  String get currencySettingsItem => 'Currency & Exchange Rate';
+
+  @override
+  String get currencySettingsSubtitle =>
+      'Set the USD → SP rate for dollar-priced products';
+
+  @override
+  String get currencySettingsTitle => 'Currency & Exchange Rate';
+
+  @override
+  String get currencySettingsNote =>
+      'Syrian Pound is your main currency. Products priced in US Dollars are converted to SP at this rate when you sell them. Changing the rate only affects new sales — past invoices keep their original rate.';
+
+  @override
+  String get exchangeRateLabel => 'SP per 1 USD';
+
+  @override
+  String get exchangeRateHint => 'e.g. 15000';
+
+  @override
+  String get exchangeRateInvalid => 'Enter a rate greater than zero';
+
+  @override
+  String get exchangeRateSaved => 'Exchange rate saved';
+
+  @override
+  String get exchangeRateNever => 'Not set yet';
+
+  @override
+  String exchangeRateUpdatedAt(String date) {
+    return 'Last updated: $date';
+  }
+
+  @override
+  String get exchangeRateMissingError =>
+      'Set the USD exchange rate in Settings → Currency before selling a dollar-priced item.';
 }

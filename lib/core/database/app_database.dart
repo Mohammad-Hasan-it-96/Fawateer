@@ -45,7 +45,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'fawateer'));
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -120,6 +120,16 @@ class AppDatabase extends _$AppDatabase {
         // was already dropped in the v2→v3 step; this uses a distinct name.)
         await migrator.createTable(cashboxTransactions);
         await _createCashboxIndexes();
+      }
+      if (from < 10) {
+        // Dual currency (SP base + USD sticker): additive text/real columns,
+        // all with defaults so existing rows decode as SP-native. products
+        // gains the price currency; sales_items gains the per-line FX snapshot
+        // (currency/rate/original) used for display & audit. No table rebuild.
+        await migrator.addColumn(products, products.priceCurrency);
+        await migrator.addColumn(salesItems, salesItems.priceCurrency);
+        await migrator.addColumn(salesItems, salesItems.fxRate);
+        await migrator.addColumn(salesItems, salesItems.priceOriginal);
       }
     },
   );
