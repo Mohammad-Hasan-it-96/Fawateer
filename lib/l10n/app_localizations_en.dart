@@ -962,6 +962,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your subscription has been activated';
 
   @override
+  String trialBanner(int days) {
+    return 'Free trial — $days days left';
+  }
+
+  @override
+  String get trialUpgrade => 'Upgrade';
+
+  @override
   String get backupTitle => 'Backup & Restore';
 
   @override

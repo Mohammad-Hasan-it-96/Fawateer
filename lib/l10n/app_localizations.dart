@@ -1904,6 +1904,18 @@ abstract class AppLocalizations {
   /// **'Your subscription has been activated'**
   String get subscriptionActivatedBanner;
 
+  /// No description provided for @trialBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Free trial — {days} days left'**
+  String trialBanner(int days);
+
+  /// No description provided for @trialUpgrade.
+  ///
+  /// In en, this message translates to:
+  /// **'Upgrade'**
+  String get trialUpgrade;
+
   /// No description provided for @backupTitle.
   ///
   /// In en, this message translates to:

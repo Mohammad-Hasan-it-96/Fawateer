@@ -329,6 +329,10 @@
 
   "subscriptionActivatedBanner": "تم تفعيل اشتراكك",
 
+  "trialBanner": "نسخة تجريبية — باقٍ {days} يوم",
+  "@trialBanner": { "placeholders": { "days": { "type": "int" } } },
+  "trialUpgrade": "ترقية",
+
   "backupTitle": "النسخ الاحتياطي والاستعادة",
   "backupItem": "النسخ الاحتياطي والاستعادة",
   "backupSubtitle": "احمِ بياناتك عبر Google Drive",

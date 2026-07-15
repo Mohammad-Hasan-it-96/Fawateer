@@ -349,6 +349,10 @@
 
   "subscriptionActivatedBanner": "Your subscription has been activated",
 
+  "trialBanner": "Free trial — {days} days left",
+  "@trialBanner": { "placeholders": { "days": { "type": "int" } } },
+  "trialUpgrade": "Upgrade",
+
   "backupTitle": "Backup & Restore",
   "backupItem": "Backup & Restore",
   "backupSubtitle": "Protect your data with Google Drive",

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
+import '../../features/licensing/presentation/widgets/trial_banner.dart';
 
 class AppShell extends StatelessWidget {
   final StatefulNavigationShell navigationShell;
@@ -10,7 +11,13 @@ class AppShell extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      body: navigationShell,
+      body: Column(
+        children: [
+          // Persistent free-trial banner (renders nothing outside a trial).
+          const TrialBanner(),
+          Expanded(child: navigationShell),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: (index) =>

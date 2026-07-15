@@ -952,6 +952,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get subscriptionActivatedBanner => 'تم تفعيل اشتراكك';
 
   @override
+  String trialBanner(int days) {
+    return 'نسخة تجريبية — باقٍ $days يوم';
+  }
+
+  @override
+  String get trialUpgrade => 'ترقية';
+
+  @override
   String get backupTitle => 'النسخ الاحتياطي والاستعادة';
 
   @override
