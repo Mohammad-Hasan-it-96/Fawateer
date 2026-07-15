@@ -49,6 +49,24 @@ class UpdateQuantityEvent extends BillingEvent {
 
 class ClearCartEvent extends BillingEvent {}
 
+/// Set (or clear, with 0) a manual per-line discount in SP on the given product's
+/// cart line. The UI resolves a % or fixed entry into this SP amount.
+class SetLineDiscountEvent extends BillingEvent {
+  final String productId;
+  final double discount; // SP; 0 clears
+  const SetLineDiscountEvent(this.productId, this.discount);
+  @override
+  List<Object> get props => [productId, discount];
+}
+
+/// Set (or clear, with 0) the whole-cart discount in SP.
+class SetCartDiscountEvent extends BillingEvent {
+  final double discount; // SP; 0 clears
+  const SetCartDiscountEvent(this.discount);
+  @override
+  List<Object> get props => [discount];
+}
+
 /// Load (or reload) the USD→SP exchange rate into the bloc and re-price any
 /// foreign lines in the cart. Dispatched at startup and after the rate is
 /// edited in Settings → Currency.

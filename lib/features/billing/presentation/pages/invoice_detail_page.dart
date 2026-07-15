@@ -84,7 +84,7 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
                     ],
                   ),
                 ),
-                _footer(context, l10n, currency, inv, reprinting),
+                _footer(context, l10n, currency, inv, reprinting, items),
               ],
             );
           },
@@ -201,6 +201,10 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
                       Text('× ${formatQty(item.quantity)}',
                           style: TextStyle(
                               fontSize: 12, color: Colors.grey[600])),
+                      if (item.discount > 0)
+                        Text('${l10n.discountLabel}: - ${_money(currency, item.discount)}',
+                            style:
+                                const TextStyle(fontSize: 11, color: Colors.red)),
                     ],
                   ),
                 ),
@@ -234,7 +238,16 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
       );
 
   Widget _footer(BuildContext context, AppLocalizations l10n, String currency,
-      InvoiceListItem inv, bool reprinting) {
+      InvoiceListItem inv, bool reprinting, List<InvoiceItem>? items) {
+    // Derive the discount breakdown from the snapshotted items + stored total:
+    // gross subtotal = Σ price×qty; total discount = subtotal − grand total.
+    double? subtotal;
+    double totalDiscount = 0;
+    if (items != null && items.isNotEmpty) {
+      subtotal = items.fold<double>(0, (s, i) => s + i.gross);
+      totalDiscount = subtotal - inv.total;
+      if (totalDiscount < 0.005) totalDiscount = 0;
+    }
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
       decoration: BoxDecoration(
@@ -243,6 +256,12 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
       ),
       child: Column(
         children: [
+          if (subtotal != null && totalDiscount > 0) ...[
+            _sumRow(l10n.subtotalLabel, _money(currency, subtotal)),
+            _sumRow(l10n.discountLabel, '- ${_money(currency, totalDiscount)}',
+                color: Colors.red),
+            const SizedBox(height: 6),
+          ],
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -273,6 +292,23 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
               ),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _sumRow(String label, String value, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: color ?? Colors.grey[800])),
         ],
       ),
     );

@@ -20,5 +20,9 @@ class SalesItems extends Table {
   TextColumn get priceCurrency => text().withDefault(const Constant('sp'))();
   RealColumn get fxRate => real().withDefault(const Constant(0))();
   RealColumn get priceOriginal => real().withDefault(const Constant(0))();
+  // Manual per-line discount in **SP** (the resolved amount, whether the cashier
+  // entered a % or a fixed value). Snapshotted at sale time like price/cost;
+  // line total = price×quantity − discount. Default 0 = no discount.
+  RealColumn get discount => real().withDefault(const Constant(0))();
 }
 

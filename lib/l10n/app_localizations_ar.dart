@@ -1096,4 +1096,34 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get exchangeRateMissingError =>
       'حدّد سعر صرف الدولار من الإعدادات ← العملة قبل بيع منتج مسعّر بالدولار.';
+
+  @override
+  String get discountTitle => 'خصم';
+
+  @override
+  String get discountPercent => 'نسبة';
+
+  @override
+  String get discountAmount => 'مبلغ';
+
+  @override
+  String get discountValueHint => 'القيمة';
+
+  @override
+  String get discountApply => 'تطبيق';
+
+  @override
+  String get discountRemove => 'إزالة';
+
+  @override
+  String get addDiscountAction => 'خصم';
+
+  @override
+  String get discountLabel => 'الخصم';
+
+  @override
+  String get subtotalLabel => 'المجموع الفرعي';
+
+  @override
+  String get cartDiscountLabel => 'خصم على الفاتورة';
 }

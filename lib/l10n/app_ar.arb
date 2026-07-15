@@ -375,5 +375,16 @@
   "setExchangeRateShort": "سعر الدولار",
   "exchangeRateUpdatedAt": "آخر تحديث: {date}",
   "@exchangeRateUpdatedAt": { "placeholders": { "date": { "type": "String" } } },
-  "exchangeRateMissingError": "حدّد سعر صرف الدولار من الإعدادات ← العملة قبل بيع منتج مسعّر بالدولار."
+  "exchangeRateMissingError": "حدّد سعر صرف الدولار من الإعدادات ← العملة قبل بيع منتج مسعّر بالدولار.",
+
+  "discountTitle": "خصم",
+  "discountPercent": "نسبة",
+  "discountAmount": "مبلغ",
+  "discountValueHint": "القيمة",
+  "discountApply": "تطبيق",
+  "discountRemove": "إزالة",
+  "addDiscountAction": "خصم",
+  "discountLabel": "الخصم",
+  "subtotalLabel": "المجموع الفرعي",
+  "cartDiscountLabel": "خصم على الفاتورة"
 }

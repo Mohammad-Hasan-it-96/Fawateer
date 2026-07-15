@@ -1106,4 +1106,34 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get exchangeRateMissingError =>
       'Set the USD exchange rate in Settings → Currency before selling a dollar-priced item.';
+
+  @override
+  String get discountTitle => 'Discount';
+
+  @override
+  String get discountPercent => 'Percent';
+
+  @override
+  String get discountAmount => 'Amount';
+
+  @override
+  String get discountValueHint => 'Value';
+
+  @override
+  String get discountApply => 'Apply';
+
+  @override
+  String get discountRemove => 'Remove';
+
+  @override
+  String get addDiscountAction => 'Discount';
+
+  @override
+  String get discountLabel => 'Discount';
+
+  @override
+  String get subtotalLabel => 'Subtotal';
+
+  @override
+  String get cartDiscountLabel => 'Cart discount';
 }

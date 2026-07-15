@@ -37,6 +37,25 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     on<PrintReceiptEvent>(_onPrintReceipt);
     on<ConfirmSaleEvent>(_onConfirmSale);
     on<LoadExchangeRateEvent>(_onLoadExchangeRate);
+    on<SetLineDiscountEvent>(_onSetLineDiscount);
+    on<SetCartDiscountEvent>(_onSetCartDiscount);
+  }
+
+  void _onSetLineDiscount(
+      SetLineDiscountEvent event, Emitter<BillingState> emit) {
+    final index =
+        state.cartItems.indexWhere((i) => i.product.id == event.productId);
+    if (index < 0) return;
+    final items = List<CartItem>.from(state.cartItems);
+    final d = event.discount < 0 ? 0.0 : event.discount;
+    items[index] = items[index].copyWith(discount: d);
+    emit(state.copyWith(cartItems: items));
+  }
+
+  void _onSetCartDiscount(
+      SetCartDiscountEvent event, Emitter<BillingState> emit) {
+    emit(state.copyWith(
+        invoiceDiscount: event.discount < 0 ? 0.0 : event.discount));
   }
 
   /// Build a cart line, resolving a USD-priced product to whole SP at the
@@ -194,6 +213,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       id: invoiceId,
       createdAt: DateTime.now(),
       totalAmount: state.totalAmount,
+      invoiceDiscount: state.effectiveInvoiceDiscount,
     );
 
     final items = state.cartItems
@@ -210,6 +230,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
               priceCurrency: cartItem.sellCurrency.name,
               fxRate: cartItem.fxRate,
               priceOriginal: cartItem.product.price,
+              discount: cartItem.effectiveDiscount,
             ))
         .toList();
 

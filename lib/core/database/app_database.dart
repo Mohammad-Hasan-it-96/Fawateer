@@ -45,7 +45,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'fawateer'));
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -138,6 +138,12 @@ class AppDatabase extends _$AppDatabase {
         await customStatement(
             "UPDATE shop_settings SET currency_symbol = 'ل.س' "
             "WHERE currency_symbol = '₹' OR currency_symbol = ''");
+      }
+      if (from < 12) {
+        // Manual discounts (Plan 005): additive SP-discount columns. Every
+        // existing row decodes as "no discount". No table rebuild.
+        await migrator.addColumn(salesItems, salesItems.discount);
+        await migrator.addColumn(salesInvoices, salesInvoices.invoiceDiscount);
       }
     },
   );

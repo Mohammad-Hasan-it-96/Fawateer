@@ -14,6 +14,7 @@ import '../../../shop/domain/entities/shop.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/billing_bloc.dart';
 import '../billing_error_text.dart';
+import '../widgets/discount_dialog.dart';
 
 class CheckoutPage extends StatelessWidget {
   const CheckoutPage({super.key});
@@ -268,31 +269,7 @@ class CheckoutPage extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  l10n.grandTotal,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[700],
-                  ),
-                ),
-                Text(
-                  '$currency${billingState.totalAmount.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildTotals(context, billingState, currency, l10n),
           if (billingState.saleConfirmed) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
@@ -386,6 +363,111 @@ class CheckoutPage extends StatelessWidget {
               l10n: l10n,
             ),
           ],
+        ],
+      ),
+    );
+  }
+
+  /// Totals block: an editable cart-discount row (before confirm), an optional
+  /// subtotal + discount breakdown, then the grand total.
+  Widget _buildTotals(BuildContext context, BillingState st, String currency,
+      AppLocalizations l10n) {
+    final hasDiscount = st.totalDiscount > 0;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Column(
+        children: [
+          if (!st.saleConfirmed) _cartDiscountRow(context, st, currency, l10n),
+          if (hasDiscount) ...[
+            _miniRow(l10n.subtotalLabel,
+                '$currency${st.subtotal.toStringAsFixed(2)}'),
+            _miniRow(l10n.discountLabel,
+                '- $currency${st.totalDiscount.toStringAsFixed(2)}',
+                color: Colors.red),
+            const SizedBox(height: 4),
+          ],
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(l10n.grandTotal,
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[700])),
+              Text('$currency${st.totalAmount.toStringAsFixed(2)}',
+                  style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF0F172A))),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _cartDiscountRow(BuildContext context, BillingState st,
+      String currency, AppLocalizations l10n) {
+    final has = st.effectiveInvoiceDiscount > 0;
+    return InkWell(
+      onTap: st.cartItems.isEmpty
+          ? null
+          : () => _editCartDiscount(context, st, currency),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(has ? Icons.local_offer : Icons.local_offer_outlined,
+                    size: 16, color: has ? Colors.red : Colors.grey[600]),
+                const SizedBox(width: 6),
+                Text(l10n.cartDiscountLabel,
+                    style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+              ],
+            ),
+            Text(
+              has
+                  ? '- $currency${st.effectiveInvoiceDiscount.toStringAsFixed(2)}'
+                  : l10n.addDiscountAction,
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: has ? Colors.red : AppTheme.primaryColor),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editCartDiscount(
+      BuildContext context, BillingState st, String currency) async {
+    final result = await showDiscountDialog(
+      context: context,
+      base: st.subtotal,
+      currency: currency,
+      initialDiscount: st.invoiceDiscount,
+    );
+    if (result != null && context.mounted) {
+      context.read<BillingBloc>().add(SetCartDiscountEvent(result));
+    }
+  }
+
+  Widget _miniRow(String label, String value, {Color? color}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: color ?? Colors.grey[700])),
         ],
       ),
     );

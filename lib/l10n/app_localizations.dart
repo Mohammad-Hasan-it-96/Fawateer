@@ -2173,6 +2173,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Set the USD exchange rate in Settings → Currency before selling a dollar-priced item.'**
   String get exchangeRateMissingError;
+
+  /// No description provided for @discountTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Discount'**
+  String get discountTitle;
+
+  /// No description provided for @discountPercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Percent'**
+  String get discountPercent;
+
+  /// No description provided for @discountAmount.
+  ///
+  /// In en, this message translates to:
+  /// **'Amount'**
+  String get discountAmount;
+
+  /// No description provided for @discountValueHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Value'**
+  String get discountValueHint;
+
+  /// No description provided for @discountApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get discountApply;
+
+  /// No description provided for @discountRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get discountRemove;
+
+  /// No description provided for @addDiscountAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Discount'**
+  String get addDiscountAction;
+
+  /// No description provided for @discountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Discount'**
+  String get discountLabel;
+
+  /// No description provided for @subtotalLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtotal'**
+  String get subtotalLabel;
+
+  /// No description provided for @cartDiscountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cart discount'**
+  String get cartDiscountLabel;
 }
 
 class _AppLocalizationsDelegate

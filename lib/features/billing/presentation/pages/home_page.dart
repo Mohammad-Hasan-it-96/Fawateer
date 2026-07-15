@@ -4,9 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:app_settings/app_settings.dart';
-import 'package:intl/intl.dart';
+import 'package:intl/intl.dart' hide TextDirection;
 
 import '../../../settings/presentation/widgets/exchange_rate_sheet.dart';
+import '../widgets/discount_dialog.dart';
 
 import '../../../../core/utils/num_input.dart';
 
@@ -369,7 +370,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             icon: const Icon(Icons.settings),
             label: Text(l10n.openSettings,
                 style: const TextStyle(fontWeight: FontWeight.bold)),
-            onPressed: () => AppSettings.openAppSettings(),
+            // asAnotherTask: launches Settings with FLAG_ACTIVITY_NEW_TASK —
+            // without it Android silently drops the launch on many devices
+            // ("nothing happens"). Opens App Info → Permissions → Camera.
+            onPressed: () =>
+                AppSettings.openAppSettings(asAnotherTask: true),
           ),
         ],
       ),
@@ -394,7 +399,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
             decoration: BoxDecoration(
-              color: Colors.black45,
+              color: Colors.black54,
               borderRadius: BorderRadius.circular(10),
               border: Border.all(color: Colors.white24),
             ),
@@ -404,13 +409,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 const Icon(Icons.currency_exchange,
                     color: Colors.white, size: 16),
                 const SizedBox(width: 6),
-                Text(label,
-                    style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600)),
-                const SizedBox(width: 4),
-                const Icon(Icons.edit, color: Colors.white54, size: 12),
+                // Force LTR so "$1 = 13,000 ل.س" keeps a stable, readable order
+                // in the Arabic (RTL) layout instead of the number/symbol
+                // reshuffling into a confusing mix.
+                Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Text(label,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600)),
+                ),
               ],
             ),
           ),
@@ -671,6 +680,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           fontSize: 14,
                           color: AppTheme.primaryColor)),
                 ],
+                const SizedBox(height: 6),
+                _buildLineDiscount(context, item, currency, l10n),
               ],
             ),
           ),
@@ -786,6 +797,60 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
     if (newQty != null) {
       bloc.add(UpdateQuantityEvent(item.product.id, newQty));
+    }
+  }
+
+  /// Compact per-line discount affordance: a tappable chip showing the current
+  /// markdown ("−500 • net 4500"), or a subtle "Discount" button when none is
+  /// set. Opens the % / fixed discount dialog.
+  Widget _buildLineDiscount(BuildContext context, CartItem item, String currency,
+      AppLocalizations l10n) {
+    final has = item.effectiveDiscount > 0;
+    // Grouped, no decimals — SP amounts here are large; ".00" just wastes space
+    // and pushed the row into a right-overflow.
+    final fmt = NumberFormat('#,###');
+    final color = has ? Colors.red : AppTheme.primaryColor;
+    return InkWell(
+      onTap: () => _editLineDiscount(context, item, currency),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(has ? Icons.local_offer : Icons.local_offer_outlined,
+                size: 14, color: color),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                has ? '- $currency${fmt.format(item.effectiveDiscount)}'
+                    : l10n.addDiscountAction,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.bold, color: color),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editLineDiscount(
+      BuildContext context, CartItem item, String currency) async {
+    final bloc = context.read<BillingBloc>();
+    final result = await showDiscountDialog(
+      context: context,
+      base: item.gross,
+      currency: currency,
+      initialDiscount: item.discount,
+    );
+    if (result != null) {
+      bloc.add(SetLineDiscountEvent(item.product.id, result));
     }
   }
 

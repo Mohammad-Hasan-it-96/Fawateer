@@ -19,6 +19,7 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
         id: r.id,
         createdAt: DateTime.fromMillisecondsSinceEpoch(r.createdAt),
         totalAmount: r.totalAmount,
+        invoiceDiscount: r.invoiceDiscount,
       );
 
   /// Whitelisted `ORDER BY` fragment per sort — never interpolate user input.
@@ -85,6 +86,7 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
           id: Value(invoice.id),
           createdAt: Value(invoice.createdAt.millisecondsSinceEpoch),
           totalAmount: Value(invoice.totalAmount),
+          invoiceDiscount: Value(invoice.invoiceDiscount),
         ),
         items: items
             .map((i) => SalesItemsCompanion(
@@ -97,6 +99,7 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
                   priceCurrency: Value(i.priceCurrency),
                   fxRate: Value(i.fxRate),
                   priceOriginal: Value(i.priceOriginal),
+                  discount: Value(i.discount),
                 ))
             .toList(),
         creditCharge: creditCharge,
@@ -184,6 +187,7 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
                 priceCurrency: r.priceCurrency,
                 fxRate: r.fxRate,
                 priceOriginal: r.priceOriginal,
+                discount: r.discount,
               ))
           .toList());
     } catch (e) {

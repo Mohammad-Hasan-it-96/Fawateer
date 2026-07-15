@@ -395,5 +395,16 @@
   "setExchangeRateShort": "Set $ rate",
   "exchangeRateUpdatedAt": "Last updated: {date}",
   "@exchangeRateUpdatedAt": { "placeholders": { "date": { "type": "String" } } },
-  "exchangeRateMissingError": "Set the USD exchange rate in Settings → Currency before selling a dollar-priced item."
+  "exchangeRateMissingError": "Set the USD exchange rate in Settings → Currency before selling a dollar-priced item.",
+
+  "discountTitle": "Discount",
+  "discountPercent": "Percent",
+  "discountAmount": "Amount",
+  "discountValueHint": "Value",
+  "discountApply": "Apply",
+  "discountRemove": "Remove",
+  "addDiscountAction": "Discount",
+  "discountLabel": "Discount",
+  "subtotalLabel": "Subtotal",
+  "cartDiscountLabel": "Cart discount"
 }

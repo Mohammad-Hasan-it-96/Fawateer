@@ -14,6 +14,7 @@ class InvoiceItem extends Equatable {
   final String priceCurrency; // PriceCurrency name the line was sold in
   final double fxRate; // SP-per-USD rate used (0 for SP-native)
   final double priceOriginal; // unit price in its original currency
+  final double discount; // manual per-line discount in SP (0 = none)
 
   const InvoiceItem({
     this.id,
@@ -26,9 +27,14 @@ class InvoiceItem extends Equatable {
     this.priceCurrency = 'sp',
     this.fxRate = 0,
     this.priceOriginal = 0,
+    this.discount = 0,
   });
 
-  double get total => price * quantity;
+  /// Line subtotal before the discount.
+  double get gross => price * quantity;
+
+  /// Line total after the per-line discount (never negative).
+  double get total => (gross - discount).clamp(0, double.infinity).toDouble();
 
   @override
   List<Object?> get props => [
@@ -42,5 +48,6 @@ class InvoiceItem extends Equatable {
         priceCurrency,
         fxRate,
         priceOriginal,
+        discount,
       ];
 }

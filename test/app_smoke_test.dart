@@ -470,6 +470,60 @@ void main() {
       expect(invoiceRepo.saveCount, 0);
       await bloc.close();
     });
+
+    test('line discount reduces the line total and is snapshotted on save',
+        () async {
+      final invoiceRepo = _FakeInvoiceRepository();
+      final bloc = BillingBloc(
+        productRepository: _FakeProductRepository(),
+        printerRepository: _FakePrinterRepository(),
+        invoiceRepository: invoiceRepo,
+        exchangeRateService: _FakeExchangeRateService(),
+      );
+      const p = Product(id: 'p1', name: 'X', barcode: '', price: 10, quantity: 5);
+      bloc.add(const AddProductToCartEvent(p));
+      bloc.add(const AddProductToCartEvent(p));
+      bloc.add(const AddProductToCartEvent(p)); // gross 30
+      bloc.add(const SetLineDiscountEvent('p1', 5));
+      final s = await bloc.stream
+          .firstWhere((s) =>
+              s.cartItems.isNotEmpty && s.cartItems.first.discount == 5)
+          .timeout(_timeout);
+      expect(s.cartItems.single.total, 25); // 30 − 5
+      expect(s.totalAmount, 25);
+
+      final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
+      bloc.add(const ConfirmSaleEvent(
+          shopName: 'S', address1: '', address2: '', phone: '', footer: ''));
+      await confirmed.timeout(_timeout);
+      expect(invoiceRepo.savedItems!.single.discount, 5);
+      expect(invoiceRepo.savedInvoice!.totalAmount, 25);
+      await bloc.close();
+    });
+
+    test('whole-cart discount reduces the total and clamps at zero', () async {
+      final bloc = BillingBloc(
+        productRepository: _FakeProductRepository(),
+        printerRepository: _FakePrinterRepository(),
+        invoiceRepository: _FakeInvoiceRepository(),
+        exchangeRateService: _FakeExchangeRateService(),
+      );
+      const p = Product(id: 'p1', name: 'X', barcode: '', price: 10, quantity: 5);
+      bloc.add(const AddProductToCartEvent(p)); // gross 10
+      bloc.add(const SetCartDiscountEvent(4));
+      var s = await bloc.stream
+          .firstWhere((s) => s.invoiceDiscount == 4)
+          .timeout(_timeout);
+      expect(s.totalAmount, 6);
+
+      // Over-discounting can never make the total negative.
+      bloc.add(const SetCartDiscountEvent(999));
+      s = await bloc.stream
+          .firstWhere((s) => s.invoiceDiscount == 999)
+          .timeout(_timeout);
+      expect(s.totalAmount, 0);
+      await bloc.close();
+    });
   });
 
   group('ProductBloc', () {

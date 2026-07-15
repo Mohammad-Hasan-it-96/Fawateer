@@ -41,6 +41,10 @@ class BillingState extends Equatable {
   /// When [exchangeRate] was last set — drives a "your rate is stale" hint.
   final DateTime? rateUpdatedAt;
 
+  /// Manual whole-cart discount in SP, applied on top of any per-line discounts.
+  /// Clamped to the subtotal via [effectiveInvoiceDiscount]. 0 = none.
+  final double invoiceDiscount;
+
   const BillingState({
     this.cartItems = const [],
     this.error,
@@ -54,9 +58,25 @@ class BillingState extends Equatable {
     this.measuredPrompt,
     this.exchangeRate,
     this.rateUpdatedAt,
+    this.invoiceDiscount = 0,
   });
 
-  double get totalAmount => cartItems.fold(0, (sum, item) => sum + item.total);
+  /// Sum of the (line-discounted) line totals, before the whole-cart discount.
+  double get subtotal => cartItems.fold(0, (sum, item) => sum + item.total);
+
+  /// Whole-cart discount actually applied — never negative, never more than
+  /// [subtotal].
+  double get effectiveInvoiceDiscount => invoiceDiscount <= 0
+      ? 0
+      : (invoiceDiscount > subtotal ? subtotal : invoiceDiscount);
+
+  /// Grand total in SP: subtotal minus the whole-cart discount.
+  double get totalAmount => subtotal - effectiveInvoiceDiscount;
+
+  /// Total of all discounts on this sale (line + whole-cart), for display.
+  double get totalDiscount =>
+      cartItems.fold<double>(0, (s, i) => s + i.effectiveDiscount) +
+      effectiveInvoiceDiscount;
 
   /// True when any cart line is a USD product that couldn't be converted (no
   /// rate set) — the checkout guard uses this to block the sale.
@@ -78,6 +98,7 @@ class BillingState extends Equatable {
     bool clearMeasuredPrompt = false,
     Object? exchangeRate = _unset,
     Object? rateUpdatedAt = _unset,
+    double? invoiceDiscount,
   }) {
     return BillingState(
       cartItems: cartItems ?? this.cartItems,
@@ -98,6 +119,7 @@ class BillingState extends Equatable {
       rateUpdatedAt: identical(rateUpdatedAt, _unset)
           ? this.rateUpdatedAt
           : rateUpdatedAt as DateTime?,
+      invoiceDiscount: invoiceDiscount ?? this.invoiceDiscount,
     );
   }
 
@@ -115,5 +137,6 @@ class BillingState extends Equatable {
         measuredPrompt,
         exchangeRate,
         rateUpdatedAt,
+        invoiceDiscount,
       ];
 }

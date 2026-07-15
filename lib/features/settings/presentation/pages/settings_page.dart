@@ -295,7 +295,8 @@ class _SettingsPageState extends State<SettingsPage> {
                             icon: const Icon(Icons.settings),
                             onPressed: () {
                               AppSettings.openAppSettings(
-                                  type: AppSettingsType.bluetooth);
+                                  type: AppSettingsType.bluetooth,
+                                  asAnotherTask: true);
                             },
                             color: Colors.grey,
                           ),

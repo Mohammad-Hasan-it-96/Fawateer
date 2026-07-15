@@ -23,16 +23,30 @@ class CartItem extends Equatable {
   /// set yet) and blocks checkout.
   final double fxRate;
 
+  /// Manual per-line discount in SP (the resolved amount, whether entered as a %
+  /// or a fixed value). 0 = none. Clamped to the line subtotal via
+  /// [effectiveDiscount] so a stored value can't exceed the line or go negative.
+  final double discount;
+
   const CartItem({
     required this.product,
     this.quantity = 1,
     required this.unitPriceSp,
     this.unitCostSp = 0,
     this.fxRate = 0,
+    this.discount = 0,
   });
 
-  /// Line total in SP.
-  double get total => unitPriceSp * quantity;
+  /// Line subtotal (SP) before the discount.
+  double get gross => unitPriceSp * quantity;
+
+  /// The discount actually applied — never negative, never more than [gross]
+  /// (so reducing quantity below the discount can't make the line negative).
+  double get effectiveDiscount =>
+      discount <= 0 ? 0 : (discount > gross ? gross : discount);
+
+  /// Line total in SP, net of the discount.
+  double get total => gross - effectiveDiscount;
 
   /// True when the product is priced in a non-base currency (needs conversion).
   bool get isForeign => product.priceCurrency.isForeign;
@@ -48,6 +62,7 @@ class CartItem extends Equatable {
     double? unitPriceSp,
     double? unitCostSp,
     double? fxRate,
+    double? discount,
   }) {
     return CartItem(
       product: product ?? this.product,
@@ -55,10 +70,11 @@ class CartItem extends Equatable {
       unitPriceSp: unitPriceSp ?? this.unitPriceSp,
       unitCostSp: unitCostSp ?? this.unitCostSp,
       fxRate: fxRate ?? this.fxRate,
+      discount: discount ?? this.discount,
     );
   }
 
   @override
   List<Object> get props =>
-      [product, quantity, unitPriceSp, unitCostSp, fxRate];
+      [product, quantity, unitPriceSp, unitCostSp, fxRate, discount];
 }
