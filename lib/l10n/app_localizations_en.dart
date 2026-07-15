@@ -540,7 +540,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get currencyLabel => 'Currency Symbol';
 
   @override
-  String get currencyHint => '₹  \$  €  £';
+  String get currencyHint => 'ل.س  \$  €  £';
 
   @override
   String get footerLabel => 'Receipt Footer (optional)';
@@ -1094,6 +1094,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get exchangeRateNever => 'Not set yet';
+
+  @override
+  String get setExchangeRateShort => 'Set \$ rate';
 
   @override
   String exchangeRateUpdatedAt(String date) {

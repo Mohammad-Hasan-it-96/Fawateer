@@ -14,7 +14,7 @@ class Shop extends Equatable {
     this.addressLine2 = '',
     this.phoneNumber = '',
     this.footerText = '',
-    this.currencySymbol = '₹',
+    this.currencySymbol = 'ل.س',
   });
 
   Shop copyWith({

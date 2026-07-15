@@ -188,7 +188,7 @@
   "phoneLabel": "Phone Number",
   "phoneHint": "+1 555 000 0000",
   "currencyLabel": "Currency Symbol",
-  "currencyHint": "₹  $  €  £",
+  "currencyHint": "ل.س  $  €  £",
   "footerLabel": "Receipt Footer (optional)",
   "footerHint": "Thank you, visit again!",
   "footerMaxChars": "Max 150 chars",
@@ -392,6 +392,7 @@
   "exchangeRateInvalid": "Enter a rate greater than zero",
   "exchangeRateSaved": "Exchange rate saved",
   "exchangeRateNever": "Not set yet",
+  "setExchangeRateShort": "Set $ rate",
   "exchangeRateUpdatedAt": "Last updated: {date}",
   "@exchangeRateUpdatedAt": { "placeholders": { "date": { "type": "String" } } },
   "exchangeRateMissingError": "Set the USD exchange rate in Settings → Currency before selling a dollar-priced item."

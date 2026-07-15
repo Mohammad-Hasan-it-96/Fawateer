@@ -185,7 +185,7 @@
   "phoneLabel": "رقم الهاتف",
   "phoneHint": "مثال: 0500000000",
   "currencyLabel": "رمز العملة",
-  "currencyHint": "ر.س  $  €  £",
+  "currencyHint": "ل.س  $  €  £",
   "footerLabel": "نص تذييل الإيصال (اختياري)",
   "footerHint": "شكراً، زورونا مجدداً!",
   "footerMaxChars": "الحد الأقصى 150 حرف",
@@ -372,6 +372,7 @@
   "exchangeRateInvalid": "أدخل سعراً أكبر من صفر",
   "exchangeRateSaved": "تم حفظ سعر الصرف",
   "exchangeRateNever": "غير محدّد بعد",
+  "setExchangeRateShort": "سعر الدولار",
   "exchangeRateUpdatedAt": "آخر تحديث: {date}",
   "@exchangeRateUpdatedAt": { "placeholders": { "date": { "type": "String" } } },
   "exchangeRateMissingError": "حدّد سعر صرف الدولار من الإعدادات ← العملة قبل بيع منتج مسعّر بالدولار."

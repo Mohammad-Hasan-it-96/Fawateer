@@ -1133,7 +1133,7 @@ abstract class AppLocalizations {
   /// No description provided for @currencyHint.
   ///
   /// In en, this message translates to:
-  /// **'₹  \$  €  £'**
+  /// **'ل.س  \$  €  £'**
   String get currencyHint;
 
   /// No description provided for @footerLabel.
@@ -2155,6 +2155,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Not set yet'**
   String get exchangeRateNever;
+
+  /// No description provided for @setExchangeRateShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Set \$ rate'**
+  String get setExchangeRateShort;
 
   /// No description provided for @exchangeRateUpdatedAt.
   ///

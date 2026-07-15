@@ -4,6 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:app_settings/app_settings.dart';
+import 'package:intl/intl.dart';
+
+import '../../../settings/presentation/widgets/exchange_rate_sheet.dart';
 
 import '../../../../core/utils/num_input.dart';
 
@@ -214,6 +217,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ),
           if (!_isCameraOn) _buildCameraOffState(l10n),
 
+          // Quick currency-rate chip (top-start): tap to set/update the USD→SP
+          // exchange rate without leaving the POS.
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 12,
+            left: 12,
+            child: _buildRateChip(l10n),
+          ),
+
           // Two overlay buttons (flash + camera toggle) — top-right horizontal row
           Positioned(
             top: MediaQuery.of(context).padding.top + 12,
@@ -362,6 +373,49 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ),
         ],
       ),
+    );
+  }
+
+  /// Compact tappable pill showing the current USD→SP rate (or a prompt to set
+  /// it). Opens the rate modal — a fast in-place edit from the POS.
+  Widget _buildRateChip(AppLocalizations l10n) {
+    return BlocBuilder<BillingBloc, BillingState>(
+      buildWhen: (p, c) => p.exchangeRate != c.exchangeRate,
+      builder: (context, state) {
+        final rate = state.exchangeRate;
+        final shopState = context.read<ShopBloc>().state;
+        final sym =
+            shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
+        final label = rate == null
+            ? l10n.setExchangeRateShort
+            : '\$1 = ${NumberFormat('#,###').format(rate)} $sym';
+        return GestureDetector(
+          onTap: () => showExchangeRateSheet(context),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black45,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.currency_exchange,
+                    color: Colors.white, size: 16),
+                const SizedBox(width: 6),
+                Text(label,
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600)),
+                const SizedBox(width: 4),
+                const Icon(Icons.edit, color: Colors.white54, size: 12),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

@@ -17,7 +17,7 @@ class ShopRepositoryDriftImpl implements ShopRepository {
     addressLine2: '',
     phoneNumber: '',
     footerText: 'Thank you, Visit again!',
-    currencySymbol: '₹',
+    currencySymbol: 'ل.س',
   );
 
   static Shop _rowToEntity(ShopRow row) => Shop(

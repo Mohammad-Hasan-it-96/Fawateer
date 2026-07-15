@@ -45,7 +45,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'fawateer'));
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -130,6 +130,14 @@ class AppDatabase extends _$AppDatabase {
         await migrator.addColumn(salesItems, salesItems.priceCurrency);
         await migrator.addColumn(salesItems, salesItems.fxRate);
         await migrator.addColumn(salesItems, salesItems.priceOriginal);
+      }
+      if (from < 11) {
+        // The old '₹' (Indian rupee) default was wrong for this Syria-first app.
+        // Normalize it — and any blank symbol — to the Syrian pound. A shop that
+        // deliberately chose another symbol keeps it.
+        await customStatement(
+            "UPDATE shop_settings SET currency_symbol = 'ل.س' "
+            "WHERE currency_symbol = '₹' OR currency_symbol = ''");
       }
     },
   );

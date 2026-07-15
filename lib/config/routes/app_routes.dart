@@ -26,7 +26,6 @@ import '../../features/product/presentation/pages/add_product_page.dart';
 import '../../features/product/presentation/pages/edit_product_page.dart';
 import '../../features/product/presentation/pages/product_list_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
-import '../../features/settings/presentation/pages/currency_settings_page.dart';
 import '../../features/shop/presentation/pages/shop_details_page.dart';
 import '../../features/cashbox/presentation/pages/cashbox_page.dart';
 import '../../features/cashbox/presentation/pages/cashbox_history_page.dart';
@@ -207,12 +206,6 @@ final router = GoRouter(
                 GoRoute(
                   path: 'shop',
                   builder: (context, state) => const ShopDetailsPage(),
-                ),
-                // Currency & exchange rate (USD→SP). Uses the app-wide
-                // BillingBloc (provided in main.dart) to re-price the cart.
-                GoRoute(
-                  path: 'currency',
-                  builder: (context, state) => const CurrencySettingsPage(),
                 ),
                 // Cashbox (cash ledger). The CashboxBloc is app-wide (provided
                 // in main.dart), so these routes need no scoped BlocProvider.

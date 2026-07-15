@@ -528,7 +528,7 @@ class $ShopSettingsTable extends ShopSettings
       'currency_symbol', aliasedName, false,
       type: DriftSqlType.string,
       requiredDuringInsert: false,
-      defaultValue: const Constant('₹'));
+      defaultValue: const Constant('ل.س'));
   @override
   List<GeneratedColumn> get $columns => [
         id,

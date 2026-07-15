@@ -538,7 +538,7 @@ class AppLocalizationsAr extends AppLocalizations {
   String get currencyLabel => 'رمز العملة';
 
   @override
-  String get currencyHint => 'ر.س  \$  €  £';
+  String get currencyHint => 'ل.س  \$  €  £';
 
   @override
   String get footerLabel => 'نص تذييل الإيصال (اختياري)';
@@ -1084,6 +1084,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get exchangeRateNever => 'غير محدّد بعد';
+
+  @override
+  String get setExchangeRateShort => 'سعر الدولار';
 
   @override
   String exchangeRateUpdatedAt(String date) {

@@ -11,6 +11,7 @@ import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/printer_bloc.dart';
 import '../bloc/printer_event.dart';
 import '../bloc/printer_state.dart';
+import '../widgets/exchange_rate_sheet.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -191,7 +192,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   icon: Icons.currency_exchange,
                   title: l10n.currencySettingsItem,
                   subtitle: l10n.currencySettingsSubtitle,
-                  onTap: () => context.push('/settings/currency'),
+                  onTap: () => showExchangeRateSheet(context),
                 ),
                 _buildListItem(
                   icon: Icons.savings,
