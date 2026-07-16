@@ -1,36 +1,57 @@
-# FCM live-unlock — enabling push
+# FCM live-unlock — push
 
-The app ships with **Firebase Cloud Messaging (FCM) live-unlock** wired in but
-**dormant**. Its only job: when an operator activates a device's subscription
+**Status: ✅ ENABLED on the client** (2026-07-16, Firebase project
+**`fawateer-4c9bc`**). Debug APK builds clean with Firebase linked.
+**⚠️ The server side is still owed — see "What the server must send" below.
+Until the backend sends the push, live-unlock does nothing.**
+
+FCM live-unlock's only job: when an operator activates a device's subscription
 server-side, the backend pushes a data message and the app **re-checks its
 license immediately** — the router gate flips from the activation screen to the
 POS without the user restarting the app.
 
-Until a Firebase project is configured, `Firebase.initializeApp()` fails
-gracefully and push stays disabled — **the app builds and runs exactly as
-before**; the user just re-checks manually (Settings → Subscription → Refresh)
-or on next launch. Nothing below is required to ship without live-unlock.
+Push remains **self-disabling**: if `google-services.json` is absent (e.g. a
+fresh clone — it's gitignored), `Firebase.initializeApp()` throws, we swallow it,
+and the app runs exactly as before. The user just re-checks manually
+(Settings → Subscription → Refresh) or on next launch. Live-unlock is a
+convenience, never a dependency.
 
-## Enable it (one-time)
+## Client setup (already done — recorded for a fresh clone / new machine)
 
-1. **Create a Firebase project** (or reuse the backend's) at
-   <https://console.firebase.google.com>. Add an **Android app** with the
-   package name **`com.mohamad.hasan.it.fawateer`**.
-2. Download the generated **`google-services.json`** and drop it in
-   **`android/app/google-services.json`** (git-ignore it — it's per-project).
-3. Uncomment the two Google-Services Gradle lines:
-   - `android/settings.gradle.kts` → the `com.google.gms.google-services` plugin
-     in the top-level `plugins {}` block.
-   - `android/app/build.gradle.kts` → the matching `id("com.google.gms.google-services")`
-     in the app `plugins {}` block.
-4. `flutter clean && flutter pub get && flutter run`. On launch the app prints
-   an FCM token and registers it with the server (`create_device` /
-   `update_my_data`, field `fcm_token`).
+1. Firebase project **`fawateer-4c9bc`** at <https://console.firebase.google.com>,
+   with an **Android app** registered under package
+   **`com.mohamad.hasan.it.fawateer`** — the Android `applicationId`, **not**
+   `billing_app` (that's only the Dart/pubspec name). A mismatch builds fine and
+   silently never delivers.
+2. **`google-services.json`** lives at **`android/app/google-services.json`**.
+   It is **gitignored** — a fresh clone must re-download it from the Firebase
+   console (Project Settings → Your apps → Android → google-services.json), or
+   the build fails with *"File google-services.json is missing."*
+3. The two Google-Services Gradle lines are **active** (no longer commented):
+   - `android/settings.gradle.kts` → `id("com.google.gms.google-services") version "4.4.2" apply false`
+   - `android/app/build.gradle.kts` → `id("com.google.gms.google-services")`
+4. `flutter clean && flutter pub get && flutter run`. On launch the app requests
+   a token and registers it with the server (`create_device` / `update_my_data`,
+   field `fcm_token`).
+
+> No `flutterfire configure` / `firebase_options.dart` is used. This is an
+> Android-only build, so plain `Firebase.initializeApp()` reads
+> `google-services.json` via the Gradle plugin. If iOS is ever added, it needs
+> `GoogleService-Info.plist` + its own Firebase app.
 
 > `minSdk` must be **≥ 21** (Firebase Messaging 16.x). This project inherits
 > Flutter's default, which already satisfies it.
 
-## What the server must send
+## What the server must send  ⬅️ STILL OWED
+
+> **Use the FCM HTTP v1 API.** The legacy endpoint
+> (`https://fcm.googleapis.com/fcm/send` + a static "server key") was **shut down
+> in 2024** — do not go looking for a server key to paste into Laravel; there
+> isn't one any more. v1 authenticates with **OAuth2 from a service account**:
+> Firebase console → **Project Settings → Service Accounts → Generate new private
+> key** → hand that JSON to the backend. Endpoint is
+> `https://fcm.googleapis.com/v1/projects/fawateer-4c9bc/messages:send`.
+> The payload below is already v1-shaped.
 
 To trigger the live re-check, push a **data message** to the device's stored
 `fcm_token` with a `data.type` of one of:
