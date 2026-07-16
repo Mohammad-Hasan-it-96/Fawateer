@@ -54,6 +54,9 @@ dependencies:
   # Sharing (customer account statements)
   share_plus: ^10.1.4
 
+  # Charts (Plan 008 analytics dashboard) — pure-Dart, offline, no native deps.
+  fl_chart: ^0.69.0
+
   # Cloud backup (Plan 001) — Google Drive via the user's own account.
   # drive.file scope only (non-sensitive; no Play Console). See
   # docs/plans/001-backup-system.md and docs/google-drive-api-setup.md.

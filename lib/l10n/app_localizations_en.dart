@@ -1171,4 +1171,72 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get receiptThankYou => 'Thank you for your business';
+
+  @override
+  String get reportsTab => 'Reports';
+
+  @override
+  String get dashboardTab => 'Dashboard';
+
+  @override
+  String get salesTabLabel => 'Sales';
+
+  @override
+  String get filterLast7Days => 'Last 7 days';
+
+  @override
+  String get filterLast30Days => 'Last 30 days';
+
+  @override
+  String get revenueLabel => 'Revenue';
+
+  @override
+  String get outstandingDebtsLabel => 'Outstanding debts';
+
+  @override
+  String get inventoryValueLabel => 'Inventory value';
+
+  @override
+  String get salesTrendTitle => 'Sales trend';
+
+  @override
+  String get topProductsTitle => 'Top products';
+
+  @override
+  String get cashFlowTitle => 'Cash flow';
+
+  @override
+  String get lowStockTitle => 'Low stock';
+
+  @override
+  String get topDebtorsTitle => 'Top debtors';
+
+  @override
+  String get metricQuantity => 'Quantity';
+
+  @override
+  String get metricProfit => 'Profit';
+
+  @override
+  String get cashInLabel => 'Cash in';
+
+  @override
+  String get cashOutLabel => 'Cash out';
+
+  @override
+  String get expensesLabel => 'Expenses';
+
+  @override
+  String get withdrawalsLabel => 'Withdrawals';
+
+  @override
+  String get dashboardNoData => 'No sales in this period yet';
+
+  @override
+  String get dashboardLoadFailed => 'Couldn\'t load the dashboard';
+
+  @override
+  String unitsSuffix(String count) {
+    return '$count sold';
+  }
 }

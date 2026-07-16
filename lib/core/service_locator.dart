@@ -9,6 +9,7 @@ import 'database/daos/sales_dao.dart';
 import 'database/daos/customers_dao.dart';
 import 'database/daos/ledger_dao.dart';
 import 'database/daos/cashbox_dao.dart';
+import 'database/daos/dashboard_dao.dart';
 
 // Core — Network
 import 'network/api_client.dart';
@@ -65,6 +66,11 @@ import '../features/billing/domain/repositories/invoice_repository.dart';
 import '../features/billing/presentation/bloc/billing_bloc.dart';
 import '../features/billing/presentation/bloc/history_bloc.dart';
 
+// Features — Dashboard (analytics)
+import '../features/dashboard/data/repositories/dashboard_repository_drift_impl.dart';
+import '../features/dashboard/domain/repositories/dashboard_repository.dart';
+import '../features/dashboard/presentation/bloc/dashboard_bloc.dart';
+
 final sl = GetIt.instance;
 
 Future<void> init() async {
@@ -83,6 +89,7 @@ Future<void> init() async {
   sl.registerLazySingleton<CustomersDao>(() => CustomersDao(sl()));
   sl.registerLazySingleton<LedgerDao>(() => LedgerDao(sl()));
   sl.registerLazySingleton<CashboxDao>(() => CashboxDao(sl()));
+  sl.registerLazySingleton<DashboardDao>(() => DashboardDao(sl()));
 
   // ── Services ─────────────────────────────────────────────────────────────
   sl.registerLazySingleton<ExchangeRateService>(
@@ -103,6 +110,8 @@ Future<void> init() async {
       () => LedgerRepositoryDriftImpl(sl(), sl(), sl()));
   sl.registerLazySingleton<CashboxRepository>(
       () => CashboxRepositoryDriftImpl(sl()));
+  sl.registerLazySingleton<DashboardRepository>(
+      () => DashboardRepositoryDriftImpl(sl<DashboardDao>()));
 
   // ── Backup (Drift snapshot + Google Drive target) ────────────────────────
   sl.registerLazySingleton<BackupEngine>(() => BackupEngine(sl(), sl()));
@@ -148,6 +157,8 @@ Future<void> init() async {
       ));
 
   sl.registerFactory(() => CashboxBloc(repository: sl()));
+
+  sl.registerFactory(() => DashboardBloc(repository: sl()));
 
   sl.registerFactory(() => BackupBloc(repository: sl<BackupRepository>()));
 

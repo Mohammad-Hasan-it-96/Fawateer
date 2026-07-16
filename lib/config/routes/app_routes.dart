@@ -11,6 +11,7 @@ import '../../features/billing/presentation/pages/history_page.dart';
 import '../../features/billing/presentation/pages/invoice_detail_page.dart';
 import '../../features/billing/presentation/pages/home_page.dart';
 import '../../features/billing/presentation/pages/scanner_page.dart';
+import '../../features/dashboard/presentation/bloc/dashboard_bloc.dart';
 import '../../features/ledger/domain/entities/customer.dart';
 import '../../features/ledger/presentation/bloc/ledger_bloc.dart';
 import '../../features/ledger/presentation/pages/add_edit_customer_page.dart';
@@ -120,12 +121,18 @@ final router = GoRouter(
           ],
         ),
 
-        // ── Branch 1: History ──────────────────────────────────────────
+        // ── Branch 1: Reports (analytics dashboard + sales audit) ──────
         StatefulShellBranch(
           routes: [
             GoRoute(
               path: '/history',
-              builder: (context, state) => const HistoryPage(),
+              // DashboardBloc is scoped here (like LedgerBloc/BackupBloc): it
+              // lives as long as this branch is kept alive by the indexed stack,
+              // reloading off its own change ticker.
+              builder: (context, state) => BlocProvider(
+                create: (_) => sl<DashboardBloc>()..add(const LoadDashboard()),
+                child: const HistoryPage(),
+              ),
               routes: [
                 GoRoute(
                   path: 'detail/:id',

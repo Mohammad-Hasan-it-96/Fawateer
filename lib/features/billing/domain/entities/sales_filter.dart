@@ -1,8 +1,17 @@
 import 'package:equatable/equatable.dart';
 
 /// Quick date ranges for the audit center. [custom] uses an explicit
-/// from/to picked by the user.
-enum DatePreset { today, yesterday, thisWeek, thisMonth, custom }
+/// from/to picked by the user. [last7Days]/[last30Days] are rolling windows
+/// used by the analytics dashboard (Plan 008).
+enum DatePreset {
+  today,
+  yesterday,
+  last7Days,
+  last30Days,
+  thisWeek,
+  thisMonth,
+  custom,
+}
 
 /// Payment-type filter. Cash vs credit is derived (see [InvoiceListItem]).
 enum PaymentFilter { all, cash, credit }
@@ -68,6 +77,11 @@ class SalesFilter extends Equatable {
       case DatePreset.yesterday:
         final y = startToday.subtract(const Duration(days: 1));
         return (y, _endOfDay(y));
+      case DatePreset.last7Days:
+        // Rolling 7-day window including today (today + previous 6 days).
+        return (startToday.subtract(const Duration(days: 6)), _endOfDay(now));
+      case DatePreset.last30Days:
+        return (startToday.subtract(const Duration(days: 29)), _endOfDay(now));
       case DatePreset.thisWeek:
         // Days elapsed since the most recent Saturday (Sat→0 … Fri→6).
         final backToSaturday = (now.weekday + 1) % 7;

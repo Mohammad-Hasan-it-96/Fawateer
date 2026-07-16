@@ -29,9 +29,9 @@ class AppShell extends StatelessWidget {
             label: l10n.posTab,
           ),
           NavigationDestination(
-            icon: const Icon(Icons.history_outlined),
-            selectedIcon: const Icon(Icons.history),
-            label: l10n.historyTab,
+            icon: const Icon(Icons.insights_outlined),
+            selectedIcon: const Icon(Icons.insights),
+            label: l10n.reportsTab,
           ),
           NavigationDestination(
             icon: const Icon(Icons.inventory_2_outlined),

@@ -1161,4 +1161,72 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get receiptThankYou => 'شكراً لتعاملكم معنا';
+
+  @override
+  String get reportsTab => 'التقارير';
+
+  @override
+  String get dashboardTab => 'لوحة المعلومات';
+
+  @override
+  String get salesTabLabel => 'المبيعات';
+
+  @override
+  String get filterLast7Days => 'آخر ٧ أيام';
+
+  @override
+  String get filterLast30Days => 'آخر ٣٠ يوماً';
+
+  @override
+  String get revenueLabel => 'الإيرادات';
+
+  @override
+  String get outstandingDebtsLabel => 'الديون المستحقة';
+
+  @override
+  String get inventoryValueLabel => 'قيمة المخزون';
+
+  @override
+  String get salesTrendTitle => 'اتجاه المبيعات';
+
+  @override
+  String get topProductsTitle => 'أفضل المنتجات';
+
+  @override
+  String get cashFlowTitle => 'التدفق النقدي';
+
+  @override
+  String get lowStockTitle => 'مخزون منخفض';
+
+  @override
+  String get topDebtorsTitle => 'أكبر المدينين';
+
+  @override
+  String get metricQuantity => 'الكمية';
+
+  @override
+  String get metricProfit => 'الربح';
+
+  @override
+  String get cashInLabel => 'الوارد';
+
+  @override
+  String get cashOutLabel => 'الصادر';
+
+  @override
+  String get expensesLabel => 'المصروفات';
+
+  @override
+  String get withdrawalsLabel => 'السحوبات';
+
+  @override
+  String get dashboardNoData => 'لا توجد مبيعات في هذه الفترة بعد';
+
+  @override
+  String get dashboardLoadFailed => 'تعذّر تحميل اللوحة';
+
+  @override
+  String unitsSuffix(String count) {
+    return '$count مبيعاً';
+  }
 }

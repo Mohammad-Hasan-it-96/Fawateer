@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/share/cards/sales_summary_share_card.dart';
 import '../../../../core/share/share_card_action.dart';
+import '../../../dashboard/presentation/pages/dashboard_view.dart';
 import '../../../shop/domain/entities/shop.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../domain/entities/invoice_list_item.dart';
@@ -31,6 +32,9 @@ class _HistoryPageState extends State<HistoryPage> {
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   Timer? _debounce;
+
+  /// The Reports sub-view: 0 = analytics dashboard (default), 1 = sales list.
+  int _view = 0;
 
   @override
   void initState() {
@@ -74,48 +78,70 @@ class _HistoryPageState extends State<HistoryPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(l10n.salesHistory,
+        title: Text(l10n.reportsTab,
             style: const TextStyle(fontWeight: FontWeight.bold)),
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.share_outlined),
-            tooltip: l10n.shareAction,
-            onPressed: () => _shareSummary(context, currency, l10n),
+          // Share the sales summary (Plan 007) — only on the Sales sub-view.
+          if (_view == 1)
+            IconButton(
+              icon: const Icon(Icons.share_outlined),
+              tooltip: l10n.shareAction,
+              onPressed: () => _shareSummary(context, currency, l10n),
+            ),
+        ],
+      ),
+      body: Column(
+        children: [
+          _ViewToggle(
+            index: _view,
+            dashboardLabel: l10n.dashboardTab,
+            salesLabel: l10n.salesTabLabel,
+            onChanged: (i) => setState(() => _view = i),
+          ),
+          Expanded(
+            child: _view == 0
+                ? const DashboardView()
+                : _salesView(context, l10n, currency),
           ),
         ],
       ),
-      body: BlocListener<HistoryBloc, HistoryState>(
-        listenWhen: (prev, curr) =>
-            prev.reprintStatus != curr.reprintStatus &&
-            (curr.reprintStatus == ReprintStatus.done ||
-                curr.reprintStatus == ReprintStatus.failed),
-        listener: (context, state) {
-          final ok = state.reprintStatus == ReprintStatus.done;
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(SnackBar(
-              content: Text(ok ? l10n.printedSuccessfully : l10n.printFailed),
-              backgroundColor: ok ? Colors.green : Colors.red,
-            ));
+    );
+  }
+
+  /// The original audit center (search + filters + summary + paginated list).
+  Widget _salesView(
+      BuildContext context, AppLocalizations l10n, String currency) {
+    return BlocListener<HistoryBloc, HistoryState>(
+      listenWhen: (prev, curr) =>
+          prev.reprintStatus != curr.reprintStatus &&
+          (curr.reprintStatus == ReprintStatus.done ||
+              curr.reprintStatus == ReprintStatus.failed),
+      listener: (context, state) {
+        final ok = state.reprintStatus == ReprintStatus.done;
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+            content: Text(ok ? l10n.printedSuccessfully : l10n.printFailed),
+            backgroundColor: ok ? Colors.green : Colors.red,
+          ));
+      },
+      child: BlocBuilder<HistoryBloc, HistoryState>(
+        builder: (context, state) {
+          return Column(
+            children: [
+              _SearchField(
+                controller: _searchController,
+                onChanged: _onSearchChanged,
+              ),
+              _FilterBar(filter: state.filter, onApply: _apply),
+              _SummarySection(currency: currency, summary: state.summary),
+              Expanded(child: _buildList(context, state, currency, l10n)),
+            ],
+          );
         },
-        child: BlocBuilder<HistoryBloc, HistoryState>(
-          builder: (context, state) {
-            return Column(
-              children: [
-                _SearchField(
-                  controller: _searchController,
-                  onChanged: _onSearchChanged,
-                ),
-                _FilterBar(filter: state.filter, onApply: _apply),
-                _SummarySection(currency: currency, summary: state.summary),
-                Expanded(child: _buildList(context, state, currency, l10n)),
-              ],
-            );
-          },
-        ),
       ),
     );
   }
@@ -192,6 +218,10 @@ class _HistoryPageState extends State<HistoryPage> {
         return l10n.filterToday;
       case DatePreset.yesterday:
         return l10n.filterYesterday;
+      case DatePreset.last7Days:
+        return l10n.filterLast7Days;
+      case DatePreset.last30Days:
+        return l10n.filterLast30Days;
       case DatePreset.thisWeek:
         return l10n.filterThisWeek;
       case DatePreset.thisMonth:
@@ -216,6 +246,45 @@ class _HistoryPageState extends State<HistoryPage> {
           footer: shop.footerText,
           currency: currency,
         ));
+  }
+}
+
+/// Segmented switch between the analytics dashboard and the sales list.
+class _ViewToggle extends StatelessWidget {
+  final int index;
+  final String dashboardLabel;
+  final String salesLabel;
+  final ValueChanged<int> onChanged;
+  const _ViewToggle({
+    required this.index,
+    required this.dashboardLabel,
+    required this.salesLabel,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<int>(
+          showSelectedIcon: false,
+          segments: [
+            ButtonSegment(
+                value: 0,
+                icon: const Icon(Icons.insights, size: 18),
+                label: Text(dashboardLabel)),
+            ButtonSegment(
+                value: 1,
+                icon: const Icon(Icons.receipt_long, size: 18),
+                label: Text(salesLabel)),
+          ],
+          selected: {index},
+          onSelectionChanged: (s) => onChanged(s.first),
+        ),
+      ),
+    );
   }
 }
 

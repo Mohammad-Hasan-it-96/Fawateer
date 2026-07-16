@@ -17,6 +17,7 @@ import 'daos/sales_dao.dart';
 import 'daos/customers_dao.dart';
 import 'daos/ledger_dao.dart';
 import 'daos/cashbox_dao.dart';
+import 'daos/dashboard_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -39,6 +40,7 @@ part 'app_database.g.dart';
     CustomersDao,
     LedgerDao,
     CashboxDao,
+    DashboardDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {

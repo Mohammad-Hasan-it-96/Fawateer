@@ -2299,6 +2299,138 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Thank you for your business'**
   String get receiptThankYou;
+
+  /// No description provided for @reportsTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Reports'**
+  String get reportsTab;
+
+  /// No description provided for @dashboardTab.
+  ///
+  /// In en, this message translates to:
+  /// **'Dashboard'**
+  String get dashboardTab;
+
+  /// No description provided for @salesTabLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales'**
+  String get salesTabLabel;
+
+  /// No description provided for @filterLast7Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 7 days'**
+  String get filterLast7Days;
+
+  /// No description provided for @filterLast30Days.
+  ///
+  /// In en, this message translates to:
+  /// **'Last 30 days'**
+  String get filterLast30Days;
+
+  /// No description provided for @revenueLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Revenue'**
+  String get revenueLabel;
+
+  /// No description provided for @outstandingDebtsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Outstanding debts'**
+  String get outstandingDebtsLabel;
+
+  /// No description provided for @inventoryValueLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Inventory value'**
+  String get inventoryValueLabel;
+
+  /// No description provided for @salesTrendTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales trend'**
+  String get salesTrendTitle;
+
+  /// No description provided for @topProductsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Top products'**
+  String get topProductsTitle;
+
+  /// No description provided for @cashFlowTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash flow'**
+  String get cashFlowTitle;
+
+  /// No description provided for @lowStockTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Low stock'**
+  String get lowStockTitle;
+
+  /// No description provided for @topDebtorsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Top debtors'**
+  String get topDebtorsTitle;
+
+  /// No description provided for @metricQuantity.
+  ///
+  /// In en, this message translates to:
+  /// **'Quantity'**
+  String get metricQuantity;
+
+  /// No description provided for @metricProfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Profit'**
+  String get metricProfit;
+
+  /// No description provided for @cashInLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash in'**
+  String get cashInLabel;
+
+  /// No description provided for @cashOutLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cash out'**
+  String get cashOutLabel;
+
+  /// No description provided for @expensesLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Expenses'**
+  String get expensesLabel;
+
+  /// No description provided for @withdrawalsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Withdrawals'**
+  String get withdrawalsLabel;
+
+  /// No description provided for @dashboardNoData.
+  ///
+  /// In en, this message translates to:
+  /// **'No sales in this period yet'**
+  String get dashboardNoData;
+
+  /// No description provided for @dashboardLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t load the dashboard'**
+  String get dashboardLoadFailed;
+
+  /// No description provided for @unitsSuffix.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} sold'**
+  String unitsSuffix(String count);
 }
 
 class _AppLocalizationsDelegate
