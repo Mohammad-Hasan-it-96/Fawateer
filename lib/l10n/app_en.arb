@@ -410,5 +410,15 @@
   "addDiscountAction": "Discount",
   "discountLabel": "Discount",
   "subtotalLabel": "Subtotal",
-  "cartDiscountLabel": "Cart discount"
+  "cartDiscountLabel": "Cart discount",
+
+  "shareAction": "Share",
+  "shareFailed": "Couldn't prepare the share — please try again",
+  "estimatedProfit": "Estimated profit",
+  "openingBalance": "Opening balance",
+  "closingBalance": "Closing balance",
+  "cashboxDailySummaryTitle": "Daily cashbox summary",
+  "salesSummaryTitle": "Sales summary",
+  "reportPeriodLabel": "Period",
+  "receiptThankYou": "Thank you for your business"
 }

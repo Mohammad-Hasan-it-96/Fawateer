@@ -2245,6 +2245,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cart discount'**
   String get cartDiscountLabel;
+
+  /// No description provided for @shareAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Share'**
+  String get shareAction;
+
+  /// No description provided for @shareFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t prepare the share — please try again'**
+  String get shareFailed;
+
+  /// No description provided for @estimatedProfit.
+  ///
+  /// In en, this message translates to:
+  /// **'Estimated profit'**
+  String get estimatedProfit;
+
+  /// No description provided for @openingBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Opening balance'**
+  String get openingBalance;
+
+  /// No description provided for @closingBalance.
+  ///
+  /// In en, this message translates to:
+  /// **'Closing balance'**
+  String get closingBalance;
+
+  /// No description provided for @cashboxDailySummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Daily cashbox summary'**
+  String get cashboxDailySummaryTitle;
+
+  /// No description provided for @salesSummaryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales summary'**
+  String get salesSummaryTitle;
+
+  /// No description provided for @reportPeriodLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Period'**
+  String get reportPeriodLabel;
+
+  /// No description provided for @receiptThankYou.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you for your business'**
+  String get receiptThankYou;
 }
 
 class _AppLocalizationsDelegate

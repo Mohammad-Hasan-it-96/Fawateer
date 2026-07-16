@@ -120,10 +120,19 @@ LIMIT ? OFFSET ?''';
   }) {
     final (whereSql, vars) = _auditWhere(
         fromMs: fromMs, toMs: toMs, payment: payment, search: search);
+    // Estimated profit is summed per invoice via a *correlated subquery* over
+    // its items (so the item rows don't fan out the invoice-level SUMs): per
+    // line, (price − cost) × qty − line discount; then minus the invoice-level
+    // discount. All snapshotted at sale time, so it's historical-accurate.
     final sql = '''
 SELECT COUNT(*) AS cnt,
        COALESCE(SUM(i.total_amount), 0.0) AS total,
-       COALESCE(SUM(CASE WHEN le.invoice_id IS NOT NULL THEN i.total_amount ELSE 0 END), 0.0) AS credit_total
+       COALESCE(SUM(CASE WHEN le.invoice_id IS NOT NULL THEN i.total_amount ELSE 0 END), 0.0) AS credit_total,
+       COALESCE(SUM(
+         (SELECT COALESCE(SUM((si.price - si.cost) * si.quantity - si.discount), 0.0)
+          FROM sales_items si WHERE si.invoice_id = i.id)
+         - i.invoice_discount
+       ), 0.0) AS profit
 FROM sales_invoices i
 LEFT JOIN ledger_entries le ON le.invoice_id = i.id AND le.entry_type = 'charge'
 LEFT JOIN customers c ON c.id = le.customer_id
@@ -131,11 +140,12 @@ $whereSql''';
     return customSelect(
       sql,
       variables: vars,
-      readsFrom: {salesInvoices, ledgerEntries, customers},
+      readsFrom: {salesInvoices, salesItems, ledgerEntries, customers},
     ).map((r) => AuditSummaryRow(
           count: r.read<int>('cnt'),
           total: r.read<double>('total'),
           creditTotal: r.read<double>('credit_total'),
+          profit: r.read<double>('profit'),
         )).watchSingle();
   }
 
@@ -222,10 +232,14 @@ class AuditSummaryRow {
   final int count;
   final double total;
   final double creditTotal;
+
+  /// Estimated profit over the filtered set (revenue − cost − discounts).
+  final double profit;
   const AuditSummaryRow({
     required this.count,
     required this.total,
     required this.creditTotal,
+    this.profit = 0,
   });
 }
 

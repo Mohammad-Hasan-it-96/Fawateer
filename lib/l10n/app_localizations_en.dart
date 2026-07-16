@@ -1144,4 +1144,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cartDiscountLabel => 'Cart discount';
+
+  @override
+  String get shareAction => 'Share';
+
+  @override
+  String get shareFailed => 'Couldn\'t prepare the share — please try again';
+
+  @override
+  String get estimatedProfit => 'Estimated profit';
+
+  @override
+  String get openingBalance => 'Opening balance';
+
+  @override
+  String get closingBalance => 'Closing balance';
+
+  @override
+  String get cashboxDailySummaryTitle => 'Daily cashbox summary';
+
+  @override
+  String get salesSummaryTitle => 'Sales summary';
+
+  @override
+  String get reportPeriodLabel => 'Period';
+
+  @override
+  String get receiptThankYou => 'Thank you for your business';
 }

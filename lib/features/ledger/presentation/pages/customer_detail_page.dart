@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/share/share_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/num_input.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -164,7 +164,7 @@ class CustomerDetailPage extends StatelessWidget {
       BuildContext context, LedgerState state, AppLocalizations l10n) {
     final shopState = context.read<ShopBloc>().state;
     final shopName = shopState is ShopLoaded ? shopState.shop.name : '';
-    Share.share(_statementText(context, state, l10n),
+    ShareService.shareText(_statementText(context, state, l10n),
         subject: l10n.statementHeader(shopName));
   }
 

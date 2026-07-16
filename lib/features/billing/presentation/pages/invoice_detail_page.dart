@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/share/cards/invoice_share_card.dart';
+import '../../../../core/share/share_card_action.dart';
 import '../../../../core/utils/format.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../shop/domain/entities/shop.dart';
@@ -48,6 +50,23 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          BlocBuilder<HistoryBloc, HistoryState>(
+            buildWhen: (p, c) => p.itemsCache[inv.id] != c.itemsCache[inv.id],
+            builder: (context, state) {
+              final items = state.itemsCache[inv.id];
+              return IconButton(
+                icon: const Icon(Icons.share_outlined),
+                tooltip: l10n.shareAction,
+                // Share needs the line items; disabled until they've loaded.
+                onPressed: (items == null || items.isEmpty)
+                    ? null
+                    : () => _shareInvoice(
+                        context, l10n, locale, currency, inv, items),
+              );
+            },
+          ),
+        ],
       ),
       body: BlocListener<HistoryBloc, HistoryState>(
         listenWhen: (prev, curr) =>
@@ -327,5 +346,50 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
           footer: shop.footerText,
           currency: currency,
         ));
+  }
+
+  /// Share this stored invoice as a styled PNG receipt (Plan 007). The discount
+  /// is derived from the snapshotted items vs. the stored total, exactly like
+  /// the footer breakdown.
+  Future<void> _shareInvoice(BuildContext context, AppLocalizations l10n,
+      String locale, String currency, InvoiceListItem inv,
+      List<InvoiceItem> items) async {
+    final shopState = context.read<ShopBloc>().state;
+    final Shop shop = shopState is ShopLoaded ? shopState.shop : const Shop();
+    final subtotal = items.fold<double>(0, (s, i) => s + i.gross);
+    var discount = subtotal - inv.total;
+    if (discount < 0.005) discount = 0;
+    final shortId = inv.id.length > 8
+        ? '#${inv.id.substring(inv.id.length - 8)}'
+        : '#${inv.id}';
+    final card = InvoiceShareCard(
+      l10n: l10n,
+      currency: currency,
+      shopName: shop.name,
+      shopAddress1: shop.addressLine1,
+      shopAddress2: shop.addressLine2,
+      shopPhone: shop.phoneNumber,
+      footer: shop.footerText,
+      invoiceShortId: shortId,
+      dateText: DateFormat.yMMMd(locale).format(inv.createdAt),
+      timeText: DateFormat.jm(locale).format(inv.createdAt),
+      paymentLabel: inv.isCredit ? l10n.paymentCredit : l10n.paymentCash,
+      customerName: inv.isCredit ? inv.customerName : null,
+      lines: items
+          .map((it) => InvoiceShareLine(
+                name: it.productName,
+                quantity: it.quantity,
+                unitPrice: it.price,
+                lineTotal: it.total,
+              ))
+          .toList(),
+      subtotal: subtotal,
+      discount: discount,
+      total: inv.total,
+    );
+    await shareCardAsImage(context,
+        card: card,
+        fileName: 'invoice_${inv.id}.png',
+        messageText: shop.name.isNotEmpty ? shop.name : null);
   }
 }

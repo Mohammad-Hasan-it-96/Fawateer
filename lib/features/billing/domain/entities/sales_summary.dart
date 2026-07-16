@@ -16,16 +16,20 @@ class SalesSummary extends Equatable {
   /// Portion of [total] from credit sales.
   final double creditTotal;
 
+  /// Estimated profit over the set: revenue − snapshotted cost − discounts.
+  final double profit;
+
   const SalesSummary({
     this.count = 0,
     this.total = 0,
     this.cashTotal = 0,
     this.creditTotal = 0,
+    this.profit = 0,
   });
 
   /// Average invoice value (0 when there are no invoices — never divides by 0).
   double get average => count == 0 ? 0 : total / count;
 
   @override
-  List<Object?> get props => [count, total, cashTotal, creditTotal];
+  List<Object?> get props => [count, total, cashTotal, creditTotal, profit];
 }

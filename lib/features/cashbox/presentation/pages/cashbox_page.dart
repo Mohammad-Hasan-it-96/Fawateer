@@ -4,10 +4,13 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/share/cards/cashbox_summary_share_card.dart';
+import '../../../../core/share/share_card_action.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/money_display.dart';
 import '../../../../core/utils/num_input.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../domain/entities/cash_transaction.dart';
 import '../../domain/entities/cash_transaction_type.dart';
 import '../bloc/cashbox_bloc.dart';
@@ -28,6 +31,11 @@ class CashboxPage extends StatelessWidget {
         title: Text(l10n.cashboxTitle,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            tooltip: l10n.shareAction,
+            onPressed: () => _shareDailySummary(context, l10n),
+          ),
           IconButton(
             icon: const Icon(Icons.add),
             tooltip: l10n.addCashTransaction,
@@ -242,6 +250,60 @@ class CashboxPage extends StatelessWidget {
       trailing: Text('$sign${moneyText(context, t.magnitude)}',
           style: TextStyle(fontWeight: FontWeight.bold, color: color)),
     );
+  }
+
+  /// Share today's cashbox summary as a styled PNG (Plan 007). Everything is
+  /// derived from the already-streamed transactions — opening balance is the
+  /// current balance minus today's net movement.
+  Future<void> _shareDailySummary(
+      BuildContext context, AppLocalizations l10n) async {
+    final state = context.read<CashboxBloc>().state;
+    final shopState = context.read<ShopBloc>().state;
+    final shopName = shopState is ShopLoaded ? shopState.shop.name : '';
+    final currency =
+        shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
+    final locale = Localizations.localeOf(context).toString();
+
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day);
+    final end = start.add(const Duration(days: 1));
+    final todayTx = state.transactions
+        .where((t) =>
+            !t.occurredAt.isBefore(start) && t.occurredAt.isBefore(end))
+        .toList();
+
+    // Net signed sum per type → one breakdown row each.
+    final byType = <CashTransactionType, double>{};
+    for (final t in todayTx) {
+      byType[t.type] = (byType[t.type] ?? 0) + t.amount;
+    }
+    final breakdown = byType.entries
+        .where((e) => e.value.abs() > 0.005)
+        .map((e) => CashboxBreakdownRow(
+              label: cashTransactionTypeText(e.key, l10n),
+              amount: e.value.abs(),
+              isInflow: e.value >= 0,
+            ))
+        .toList();
+
+    final closing = state.balance;
+    final opening = closing - (state.todayIn - state.todayOut);
+
+    final card = CashboxSummaryShareCard(
+      l10n: l10n,
+      currency: currency,
+      shopName: shopName,
+      dateText: DateFormat.yMMMd(locale).format(now),
+      opening: opening,
+      closing: closing,
+      totalIn: state.todayIn,
+      totalOut: state.todayOut,
+      breakdown: breakdown,
+    );
+    await shareCardAsImage(context,
+        card: card,
+        fileName: 'cashbox_summary.png',
+        messageText: shopName.isNotEmpty ? shopName : null);
   }
 
   /// Pick a manual transaction type (deposit, expense, withdrawal, opening

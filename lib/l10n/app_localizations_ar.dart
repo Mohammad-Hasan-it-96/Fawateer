@@ -1134,4 +1134,31 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get cartDiscountLabel => 'خصم على الفاتورة';
+
+  @override
+  String get shareAction => 'مشاركة';
+
+  @override
+  String get shareFailed => 'تعذّر تجهيز المشاركة — حاول مرة أخرى';
+
+  @override
+  String get estimatedProfit => 'الربح التقديري';
+
+  @override
+  String get openingBalance => 'رصيد أول المدة';
+
+  @override
+  String get closingBalance => 'رصيد آخر المدة';
+
+  @override
+  String get cashboxDailySummaryTitle => 'ملخص الصندوق اليومي';
+
+  @override
+  String get salesSummaryTitle => 'ملخص المبيعات';
+
+  @override
+  String get reportPeriodLabel => 'الفترة';
+
+  @override
+  String get receiptThankYou => 'شكراً لتعاملكم معنا';
 }

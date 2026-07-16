@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/share/cards/sales_summary_share_card.dart';
+import '../../../../core/share/share_card_action.dart';
 import '../../../shop/domain/entities/shop.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../domain/entities/invoice_list_item.dart';
@@ -77,6 +79,13 @@ class _HistoryPageState extends State<HistoryPage> {
         centerTitle: true,
         backgroundColor: Colors.transparent,
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share_outlined),
+            tooltip: l10n.shareAction,
+            onPressed: () => _shareSummary(context, currency, l10n),
+          ),
+        ],
       ),
       body: BlocListener<HistoryBloc, HistoryState>(
         listenWhen: (prev, curr) =>
@@ -148,6 +157,49 @@ class _HistoryPageState extends State<HistoryPage> {
         );
       },
     );
+  }
+
+  /// Share the current filter's sales summary as a styled PNG (Plan 007).
+  Future<void> _shareSummary(
+      BuildContext context, String currency, AppLocalizations l10n) async {
+    final histState = context.read<HistoryBloc>().state;
+    final shopState = context.read<ShopBloc>().state;
+    final shopName = shopState is ShopLoaded ? shopState.shop.name : '';
+    final locale = Localizations.localeOf(context).toString();
+    final s = histState.summary;
+    final card = SalesSummaryShareCard(
+      l10n: l10n,
+      currency: currency,
+      shopName: shopName,
+      periodText: _periodText(histState.filter, locale, l10n),
+      count: s.count,
+      total: s.total,
+      cashTotal: s.cashTotal,
+      creditTotal: s.creditTotal,
+      average: s.average,
+      profit: s.profit,
+    );
+    await shareCardAsImage(context,
+        card: card,
+        fileName: 'sales_summary.png',
+        messageText: shopName.isNotEmpty ? shopName : null);
+  }
+
+  /// Human label for the filter's period (preset name, or a custom date range).
+  String _periodText(SalesFilter f, String locale, AppLocalizations l10n) {
+    switch (f.preset) {
+      case DatePreset.today:
+        return l10n.filterToday;
+      case DatePreset.yesterday:
+        return l10n.filterYesterday;
+      case DatePreset.thisWeek:
+        return l10n.filterThisWeek;
+      case DatePreset.thisMonth:
+        return l10n.filterThisMonth;
+      case DatePreset.custom:
+        final df = DateFormat.yMMMd(locale);
+        return '${df.format(f.from)} – ${df.format(f.to)}';
+    }
   }
 
   void _reprint(BuildContext context, InvoiceListItem item, String currency) {

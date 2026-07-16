@@ -167,6 +167,7 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
               total: r.total,
               creditTotal: r.creditTotal,
               cashTotal: r.total - r.creditTotal,
+              profit: r.profit,
             ));
   }
 

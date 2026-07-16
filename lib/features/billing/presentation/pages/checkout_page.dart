@@ -2,8 +2,11 @@ import 'package:billing_app/core/widgets/primary_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/share/cards/invoice_share_card.dart';
+import '../../../../core/share/share_card_action.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/format.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -300,6 +303,21 @@ class CheckoutPage extends StatelessWidget {
                 ],
               ),
             ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: OutlinedButton.icon(
+                onPressed: () =>
+                    _shareReceipt(context, billingState, shop, currency, l10n),
+                icon: const Icon(Icons.share_outlined),
+                label: Text(l10n.shareAction),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.primaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
             Row(
               children: [
                 Expanded(
@@ -366,6 +384,49 @@ class CheckoutPage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  /// Build a styled receipt card from the just-confirmed cart and hand it to the
+  /// OS share sheet as a PNG (Plan 007). Payment/customer are omitted — this is
+  /// the customer's copy captured straight from the cart state.
+  Future<void> _shareReceipt(BuildContext context, BillingState st, dynamic shop,
+      String currency, AppLocalizations l10n) async {
+    final locale = Localizations.localeOf(context).toString();
+    final now = DateTime.now();
+    final id = st.savedInvoiceId ?? '';
+    final shortId =
+        id.length > 8 ? '#${id.substring(id.length - 8)}' : '#$id';
+    final card = InvoiceShareCard(
+      l10n: l10n,
+      currency: currency,
+      shopName: shop?.name ?? '',
+      shopAddress1: shop?.addressLine1 ?? '',
+      shopAddress2: shop?.addressLine2 ?? '',
+      shopPhone: shop?.phoneNumber ?? '',
+      footer: shop?.footerText ?? '',
+      invoiceShortId: shortId,
+      dateText: DateFormat.yMMMd(locale).format(now),
+      timeText: DateFormat.jm(locale).format(now),
+      paymentLabel: null,
+      customerName: null,
+      lines: st.cartItems
+          .map((it) => InvoiceShareLine(
+                name: it.product.name,
+                quantity: it.quantity,
+                unitPrice: it.unitPriceSp,
+                lineTotal: it.total,
+              ))
+          .toList(),
+      subtotal: st.subtotal,
+      discount: st.totalDiscount,
+      total: st.totalAmount,
+    );
+    await shareCardAsImage(context,
+        card: card,
+        fileName: 'invoice_$id.png',
+        messageText: (shop?.name as String?)?.isNotEmpty == true
+            ? shop!.name as String
+            : null);
   }
 
   /// Totals block: an editable cart-discount row (before confirm), an optional

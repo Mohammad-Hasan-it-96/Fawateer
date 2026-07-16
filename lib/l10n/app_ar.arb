@@ -390,5 +390,15 @@
   "addDiscountAction": "خصم",
   "discountLabel": "الخصم",
   "subtotalLabel": "المجموع الفرعي",
-  "cartDiscountLabel": "خصم على الفاتورة"
+  "cartDiscountLabel": "خصم على الفاتورة",
+
+  "shareAction": "مشاركة",
+  "shareFailed": "تعذّر تجهيز المشاركة — حاول مرة أخرى",
+  "estimatedProfit": "الربح التقديري",
+  "openingBalance": "رصيد أول المدة",
+  "closingBalance": "رصيد آخر المدة",
+  "cashboxDailySummaryTitle": "ملخص الصندوق اليومي",
+  "salesSummaryTitle": "ملخص المبيعات",
+  "reportPeriodLabel": "الفترة",
+  "receiptThankYou": "شكراً لتعاملكم معنا"
 }
