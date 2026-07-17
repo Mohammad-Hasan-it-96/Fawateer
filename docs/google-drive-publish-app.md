@@ -117,7 +117,7 @@ That's it. There is:
 | Symptom | Cause | Fix |
 |---|---|---|
 | Still see *Access blocked / access_denied* | Wrong project selected, or you published a *different* project | Re-open the consent page, confirm the title says **Fawateer**, re-check status = In production |
-| `Error 10` (DEVELOPER_ERROR) on sign-in | Package name / SHA-1 mismatch — unrelated to publishing | Confirm the Android OAuth client uses package `com.mohamad.hasan.it.fawateer` + the debug SHA-1 `BE:D0:B7:48:2D:8C:58:4C:B4:FD:63:BE:88:10:77:9F:2B:DE:54:EF` |
+| `Error 10` (DEVELOPER_ERROR) on sign-in | Package name / SHA-1 mismatch — unrelated to publishing | Confirm there is an Android OAuth client for package `com.mohamad.hasan.it.fawateer` matching **the build you're running**. Debug and release are signed with *different* keys, so each needs **its own client** (one client = one fingerprint). Debug: `BE:D0:B7:48:2D:8C:58:4C:B4:FD:63:BE:88:10:77:9F:2B:DE:54:EF` · Release: `2B:95:86:BD:74:82:AA:AC:10:C1:F8:7A:FA:E8:2C:4E:1B:DB:59:91`. A release APK hitting this error almost always means only the debug client exists — see `docs/android-release-signing.md`. |
 | Sign-in works but backup fails | Drive API not enabled, or `drive.file` scope missing from consent screen | Enable **Google Drive API**; add the `drive.file` scope |
 | Consent shows a broad "See and manage all your Drive files" prompt | A restricted scope crept in | Remove everything except `drive.file` |
 
