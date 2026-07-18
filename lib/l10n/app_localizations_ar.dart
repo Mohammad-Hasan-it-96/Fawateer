@@ -698,9 +698,17 @@ class AppLocalizationsAr extends AppLocalizations {
   String get updateLater => 'لاحقاً';
 
   @override
-  String contactMessage(String plan) {
-    return 'مرحباً، أرغب في الاشتراك في باقة $plan لتطبيق فواتير.';
+  String contactMessage(
+      String plan, String name, String phone, String deviceId) {
+    return 'مرحباً،\nأرغب في الاشتراك في تطبيق فواتير.\nالباقة: $plan\nالاسم: $name\nرقم الهاتف: $phone\nمعرّف الجهاز: $deviceId';
   }
+
+  @override
+  String get contactMessagePreview => 'الرسالة التي سنرسلها';
+
+  @override
+  String get contactLaunchFailed =>
+      'تعذّر فتح التطبيق. انسخ الرسالة وأرسلها لنا يدوياً.';
 
   @override
   String get customersTitle => 'العملاء';

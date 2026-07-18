@@ -1433,8 +1433,21 @@ abstract class AppLocalizations {
   /// No description provided for @contactMessage.
   ///
   /// In en, this message translates to:
-  /// **'Hello, I\'d like to subscribe to the {plan} plan for Fawateer.'**
-  String contactMessage(String plan);
+  /// **'Hello,\nI\'d like to subscribe to Fawateer.\nPlan: {plan}\nName: {name}\nPhone: {phone}\nDevice ID: {deviceId}'**
+  String contactMessage(
+      String plan, String name, String phone, String deviceId);
+
+  /// No description provided for @contactMessagePreview.
+  ///
+  /// In en, this message translates to:
+  /// **'The message we\'ll send'**
+  String get contactMessagePreview;
+
+  /// No description provided for @contactLaunchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t open that app. Copy the message and send it to us manually.'**
+  String get contactLaunchFailed;
 
   /// No description provided for @customersTitle.
   ///

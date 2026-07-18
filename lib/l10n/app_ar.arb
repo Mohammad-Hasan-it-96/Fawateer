@@ -243,7 +243,9 @@
   "updateAvailableTitle": "يتوفر تحديث جديد",
   "updateDownload": "تحميل التحديث",
   "updateLater": "لاحقاً",
-  "contactMessage": "مرحباً، أرغب في الاشتراك في باقة {plan} لتطبيق فواتير.",
+  "contactMessage": "مرحباً،\nأرغب في الاشتراك في تطبيق فواتير.\nالباقة: {plan}\nالاسم: {name}\nرقم الهاتف: {phone}\nمعرّف الجهاز: {deviceId}",
+  "contactMessagePreview": "الرسالة التي سنرسلها",
+  "contactLaunchFailed": "تعذّر فتح التطبيق. انسخ الرسالة وأرسلها لنا يدوياً.",
 
   "customersTitle": "العملاء",
   "addCustomer": "إضافة عميل",

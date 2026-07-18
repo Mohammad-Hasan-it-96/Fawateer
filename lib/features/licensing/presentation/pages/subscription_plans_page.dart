@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -179,68 +180,157 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
     );
   }
 
+  /// The message handed to the operator. It carries the **device id** — the only
+  /// thing that lets support activate this install — plus the agent's name and
+  /// phone, so the operator can act on the message alone without the user having
+  /// to find and paste the id themselves.
+  String _contactMessage(
+      BuildContext context, AppLocalizations l10n, SubscriptionPlan plan) {
+    final state = context.read<LicenseBloc>().state;
+    String orDash(String value) =>
+        value.trim().isEmpty ? '—' : value.trim();
+    return l10n.contactMessage(
+      plan.title,
+      orDash(state.agentName),
+      orDash(state.agentPhone),
+      orDash(state.deviceId),
+    );
+  }
+
   void _openContactSheet(
       BuildContext context, AppLocalizations l10n, SubscriptionPlan plan) {
+    // Built once, here: the preview below and the message actually sent must be
+    // the same string, or the copy button lies.
+    final message = _contactMessage(context, l10n, plan);
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       builder: (sheetContext) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 12),
-            Text(l10n.contactMethodTitle,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            ListTile(
-              leading: const Icon(Icons.chat, color: Color(0xFF25D366)),
-              title: Text(l10n.contactWhatsApp),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                _submit(context, l10n, plan, 'whatsapp');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.send, color: Color(0xFF229ED9)),
-              title: Text(l10n.contactTelegram),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                _submit(context, l10n, plan, 'telegram');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.email_outlined, color: Colors.redAccent),
-              title: Text(l10n.contactEmail),
-              onTap: () {
-                Navigator.pop(sheetContext);
-                _submit(context, l10n, plan, 'email');
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Text(l10n.contactMethodTitle,
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              _messagePreview(sheetContext, l10n, message),
+              const Divider(height: 24),
+              ListTile(
+                leading: const Icon(Icons.chat, color: Color(0xFF25D366)),
+                title: Text(l10n.contactWhatsApp),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _submit(context, l10n, plan, 'whatsapp', message);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.send, color: Color(0xFF229ED9)),
+                title: Text(l10n.contactTelegram),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _submit(context, l10n, plan, 'telegram', message);
+                },
+              ),
+              ListTile(
+                leading:
+                    const Icon(Icons.email_outlined, color: Colors.redAccent),
+                title: Text(l10n.contactEmail),
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _submit(context, l10n, plan, 'email', message);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
+      ),
+    );
+  }
+
+  /// Shows the message before it's sent, with a copy button. The copy is the
+  /// fallback for every case the pre-fill can't survive — notably **Telegram,
+  /// which cannot pre-fill a message on a user/phone link at all** (`?text=` is
+  /// only honoured on `share/url` and bot `start` links), so its chat opens
+  /// empty by design and the user pastes.
+  Widget _messagePreview(
+      BuildContext sheetContext, AppLocalizations l10n, String message) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l10n.contactMessagePreview,
+              style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+          const SizedBox(height: 6),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.grey.shade300),
+            ),
+            child: Text(message,
+                style: const TextStyle(fontSize: 13, height: 1.5)),
+          ),
+          Align(
+            alignment: AlignmentDirectional.centerEnd,
+            child: TextButton.icon(
+              icon: const Icon(Icons.copy, size: 16),
+              label: Text(l10n.copy),
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: message));
+                if (!sheetContext.mounted) return;
+                ScaffoldMessenger.of(sheetContext).showSnackBar(
+                  SnackBar(content: Text(l10n.copied)),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 
   /// File the pending request via the BLoC, then open the operator channel.
   Future<void> _submit(BuildContext context, AppLocalizations l10n,
-      SubscriptionPlan plan, String method) async {
+      SubscriptionPlan plan, String method, String message) async {
     final state = context.read<LicenseBloc>().state;
+    // Captured before the async gap: the page pops itself on `requestSent`, and
+    // this resolves to the app-wide messenger, so the notice below still shows.
+    final messenger = ScaffoldMessenger.of(context);
     context.read<LicenseBloc>().add(RequestPlanEvent(
           name: state.agentName,
           phone: state.agentPhone,
           plan: plan,
           contactMethod: method,
         ));
-    final uri = _contactUri(method, plan, l10n);
-    if (uri != null && await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    final uri = _contactUri(method, message, l10n);
+    var launched = false;
+    if (uri != null) {
+      try {
+        if (await canLaunchUrl(uri)) {
+          launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      } catch (_) {
+        launched = false;
+      }
+    }
+    // Never fail silently: the request is already filed server-side, so a user
+    // who saw nothing happen would leave the operator waiting on a message that
+    // was never sent. Point them at the copy they just saw.
+    if (!launched) {
+      messenger.showSnackBar(SnackBar(
+        content: Text(l10n.contactLaunchFailed),
+        backgroundColor: Colors.orange.shade800,
+        duration: const Duration(seconds: 6),
+      ));
     }
   }
 
-  Uri? _contactUri(
-      String method, SubscriptionPlan plan, AppLocalizations l10n) {
-    final message = l10n.contactMessage(plan.title);
+  Uri? _contactUri(String method, String message, AppLocalizations l10n) {
     if (method == 'whatsapp' && ApiConfig.supportWhatsApp.isNotEmpty) {
       return Uri.parse(
           'https://wa.me/${ApiConfig.supportWhatsApp}?text=${Uri.encodeComponent(message)}');
@@ -248,6 +338,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
     if (method == 'telegram' && ApiConfig.supportTelegram.isNotEmpty) {
       final tg = ApiConfig.supportTelegram;
       // The config may hold a full https://t.me/... link or a bare username.
+      // No `?text=` — t.me ignores it here; the copy button covers it.
       return Uri.parse(tg.startsWith('http') ? tg : 'https://t.me/$tg');
     }
     if (method == 'email' && ApiConfig.supportEmail.isNotEmpty) {

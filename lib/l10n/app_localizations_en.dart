@@ -703,9 +703,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateLater => 'Later';
 
   @override
-  String contactMessage(String plan) {
-    return 'Hello, I\'d like to subscribe to the $plan plan for Fawateer.';
+  String contactMessage(
+      String plan, String name, String phone, String deviceId) {
+    return 'Hello,\nI\'d like to subscribe to Fawateer.\nPlan: $plan\nName: $name\nPhone: $phone\nDevice ID: $deviceId';
   }
+
+  @override
+  String get contactMessagePreview => 'The message we\'ll send';
+
+  @override
+  String get contactLaunchFailed =>
+      'Couldn\'t open that app. Copy the message and send it to us manually.';
 
   @override
   String get customersTitle => 'Customers';
