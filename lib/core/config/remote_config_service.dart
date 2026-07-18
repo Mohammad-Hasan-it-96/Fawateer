@@ -10,8 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../network/api_config.dart';
 import 'remote_config.dart';
 
-/// Fetches the hosted `fawateer_version.json`, applies it (API base URL +
-/// support contacts) and works out whether an app update is available.
+/// Fetches the hosted `fawateer.json`, applies it (API base URL + support
+/// contacts) and works out whether an app update is available.
 ///
 /// It's resilient by design: the network fetch is time-boxed and falls back to
 /// the last cached copy, and a total failure just leaves the baked-in
@@ -22,10 +22,17 @@ class RemoteConfigService {
 
   final http.Client _client;
 
-  /// Google-Drive direct-download endpoint for the shared `fawateer_version.json`
-  /// (file id `1pVMkNYKAGjiO8tRSG3nEcVGvEQS8xcVk`).
+  /// The hosted config. Source of truth for the file's contents lives in the
+  /// repo at `deploy/fawateer.json` — edit there, then publish.
+  ///
+  /// Deliberately on the **web** host, not the API host: this file is what tells
+  /// the app where the API is, so hosting it behind that same API would mean an
+  /// API outage could not be routed around — the lever and the thing it moves
+  /// would fail together.
+  ///
+  /// (Was a Google-Drive direct-download link; moved onto our own domain.)
   static const String _configUrl =
-      'https://drive.google.com/uc?export=download&id=1pVMkNYKAGjiO8tRSG3nEcVGvEQS8xcVk';
+      'https://evotech-sys.com/config/fawateer.json';
 
   static const String _kCache = 'remote_config_json';
 

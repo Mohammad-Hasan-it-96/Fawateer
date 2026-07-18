@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-**Fawateer** (Arabic: فواتير, "invoices") is an offline-first POS app for small shops (package name: `billing_app`) with an online-validated **subscription gate** on top. It supports barcode scanning, Bluetooth thermal printing, product/inventory management, sales invoices with a filter/summary **audit center**, a **customer debt ledger** (credit sales), and a **cash drawer** (cashbox). The UI is **Arabic-first (RTL)** with English as a secondary locale.
+**Fawateer** (Arabic: فواتير, "invoices") is an offline-first POS app for small shops (package name: `billing_app`) with an online-validated **subscription gate** on top. It supports barcode scanning, Bluetooth thermal printing, product/inventory management, sales invoices with a filter/summary **audit center**, an **analytics dashboard**, a **customer debt ledger** (credit sales), a **cash drawer** (cashbox), **dual-currency** (SP base + USD pricing) with manual **discounts**, **Google Drive backup/restore**, and PNG **share cards**. The UI is **Arabic-first (RTL)** with English as a secondary locale; the shop is **Syria-first** (default currency `ل.س`).
+
+Feature work is planned up-front in numbered design docs under `docs/plans/` (`001-backup-system.md` … `009-…`). Code comments reference these by number ("Plan 005"), so when a comment cites a plan, that file is the rationale of record. Plans 002 (multi-device) and 009 (smart assistant) are deferred to V2 — they describe work that does **not** exist in the codebase.
 
 ## Commands
 
@@ -18,7 +20,8 @@ flutter analyze
 # Run tests
 flutter test
 
-# Run a single test file (test/ holds app_smoke_test.dart and num_input_test.dart)
+# Run a single test file (test/ holds app_smoke_test, num_input_test,
+# cashbox_test, dashboard_test)
 flutter test test/num_input_test.dart
 
 # Regenerate Drift database code (*.g.dart files)
@@ -29,6 +32,8 @@ dart run build_runner watch --delete-conflicting-outputs
 ```
 
 Run `build_runner` whenever you modify Drift table definitions (`lib/core/database/tables/`), DAO files (`lib/core/database/daos/`), or the `AppDatabase` class. Localization Dart code (`lib/l10n/app_localizations*.dart`) is generated from the ARB files automatically by `flutter run`/`flutter gen-l10n` because `generate: true` is set in `pubspec.yaml`.
+
+**Tests drive BLoCs against hand-written fake repositories** — never real Drift, native SQLite, or plugins — so `flutter test` runs on any machine with no device/emulator. Keep it that way: a new test should implement the repository interface as a fake (see `_FakeDashboardRepository` in `dashboard_test.dart`), not spin up an `AppDatabase`. Pure logic (`num_input_test`, `cashbox_test`'s balance derivation) is tested directly with no BLoC at all.
 
 ## Architecture
 
@@ -53,10 +58,15 @@ Note: there is **no use case layer** — BLoCs depend on repository interfaces d
 ### Core
 
 - `lib/core/database/` — Drift `AppDatabase`, all table definitions (`tables/`), and DAOs (`daos/`)
-- `lib/core/error/failure.dart` — `Failure` base class + typed subclasses: `CacheFailure` (DB/unexpected), `NotFoundFailure` (entity missing), `PermissionFailure` (OS permission denied), `DuplicateFailure` (unique-name clash, e.g. a second customer with the same name), `ConflictFailure` (delete blocked by existing history), `NetworkFailure` (offline/timeout) and `ServerFailure` (server reached but errored). `Failure.message` is debug detail only — never shown to users.
+- `lib/core/error/failure.dart` — `Failure` base class + typed subclasses: `CacheFailure` (DB/unexpected), `NotFoundFailure` (entity missing), `PermissionFailure` (OS permission denied), `DuplicateFailure` (unique-name clash, e.g. a second customer with the same name), `ConflictFailure` (delete blocked by existing history), `NetworkFailure` (offline/timeout), `ServerFailure` (server reached but errored) and `IncompatibleFailure` (backup snapshot rejected — schema too new / checksum mismatch). `Failure.message` is debug detail only — never shown to users.
 - `lib/core/service_locator.dart` — All GetIt registrations
 - `lib/core/theme/app_theme.dart` — `AppTheme.lightTheme`
+- `lib/core/currency/` — `ExchangeRateService` + `usdToSp` (see Dual currency below)
+- `lib/core/share/` — widget→PNG capture, `ShareService`, and the shareable cards (see Share cards below)
+- `lib/core/config/` — `RemoteConfigService` (see Licensing below)
 - `lib/config/routes/app_routes.dart` — GoRouter config; `app_shell.dart` — bottom-nav tab shell
+
+`lib/core/data/` is an empty leftover directory — nothing lives there; don't infer a layer from it.
 
 ### Shared input/format helpers (`lib/core/utils/`)
 
@@ -73,15 +83,22 @@ Reuse these for any money/quantity field or displayed number — don't hand-roll
 3. Repositories (lazy singletons, each receives its DAO)
 4. BLoCs (factories, each receives the repository interface(s) it needs)
 
-`main.dart` provides app-wide BLoCs through a `MultiBlocProvider` and dispatches initial load events (`LoadProducts`, `LoadShopEvent`, `InitPrinterEvent`, `LoadHistoryEvent`, `LoadCustomers`, `LoadCashbox`, `CheckLicenseEvent`). `LicenseBloc` is a `.value` provider (the shared singleton). The per-customer `LedgerBloc` is *not* here — it's scoped to the `/customers/detail/:id` route.
+`main.dart` provides app-wide BLoCs through a `MultiBlocProvider` and dispatches initial load events (`CheckLicenseEvent`, `LoadProducts`, `LoadShopEvent`, `LoadExchangeRateEvent` (on `BillingBloc`), `InitPrinterEvent`, `LoadHistoryEvent`, `LoadCustomers`, `LoadCashbox`). `LicenseBloc` is a `.value` provider (the shared singleton).
+
+**Three BLoCs are deliberately *not* app-wide** — they're route-scoped, and each starts differently, so copy the right precedent:
+- `LedgerBloc` — scoped to `/customers/detail/:id` (per-customer).
+- `DashboardBloc` — scoped to `/history`; its initial `LoadDashboard()` is dispatched **in the route's `create:`**.
+- `BackupBloc` — scoped to `/settings/backup`; the route dispatches **nothing**. `BackupPage.initState` fires `BackupStatusRequested()`. Reading only `app_routes.dart` makes it look like nothing loads.
 
 ### Database
 
 Drift (SQLite) backed by `driftDatabase(name: 'fawateer')`. All tables and DAOs are declared in the `@DriftDatabase(...)` annotation on `AppDatabase`. Generated code lives in `*.g.dart` files — **never edit these manually**.
 
-There's also a generic `AppSettings` key-value table (`SettingRow`, `key`/`value` PK) for small app-level prefs (e.g. `printer_mac`, `printer_name`) that don't warrant their own typed table.
+There's also a generic `AppSettings` key-value table (`SettingRow`, `key`/`value` PK) for small app-level prefs that don't warrant their own typed table — `printer_mac`, `printer_name`, the USD exchange rate (`exchange_rate_usd_sp` + `exchange_rate_updated_at`), and backup state (`backup_last_at`, `backup_account_email`). **Reach for this before adding a table**: several features ship with no migration at all because their state is a couple of key-value rows.
 
-Schema is at **version 9** with a `MigrationStrategy`. When changing tables, bump `schemaVersion` and **append** a new `if (from < N)` block to `onUpgrade` — never edit a shipped block (old installs have already run it). Existing steps:
+Note the DAO list is one longer than the table list: `DashboardDao` is a read-only `@DriftAccessor` over existing tables and owns none of its own.
+
+Schema is at **version 12** with a `MigrationStrategy`. When changing tables, bump `schemaVersion` and **append** a new `if (from < N)` block to `onUpgrade` — never edit a shipped block (old installs have already run it). Existing steps:
 - v1→v2: added `shopSettings.currencySymbol`
 - v2→v3: dropped removed `customers`/`debts`/`purchase_invoices`/`purchase_items`/`cashbox_entries` tables
 - v3→v4: added `cost` column to `products` and `salesItems`; created barcode/sales indexes
@@ -90,6 +107,11 @@ Schema is at **version 9** with a `MigrationStrategy`. When changing tables, bum
 - v6→v7: debt ledger — created `customers` + `ledger_entries` tables and `_createLedgerIndexes()`. **Purely additive**: no existing table is touched. The sale↔customer link deliberately lives on `ledger_entries.invoiceId` (a credit sale writes a `charge` entry referencing the invoice) rather than a column on `sales_invoices` — this avoids the landmine that the old `customer_id` column is still physically present (orphaned) in pre-removal DBs, which would make `addColumn` throw "duplicate column".
 - v7→v8: added `products.saleType` (text, default `'piece'`) for sell-by-weight. Additive `addColumn`; every existing product decodes as `piece`.
 - v8→v9: cashbox — created the `cashbox_transactions` table and `_createCashboxIndexes()`. **Purely additive**: no existing table is touched. Uses the name `cashbox_transactions` deliberately (not `cashbox_entries`, which was a *different* removed pre-v3 table already dropped in the v2→v3 step) so there's no collision.
+- v9→v10: dual currency — added `products.priceCurrency`, and `salesItems.priceCurrency`/`fxRate`/`priceOriginal` (the per-line FX snapshot). All `addColumn` with defaults, so existing rows decode as SP-native.
+- v10→v11: **data fix, no DDL** — the old default `shop_settings.currencySymbol` was `'₹'` (Indian rupee), wrong for this Syria-first app. Normalizes `'₹'` *and* blank to `'ل.س'`; a shop that deliberately chose another symbol keeps it.
+- v11→v12: manual discounts (Plan 005) — added `salesItems.discount` and `salesInvoices.invoiceDiscount`. Additive; every existing row decodes as "no discount".
+
+The v5→v6 `TableMigration` remains the **only** table rebuild in the whole history — everything since has been `addColumn` + one data-normalizing `UPDATE`. Keep it that way when you can.
 
 **Foreign keys** are enforced per-connection via `PRAGMA foreign_keys = ON` in `MigrationStrategy.beforeOpen` (runs after migrations — table rebuilds need FKs off). No FK constraints are declared on the tables yet, so it's currently a no-op guard; any FK a future feature adds (e.g. `references(...)`) will actually be enforced. Don't set this pragma inside `onUpgrade`.
 
@@ -104,6 +126,25 @@ The `products` table carries a `cost` column (purchase cost, default 0) used for
 - A weighed product is entered via `_MeasuredEntryDialog` (in `home_page.dart`): weight (kg) and money amount shown together and **live-linked** (typing one recomputes the other at the per-kg price; only the non-focused controller is written, so no feedback loop). It returns a **weight** which becomes the cart line's `quantity`.
 - **Exact-money precision**: the weight is stored at full `double` precision (only `formatQty`-rounded for *display*), so `price × quantity` reconstructs the entered amount exactly (`5000` → `5000.00`). Consequence: **no stored line-total column** — history/receipts derive the total from the per-line `price` + `quantity` snapshots.
 - Wiring: the picker and cart-edit call the dialog directly; a **scanned** weighed product surfaces via the transient `BillingState.measuredPrompt` (the BLoC never opens UI). `AddProductToCartEvent` has an optional `quantity` — when set it's an absolute add-or-replace (measured), when null it's the piece +1 behavior. `ReceiptLine.unit` (`'كغ'`) makes the raster receipt print `0.333 كغ × …`.
+
+### Dual currency (SP base + USD pricing)
+
+**SP (Syrian pound) is the one book currency.** Everything written to invoices, the cashbox, the ledger and reports is SP. USD is only a *pricing label* on a product — it's converted to SP at the moment of sale, and only the resolved SP number ever reaches the books. There is no multi-currency accounting here, and adding one would be a much larger change than it looks.
+
+- `Product.priceCurrency` is a `PriceCurrency` enum (`price_currency.dart`, `sp`/`usd`) persisted **by name** (`fromName` falls back to `sp` for unknown/legacy values) — same rule as `ProductSaleType`/`CashTransactionType`. `PriceCurrency.label` renders USD with a literal `$`, never the shop's configured symbol.
+- **The rate is not a table** — `ExchangeRateService` (`core/currency/`) keeps SP-per-USD in two `AppSettings` rows (`exchange_rate_usd_sp`, `exchange_rate_updated_at`, the latter feeding a stale-rate nudge). It parses defensively: non-finite or `<= 0` reads as *unset*.
+- `usdToSp(amount, rate)` **rounds to a whole pound** at the conversion boundary (piastres are dead) and returns `null` when the rate is missing/invalid — so callers must guard rather than silently price a USD item at its raw number. `CartItem.isUnpriced` (`isForeign && fxRate <= 0`) is that guard, and it blocks checkout.
+- **Never use a raw `product.price` downstream** — read the resolved `unitPriceSp` / `salesItems.price`.
+- **Historical invoices are immune to later rate edits**: `salesItems` snapshots `priceCurrency` + `fxRate` (0 for SP-native lines) + `priceOriginal` at sale time and never recomputes, so an old receipt still reprints as `$10 × 15000 = 150,000 ل.س`. The live rate is read only when pricing a *new* sale.
+
+### Discounts (manual, line + whole-cart)
+
+Plan 005. Two additive columns (v11→v12): `salesItems.discount` (per line) and `salesInvoices.invoiceDiscount` (whole cart).
+
+- **Both are stored as resolved SP amounts.** The percent-vs-amount choice (`_Mode` in `discount_dialog.dart`) is a *UI* affordance only — it's resolved to a flat SP number before it reaches domain or DB code. There is **no `isPercentage` flag stored**, so "this was 10% off" is not reconstructable from the data; don't build a report that assumes it is.
+- **Cart discount stacks on top of line discounts**: `subtotal = Σ CartItem.total` (already line-discounted), then `totalAmount = subtotal − effectiveInvoiceDiscount` — it is not computed against the raw pre-line-discount subtotal.
+- **Clamping is deliberately redundant in three places** — `showDiscountDialog._resolved` (to `base`), `CartItem.effectiveDiscount` (to `[0, gross]`), and `BillingState.effectiveInvoiceDiscount` (to `[0, subtotal]`). This is load-bearing, not duplication: discounts aren't re-validated when quantity changes, so `effectiveDiscount` re-clamps against the shrunk `gross` on every read and a shrunk line can't go negative. Don't "simplify" it to one clamp.
+- The **no-stored-line-total** rule still holds: `gross = unitPriceSp × quantity` and `CartItem.total = gross − effectiveDiscount` are always derived. The *discount amount* is snapshotted (like `price`/`cost`/`fxRate`), and the pre-existing `sales_invoices.totalAmount` is stored **already net of both discounts** — but per-line net totals are still reconstructed from `price × quantity − discount`.
 
 ### Localization
 
@@ -122,6 +163,8 @@ The `products` table carries a `cost` column (purchase cost, default 0) used for
 | licensing | `LicenseBloc` | Subscription/activation gate (see below). The only network-backed feature; has **no DAO** — state lives in `SharedPreferences`, not Drift. Registered as a **singleton** (not a factory) so the router gate and the widget tree share one instance. |
 | ledger | `CustomerBloc`, `LedgerBloc` | Customers + debt ledger (see below). `CustomerBloc` (app-wide) is the stream-backed list with derived balances; `LedgerBloc` is per-customer (scoped to the detail route). |
 | cashbox | `CashboxBloc` | Cash drawer / signed cash ledger (see below). App-wide, stream-backed; auto-posts on cash sales & debt repayments. |
+| dashboard | `DashboardBloc` | Analytics/KPIs (see below). Route-scoped to `/history`; reads `DashboardDao` (no tables of its own). |
+| backup | `BackupBloc` | Google Drive backup/restore of the whole SQLite file (see below). Route-scoped to `/settings/backup`. |
 
 ### Licensing & networking (subscription gate)
 
@@ -136,6 +179,8 @@ The app's **first and only server communication**, added for commercial subscrip
 - **The gate** is a GoRouter `redirect` driven by the shared `LicenseBloc` state (via a `ChangeNotifier` bridged to `bloc.stream` as `refreshListenable`): before the first check resolves (`!state.bootstrapped`) → `/splash`, inactive → `/activation` (+ `/activation/plans`), active → the tab shell. Follows the typed-error rule — `LicenseError` maps to ARB via `licenseErrorText`. The gate keys off `bootstrapped` (set true once the first check resolves), **not** the transient `checking` status — so an in-app re-check (Refresh below) doesn't bounce the user to the splash.
 - **Management**: while active, Settings → "Subscription" opens `SubscriptionStatusPage` (`/settings/subscription`) showing status/plan/expiry/days-left/last-sync, with Refresh (`CheckLicenseEvent`) and Renew (`/settings/subscription/plans`, reusing `SubscriptionPlansPage`). It lives outside the gate routes, so it's only reachable while active — exactly when the activation screen isn't.
 - **Editable account**: `SettingsPage` has an "Account details" section (reads the shared `LicenseBloc`) that edits the agent **name/phone** via a bottom sheet and shows a copyable device ID. `UpdateAgentEvent` → `LicenseRepository.updateAgent` **saves locally first** (never lost) then best-effort syncs (`update_my_data`); the one-shot `AgentSaveOutcome` (`synced`/`localOnly`) drives a green/orange snackbar.
+- **Free trial (Plan 006) adds a display flag, not a state machine.** `LicenseStatus` gained one plain `final bool isTrial` (default `false`); `isActive` is still `isVerified && !isExpired && !timeTampered && !offlineLimitExceeded` — **`isTrial` is not a term in it**. There's no new `LicenseStatus` state and **no new endpoint**: the server sets `status:'trial'` + a trial expiry on the existing `create_device`, and `check_device` returns `is_trial` alongside `expires_at` exactly as for a paid device, so the gate, the 72h grace and the clock-tamper check treat trial and paid identically (`LicenseGuards` has zero trial branching — keep it that way). `isTrial` exists only for UI: `TrialBanner` (renders when `isTrial && isActive`, turns red in the last 3 days) and the status chip. Cached as `lic_is_trial` in `SharedPreferences`.
+- **Trial anti-abuse is server-side only**, keyed on the device id (`ANDROID_ID`-derived, stable across reinstall — only a factory reset mints a new one). **Do not add a local first-launch date**: a client-tracked trial is trivially reset by clearing app data, and was explicitly rejected in `docs/plans/006-free-trial.md`.
 - **Money in this domain stays `double`** (consistent with the rest of the app), rounded at display; no integer-minor-unit migration.
 
 ### Debt ledger (customers & credit sales)
@@ -165,9 +210,42 @@ The History tab (`HistoryBloc` + `HistoryPage`) is a **filter-driven, paginated 
 - **Live + paginated**: the list and the summary aggregate are each backed by a `StreamSubscription` that feeds **internal** events (`_InvoicesUpdated`/`_SummaryUpdated`) — you can't `emit` outside a handler. Changing the filter, or paging in more rows (`LoadMoreEvent`, `_kPageSize = 30`), cancels and re-subscribes with the new query/window. Both re-emit automatically after every sale.
 - Line items for the detail page (`/history/detail/:id` → `InvoiceDetailPage`) are **lazy-loaded and cached** (`LoadInvoiceDetailsEvent`); a load failure is recorded (not cached) so the UI can retry. `ReprintInvoiceEvent` reprints a stored invoice via the same `PrinterRepository.printReceipt` the checkout uses.
 
+### Analytics dashboard
+
+Plan 008. Lives in `features/dashboard/`, but is **not a route or a tab** — it's the default sub-view *inside* the Reports tab: `HistoryPage` holds an internal `int _view` toggle (0 = `DashboardView`, 1 = the sales list). Searching `app_routes.dart` for a dashboard route finds nothing; it's reached only via `/history`.
+
+- **`DashboardDao`** (`core/database/daos/dashboard_dao.dart`) is a read-only `@DriftAccessor` over six existing tables (`SalesInvoices`, `SalesItems`, `Products`, `CashboxTransactions`, `LedgerEntries`, `Customers`) — **zero new tables, zero migrations**. Every aggregate is computed **in SQL** (`periodTotals`, `topProducts`, `cashFlow`, `outstandingDebts`, `inventoryValue`, `lowStockProducts`, `topDebtors`, …), never by loading rows into Dart and summing. Keep that rule.
+- **Live via a change-ticker, not per-field streams**: `watchChanges()` is `customSelect('SELECT 1', readsFrom: {…5 tables…}).watch()` — a trivial query that exists purely to re-emit when any of those tables mutate. `DashboardBloc` subscribes in its constructor and re-runs the **whole** `_load()` (10 aggregates via `Future.wait`) per tick. So any sale/cash/debt/stock write anywhere triggers a full reload — cheap-looking, but not free.
+- **Profit SQL is duplicated by design** with `SalesDao.watchAuditSummary` (`(si.price - si.cost) * si.quantity - si.discount`). If you change the profit definition in one, change the other — the audit center and dashboard must agree.
+- **`topProducts(orderByColumn:)` interpolates a column name into SQL.** That's safe *only* because `DashboardRepositoryDriftImpl._metricColumn` maps the `ProductMetric` enum onto three hardcoded strings. Never pass a user-controlled string down that path.
+- **Day bucketing happens in Dart** (`_bucketByDay`, via `DateTime(y, m, d)`), not in SQL, deliberately — epoch-ms division gets UTC/local-day and DST boundaries wrong.
+- **`DashboardData` mixes two kinds of metric**: *period* metrics honor the date-range filter (`revenue`, `profit`, `salesTrend`, `topProducts`, plus `*Prev` counterparts driving delta arrows), while *point-in-time* metrics (`cashBalance`, `outstandingDebts`, `inventoryValue`) are always all-time and **never move with the range picker**. Charts: `fl_chart` (pure Dart, offline, no native deps).
+
+### Backup & restore (Google Drive)
+
+Plan 001, in `features/backup/`, reached at Settings → `/settings/backup`. See `docs/google-drive-api-setup.md`.
+
+- **It backs up the entire live SQLite file**, not a row/JSON export — `BackupEngine.createSnapshot` uses `VACUUM INTO ?`. Every table is captured with no per-feature serialization, but restore is **all-or-nothing**; you cannot restore a single table.
+- **Auth is `drive.file` scope only** (`GoogleDriveBackupTarget`) — the narrow "app-created files only" scope, chosen specifically so Google requires no app verification / Play Console review. Widening the scope would trigger that review. Snapshots land in a normal user-visible Drive folder ("Fawateer Backups"), not hidden `appDataFolder`.
+- **No client-side encryption** — the `.sqlite` goes up as-is (`application/x-sqlite3`), protected only by the user's Drive account. Don't assume customer data is encrypted at rest.
+- **Restore has three independent guards** (`BackupRepositoryImpl.restore` + `BackupEngine.restoreSnapshot`), all load-bearing: (1) **downgrade guard** — refuses a snapshot whose `manifest.schemaVersion > schemaVersion`, since Drift migrations are forward-only and a newer schema in an older build corrupts silently; (2) **integrity guard** — SHA-256 checked against the manifest *before* the live DB is touched; (3) **rollback-safe swap** — the current DB is copied to `<path>.pre-restore` and copied back if the swap throws, and `-wal`/`-shm` sidecars are deleted first so a stale journal can't replay over the restored file. Both rejections are `IncompatibleFailure` (`schema_too_new` / `checksum_mismatch`).
+- **A restore kills the app.** There's no in-Dart reinitialization of `AppDatabase`/`sl`; `BackupPage` shows a non-dismissible dialog whose only action calls `SystemNavigator.pop()`, and the user relaunches manually.
+- `BackupExportRequested` bypasses Drive entirely — same `VACUUM INTO` snapshot handed to `share_plus`, for users who won't sign in to Google.
+- No new table: `SettingsDao` holds `backup_last_at` / `backup_account_email`.
+
+### Share cards (PNG)
+
+Plan 007. `core/share/` turns a Flutter widget into a shareable PNG — used for invoices, cashbox summaries and sales summaries (`core/share/cards/`, plain widgets never mounted in the visible tree).
+
+- `captureWidgetToPng` (`widget_capture.dart`) mounts the card in an **off-screen `OverlayEntry`** (`left: -logicalWidth * 3`, so it never flashes), wrapped in a `RepaintBoundary`, inside the app's **real `Overlay`** — that's deliberate: it inherits `Directionality`/`Localizations`/`Theme`, which is what makes Arabic/RTL render correctly. It waits two `endOfFrame`s (layout + paint) before `toImage(pixelRatio: 3.0)`. No screenshot package is involved.
+- **This is not the same technique as the ESC/POS receipts** and the two don't generalize to each other. `ReceiptImage.buildTextEscPosBytes` paints via low-level `dart:ui` `Canvas`/`ParagraphBuilder` into monochrome 384px raster bytes for a thermal printer; share cards capture an arbitrary full-color Material widget into a PNG for the OS share sheet. They share only the underlying reason — Flutter's text engine shapes Arabic, so both ship pixels rather than text bytes.
+- `ShareService` is the single transport (PNG → temp file via `path_provider` → `Share.shareXFiles`), so WhatsApp/Telegram/email/Drive all come free with no per-channel code. `shareTextToWhatsApp` special-cases a `wa.me` deep link and falls back to the generic sheet.
+
 **Android manifest**: the app gained `INTERNET` (release builds don't inherit the debug manifest's auto-added copy — required for the license API) and an `https` `VIEW` `<queries>` intent (so `url_launcher.canLaunchUrl` resolves WhatsApp/Telegram links on Android 11+).
 
 **Android release build**: `flutter_vibrate` (discontinued) links its resources against an SDK older than API 31, breaking release resource linking (`android:attr/lStar not found`). `android/build.gradle.kts` has a `subprojects { afterEvaluate { … } }` block that bumps any stale subproject's `compileSdkVersion` to 34 — registered **before** the `evaluationDependsOn(":app")` block so the hook attaches while subprojects are still unevaluated (you can't `afterEvaluate` an already-evaluated project).
+
+**Android release signing**: release builds are signed with an owned keystore whose secrets live in `android/key.properties` (gitignored, pointing at a keystore stored **outside** the repo). A release build without it **fails loudly by design** rather than silently falling back to the debug key — a debug-signed APK can't update a real install. **Losing the keystore is unrecoverable**: Android refuses updates signed with a different key. Setup and distribution (per-ABI APKs) are documented in `docs/android-release-signing.md` and `docs/android-release-distribution.md`.
 
 ### Navigation (GoRouter)
 
@@ -176,10 +254,10 @@ Routing uses a `StatefulShellRoute.indexedStack` (`AppShell`) with five tab bran
 `HomePage` also has a tap-to-add product picker (a bottom sheet, not a route) for items without a barcode. The picker reads the product list **live** from `ProductBloc` (via `context.watch`, not a one-time snapshot — so it isn't empty when opened before the first stream emission), and each tile gives add feedback (scale pop + green check flash + a live cart-count badge). Leaving checkout via Back preserves the cart (it is only cleared after a confirmed sale or "New Sale"); checkout exits with `context.pop()` so `HomePage`'s awaited `push('/pos/checkout')` resumes the camera.
 
 - Branch 0: `/pos` → `HomePage` → `/pos/checkout` → `CheckoutPage`
-- Branch 1: `/history` → `HistoryPage` → `/history/detail/:id` → `InvoiceDetailPage` (passes `InvoiceListItem` via `state.extra`)
+- Branch 1: `/history` → `HistoryPage` → `/history/detail/:id` → `InvoiceDetailPage` (passes `InvoiceListItem` via `state.extra`). The tab is labelled **"Reports"** (`l10n.reportsTab`) and scopes `DashboardBloc`; `HistoryPage` toggles internally between the dashboard (default) and the sales list.
 - Branch 2: `/products` → `ProductListPage` → `/products/add`, `/products/edit/:id` (passes `Product` via `state.extra`)
 - Branch 3: `/customers` → `CustomersPage` → `/customers/add`, `/customers/edit/:id` (passes `Customer` via `state.extra`), `/customers/detail/:id` (scopes `LedgerBloc`)
-- Branch 4: `/settings` → `SettingsPage` → `/settings/shop` → `ShopDetailsPage`; `/settings/cashbox` → `CashboxPage` → `/settings/cashbox/history`; `/settings/subscription` → `SubscriptionStatusPage` → `/settings/subscription/plans`
+- Branch 4: `/settings` → `SettingsPage` → `/settings/shop` → `ShopDetailsPage`; `/settings/cashbox` → `CashboxPage` → `/settings/cashbox/history`; `/settings/backup` → `BackupPage` (scopes `BackupBloc`); `/settings/subscription` → `SubscriptionStatusPage` → `/settings/subscription/plans`
 - Top-level: `/scanner` → `ScannerPage`
 - Top-level (licensing gate, outside the shell): `/splash` → `SplashPage`; `/activation` → `ActivationPage` → `/activation/plans` → `SubscriptionPlansPage`. A `redirect` on the shared `LicenseBloc` state holds unlicensed users here before any tab is reachable.
 

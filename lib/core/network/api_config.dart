@@ -1,19 +1,31 @@
 /// Network configuration for the app's server communication.
 ///
-/// Fawateer currently reuses the Smart-Agent backend (the same
-/// `create_device`/`check_device`/`getPlans` endpoints), distinguished only by
-/// [appName]. When Fawateer's own server is ready, change [defaultBaseUrl]
-/// (or override it at runtime) — nothing else needs to move.
+/// Points at the **EVOTECH platform** (`evotech-core`), which serves this app's
+/// contract — `create_device`/`check_device`/`update_my_data`/`getPlans`/
+/// `add_review` — unversioned and unauthenticated, identified by [appName] in
+/// the body. It previously reused the Smart-Agent backend; the platform was
+/// built to match these exact payloads, so nothing in this feature moved.
 class ApiConfig {
   ApiConfig._();
 
   /// Identifies this app to the shared backend so licenses don't cross apps.
   static const String appName = 'Fawateer';
 
-  /// The baked-in base URL — used until the remote config (fawateer_version.json)
-  /// is fetched, and as the fallback if that fetch ever fails.
+  /// The baked-in base URL — used until the remote config (`fawateer.json`) is
+  /// fetched, and as the fallback if that fetch ever fails.
+  ///
+  /// The `/api/fawateer` **namespace**, not a bare `/api`: the platform serves
+  /// several apps, and `getPlans` carries no `app_name`, so the URL is the only
+  /// thing that can tell it which catalog to return. Today every namespace
+  /// answers alike; keeping this segment is what lets Fawateer be given its own
+  /// pricing later with no release.
+  ///
+  /// This being a *fallback* is the point: it is what a failed config fetch
+  /// falls back to, so it must be somewhere correct. It used to name the old
+  /// backend, which meant a fetch failure silently routed users to the wrong
+  /// server and looked like success.
   static const String defaultBaseUrl =
-      'https://harrypotter.foodsalebot.com/api';
+      'https://api.evotech-sys.com/api/fawateer';
 
   /// The effective base URL for all API calls. Starts at [defaultBaseUrl] and is
   /// overwritten at startup by `RemoteConfigService` from the remote config, so

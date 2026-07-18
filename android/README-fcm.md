@@ -2,8 +2,9 @@
 
 **Status: ✅ ENABLED on the client** (2026-07-16, Firebase project
 **`fawateer-4c9bc`**). Debug APK builds clean with Firebase linked.
-**⚠️ The server side is still owed — see "What the server must send" below.
-Until the backend sends the push, live-unlock does nothing.**
+**⚠️ The server side is still owed — but not the part this doc used to claim.
+See "What the server must send" below. Until the backend sends the push,
+live-unlock does nothing.**
 
 FCM live-unlock's only job: when an operator activates a device's subscription
 server-side, the backend pushes a data message and the app **re-checks its
@@ -44,14 +45,52 @@ convenience, never a dependency.
 
 ## What the server must send  ⬅️ STILL OWED
 
-> **Use the FCM HTTP v1 API.** The legacy endpoint
-> (`https://fcm.googleapis.com/fcm/send` + a static "server key") was **shut down
-> in 2024** — do not go looking for a server key to paste into Laravel; there
-> isn't one any more. v1 authenticates with **OAuth2 from a service account**:
-> Firebase console → **Project Settings → Service Accounts → Generate new private
-> key** → hand that JSON to the backend. Endpoint is
-> `https://fcm.googleapis.com/v1/projects/fawateer-4c9bc/messages:send`.
-> The payload below is already v1-shaped.
+> **Correction (2026-07-17).** This section used to say the backend had to be
+> taught the FCM HTTP v1 API. That was wrong, and it would have sent you chasing
+> a problem you'd already solved — **both** backends already speak v1 with a
+> service account. The real gap is narrower and different (below).
+>
+> *(Still true, and worth keeping: the legacy endpoint —
+> `https://fcm.googleapis.com/fcm/send` + a static "server key" — was **shut down
+> in 2024**. There is no server key to paste into Laravel any more. v1
+> authenticates with OAuth2 from a service-account JSON.)*
+
+**The real gap: the sender must hold Fawateer's *own* Firebase credentials.**
+
+An FCM token is **scoped to the Firebase project that issued it and cannot be
+migrated between projects**. That single fact drives everything here:
+
+| App | Firebase project | Token population |
+|---|---|---|
+| **Fawateer** | **`fawateer-4c9bc`** | this app's devices |
+| SmartAgent | `smart-agent-5b153` | its shipped users |
+
+`evotech-core` (the new subscriptions server) is to serve **both** apps — Fawateer
+first, SmartAgent's cutover later. SmartAgent's live users will keep their
+`smart-agent-5b153` tokens (a new one needs a store release each user actually
+installs), so **one server must hold credentials for both projects and select by
+`app_name`.** This is not a preference; it is what makes the migration possible.
+
+Consequently a service account for `smart-agent-5b153` **cannot** reach a Fawateer
+device — the token simply doesn't exist in that project. Generate Fawateer's own:
+Firebase console → project **`fawateer-4c9bc`** → **Project Settings → Service
+Accounts → Generate new private key** → give that JSON to the backend, keyed by
+`app_name: 'Fawateer'`. Its endpoint is
+`https://fcm.googleapis.com/v1/projects/fawateer-4c9bc/messages:send`.
+
+Status of each backend:
+
+- **`evotech-core`** (the target) — `Modules\DeviceSubscriptions`'s
+  `FirebasePushNotifier` is a **scaffold**: it logs `"FCM send (not yet
+  implemented)"` and returns. Activation already calls it, so the whole path
+  exists bar the send itself. Its config also holds only **one** Firebase project
+  and must be keyed by `app_name` per the above.
+- **`harrypotter.foodsalebot.com`** (the legacy backend Fawateer points at today)
+  — already sends real v1 pushes, including `new_plan_activated` on activation,
+  but from `smart-agent-5b153`, so it can never reach a Fawateer device. It is
+  being replaced, not fixed.
+
+The payload below is already v1-shaped and matches what both backends build.
 
 To trigger the live re-check, push a **data message** to the device's stored
 `fcm_token` with a `data.type` of one of:
