@@ -128,7 +128,7 @@ class CustomerDetailPage extends StatelessWidget {
               const Divider(height: 1),
               Expanded(
                 child: state.entries.isEmpty
-                    ? _empty(l10n)
+                    ? _empty(context, l10n)
                     : ListView.separated(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         itemCount: state.entries.length,
@@ -173,7 +173,7 @@ class CustomerDetailPage extends StatelessWidget {
     final settled = balance.abs() < 0.005;
     final owes = balance > 0;
     final color = settled
-        ? Colors.grey
+        ? Theme.of(context).colorScheme.onSurfaceVariant
         : (owes ? Colors.red.shade600 : Colors.green.shade600);
     final label = settled
         ? l10n.balanceSettled
@@ -234,10 +234,10 @@ class CustomerDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _empty(AppLocalizations l10n) {
+  Widget _empty(BuildContext context, AppLocalizations l10n) {
     return Center(
       child: Text(l10n.noLedgerEntries,
-          style: TextStyle(color: Colors.grey[500])),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
     );
   }
 
@@ -277,7 +277,7 @@ class CustomerDetailPage extends StatelessWidget {
       ),
       subtitle: Text(
         e.note.isEmpty ? date : '$date · ${e.note}',
-        style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+        style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
       trailing: Text('$sign${moneyText(context, e.amount)}',
           style: TextStyle(fontWeight: FontWeight.bold, color: color)),

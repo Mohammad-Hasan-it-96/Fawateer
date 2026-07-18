@@ -75,10 +75,12 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.inbox_outlined, size: 56, color: Colors.grey[400]),
+          Icon(Icons.inbox_outlined,
+              size: 56, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 12),
           Text(l10n.plansEmpty,
-              style: TextStyle(color: Colors.grey[600])),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const SizedBox(height: 16),
           TextButton(
             onPressed: () =>
@@ -97,12 +99,12 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
         : plan.currencyCode;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: plan.recommended
               ? AppTheme.primaryColor
-              : Colors.grey.shade200,
+              : Theme.of(context).dividerColor,
           width: plan.recommended ? 1.5 : 1,
         ),
       ),
@@ -137,7 +139,9 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
             if (plan.description.isNotEmpty) ...[
               const SizedBox(height: 6),
               Text(plan.description,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
             ],
             const SizedBox(height: 12),
             Row(
@@ -155,13 +159,16 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
                     child: Text('${plan.price.toStringAsFixed(2)} $symbol',
                         style: TextStyle(
                             fontSize: 13,
-                            color: Colors.grey[500],
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
                             decoration: TextDecoration.lineThrough)),
                   ),
                 ],
                 const Spacer(),
                 Text(l10n.planDurationMonths(plan.durationMonths),
-                    style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ],
             ),
             const SizedBox(height: 14),
@@ -262,15 +269,19 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(l10n.contactMessagePreview,
-              style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+              style: TextStyle(
+                  fontSize: 12,
+                  color:
+                      Theme.of(sheetContext).colorScheme.onSurfaceVariant)),
           const SizedBox(height: 6),
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.grey.shade100,
+              color:
+                  Theme.of(sheetContext).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.grey.shade300),
+              border: Border.all(color: Theme.of(sheetContext).dividerColor),
             ),
             child: Text(message,
                 style: const TextStyle(fontSize: 13, height: 1.5)),

@@ -129,9 +129,9 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: Theme.of(context).colorScheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         children: [
@@ -154,7 +154,9 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
           SizedBox(
             width: 90,
             child: Text(label,
-                style: TextStyle(color: Colors.grey[600], fontSize: 13)),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 13)),
           ),
           Expanded(
             child: Text(value,
@@ -186,7 +188,8 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
         padding: const EdgeInsets.all(24),
         child: Center(
             child: Text(l10n.noItems,
-                style: const TextStyle(color: Colors.grey))),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant))),
       );
     }
 
@@ -219,7 +222,10 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
                               fontSize: 14, fontWeight: FontWeight.w500)),
                       Text('× ${formatQty(item.quantity)}',
                           style: TextStyle(
-                              fontSize: 12, color: Colors.grey[600])),
+                              fontSize: 12,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant)),
                       if (item.discount > 0)
                         Text('${l10n.discountLabel}: - ${_money(currency, item.discount)}',
                             style:
@@ -253,7 +259,7 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
         style: TextStyle(
             fontSize: 12,
             fontWeight: FontWeight.bold,
-            color: Colors.grey[600]),
+            color: Theme.of(context).colorScheme.onSurfaceVariant),
       );
 
   Widget _footer(BuildContext context, AppLocalizations l10n, String currency,
@@ -270,8 +276,9 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey[200]!)),
+        color: Theme.of(context).colorScheme.surface,
+        border:
+            Border(top: BorderSide(color: Theme.of(context).dividerColor)),
       ),
       child: Column(
         children: [
@@ -322,12 +329,15 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+          Text(label,
+              style: TextStyle(
+                  fontSize: 13,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
           Text(value,
               style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: color ?? Colors.grey[800])),
+                  color: color ?? Theme.of(context).colorScheme.onSurface)),
         ],
       ),
     );

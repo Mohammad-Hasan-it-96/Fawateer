@@ -69,7 +69,7 @@ class _ProductListPageState extends State<ProductListPage> {
 
   @override
   Widget build(BuildContext context) {
-    final borderColor = Colors.grey[100]!;
+    final borderColor = Theme.of(context).dividerColor;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -100,7 +100,9 @@ class _ProductListPageState extends State<ProductListPage> {
                             hintText: l10n.searchHint,
                             prefixIcon: Icon(
                               Icons.search,
-                              color: Colors.grey[400],
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                           ),
                           validator: AppValidators.required(l10n.fieldRequired),
@@ -123,8 +125,10 @@ class _ProductListPageState extends State<ProductListPage> {
                   ),
                   const SizedBox(height: 6),
                   Text(l10n.tapToScan,
-                      style: const TextStyle(
-                          fontSize: 12, color: Color(0xFF4C669A))),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant)),
                 ],
               );
             }),
@@ -178,14 +182,14 @@ class _ProductListPageState extends State<ProductListPage> {
                     final product = filteredProducts[index];
                     return Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: borderColor),
-                        boxShadow: const [
+                        boxShadow: [
                           BoxShadow(
-                              color: Colors.black12,
+                              color: Colors.black.withValues(alpha: 0.08),
                               blurRadius: 4,
-                              offset: Offset(0, 2))
+                              offset: const Offset(0, 2))
                         ],
                       ),
                       padding: const EdgeInsets.all(16),
@@ -215,7 +219,9 @@ class _ProductListPageState extends State<ProductListPage> {
                                     style: TextStyle(
                                         fontWeight: FontWeight.w600,
                                         fontSize: 15,
-                                        color: Colors.grey[700]),
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant),
                                   );
                                 }),
                                 if (product.minStockAlert > 0 ||
@@ -291,14 +297,19 @@ class _ProductListPageState extends State<ProductListPage> {
     return Row(
       children: [
         Icon(Icons.inventory_2_outlined,
-            size: 16, color: low ? Colors.red : Colors.grey[600]),
+            size: 16,
+            color: low
+                ? Colors.red
+                : Theme.of(context).colorScheme.onSurfaceVariant),
         const SizedBox(width: 4),
         Text(
           l10n.stockCountLabel(formatQty(product.quantity)),
           style: TextStyle(
             fontSize: 13,
             fontWeight: low ? FontWeight.bold : FontWeight.w500,
-            color: low ? Colors.red : Colors.grey[700],
+            color: low
+                ? Colors.red
+                : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         if (low) ...[

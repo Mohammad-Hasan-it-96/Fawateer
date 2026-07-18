@@ -486,6 +486,21 @@ class AppLocalizationsAr extends AppLocalizations {
   String get hardwareSection => 'الأجهزة';
 
   @override
+  String get appearanceSection => 'المظهر';
+
+  @override
+  String get themeModeTitle => 'مظهر التطبيق';
+
+  @override
+  String get themeLight => 'فاتح';
+
+  @override
+  String get themeDark => 'داكن';
+
+  @override
+  String get themeSystem => 'حسب النظام';
+
+  @override
   String get printDeviceItem => 'جهاز الطباعة';
 
   @override

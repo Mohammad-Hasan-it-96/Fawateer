@@ -12,7 +12,7 @@ class SplashPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -40,7 +40,7 @@ class SplashPage extends StatelessWidget {
                 child: CircularProgressIndicator(strokeWidth: 3)),
             const SizedBox(height: 16),
             Text(l10n.licenseChecking,
-                style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
           ],
         ),
       ),

@@ -149,8 +149,11 @@ class _AddProductPageState extends State<AddProductPage> {
                   ),
                   const SizedBox(height: 6),
                   Text(l10n.tapToScan,
-                      style: const TextStyle(
-                          fontSize: 12, color: Color(0xFF4C669A))),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant)),
                   const SizedBox(height: 24),
                   InputLabel(text: l10n.saleTypeLabel),
                   SaleTypeSelector(

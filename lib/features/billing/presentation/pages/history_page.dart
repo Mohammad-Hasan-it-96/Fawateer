@@ -317,7 +317,7 @@ class _SearchField extends StatelessWidget {
                 ),
           isDense: true,
           filled: true,
-          fillColor: Colors.grey[100],
+          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest,
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
             borderSide: BorderSide.none,
@@ -532,7 +532,7 @@ class _SummarySection extends StatelessWidget {
                 child: _MiniStat(
                   label: l10n.summaryAverage,
                   value: _money(currency, summary.average),
-                  color: Colors.blueGrey,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -552,18 +552,20 @@ class _MiniStat extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: theme.dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label,
-              style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+              style: TextStyle(
+                  fontSize: 11, color: theme.colorScheme.onSurfaceVariant)),
           const SizedBox(height: 4),
           FittedBox(
             fit: BoxFit.scaleDown,
@@ -607,11 +609,14 @@ class _InvoiceCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+        border: Border.all(color: Theme.of(context).dividerColor),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 4,
+              offset: const Offset(0, 2))
         ],
       ),
       child: InkWell(
@@ -637,7 +642,10 @@ class _InvoiceCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Text(l10n.itemCountLabel(item.itemCount),
                             style: TextStyle(
-                                fontSize: 12, color: Colors.grey[600])),
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant)),
                       ],
                     ),
                   ],
@@ -734,11 +742,12 @@ class _EmptyState extends StatelessWidget {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-              color: Colors.grey[100],
+              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               shape: BoxShape.circle,
             ),
             alignment: Alignment.center,
-            child: Icon(Icons.receipt_long, size: 40, color: Colors.grey[300]),
+            child: Icon(Icons.receipt_long,
+                size: 40, color: Theme.of(context).colorScheme.outlineVariant),
           ),
           const SizedBox(height: 16),
           Text(narrowed ? l10n.noSalesMatch : l10n.noSalesYet,
@@ -747,7 +756,9 @@ class _EmptyState extends StatelessWidget {
           if (!narrowed) ...[
             const SizedBox(height: 8),
             Text(l10n.noSalesHint,
-                style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 14)),
           ],
         ],
       ),

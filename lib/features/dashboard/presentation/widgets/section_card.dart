@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// A titled white card that wraps a dashboard section (chart, list, breakdown).
+/// A titled card that wraps a dashboard section (chart, list, breakdown).
 class SectionCard extends StatelessWidget {
   final String title;
   final Widget child;
@@ -22,11 +22,14 @@ class SectionCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.grey[200]!),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2)),
+        border: Border.all(color: Theme.of(context).dividerColor),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 4,
+              offset: const Offset(0, 2)),
         ],
       ),
       child: Column(

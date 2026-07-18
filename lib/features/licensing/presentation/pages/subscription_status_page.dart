@@ -38,7 +38,7 @@ class SubscriptionStatusPage extends StatelessWidget {
           final checking = state.status == LicenseFlowStatus.checking;
 
           final expired = license.isExpired;
-          final (statusLabel, statusColor, statusIcon) = _status(l10n, state);
+          final (statusLabel, statusColor, statusIcon) = _status(context, l10n, state);
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -66,7 +66,7 @@ class SubscriptionStatusPage extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(license.planName!,
                           style:
-                              TextStyle(fontSize: 13, color: Colors.grey[600])),
+                              TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ],
                   ],
                 ),
@@ -76,6 +76,7 @@ class SubscriptionStatusPage extends StatelessWidget {
               // ── Details ─────────────────────────────────────────────────
               if (license.expiresAt != null)
                 _detailRow(
+                  context,
                   Icons.event_available,
                   l10n.licenseExpiresOn(_fmt(license.expiresAt!)),
                   trailing: license.daysRemaining != null && !expired
@@ -84,6 +85,7 @@ class SubscriptionStatusPage extends StatelessWidget {
                       : null,
                 ),
               _detailRow(
+                context,
                 Icons.sync,
                 license.lastServerSync == null
                     ? l10n.lastChecked(l10n.neverChecked)
@@ -126,7 +128,8 @@ class SubscriptionStatusPage extends StatelessWidget {
     );
   }
 
-  (String, Color, IconData) _status(AppLocalizations l10n, LicenseState state) {
+  (String, Color, IconData) _status(
+      BuildContext context, AppLocalizations l10n, LicenseState state) {
     final license = state.license;
     if (license.isExpired) {
       return (l10n.statusExpired, Colors.red.shade600, Icons.lock_clock);
@@ -137,17 +140,22 @@ class SubscriptionStatusPage extends StatelessWidget {
     if (license.isActive) {
       return (l10n.statusActive, Colors.green.shade600, Icons.verified);
     }
-    return (l10n.statusInactive, Colors.grey, Icons.help_outline);
+    return (
+      l10n.statusInactive,
+      Theme.of(context).colorScheme.onSurfaceVariant,
+      Icons.help_outline,
+    );
   }
 
   String _fmt(DateTime d) => DateFormat.yMMMd('ar').format(d);
 
-  Widget _detailRow(IconData icon, String text, {Widget? trailing}) {
+  Widget _detailRow(BuildContext context, IconData icon, String text,
+      {Widget? trailing}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: Colors.grey[500]),
+          Icon(icon, size: 20, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(width: 12),
           Expanded(child: Text(text, style: const TextStyle(fontSize: 14))),
           if (trailing != null) trailing,

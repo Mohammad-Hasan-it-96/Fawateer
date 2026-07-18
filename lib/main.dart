@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -7,6 +8,7 @@ import 'config/routes/app_routes.dart';
 import 'core/config/remote_config_service.dart';
 import 'core/service_locator.dart' as di;
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_controller.dart';
 import 'features/billing/presentation/bloc/billing_bloc.dart';
 import 'features/billing/presentation/bloc/history_bloc.dart';
 import 'features/product/presentation/bloc/product_bloc.dart';
@@ -26,6 +28,11 @@ final GlobalKey<ScaffoldMessengerState> rootMessengerKey =
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Portrait only, both ways up. Mirrored by `android:screenOrientation` in
+  // AndroidManifest.xml — see the comment there for why it's locked twice.
+  await SystemChrome.setPreferredOrientations(
+    [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown],
+  );
   // Load locale data (Arabic month names, ص/م) for intl's DateFormat.
   await initializeDateFormatting();
   await di.init();
@@ -41,6 +48,10 @@ void main() async {
         .ensureLoaded()
         .timeout(const Duration(seconds: 4));
   } catch (_) {/* keep going; the config applies once it lands */}
+
+  // Read the stored light/dark preference before the first frame, so the app
+  // doesn't paint light and then flip. Local DB read; never throws.
+  await di.sl<ThemeController>().load();
 
   runApp(const MyApp());
 
@@ -175,9 +186,29 @@ class MyApp extends StatelessWidget {
             create: (context) =>
                 di.sl<CashboxBloc>()..add(const LoadCashbox())),
       ],
-      child: MaterialApp.router(
+      child: const _ThemedApp(),
+    );
+  }
+}
+
+/// Rebuilds `MaterialApp.router` when the theme preference changes.
+///
+/// `AnimatedBuilder` is just the listener plumbing here (no animation) — it's
+/// the standard way to rebuild on a `ChangeNotifier` without pulling in a
+/// state-management package the app doesn't otherwise use.
+class _ThemedApp extends StatelessWidget {
+  const _ThemedApp();
+
+  @override
+  Widget build(BuildContext context) {
+    final themeController = di.sl<ThemeController>();
+    return AnimatedBuilder(
+      animation: themeController,
+      builder: (context, _) => MaterialApp.router(
         title: 'فواتير',
         theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: themeController.mode,
         scaffoldMessengerKey: rootMessengerKey,
         routerConfig: router,
         debugShowCheckedModeBanner: false,

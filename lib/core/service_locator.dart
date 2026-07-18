@@ -15,6 +15,7 @@ import 'database/daos/dashboard_dao.dart';
 import 'network/api_client.dart';
 import 'config/remote_config_service.dart';
 import 'currency/exchange_rate_service.dart';
+import 'theme/theme_controller.dart';
 
 // Features — Ledger (customers & debts)
 import '../features/ledger/data/repositories/customer_repository_drift_impl.dart';
@@ -94,6 +95,10 @@ Future<void> init() async {
   // ── Services ─────────────────────────────────────────────────────────────
   sl.registerLazySingleton<ExchangeRateService>(
       () => ExchangeRateService(sl<SettingsDao>()));
+  // Singleton, not a factory: `MyApp` listens to this instance and the settings
+  // page writes to it — two copies would leave the UI out of sync.
+  sl.registerLazySingleton<ThemeController>(
+      () => ThemeController(sl<SettingsDao>()));
 
   // ── Repositories ─────────────────────────────────────────────────────────
   sl.registerLazySingleton<ProductRepository>(

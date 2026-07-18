@@ -62,7 +62,7 @@ class CustomersPage extends StatelessWidget {
             return const Center(child: CircularProgressIndicator());
           }
           if (state.customers.isEmpty) {
-            return _empty(l10n);
+            return _empty(context, l10n);
           }
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 88),
@@ -76,18 +76,18 @@ class CustomersPage extends StatelessWidget {
     );
   }
 
-  Widget _empty(AppLocalizations l10n) {
+  Widget _empty(BuildContext context, AppLocalizations l10n) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.people_outline, size: 56, color: Colors.grey[400]),
+          Icon(Icons.people_outline, size: 56, color: Theme.of(context).colorScheme.onSurfaceVariant),
           const SizedBox(height: 12),
           Text(l10n.noCustomers,
               style: const TextStyle(fontWeight: FontWeight.bold)),
           const SizedBox(height: 4),
           Text(l10n.noCustomersHint,
-              style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ],
       ),
     );
@@ -97,7 +97,7 @@ class CustomersPage extends StatelessWidget {
       BuildContext context, AppLocalizations l10n, CustomerAccount acc) {
     final (label, color) = _balanceLabel(context, l10n, acc);
     return Material(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       borderRadius: BorderRadius.circular(12),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
@@ -129,7 +129,7 @@ class CustomersPage extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(acc.customer.phone,
                           style: TextStyle(
-                              fontSize: 12, color: Colors.grey[500])),
+                              fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                     ],
                   ],
                 ),
@@ -157,7 +157,7 @@ class CustomersPage extends StatelessWidget {
   /// (badge text, colour) for a customer's balance. Positive = owes the shop.
   (String, Color) _balanceLabel(
       BuildContext context, AppLocalizations l10n, CustomerAccount acc) {
-    if (acc.isSettled) return (l10n.balanceSettled, Colors.grey);
+    if (acc.isSettled) return (l10n.balanceSettled, Theme.of(context).colorScheme.onSurfaceVariant);
     final money = moneyText(context, acc.balance);
     if (acc.balance > 0) return (l10n.balanceOwed(money), Colors.red.shade600);
     return (l10n.balanceCredit(money), Colors.green.shade600);

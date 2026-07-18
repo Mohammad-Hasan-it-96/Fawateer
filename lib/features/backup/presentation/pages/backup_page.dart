@@ -118,7 +118,7 @@ class _BackupPageState extends State<BackupPage> {
                   size: 56, color: AppTheme.primaryColor),
               const SizedBox(height: 16),
               Text(l10n.backupSignInPrompt,
-                  style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+                  style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
               const SizedBox(height: 20),
               SizedBox(
                 height: 52,
@@ -165,7 +165,7 @@ class _BackupPageState extends State<BackupPage> {
                       children: [
                         Text(l10n.backupAccountLabel,
                             style: TextStyle(
-                                fontSize: 11, color: Colors.grey[500])),
+                                fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                         Text(state.email ?? '',
                             style: const TextStyle(
                                 fontWeight: FontWeight.w600, fontSize: 14)),
@@ -216,7 +216,7 @@ class _BackupPageState extends State<BackupPage> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(l10n.backupListEmpty,
-                style: TextStyle(color: Colors.grey[500])),
+                style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
           )
         else
           ...state.backups.map((b) => _backupTile(context, l10n, b)),
@@ -291,7 +291,7 @@ class _BackupPageState extends State<BackupPage> {
                 ),
                 const SizedBox(height: 2),
                 Text('${b.summary}  ·  ${_size(b.sizeBytes)}',
-                    style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                    style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ],
             ),
           ),
@@ -361,9 +361,9 @@ class _BackupPageState extends State<BackupPage> {
         margin: margin,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[200]!),
+          border: Border.all(color: Theme.of(context).dividerColor),
         ),
         child: child,
       );

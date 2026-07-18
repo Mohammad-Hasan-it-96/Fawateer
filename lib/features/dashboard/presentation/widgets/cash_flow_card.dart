@@ -35,12 +35,12 @@ class CashFlowCard extends StatelessWidget {
         Row(
           children: [
             Expanded(
-              child: _figure(l10n.cashInLabel, cashIn, Colors.green.shade600,
+              child: _figure(context, l10n.cashInLabel, cashIn, Colors.green.shade600,
                   Icons.south_west),
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: _figure(l10n.cashOutLabel, cashOut, Colors.red.shade600,
+              child: _figure(context, l10n.cashOutLabel, cashOut, Colors.red.shade600,
                   Icons.north_east),
             ),
           ],
@@ -60,14 +60,15 @@ class CashFlowCard extends StatelessWidget {
         ),
         if (expenses > 0.005 || withdrawals > 0.005) ...[
           const SizedBox(height: 10),
-          if (expenses > 0.005) _outRow(l10n.expensesLabel, expenses),
-          if (withdrawals > 0.005) _outRow(l10n.withdrawalsLabel, withdrawals),
+          if (expenses > 0.005) _outRow(context, l10n.expensesLabel, expenses),
+          if (withdrawals > 0.005) _outRow(context, l10n.withdrawalsLabel, withdrawals),
         ],
       ],
     );
   }
 
-  Widget _figure(String label, double value, Color color, IconData icon) {
+  Widget _figure(BuildContext context, String label, double value, Color color,
+      IconData icon) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -84,7 +85,7 @@ class CashFlowCard extends StatelessWidget {
               child: Text(label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                  style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             ),
           ]),
           const SizedBox(height: 6),
@@ -100,13 +101,13 @@ class CashFlowCard extends StatelessWidget {
     );
   }
 
-  Widget _outRow(String label, double value) {
+  Widget _outRow(BuildContext context, String label, double value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+          Text(label, style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
           Text(moneyCompact(currency, value),
               style:
                   const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),

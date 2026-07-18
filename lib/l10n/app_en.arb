@@ -170,6 +170,12 @@
   "cashTypeSupplierPayment": "Supplier payment",
   "cashTypeManualAdjustment": "Adjustment",
   "hardwareSection": "Hardware",
+
+  "appearanceSection": "Appearance",
+  "themeModeTitle": "App theme",
+  "themeLight": "Light",
+  "themeDark": "Dark",
+  "themeSystem": "Follow system",
   "printDeviceItem": "Print Device",
   "printerConnected": "Printer connected",
   "noPrinterConnected": "No printer connected",

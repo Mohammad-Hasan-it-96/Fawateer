@@ -18,7 +18,7 @@ Future<void> showExchangeRateSheet(BuildContext context) {
   return showModalBottomSheet<void>(
     context: context,
     isScrollControlled: true,
-    backgroundColor: Colors.white,
+    backgroundColor: Theme.of(context).colorScheme.surface,
     shape: const RoundedRectangleBorder(
       borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
     ),
@@ -96,7 +96,7 @@ class _ExchangeRateSheetState extends State<_ExchangeRateSheet> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: Theme.of(context).colorScheme.outlineVariant,
                     borderRadius: BorderRadius.circular(2)),
               ),
             ),
@@ -112,7 +112,7 @@ class _ExchangeRateSheetState extends State<_ExchangeRateSheet> {
             ),
             const SizedBox(height: 12),
             Text(l10n.currencySettingsNote,
-                style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             const SizedBox(height: 20),
             TextFormField(
               controller: _controller,
@@ -140,7 +140,7 @@ class _ExchangeRateSheetState extends State<_ExchangeRateSheet> {
                   ? l10n.exchangeRateNever
                   : l10n.exchangeRateUpdatedAt(
                       DateFormat.yMMMd().add_jm().format(updatedAt)),
-              style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+              style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 20),
             SizedBox(

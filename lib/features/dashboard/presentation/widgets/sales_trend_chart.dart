@@ -43,8 +43,8 @@ class SalesTrendChart extends StatelessWidget {
               show: true,
               drawVerticalLine: false,
               horizontalInterval: top / 3,
-              getDrawingHorizontalLine: (_) =>
-                  FlLine(color: Colors.grey.shade200, strokeWidth: 1),
+              getDrawingHorizontalLine: (_) => FlLine(
+                  color: Theme.of(context).dividerColor, strokeWidth: 1),
             ),
             titlesData: FlTitlesData(
               topTitles:
@@ -66,7 +66,10 @@ class SalesTrendChart extends StatelessWidget {
                       padding: const EdgeInsets.only(top: 6),
                       child: Text(df.format(buckets[i].day),
                           style: TextStyle(
-                              fontSize: 9, color: Colors.grey[600])),
+                              fontSize: 9,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant)),
                     );
                   },
                 ),

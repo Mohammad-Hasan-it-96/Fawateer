@@ -114,7 +114,7 @@ class _DiscountDialogState extends State<_DiscountDialog> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(l10n.discountTitle,
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                  style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
               Text('- ${widget.currency}${discount.toStringAsFixed(2)}',
                   style: const TextStyle(
                       fontSize: 14,
@@ -127,7 +127,7 @@ class _DiscountDialogState extends State<_DiscountDialog> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(l10n.colTotal,
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600])),
+                  style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
               Text('${widget.currency}${net.toStringAsFixed(2)}',
                   style: const TextStyle(
                       fontSize: 16,

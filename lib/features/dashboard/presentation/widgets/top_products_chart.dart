@@ -26,7 +26,7 @@ class TopProductsChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (products.isEmpty) {
-      return _empty();
+      return _empty(context);
     }
     final maxV = products.fold<double>(
         0, (m, p) => p.valueFor(metric) > m ? p.valueFor(metric) : m);
@@ -62,7 +62,8 @@ class TopProductsChart extends StatelessWidget {
                         ? 0
                         : (p.valueFor(metric) / maxV).clamp(0.0, 1.0),
                     minHeight: 7,
-                    backgroundColor: Colors.grey[100],
+                    backgroundColor:
+                        Theme.of(context).colorScheme.surfaceContainerHighest,
                     valueColor: const AlwaysStoppedAnimation(
                         AppTheme.primaryColor),
                   ),
@@ -74,11 +75,13 @@ class TopProductsChart extends StatelessWidget {
     );
   }
 
-  Widget _empty() => Padding(
+  Widget _empty(BuildContext context) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 18),
         child: Center(
           child: Text(emptyText,
-              style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+              style: TextStyle(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  fontSize: 13)),
         ),
       );
 }

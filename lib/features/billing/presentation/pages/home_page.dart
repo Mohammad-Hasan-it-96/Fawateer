@@ -490,8 +490,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 15, offset: Offset(0, -5))
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 15,
+              offset: const Offset(0, -5))
         ],
       ),
       child: Column(
@@ -501,7 +504,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             height: 4,
             margin: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.grey.withValues(alpha: 0.3),
+              color: Theme.of(context).colorScheme.onSurfaceVariant
+                  .withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -521,8 +525,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             style: const TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.w600)),
                         Text(l10n.itemsCount(formatQty(totalItems)),
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.grey)),
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant)),
                       ],
                     ),
                     Column(
@@ -532,7 +539,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.grey[700])),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant)),
                         BlocBuilder<ShopBloc, ShopState>(
                           builder: (context, shopState) {
                             final currency = shopState is ShopLoaded
@@ -605,9 +614,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-                color: Colors.grey[100], shape: BoxShape.circle),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                shape: BoxShape.circle),
             alignment: Alignment.center,
-            child: Icon(Icons.shopping_basket, size: 40, color: Colors.grey[300]),
+            child: Icon(Icons.shopping_basket,
+                size: 40,
+                color: Theme.of(context).colorScheme.outlineVariant),
           ),
           const SizedBox(height: 16),
           Text(l10n.cartEmpty,
@@ -618,7 +630,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(l10n.cartEmptyHint,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 14)),
           ),
         ],
       ),
@@ -634,11 +648,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+        border: Border.all(color: Theme.of(context).dividerColor),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 4,
+              offset: const Offset(0, 2))
         ],
       ),
       padding: const EdgeInsets.all(16),
@@ -663,13 +680,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: measured ? 12 : 14,
-                      color: Colors.grey[600]),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
                 if (item.isForeign) ...[
                   const SizedBox(height: 2),
                   Text(
                     item.sellCurrency.label(item.product.price, ''),
-                    style: TextStyle(fontSize: 11, color: Colors.grey[400]),
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ],
                 if (measured) ...[
@@ -725,7 +744,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           else
             Container(
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
               padding: const EdgeInsets.all(4),
@@ -780,7 +799,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         width: 44,
         height: 44,
         alignment: Alignment.center,
-        child: Icon(icon, size: 24, color: Colors.grey[800]),
+        child: Icon(icon,
+            size: 24, color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
     );
   }
@@ -909,7 +929,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -990,7 +1010,8 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                 height: 4,
                 margin: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant
+                      .withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -1027,7 +1048,10 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                     : filtered.isEmpty
                     ? Center(
                         child: Text(l10n.noProductsFound,
-                            style: const TextStyle(color: Colors.grey)))
+                            style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant)))
                     : GridView.builder(
                         controller: scrollController,
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -1112,17 +1136,19 @@ class _ProductTileState extends State<_ProductTile> {
               decoration: BoxDecoration(
                 color: highlighted
                     ? AppTheme.primaryColor.withValues(alpha: 0.06)
-                    : Colors.white,
+                    : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: highlighted
                       ? AppTheme.primaryColor
-                      : Colors.grey.shade200,
+                      : Theme.of(context).dividerColor,
                   width: highlighted ? 1.5 : 1,
                 ),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                      color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2))
                 ],
               ),
               child: Column(
@@ -1344,7 +1370,9 @@ class _MeasuredEntryDialogState extends State<_MeasuredEntryDialog> {
         children: [
           Text(
             '${l10n.priceLabel}: ${widget.currency}${_price.toStringAsFixed(2)} / ${l10n.unitKg}',
-            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 13),
           ),
           const SizedBox(height: 16),
           TextField(

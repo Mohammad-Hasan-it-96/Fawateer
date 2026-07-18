@@ -65,7 +65,7 @@ class CashboxPage extends StatelessWidget {
               const Divider(height: 1),
               _recentHeader(context, l10n),
               if (state.transactions.isEmpty)
-                _empty(l10n)
+                _empty(context, l10n)
               else
                 ...state.transactions
                     .take(5)
@@ -129,9 +129,9 @@ class CashboxPage extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[100]!),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -141,7 +141,7 @@ class CashboxPage extends StatelessWidget {
             const SizedBox(width: 6),
             Expanded(
               child: Text(label,
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                  style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant)),
             ),
           ]),
           const SizedBox(height: 8),
@@ -211,7 +211,7 @@ class CashboxPage extends StatelessWidget {
               style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.bold,
-                  color: Colors.grey[700])),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
           const Spacer(),
           TextButton(
             onPressed: () => context.push('/settings/cashbox/history'),
@@ -222,12 +222,12 @@ class CashboxPage extends StatelessWidget {
     );
   }
 
-  Widget _empty(AppLocalizations l10n) {
+  Widget _empty(BuildContext context, AppLocalizations l10n) {
     return Padding(
       padding: const EdgeInsets.all(32),
       child: Center(
         child: Text(l10n.noCashTransactions,
-            style: TextStyle(color: Colors.grey[500])),
+            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
       ),
     );
   }
@@ -246,7 +246,7 @@ class CashboxPage extends StatelessWidget {
       title: Text(cashTransactionTypeText(t.type, l10n),
           style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(t.note.isEmpty ? date : '$date · ${t.note}',
-          style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
       trailing: Text('$sign${moneyText(context, t.magnitude)}',
           style: TextStyle(fontWeight: FontWeight.bold, color: color)),
     );

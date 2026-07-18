@@ -167,6 +167,12 @@
   "cashTypeSupplierPayment": "دفعة مورّد",
   "cashTypeManualAdjustment": "تسوية",
   "hardwareSection": "الأجهزة",
+
+  "appearanceSection": "المظهر",
+  "themeModeTitle": "مظهر التطبيق",
+  "themeLight": "فاتح",
+  "themeDark": "داكن",
+  "themeSystem": "حسب النظام",
   "printDeviceItem": "جهاز الطباعة",
   "printerConnected": "الطابعة متصلة",
   "noPrinterConnected": "لا توجد طابعة متصلة",

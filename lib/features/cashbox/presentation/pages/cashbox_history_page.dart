@@ -43,7 +43,7 @@ class CashboxHistoryPage extends StatelessWidget {
                 child: items.isEmpty
                     ? Center(
                         child: Text(l10n.noCashTransactions,
-                            style: TextStyle(color: Colors.grey[500])),
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                       )
                     : ListView.separated(
                         padding: const EdgeInsets.symmetric(vertical: 8),
@@ -158,7 +158,7 @@ class CashboxHistoryPage extends StatelessWidget {
       title: Text(cashTransactionTypeText(t.type, l10n),
           style: const TextStyle(fontWeight: FontWeight.w600)),
       subtitle: Text(t.note.isEmpty ? date : '$date · ${t.note}',
-          style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+          style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
       trailing: Text('$sign${moneyText(context, t.magnitude)}',
           style: TextStyle(fontWeight: FontWeight.bold, color: color)),
       onLongPress: () => _onLongPress(context, l10n, t),

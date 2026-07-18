@@ -39,7 +39,7 @@ class CheckoutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const borderColor = Color(0xFFE5E5EA);
+    final borderColor = Theme.of(context).dividerColor;
     final l10n = AppLocalizations.of(context)!;
 
     return PopScope(
@@ -153,13 +153,13 @@ class CheckoutPage extends StatelessWidget {
 
                             Container(
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.surface,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: borderColor),
                                 boxShadow: [
                                   BoxShadow(
                                     color:
-                                        Colors.black.withValues(alpha: 0.05),
+                                        Colors.black.withValues(alpha: 0.08),
                                     blurRadius: 12,
                                     offset: const Offset(0, 4),
                                   )
@@ -168,25 +168,27 @@ class CheckoutPage extends StatelessWidget {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
                                 child: Table(
-                                  border: const TableBorder(
+                                  border: TableBorder(
                                     horizontalInside:
                                         BorderSide(color: borderColor),
                                     bottom: BorderSide(color: borderColor),
                                   ),
                                   children: [
                                     TableRow(
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFFF8FAFC),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .surfaceContainerHighest,
                                         border: Border(
                                             bottom: BorderSide(
                                                 color: borderColor)),
                                       ),
                                       children: [
-                                        _headerCell(l10n.colProduct,
+                                        _headerCell(context, l10n.colProduct,
                                             TextAlign.start),
-                                        _headerCell(
+                                        _headerCell(context,
                                             l10n.colPrice, TextAlign.end),
-                                        _headerCell(
+                                        _headerCell(context,
                                             l10n.colTotal, TextAlign.end),
                                       ],
                                     ),
@@ -203,17 +205,20 @@ class CheckoutPage extends StatelessWidget {
                                       return TableRow(
                                         children: [
                                           _dataCell(
+                                            context,
                                             measured
                                                 ? '${formatQty(item.quantity)} ${l10n.unitKg} × ${item.product.name}'
                                                 : '${formatQty(item.quantity)} x ${item.product.name}',
                                             TextAlign.start,
                                           ),
                                           _dataCell(
+                                            context,
                                             priceStr,
                                             TextAlign.end,
                                             isSubtitle: true,
                                           ),
                                           _dataCell(
+                                            context,
                                             '$currency${item.total.toStringAsFixed(2)}',
                                             TextAlign.end,
                                             isBold: true,
@@ -258,12 +263,15 @@ class CheckoutPage extends StatelessWidget {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.97),
+        color: Theme.of(context)
+            .colorScheme
+            .surface
+            .withValues(alpha: 0.97),
         borderRadius:
             const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, -4),
           ),
@@ -297,7 +305,10 @@ class CheckoutPage extends StatelessWidget {
                       child: Text(
                         '${l10n.invoiceIdPrefix}${billingState.savedInvoiceId!.substring(billingState.savedInvoiceId!.length > 8 ? billingState.savedInvoiceId!.length - 8 : 0)}',
                         style: TextStyle(
-                            fontSize: 11, color: Colors.grey[400]),
+                            fontSize: 11,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant),
                       ),
                     ),
                 ],
@@ -440,9 +451,9 @@ class CheckoutPage extends StatelessWidget {
         children: [
           if (!st.saleConfirmed) _cartDiscountRow(context, st, currency, l10n),
           if (hasDiscount) ...[
-            _miniRow(l10n.subtotalLabel,
+            _miniRow(context, l10n.subtotalLabel,
                 '$currency${st.subtotal.toStringAsFixed(2)}'),
-            _miniRow(l10n.discountLabel,
+            _miniRow(context, l10n.discountLabel,
                 '- $currency${st.totalDiscount.toStringAsFixed(2)}',
                 color: Colors.red),
             const SizedBox(height: 4),
@@ -454,12 +465,12 @@ class CheckoutPage extends StatelessWidget {
                   style: TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey[700])),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
               Text('$currency${st.totalAmount.toStringAsFixed(2)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF0F172A))),
+                      color: Theme.of(context).colorScheme.onSurface)),
             ],
           ),
         ],
@@ -483,10 +494,16 @@ class CheckoutPage extends StatelessWidget {
             Row(
               children: [
                 Icon(has ? Icons.local_offer : Icons.local_offer_outlined,
-                    size: 16, color: has ? Colors.red : Colors.grey[600]),
+                    size: 16,
+                    color: has
+                        ? Colors.red
+                        : Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(width: 6),
                 Text(l10n.cartDiscountLabel,
-                    style: TextStyle(fontSize: 13, color: Colors.grey[700])),
+                    style: TextStyle(
+                        fontSize: 13,
+                        color:
+                            Theme.of(context).colorScheme.onSurfaceVariant)),
               ],
             ),
             Text(
@@ -517,24 +534,26 @@ class CheckoutPage extends StatelessWidget {
     }
   }
 
-  Widget _miniRow(String label, String value, {Color? color}) {
+  Widget _miniRow(BuildContext context, String label, String value,
+      {Color? color}) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 1),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+          Text(label, style: TextStyle(fontSize: 12, color: muted)),
           Text(value,
               style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
-                  color: color ?? Colors.grey[700])),
+                  color: color ?? muted)),
         ],
       ),
     );
   }
 
-  Widget _headerCell(String text, TextAlign align) {
+  Widget _headerCell(BuildContext context, String text, TextAlign align) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       child: Text(
@@ -543,14 +562,15 @@ class CheckoutPage extends StatelessWidget {
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.bold,
-          color: Colors.grey[700],
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
     );
   }
 
-  Widget _dataCell(String text, TextAlign align,
+  Widget _dataCell(BuildContext context, String text, TextAlign align,
       {bool isBold = false, bool isSubtitle = false}) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       child: Text(
@@ -559,7 +579,7 @@ class CheckoutPage extends StatelessWidget {
         style: TextStyle(
           fontSize: isSubtitle ? 12 : 14,
           fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-          color: isSubtitle ? Colors.grey[500] : Colors.black87,
+          color: isSubtitle ? scheme.onSurfaceVariant : scheme.onSurface,
         ),
       ),
     );
@@ -700,7 +720,8 @@ class _CreditAwareConfirmState extends State<_CreditAwareConfirm> {
     required bool selected,
     required VoidCallback onTap,
   }) {
-    final color = selected ? AppTheme.primaryColor : Colors.grey;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final color = selected ? AppTheme.primaryColor : muted;
     return InkWell(
       borderRadius: BorderRadius.circular(10),
       onTap: onTap,
@@ -714,7 +735,7 @@ class _CreditAwareConfirmState extends State<_CreditAwareConfirm> {
           border: Border.all(
               color: selected
                   ? AppTheme.primaryColor
-                  : Colors.grey.shade300),
+                  : Theme.of(context).dividerColor),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -729,7 +750,7 @@ class _CreditAwareConfirmState extends State<_CreditAwareConfirm> {
                 style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: selected ? AppTheme.primaryColor : Colors.grey[700]),
+                    color: selected ? AppTheme.primaryColor : muted),
               ),
             ),
           ],
@@ -874,7 +895,10 @@ class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
                 child: Text(l10n.andMoreTypeToSearch(hiddenCount),
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            Theme.of(context).colorScheme.onSurfaceVariant)),
               ),
           ],
         ),
@@ -943,7 +967,7 @@ class _AddCustomerSheetState extends State<_AddCustomerSheet> {
               height: 4,
               margin: const EdgeInsets.only(bottom: 16),
               decoration: BoxDecoration(
-                  color: Colors.grey[300],
+                  color: Theme.of(context).dividerColor,
                   borderRadius: BorderRadius.circular(2)),
             ),
             Text(l10n.addNewCustomer,

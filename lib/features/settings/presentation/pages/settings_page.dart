@@ -4,7 +4,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app_settings/app_settings.dart';
 
+import '../../../../core/service_locator.dart' as di;
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/theme_controller.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../licensing/presentation/bloc/license_bloc.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
@@ -60,7 +62,7 @@ class _SettingsPageState extends State<SettingsPage> {
             // Profile Section
             Container(
               width: double.infinity,
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
               child: BlocBuilder<ShopBloc, ShopState>(
                 builder: (context, state) {
@@ -225,6 +227,21 @@ class _SettingsPageState extends State<SettingsPage> {
 
             const SizedBox(height: 24),
 
+            _buildSectionHeader(l10n.appearanceSection),
+            _buildListGroup(
+              children: [
+                _buildListItem(
+                  icon: Icons.brightness_6_outlined,
+                  title: l10n.themeModeTitle,
+                  subtitle: _themeModeLabel(
+                      di.sl<ThemeController>().mode, l10n),
+                  onTap: () => _showThemeSheet(context, l10n),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
             _buildSectionHeader(l10n.hardwareSection),
             BlocConsumer<PrinterBloc, PrinterState>(
               listener: (context, state) {
@@ -251,7 +268,10 @@ class _SettingsPageState extends State<SettingsPage> {
                                 ? (state.connectedName ?? l10n.printerConnected)
                                 : l10n.noPrinterConnected,
                             style: TextStyle(
-                                fontSize: 12, color: Colors.grey[500]),
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
                           ),
                           if (state.connectedMac != null) ...[
                             const SizedBox(width: 8),
@@ -298,7 +318,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   type: AppSettingsType.bluetooth,
                                   asAnotherTask: true);
                             },
-                            color: Colors.grey,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ],
                       ),
@@ -315,7 +335,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 style: TextStyle(
                     fontSize: 11,
                     fontStyle: FontStyle.italic,
-                    color: Colors.grey[500]),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ),
 
@@ -339,7 +359,7 @@ class _SettingsPageState extends State<SettingsPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -356,7 +376,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: Theme.of(context).colorScheme.outlineVariant,
                     borderRadius: BorderRadius.circular(2)),
               ),
               Text(l10n.editAccountTitle,
@@ -421,6 +441,51 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
+  String _themeModeLabel(ThemeMode mode, AppLocalizations l10n) =>
+      switch (mode) {
+        ThemeMode.light => l10n.themeLight,
+        ThemeMode.dark => l10n.themeDark,
+        ThemeMode.system => l10n.themeSystem,
+      };
+
+  void _showThemeSheet(BuildContext context, AppLocalizations l10n) {
+    final controller = di.sl<ThemeController>();
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Text(l10n.themeModeTitle,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            for (final mode in ThemeMode.values)
+              ListTile(
+                leading: Icon(switch (mode) {
+                  ThemeMode.light => Icons.light_mode_outlined,
+                  ThemeMode.dark => Icons.dark_mode_outlined,
+                  ThemeMode.system => Icons.brightness_auto_outlined,
+                }),
+                title: Text(_themeModeLabel(mode, l10n)),
+                trailing: controller.mode == mode
+                    ? const Icon(Icons.check, color: AppTheme.primaryColor)
+                    : null,
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  await controller.setMode(mode);
+                  // The controller drives MaterialApp, but this page's own
+                  // subtitle is plain state — repaint it too.
+                  if (mounted) setState(() {});
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -431,7 +496,7 @@ class _SettingsPageState extends State<SettingsPage> {
           style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[700]),
+              color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ),
     );
@@ -441,9 +506,9 @@ class _SettingsPageState extends State<SettingsPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[100]!),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(children: children),
     );
@@ -485,8 +550,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   if (subtitle != null) ...[
                     const SizedBox(height: 2),
                     Text(subtitle,
-                        style:
-                            TextStyle(fontSize: 12, color: Colors.grey[500])),
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
                   ],
                   if (subtitleWidget != null) ...[
                     const SizedBox(height: 4),
@@ -498,7 +566,8 @@ class _SettingsPageState extends State<SettingsPage> {
             if (trailingWidget != null)
               trailingWidget
             else if (trailingIcon != null)
-              Icon(trailingIcon, color: Colors.grey[300]),
+              Icon(trailingIcon,
+                  color: Theme.of(context).colorScheme.outlineVariant),
           ],
         ),
       ),

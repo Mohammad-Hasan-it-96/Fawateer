@@ -29,7 +29,7 @@ class MiniListCard extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 14),
         child: Center(
           child: Text(emptyText,
-              style: TextStyle(color: Colors.grey[500], fontSize: 13)),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 13)),
         ),
       );
     }

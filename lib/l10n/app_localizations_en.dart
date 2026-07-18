@@ -488,6 +488,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get hardwareSection => 'Hardware';
 
   @override
+  String get appearanceSection => 'Appearance';
+
+  @override
+  String get themeModeTitle => 'App theme';
+
+  @override
+  String get themeLight => 'Light';
+
+  @override
+  String get themeDark => 'Dark';
+
+  @override
+  String get themeSystem => 'Follow system';
+
+  @override
   String get printDeviceItem => 'Print Device';
 
   @override

@@ -53,7 +53,7 @@ class _ActivationPageState extends State<ActivationPage> {
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       body: SafeArea(
         child: BlocConsumer<LicenseBloc, LicenseState>(
           listener: (context, state) {
@@ -92,7 +92,7 @@ class _ActivationPageState extends State<ActivationPage> {
                             ? l10n.licenseExpiredSubtitle
                             : l10n.activationSubtitle,
                         textAlign: TextAlign.center,
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 14, color: Theme.of(context).colorScheme.onSurfaceVariant),
                       ),
                       if (state.license.expiresAt != null) ...[
                         const SizedBox(height: 12),
