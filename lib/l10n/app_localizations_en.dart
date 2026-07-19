@@ -818,6 +818,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateDownload => 'Download update';
 
   @override
+  String get updateAvailableGeneric => 'A new version of the app is available.';
+
+  @override
   String get updateLater => 'Later';
 
   @override

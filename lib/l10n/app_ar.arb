@@ -281,6 +281,7 @@
   "contactEmailSubject": "طلب اشتراك فواتير",
   "updateAvailableTitle": "يتوفر تحديث جديد",
   "updateDownload": "تحميل التحديث",
+  "updateAvailableGeneric": "يتوفر إصدار جديد من التطبيق.",
   "updateLater": "لاحقاً",
   "contactMessage": "مرحباً،\nأرغب في الاشتراك في تطبيق فواتير.\nالباقة: {plan}\nالاسم: {name}\nرقم الهاتف: {phone}\nمعرّف الجهاز: {deviceId}",
   "contactMessagePreview": "الرسالة التي سنرسلها",

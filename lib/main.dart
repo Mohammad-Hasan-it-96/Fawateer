@@ -124,11 +124,16 @@ class _UpdateCheckerState extends State<_UpdateChecker> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (final note in notes)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text('• $note'),
-              ),
+            // Release notes are optional in the config; without this the
+            // dialog would render a title over an empty box.
+            if (notes.isEmpty)
+              Text(l10n.updateAvailableGeneric)
+            else
+              for (final note in notes)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text('• $note'),
+                ),
           ],
         ),
         actions: [

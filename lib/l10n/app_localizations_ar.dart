@@ -812,6 +812,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get updateDownload => 'تحميل التحديث';
 
   @override
+  String get updateAvailableGeneric => 'يتوفر إصدار جديد من التطبيق.';
+
+  @override
   String get updateLater => 'لاحقاً';
 
   @override

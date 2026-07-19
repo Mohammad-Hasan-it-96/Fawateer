@@ -1652,6 +1652,12 @@ abstract class AppLocalizations {
   /// **'Download update'**
   String get updateDownload;
 
+  /// No description provided for @updateAvailableGeneric.
+  ///
+  /// In en, this message translates to:
+  /// **'A new version of the app is available.'**
+  String get updateAvailableGeneric;
+
   /// No description provided for @updateLater.
   ///
   /// In en, this message translates to:

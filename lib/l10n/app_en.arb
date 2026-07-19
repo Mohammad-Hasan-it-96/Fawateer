@@ -288,6 +288,7 @@
   "contactEmailSubject": "Fawateer subscription request",
   "updateAvailableTitle": "A new update is available",
   "updateDownload": "Download update",
+  "updateAvailableGeneric": "A new version of the app is available.",
   "updateLater": "Later",
   "contactMessage": "Hello,\nI'd like to subscribe to Fawateer.\nPlan: {plan}\nName: {name}\nPhone: {phone}\nDevice ID: {deviceId}",
   "@contactMessage": { "placeholders": { "plan": { "type": "String" }, "name": { "type": "String" }, "phone": { "type": "String" }, "deviceId": { "type": "String" } } },

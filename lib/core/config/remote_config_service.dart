@@ -22,8 +22,15 @@ class RemoteConfigService {
 
   final http.Client _client;
 
-  /// The hosted config. Source of truth for the file's contents lives in the
-  /// repo at `deploy/fawateer.json` — edit there, then publish.
+  /// The hosted config.
+  ///
+  /// **Source of truth is the `device_apps` row on the platform API**, edited
+  /// from the dashboard. This URL is served by evotech-web, which proxies
+  /// `/api/{app}/remote-config` and answers from a committed fallback
+  /// (`src/content/device-config-fallback.ts`) when the API is unreachable — so
+  /// a device always gets a usable config, in particular a base URL.
+  /// `deploy/fawateer.json` in this repo is the superseded hand-edited copy and
+  /// no longer drives anything.
   ///
   /// Deliberately on the **web** host, not the API host: this file is what tells
   /// the app where the API is, so hosting it behind that same API would mean an
@@ -124,8 +131,15 @@ class RemoteConfigService {
     try {
       final info = await PackageInfo.fromPlatform();
       if (!_isNewer(cfg.latestVersion, info.version)) return;
+      final url = await _pickDownload(cfg.downloads);
+      // No reachable APK → no prompt. Announcing an update the user cannot
+      // install is worse than staying quiet: the dialog's only action is dead,
+      // and it reappears every launch. This makes the common publishing
+      // mistake (bumping `latest_version` while `downloads` is still empty)
+      // harmless instead of shipping a dead end to every install.
+      if (url == null || url.isEmpty) return;
       updateAvailable = true;
-      downloadUrl = await _pickDownload(cfg.downloads);
+      downloadUrl = url;
     } catch (_) {
       updateAvailable = false;
     }
