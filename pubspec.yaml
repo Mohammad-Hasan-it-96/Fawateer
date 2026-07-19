@@ -69,6 +69,7 @@ dependencies:
   # Firebase.initializeApp() fails gracefully and push stays disabled without it.
   firebase_core: ^4.11.0
   firebase_messaging: ^16.4.1
+  audioplayers: ^6.7.1
 
 dev_dependencies:
   flutter_test:
@@ -89,6 +90,9 @@ flutter:
   # render the whole UI in a font with no Arabic shaping. Both faces are real
   # static instances cut from the upstream Cairo variable font (wght 400 / 700),
   # so `FontWeight.bold` uses a drawn bold rather than a synthesized one.
+  assets:
+    - assets/sounds/
+
   fonts:
     - family: Cairo
       fonts:

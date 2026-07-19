@@ -209,6 +209,9 @@
   "noItems": "لا توجد عناصر",
 
   "productNotFound": "المنتج غير موجود: {barcode}",
+  "unknownBarcodeTitle": "باركود غير مسجّل",
+  "unknownBarcodeMessage": "هذا الباركود غير موجود: {barcode}\nهل تريد إضافته كمنتج جديد؟",
+  "unknownBarcodeAdd": "إضافة منتج جديد",
   "saleSaveFailed": "تعذّر حفظ عملية البيع. حاول مرة أخرى.",
   "printerUnavailable": "لا توجد طابعة متصلة.",
   "printFailed": "فشلت الطباعة. حاول مرة أخرى.",

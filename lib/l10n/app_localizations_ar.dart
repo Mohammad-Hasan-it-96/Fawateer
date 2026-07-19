@@ -600,6 +600,17 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String get unknownBarcodeTitle => 'باركود غير مسجّل';
+
+  @override
+  String unknownBarcodeMessage(String barcode) {
+    return 'هذا الباركود غير موجود: $barcode\nهل تريد إضافته كمنتج جديد؟';
+  }
+
+  @override
+  String get unknownBarcodeAdd => 'إضافة منتج جديد';
+
+  @override
   String get saleSaveFailed => 'تعذّر حفظ عملية البيع. حاول مرة أخرى.';
 
   @override

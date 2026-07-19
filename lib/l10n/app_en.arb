@@ -213,6 +213,10 @@
 
   "productNotFound": "Product not found: {barcode}",
   "@productNotFound": { "placeholders": { "barcode": { "type": "String" } } },
+  "unknownBarcodeTitle": "Barcode not registered",
+  "unknownBarcodeMessage": "This barcode does not exist: {barcode}\nDo you want to add it as a new product?",
+  "@unknownBarcodeMessage": { "placeholders": { "barcode": { "type": "String" } } },
+  "unknownBarcodeAdd": "Add new product",
   "saleSaveFailed": "Could not save the sale. Please try again.",
   "printerUnavailable": "No printer is connected.",
   "printFailed": "Printing failed. Please try again.",

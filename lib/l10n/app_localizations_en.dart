@@ -602,6 +602,17 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get unknownBarcodeTitle => 'Barcode not registered';
+
+  @override
+  String unknownBarcodeMessage(String barcode) {
+    return 'This barcode does not exist: $barcode\nDo you want to add it as a new product?';
+  }
+
+  @override
+  String get unknownBarcodeAdd => 'Add new product';
+
+  @override
   String get saleSaveFailed => 'Could not save the sale. Please try again.';
 
   @override

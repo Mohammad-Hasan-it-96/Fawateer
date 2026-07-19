@@ -156,7 +156,10 @@ final router = GoRouter(
               routes: [
                 GoRoute(
                   path: 'add',
-                  builder: (context, state) => const AddProductPage(),
+                  // `extra` carries a barcode when the POS sends the user here
+                  // after scanning one that isn't registered yet.
+                  builder: (context, state) =>
+                      AddProductPage(initialBarcode: state.extra as String?),
                 ),
                 GoRoute(
                   path: 'edit/:id',

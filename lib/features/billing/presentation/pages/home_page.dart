@@ -10,6 +10,7 @@ import '../../../settings/presentation/widgets/exchange_rate_sheet.dart';
 import '../widgets/discount_dialog.dart';
 
 import '../../../../core/utils/num_input.dart';
+import '../../../../core/utils/scan_feedback.dart';
 
 import '../../../billing/presentation/bloc/billing_bloc.dart';
 import '../billing_error_text.dart';
@@ -87,6 +88,39 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     _scannerController.start().catchError((_) {});
   }
 
+  /// Offers to create a product from a barcode the catalogue doesn't know.
+  ///
+  /// Routes to the products tab's add page with the barcode already filled, so
+  /// the cashier never has to read the digits off this dialog and retype them.
+  Future<void> _promptAddUnknownBarcode(
+      BuildContext context, AppLocalizations l10n, String barcode) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.unknownBarcodeTitle),
+        content: Text(l10n.unknownBarcodeMessage(barcode)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.unknownBarcodeAdd),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    // Stop the camera before leaving: it keeps decoding behind the pushed page
+    // otherwise, and would re-fire this same dialog on top of the add form.
+    await _scannerController.stop().catchError((_) {});
+    if (!context.mounted) return;
+    await context.push('/products/add', extra: barcode);
+    // Returning to the POS resumes scanning, matching the checkout round-trip.
+    if (mounted && _isCameraOn) _startScanner();
+  }
+
   void _onDetect(BarcodeCapture capture) async {
     final now = DateTime.now();
     for (final barcode in capture.barcodes) {
@@ -97,6 +131,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           continue;
         }
         _lastScanTimes[rawValue] = now;
+
+        // Beep first, then buzz: the sound is the primary confirmation for a
+        // cashier whose eyes are on the goods, and awaiting `canVibrate` first
+        // would delay it noticeably on some devices.
+        ScanFeedback.beep();
 
         final canVibrate = await Vibrate.canVibrate;
         if (canVibrate) Vibrate.feedback(FeedbackType.success);
@@ -120,6 +159,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             listenWhen: (prev, curr) =>
                 prev.error != curr.error && curr.error != null,
             listener: (context, state) {
+              // An unknown barcode isn't really an error — it's an unstocked
+              // item, and the useful next step is creating it. Offer that
+              // instead of a snackbar the cashier can only dismiss.
+              if (state.error == BillingError.productNotFound &&
+                  (state.errorBarcode ?? '').isNotEmpty) {
+                _promptAddUnknownBarcode(context, l10n, state.errorBarcode!);
+                return;
+              }
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text(
                     billingErrorText(state.error!, state.errorBarcode, l10n)),

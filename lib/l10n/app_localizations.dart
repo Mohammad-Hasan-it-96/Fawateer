@@ -1250,6 +1250,24 @@ abstract class AppLocalizations {
   /// **'Product not found: {barcode}'**
   String productNotFound(String barcode);
 
+  /// No description provided for @unknownBarcodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Barcode not registered'**
+  String get unknownBarcodeTitle;
+
+  /// No description provided for @unknownBarcodeMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This barcode does not exist: {barcode}\nDo you want to add it as a new product?'**
+  String unknownBarcodeMessage(String barcode);
+
+  /// No description provided for @unknownBarcodeAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add new product'**
+  String get unknownBarcodeAdd;
+
   /// No description provided for @saleSaveFailed.
   ///
   /// In en, this message translates to:

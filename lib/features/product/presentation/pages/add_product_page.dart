@@ -18,7 +18,12 @@ import '../../../../core/utils/num_input.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class AddProductPage extends StatefulWidget {
-  const AddProductPage({super.key});
+  /// Pre-fills the barcode field. Set when the user scans an unknown barcode at
+  /// the POS and chooses to create the product from it, so they don't have to
+  /// read the digits off the screen and retype them.
+  final String? initialBarcode;
+
+  const AddProductPage({super.key, this.initialBarcode});
 
   @override
   State<AddProductPage> createState() => _AddProductPageState();
@@ -34,6 +39,12 @@ class _AddProductPageState extends State<AddProductPage> {
   double _minStockAlert = 0.0;
   ProductSaleType _saleType = ProductSaleType.piece;
   PriceCurrency _priceCurrency = PriceCurrency.sp;
+
+  @override
+  void initState() {
+    super.initState();
+    _barcode = widget.initialBarcode ?? '';
+  }
 
   void _scanBarcode() async {
     final result = await context.push<String>('/scanner');
