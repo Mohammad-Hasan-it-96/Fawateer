@@ -36,10 +36,20 @@ class SubscriptionPlan extends Equatable {
   bool get hasDiscount =>
       priceAfterDiscount != null && priceAfterDiscount! < price;
 
-  /// Duration encoded for the backend's operator request. Matches Smart-Agent's
-  /// `<n>_months` convention and adds `1_month` for the monthly plan.
-  String get requestedPlanCode =>
-      '${durationMonths}_month${durationMonths == 1 ? '' : 's'}';
+  /// What a plan request echoes back so the operator knows what was asked for.
+  ///
+  /// The server's own [id] whenever it sent one. The duration-derived fallback
+  /// below cannot identify a plan: two plans of the same length (a "12 months
+  /// Basic" and a "12 months Pro") both encode to `12_months`, leaving the
+  /// operator unable to tell which one the customer requested — and any plan
+  /// that isn't a whole number of months (lifetime, a 45-day promo) has no
+  /// honest encoding at all.
+  ///
+  /// The fallback keeps Smart-Agent's `<n>_months` convention for a catalogue
+  /// served without ids, so an older/leaner server still gets a readable label.
+  String get requestedPlanCode => id.isNotEmpty
+      ? id
+      : '${durationMonths}_month${durationMonths == 1 ? '' : 's'}';
 
   factory SubscriptionPlan.fromJson(
     Map<String, dynamic> json, {
