@@ -1017,6 +1017,11 @@ class AppLocalizationsEn extends AppLocalizations {
       'Sign in with your Google account to keep a safe copy of all your data (sales, products, customers, debts, cash) in your own Google Drive. If your phone is lost or broken, you can restore everything on a new device.';
 
   @override
+  String backupAccountHint(String account) {
+    return 'Your previous backups are on the account $account';
+  }
+
+  @override
   String get backupSignInButton => 'Sign in with Google';
 
   @override

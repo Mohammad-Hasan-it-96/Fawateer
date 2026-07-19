@@ -2001,6 +2001,12 @@ abstract class AppLocalizations {
   /// **'Sign in with your Google account to keep a safe copy of all your data (sales, products, customers, debts, cash) in your own Google Drive. If your phone is lost or broken, you can restore everything on a new device.'**
   String get backupSignInPrompt;
 
+  /// No description provided for @backupAccountHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Your previous backups are on the account {account}'**
+  String backupAccountHint(String account);
+
   /// No description provided for @backupSignInButton.
   ///
   /// In en, this message translates to:

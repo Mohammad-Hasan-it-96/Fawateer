@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../../core/database/daos/settings_dao.dart';
 import '../../../core/error/failure.dart';
 import '../../licensing/data/services/device_identity_service.dart';
+import '../../licensing/domain/repositories/license_repository.dart';
 import '../domain/entities/backup_info.dart';
 import '../domain/repositories/backup_repository.dart';
 import 'backup_engine.dart';
@@ -20,11 +21,16 @@ class BackupRepositoryImpl implements BackupRepository {
   final SettingsDao _settings;
   final DeviceIdentityService _deviceIdentity;
 
+  /// Used only to report the chosen Drive account to the server and to read the
+  /// masked hint back. Backup never depends on the *license* state.
+  final LicenseRepository _license;
+
   const BackupRepositoryImpl(
     this._engine,
     this._drive,
     this._settings,
     this._deviceIdentity,
+    this._license,
   );
 
   static const _kLastBackupAt = 'backup_last_at';
@@ -42,6 +48,10 @@ class BackupRepositoryImpl implements BackupRepository {
         return const Left(PermissionFailure('sign_in_cancelled'));
       }
       await _settings.setValue(_kLastEmail, email);
+      // Fire-and-forget: reporting the account to the server must not make the
+      // user wait on a network round-trip to finish signing in, and it cannot
+      // fail the sign-in (syncGoogleAccount swallows its own errors).
+      unawaited(_license.syncGoogleAccount(email));
       return Right(email);
     } catch (e) {
       return Left(_map(e));
@@ -66,7 +76,13 @@ class BackupRepositoryImpl implements BackupRepository {
       final now = DateTime.now();
       await _settings.setValue(_kLastBackupAt, now.toIso8601String());
       final email = await _drive.currentAccountEmail();
-      if (email != null) await _settings.setValue(_kLastEmail, email);
+      if (email != null) {
+        await _settings.setValue(_kLastEmail, email);
+        // Also re-sent here, not just on sign-in: this is what repairs the
+        // record for devices that signed in before this shipped, or whose
+        // sign-in sync was offline at the time.
+        unawaited(_license.syncGoogleAccount(email));
+      }
 
       final deviceId = manifest.deviceId;
       return Right(BackupInfo(
@@ -154,6 +170,9 @@ class BackupRepositoryImpl implements BackupRepository {
     final raw = await _settings.getValue(_kLastBackupAt);
     return raw == null ? null : DateTime.tryParse(raw);
   }
+
+  @override
+  Future<String?> accountHint() => _license.cachedGoogleAccountHint();
 
   // ── Error mapping ────────────────────────────────────────────────────────
   Failure _map(Object e) {

@@ -1007,6 +1007,11 @@ class AppLocalizationsAr extends AppLocalizations {
       'سجّل الدخول بحساب Google الخاص بك للاحتفاظ بنسخة آمنة من جميع بياناتك (المبيعات، المنتجات، العملاء، الديون، الصندوق) في Google Drive الخاص بك. إذا فُقد هاتفك أو تعطّل، يمكنك استعادة كل شيء على جهاز جديد.';
 
   @override
+  String backupAccountHint(String account) {
+    return 'نسخك الاحتياطية السابقة موجودة على الحساب $account';
+  }
+
+  @override
   String get backupSignInButton => 'تسجيل الدخول عبر Google';
 
   @override

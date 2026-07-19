@@ -72,6 +72,21 @@ class LicenseRemoteDataSource {
     });
   }
 
+  /// `POST update_my_data` — record which Google account holds this device's
+  /// Drive backups, so support can see it and a reinstalled app can be reminded
+  /// which account to sign into. Sent alone (the endpoint takes every field as
+  /// optional); throws [ApiException] on transport errors.
+  Future<void> updateGoogleAccount({
+    required String deviceId,
+    required String googleAccount,
+  }) async {
+    await _client.postJson('update_my_data', {
+      'app_name': ApiConfig.appName,
+      'device_id': deviceId,
+      'google_account': googleAccount,
+    });
+  }
+
   /// `POST create_device` with a pending plan request (operator-driven flow).
   Future<Map<String, dynamic>> requestPlan({
     required String deviceId,

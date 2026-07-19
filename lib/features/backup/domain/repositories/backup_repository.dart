@@ -45,4 +45,13 @@ abstract class BackupRepository {
 
   /// When the last successful cloud backup happened, or null if never.
   Future<DateTime?> lastBackupAt();
+
+  /// A **masked** hint at the Google account the server has on record for this
+  /// device (e.g. `y••••n@gmail.com`), or null if none is known.
+  ///
+  /// Its whole purpose is the reinstall case: local storage is empty, but the
+  /// device id survives, so the server can still tell the user which account
+  /// their backups are under. Never a usable address — see
+  /// [LicenseRepository.cachedGoogleAccountHint].
+  Future<String?> accountHint();
 }

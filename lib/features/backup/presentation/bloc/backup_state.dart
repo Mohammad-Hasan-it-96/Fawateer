@@ -8,6 +8,11 @@ enum BackupSuccess { backedUp, restored, exported }
 class BackupState extends Equatable {
   final bool signedIn;
   final String? email;
+
+  /// Masked account the server has on record (e.g. `y••••n@gmail.com`), shown
+  /// only while signed out — it tells a reinstalled user which account holds
+  /// their backups. Never a usable address.
+  final String? accountHint;
   final DateTime? lastBackupAt;
   final List<BackupInfo> backups;
   final bool loadingList;
@@ -23,6 +28,7 @@ class BackupState extends Equatable {
   const BackupState({
     this.signedIn = false,
     this.email,
+    this.accountHint,
     this.lastBackupAt,
     this.backups = const [],
     this.loadingList = false,
@@ -37,6 +43,7 @@ class BackupState extends Equatable {
   BackupState copyWith({
     bool? signedIn,
     String? email,
+    String? accountHint,
     bool clearEmail = false,
     DateTime? lastBackupAt,
     List<BackupInfo>? backups,
@@ -50,6 +57,7 @@ class BackupState extends Equatable {
     return BackupState(
       signedIn: signedIn ?? this.signedIn,
       email: clearEmail ? null : (email ?? this.email),
+      accountHint: accountHint ?? this.accountHint,
       lastBackupAt: lastBackupAt ?? this.lastBackupAt,
       backups: backups ?? this.backups,
       loadingList: loadingList ?? this.loadingList,
@@ -67,6 +75,7 @@ class BackupState extends Equatable {
   List<Object?> get props => [
         signedIn,
         email,
+        accountHint,
         lastBackupAt,
         backups,
         loadingList,

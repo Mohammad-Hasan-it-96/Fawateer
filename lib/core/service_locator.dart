@@ -123,8 +123,14 @@ Future<void> init() async {
   sl.registerLazySingleton<GoogleDriveBackupTarget>(
       () => GoogleDriveBackupTarget());
   sl.registerLazySingleton<BackupRepository>(
-      () => BackupRepositoryImpl(sl<BackupEngine>(),
-          sl<GoogleDriveBackupTarget>(), sl<SettingsDao>(), sl()));
+      () => BackupRepositoryImpl(
+          sl<BackupEngine>(),
+          sl<GoogleDriveBackupTarget>(),
+          sl<SettingsDao>(),
+          sl(),
+          // Registered further down, but these are lazy singletons: the closure
+          // resolves on first access, not here.
+          sl<LicenseRepository>()));
 
   // ── Licensing (network-backed; no DAO) ───────────────────────────────────
   sl.registerLazySingleton<DeviceIdentityService>(

@@ -119,6 +119,38 @@ class _BackupPageState extends State<BackupPage> {
               const SizedBox(height: 16),
               Text(l10n.backupSignInPrompt,
                   style: TextStyle(fontSize: 13, color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              // After a reinstall the local record is gone but the device id
+              // isn't, so the server can still say which account to pick.
+              if (state.accountHint != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.info_outline,
+                          size: 18,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          l10n.backupAccountHint(state.accountHint!),
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 20),
               SizedBox(
                 height: 52,

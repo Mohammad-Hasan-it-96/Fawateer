@@ -369,6 +369,10 @@
   "backupItem": "Backup & Restore",
   "backupSubtitle": "Protect your data with Google Drive",
   "backupSignInPrompt": "Sign in with your Google account to keep a safe copy of all your data (sales, products, customers, debts, cash) in your own Google Drive. If your phone is lost or broken, you can restore everything on a new device.",
+  "backupAccountHint": "Your previous backups are on the account {account}",
+  "@backupAccountHint": {
+    "placeholders": { "account": { "type": "String" } }
+  },
   "backupSignInButton": "Sign in with Google",
   "backupSignOut": "Sign out",
   "backupAccountLabel": "Signed-in account",

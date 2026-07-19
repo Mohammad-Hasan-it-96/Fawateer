@@ -30,9 +30,12 @@ class BackupBloc extends Bloc<BackupEvent, BackupState> {
     final signedIn = await _repo.isSignedIn();
     final email = signedIn ? await _repo.currentAccountEmail() : null;
     final last = await _repo.lastBackupAt();
+    // Only meaningful while signed out; skip the read otherwise.
+    final hint = signedIn ? null : await _repo.accountHint();
     emit(state.copyWith(
       signedIn: signedIn,
       email: email,
+      accountHint: hint,
       lastBackupAt: last,
       clearEmail: !signedIn,
     ));

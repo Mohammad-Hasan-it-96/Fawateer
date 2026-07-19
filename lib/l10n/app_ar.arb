@@ -348,6 +348,7 @@
   "backupItem": "النسخ الاحتياطي والاستعادة",
   "backupSubtitle": "احمِ بياناتك عبر Google Drive",
   "backupSignInPrompt": "سجّل الدخول بحساب Google الخاص بك للاحتفاظ بنسخة آمنة من جميع بياناتك (المبيعات، المنتجات، العملاء، الديون، الصندوق) في Google Drive الخاص بك. إذا فُقد هاتفك أو تعطّل، يمكنك استعادة كل شيء على جهاز جديد.",
+  "backupAccountHint": "نسخك الاحتياطية السابقة موجودة على الحساب {account}",
   "backupSignInButton": "تسجيل الدخول عبر Google",
   "backupSignOut": "تسجيل الخروج",
   "backupAccountLabel": "الحساب المسجّل",

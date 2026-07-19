@@ -58,4 +58,18 @@ abstract class LicenseRepository {
   /// Never throws — push is an optional enhancement; a failure just means the
   /// user re-checks manually or on next launch.
   Future<void> registerPushToken(String token);
+
+  /// Best-effort record of the Google account now holding this device's Drive
+  /// backups (`update_my_data`). Never throws — losing this costs the operator a
+  /// support convenience, never the backup itself, so it must not be able to
+  /// fail a sign-in.
+  Future<void> syncGoogleAccount(String email);
+
+  /// The **masked** backup account last echoed by `check_device`
+  /// (e.g. `y••••n@gmail.com`), or null if the server knows of none.
+  ///
+  /// Masked by design: `check_device` is a public, unauthenticated endpoint, so
+  /// it must never return a usable address. This is only ever a recognition cue
+  /// for the user who owns the account — never treat it as an email.
+  Future<String?> cachedGoogleAccountHint();
 }
