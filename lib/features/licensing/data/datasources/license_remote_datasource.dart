@@ -106,6 +106,24 @@ class LicenseRemoteDataSource {
     });
   }
 
+  /// `POST add_review` — a star rating (1–5) with an optional comment, tied to
+  /// the device. Throws [ApiException] so the caller can tell the user it
+  /// didn't send (unlike the fire-and-forget calls above, the user is waiting
+  /// on this one and expects to know).
+  Future<void> addReview({
+    required String deviceId,
+    required int stars,
+    String? comment,
+  }) async {
+    await _client.postJson('add_review', {
+      'app_name': ApiConfig.appName,
+      'device_id': deviceId,
+      'stars': stars,
+      if (comment != null && comment.trim().isNotEmpty)
+        'comment': comment.trim(),
+    });
+  }
+
   /// `GET getPlans` — the plan catalog. Returns `[]` if the payload is empty.
   Future<List<SubscriptionPlan>> getPlans() async {
     final body = await _client.getJson('getPlans');

@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:url_launcher/url_launcher.dart';
 
-import '../../../../core/network/api_config.dart';
+import '../../../../core/utils/support_launcher.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/subscription_plan.dart';
@@ -318,17 +317,16 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
           plan: plan,
           contactMethod: method,
         ));
-    final uri = _contactUri(method, message, l10n);
-    var launched = false;
-    if (uri != null) {
-      try {
-        if (await canLaunchUrl(uri)) {
-          launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
-      } catch (_) {
-        launched = false;
-      }
-    }
+    final channel = switch (method) {
+      'whatsapp' => SupportChannel.whatsapp,
+      'telegram' => SupportChannel.telegram,
+      _ => SupportChannel.email,
+    };
+    final launched = await SupportLauncher.launch(
+      channel,
+      message: message,
+      emailSubject: l10n.contactEmailSubject,
+    );
     // Never fail silently: the request is already filed server-side, so a user
     // who saw nothing happen would leave the operator waiting on a message that
     // was never sent. Point them at the copy they just saw.
@@ -341,25 +339,4 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
     }
   }
 
-  Uri? _contactUri(String method, String message, AppLocalizations l10n) {
-    if (method == 'whatsapp' && ApiConfig.supportWhatsApp.isNotEmpty) {
-      return Uri.parse(
-          'https://wa.me/${ApiConfig.supportWhatsApp}?text=${Uri.encodeComponent(message)}');
-    }
-    if (method == 'telegram' && ApiConfig.supportTelegram.isNotEmpty) {
-      final tg = ApiConfig.supportTelegram;
-      // The config may hold a full https://t.me/... link or a bare username.
-      // No `?text=` — t.me ignores it here; the copy button covers it.
-      return Uri.parse(tg.startsWith('http') ? tg : 'https://t.me/$tg');
-    }
-    if (method == 'email' && ApiConfig.supportEmail.isNotEmpty) {
-      return Uri(
-        scheme: 'mailto',
-        path: ApiConfig.supportEmail,
-        query: 'subject=${Uri.encodeComponent(l10n.contactEmailSubject)}'
-            '&body=${Uri.encodeComponent(message)}',
-      );
-    }
-    return null;
-  }
 }

@@ -483,6 +483,97 @@ class AppLocalizationsAr extends AppLocalizations {
   String get cashTypeManualAdjustment => 'تسوية';
 
   @override
+  String get supportSection => 'الدعم وحول التطبيق';
+
+  @override
+  String get contactSupportItem => 'تواصل مع الدعم';
+
+  @override
+  String get contactSupportSubtitle => 'احصل على مساعدة في مشكلة أو استفسار';
+
+  @override
+  String get rateAppItem => 'قيّم التطبيق';
+
+  @override
+  String get rateAppSubtitle => 'شاركنا رأيك بالتطبيق';
+
+  @override
+  String get rateAppThanksSubtitle => 'شكراً لتقييمك';
+
+  @override
+  String get shareAppItem => 'شارك التطبيق';
+
+  @override
+  String get shareAppSubtitle => 'أرسله إلى صاحب محل آخر';
+
+  @override
+  String get shareAppMessage =>
+      'فواتير — تطبيق نقاط بيع بسيط للمحلات. فواتير ومخزون وديون العملاء وتقارير، كلها دون إنترنت.';
+
+  @override
+  String get appVersionItem => 'إصدار التطبيق';
+
+  @override
+  String get aboutItem => 'حول فواتير';
+
+  @override
+  String get rateTitle => 'قيّم فواتير';
+
+  @override
+  String get ratePrompt => 'كيف تجد التطبيق؟';
+
+  @override
+  String get rateCommentHint => 'أضف تعليقاً (اختياري)';
+
+  @override
+  String get rateSubmit => 'إرسال التقييم';
+
+  @override
+  String get rateThanks => 'شكراً لك! تم إرسال تقييمك.';
+
+  @override
+  String get rateFailed => 'تعذّر إرسال التقييم. يرجى المحاولة مجدداً.';
+
+  @override
+  String get supportSheetTitle => 'كيف تحب أن تتواصل معنا؟';
+
+  @override
+  String get supportWhatsApp => 'واتساب';
+
+  @override
+  String get supportTelegram => 'تيليجرام';
+
+  @override
+  String get supportEmail => 'البريد الإلكتروني';
+
+  @override
+  String get supportEmailSubject => 'طلب دعم - تطبيق فواتير';
+
+  @override
+  String get supportLaunchFailed => 'تعذّر فتح التطبيق. يرجى تجربة وسيلة أخرى.';
+
+  @override
+  String get poweredBy => 'تطوير Evo Tech Systems';
+
+  @override
+  String get visitWebsite => 'evotech-sys.com';
+
+  @override
+  String get subscriptionActiveChip => 'مفعّل';
+
+  @override
+  String get subscriptionInactiveChip => 'غير مفعّل';
+
+  @override
+  String get trialChip => 'تجريبي';
+
+  @override
+  String get expiresOnLabel => 'ينتهي';
+
+  @override
+  String get planLabelShort => 'الباقة';
+
+  @override
   String get hardwareSection => 'الأجهزة';
 
   @override

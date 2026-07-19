@@ -1022,6 +1022,186 @@ abstract class AppLocalizations {
   /// **'Adjustment'**
   String get cashTypeManualAdjustment;
 
+  /// No description provided for @supportSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Support & About'**
+  String get supportSection;
+
+  /// No description provided for @contactSupportItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Contact support'**
+  String get contactSupportItem;
+
+  /// No description provided for @contactSupportSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Get help with a problem or question'**
+  String get contactSupportSubtitle;
+
+  /// No description provided for @rateAppItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate the app'**
+  String get rateAppItem;
+
+  /// No description provided for @rateAppSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tell us how we are doing'**
+  String get rateAppSubtitle;
+
+  /// No description provided for @rateAppThanksSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Thanks for your rating'**
+  String get rateAppThanksSubtitle;
+
+  /// No description provided for @shareAppItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Share the app'**
+  String get shareAppItem;
+
+  /// No description provided for @shareAppSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send it to another shop owner'**
+  String get shareAppSubtitle;
+
+  /// No description provided for @shareAppMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Fawateer — a simple point-of-sale app for shops. Invoices, inventory, customer debts and reports, all offline.'**
+  String get shareAppMessage;
+
+  /// No description provided for @appVersionItem.
+  ///
+  /// In en, this message translates to:
+  /// **'App version'**
+  String get appVersionItem;
+
+  /// No description provided for @aboutItem.
+  ///
+  /// In en, this message translates to:
+  /// **'About Fawateer'**
+  String get aboutItem;
+
+  /// No description provided for @rateTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rate Fawateer'**
+  String get rateTitle;
+
+  /// No description provided for @ratePrompt.
+  ///
+  /// In en, this message translates to:
+  /// **'How is the app working for you?'**
+  String get ratePrompt;
+
+  /// No description provided for @rateCommentHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a comment (optional)'**
+  String get rateCommentHint;
+
+  /// No description provided for @rateSubmit.
+  ///
+  /// In en, this message translates to:
+  /// **'Send rating'**
+  String get rateSubmit;
+
+  /// No description provided for @rateThanks.
+  ///
+  /// In en, this message translates to:
+  /// **'Thank you! Your rating was sent.'**
+  String get rateThanks;
+
+  /// No description provided for @rateFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not send your rating. Please try again.'**
+  String get rateFailed;
+
+  /// No description provided for @supportSheetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How would you like to reach us?'**
+  String get supportSheetTitle;
+
+  /// No description provided for @supportWhatsApp.
+  ///
+  /// In en, this message translates to:
+  /// **'WhatsApp'**
+  String get supportWhatsApp;
+
+  /// No description provided for @supportTelegram.
+  ///
+  /// In en, this message translates to:
+  /// **'Telegram'**
+  String get supportTelegram;
+
+  /// No description provided for @supportEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Email'**
+  String get supportEmail;
+
+  /// No description provided for @supportEmailSubject.
+  ///
+  /// In en, this message translates to:
+  /// **'Fawateer support request'**
+  String get supportEmailSubject;
+
+  /// No description provided for @supportLaunchFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not open that app. Please try another way.'**
+  String get supportLaunchFailed;
+
+  /// No description provided for @poweredBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Developed by Evo Tech Systems'**
+  String get poweredBy;
+
+  /// No description provided for @visitWebsite.
+  ///
+  /// In en, this message translates to:
+  /// **'evotech-sys.com'**
+  String get visitWebsite;
+
+  /// No description provided for @subscriptionActiveChip.
+  ///
+  /// In en, this message translates to:
+  /// **'Active'**
+  String get subscriptionActiveChip;
+
+  /// No description provided for @subscriptionInactiveChip.
+  ///
+  /// In en, this message translates to:
+  /// **'Inactive'**
+  String get subscriptionInactiveChip;
+
+  /// No description provided for @trialChip.
+  ///
+  /// In en, this message translates to:
+  /// **'Trial'**
+  String get trialChip;
+
+  /// No description provided for @expiresOnLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Expires'**
+  String get expiresOnLabel;
+
+  /// No description provided for @planLabelShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Plan'**
+  String get planLabelShort;
+
   /// No description provided for @hardwareSection.
   ///
   /// In en, this message translates to:

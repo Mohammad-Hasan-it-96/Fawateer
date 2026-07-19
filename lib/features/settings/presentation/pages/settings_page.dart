@@ -3,17 +3,23 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app_settings/app_settings.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/service_locator.dart' as di;
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../licensing/domain/repositories/license_repository.dart';
 import '../../../licensing/presentation/bloc/license_bloc.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/printer_bloc.dart';
 import '../bloc/printer_event.dart';
 import '../bloc/printer_state.dart';
 import '../widgets/exchange_rate_sheet.dart';
+import '../widgets/powered_by_footer.dart';
+import '../widgets/rate_app_sheet.dart';
+import '../widgets/support_sheet.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -37,10 +43,36 @@ String _printerErrorText(PrinterError error, AppLocalizations l10n) {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  /// Installed version, shown read-only. Empty until [_loadAbout] resolves.
+  String _version = '';
+
+  /// Hides the rating prompt once this device has reviewed.
+  bool _reviewed = false;
+
   @override
   void initState() {
     super.initState();
     context.read<PrinterBloc>().add(InitPrinterEvent());
+    _loadAbout();
+  }
+
+  /// Both reads are best-effort: settings must render even if package info or
+  /// prefs fail, so a failure leaves the version blank rather than erroring.
+  Future<void> _loadAbout() async {
+    String version = '';
+    try {
+      final info = await PackageInfo.fromPlatform();
+      version = '${info.version} (${info.buildNumber})';
+    } catch (_) {/* leave blank */}
+    var reviewed = false;
+    try {
+      reviewed = await di.sl<LicenseRepository>().hasReviewed();
+    } catch (_) {/* offer the prompt rather than hide it on error */}
+    if (!mounted) return;
+    setState(() {
+      _version = version;
+      _reviewed = reviewed;
+    });
   }
 
   @override
@@ -106,6 +138,11 @@ class _SettingsPageState extends State<SettingsPage> {
                         Text(shopName,
                             style: const TextStyle(
                                 fontSize: 20, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 14),
+                      // Subscription at a glance. Previously the header showed
+                      // only a name, so the one thing that can stop the shop
+                      // trading was two taps away with no warning.
+                      _subscriptionSummary(context, l10n),
                     ],
                   );
                 },
@@ -339,10 +376,142 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
 
-            const SizedBox(height: 48),
+            const SizedBox(height: 12),
+
+            _buildSectionHeader(l10n.supportSection),
+            _buildListGroup(
+              children: [
+                _buildListItem(
+                  icon: Icons.support_agent,
+                  title: l10n.contactSupportItem,
+                  subtitle: l10n.contactSupportSubtitle,
+                  onTap: () => showSupportSheet(context),
+                ),
+                _buildListItem(
+                  icon: Icons.star_outline_rounded,
+                  title: l10n.rateAppItem,
+                  subtitle: _reviewed
+                      ? l10n.rateAppThanksSubtitle
+                      : l10n.rateAppSubtitle,
+                  // Already reviewed → inert row, kept visible so the section
+                  // doesn't reflow between launches.
+                  trailingIcon: _reviewed ? null : Icons.chevron_right,
+                  trailingWidget: _reviewed
+                      ? Icon(Icons.check_circle,
+                          size: 20, color: Colors.green.shade600)
+                      : null,
+                  onTap: _reviewed ? null : () => _rate(context, l10n),
+                ),
+                _buildListItem(
+                  icon: Icons.share_outlined,
+                  title: l10n.shareAppItem,
+                  subtitle: l10n.shareAppSubtitle,
+                  onTap: () => _shareApp(context, l10n),
+                ),
+                _buildListItem(
+                  icon: Icons.info_outline,
+                  title: l10n.appVersionItem,
+                  // Blank until PackageInfo resolves; never shows an error.
+                  subtitle: _version,
+                  trailingIcon: null,
+                ),
+              ],
+            ),
+
+            const PoweredByFooter(),
+
+            const SizedBox(height: 32),
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _rate(BuildContext context, AppLocalizations l10n) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final sent = await showRateAppSheet(context);
+    if (!sent || !mounted) return;
+    setState(() => _reviewed = true);
+    messenger.showSnackBar(SnackBar(
+      content: Text(l10n.rateThanks),
+      backgroundColor: Colors.green,
+    ));
+  }
+
+  Future<void> _shareApp(BuildContext context, AppLocalizations l10n) async {
+    // Text only, no download link: the APK is distributed per-ABI outside a
+    // store, so there is no single URL that is correct for every device.
+    await Share.share(
+      '${l10n.shareAppMessage}\n${PoweredByFooter.websiteUrl}',
+    );
+  }
+
+  /// Status / plan / expiry strip under the shop name, tappable through to the
+  /// subscription page. Reads the shared [LicenseBloc], so it follows a live
+  /// re-check or an FCM unlock with no manual refresh.
+  Widget _subscriptionSummary(BuildContext context, AppLocalizations l10n) {
+    return BlocBuilder<LicenseBloc, LicenseState>(
+      builder: (context, state) {
+        final status = state.license;
+        final active = status.isActive;
+        final days = status.daysRemaining;
+        // Match the trial banner's threshold so the two never disagree.
+        final urgent = active && days != null && days <= 3;
+        final accent = !active
+            ? Theme.of(context).colorScheme.error
+            : urgent
+                ? Colors.orange.shade800
+                : Colors.green.shade600;
+
+        return InkWell(
+          onTap: () => context.push('/settings/subscription'),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: accent.withValues(alpha: 0.35)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(active ? Icons.verified_rounded : Icons.error_outline,
+                    size: 18, color: accent),
+                const SizedBox(width: 8),
+                Text(
+                  active
+                      ? (status.isTrial
+                          ? l10n.trialChip
+                          : l10n.subscriptionActiveChip)
+                      : l10n.subscriptionInactiveChip,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: accent),
+                ),
+                if (active && days != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                      width: 1,
+                      height: 14,
+                      color: accent.withValues(alpha: 0.35)),
+                  const SizedBox(width: 8),
+                  Text(
+                    // Clamped at zero: a same-day expiry floors to 0 rather
+                    // than showing a negative count.
+                    '${l10n.expiresOnLabel}: ${days < 0 ? 0 : days}',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

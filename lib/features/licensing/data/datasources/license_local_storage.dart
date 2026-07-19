@@ -23,6 +23,7 @@ class LicenseLocalStorage {
   // check_device. A hint for a reinstalled user, never a usable address — see
   // [saveGoogleAccountHint].
   static const _kGoogleHint = 'lic_google_account_hint';
+  static const _kReviewSent = 'lic_review_sent'; // asked for a rating only once
 
   SharedPreferences? _prefs;
   Future<SharedPreferences> get _p async =>
@@ -88,6 +89,11 @@ class LicenseLocalStorage {
 
   Future<String?> loadGoogleAccountHint() async =>
       (await _p).getString(_kGoogleHint);
+
+  /// Set once the device's review reaches the server, so the app asks only once.
+  Future<bool> loadReviewSent() async => (await _p).getBool(_kReviewSent) ?? false;
+
+  Future<void> markReviewSent() async => (await _p).setBool(_kReviewSent, true);
 
   /// Read the cached status with offline/tamper guards applied against [now].
   Future<LicenseStatus> loadStatus(DateTime now) async {

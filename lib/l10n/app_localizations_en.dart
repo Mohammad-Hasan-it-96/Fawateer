@@ -485,6 +485,98 @@ class AppLocalizationsEn extends AppLocalizations {
   String get cashTypeManualAdjustment => 'Adjustment';
 
   @override
+  String get supportSection => 'Support & About';
+
+  @override
+  String get contactSupportItem => 'Contact support';
+
+  @override
+  String get contactSupportSubtitle => 'Get help with a problem or question';
+
+  @override
+  String get rateAppItem => 'Rate the app';
+
+  @override
+  String get rateAppSubtitle => 'Tell us how we are doing';
+
+  @override
+  String get rateAppThanksSubtitle => 'Thanks for your rating';
+
+  @override
+  String get shareAppItem => 'Share the app';
+
+  @override
+  String get shareAppSubtitle => 'Send it to another shop owner';
+
+  @override
+  String get shareAppMessage =>
+      'Fawateer — a simple point-of-sale app for shops. Invoices, inventory, customer debts and reports, all offline.';
+
+  @override
+  String get appVersionItem => 'App version';
+
+  @override
+  String get aboutItem => 'About Fawateer';
+
+  @override
+  String get rateTitle => 'Rate Fawateer';
+
+  @override
+  String get ratePrompt => 'How is the app working for you?';
+
+  @override
+  String get rateCommentHint => 'Add a comment (optional)';
+
+  @override
+  String get rateSubmit => 'Send rating';
+
+  @override
+  String get rateThanks => 'Thank you! Your rating was sent.';
+
+  @override
+  String get rateFailed => 'Could not send your rating. Please try again.';
+
+  @override
+  String get supportSheetTitle => 'How would you like to reach us?';
+
+  @override
+  String get supportWhatsApp => 'WhatsApp';
+
+  @override
+  String get supportTelegram => 'Telegram';
+
+  @override
+  String get supportEmail => 'Email';
+
+  @override
+  String get supportEmailSubject => 'Fawateer support request';
+
+  @override
+  String get supportLaunchFailed =>
+      'Could not open that app. Please try another way.';
+
+  @override
+  String get poweredBy => 'Developed by Evo Tech Systems';
+
+  @override
+  String get visitWebsite => 'evotech-sys.com';
+
+  @override
+  String get subscriptionActiveChip => 'Active';
+
+  @override
+  String get subscriptionInactiveChip => 'Inactive';
+
+  @override
+  String get trialChip => 'Trial';
+
+  @override
+  String get expiresOnLabel => 'Expires';
+
+  @override
+  String get planLabelShort => 'Plan';
+
+  @override
   String get hardwareSection => 'Hardware';
 
   @override

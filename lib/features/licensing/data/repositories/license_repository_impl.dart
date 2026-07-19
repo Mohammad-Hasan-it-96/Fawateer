@@ -166,6 +166,30 @@ class LicenseRepositoryImpl implements LicenseRepository {
   @override
   Future<String?> cachedGoogleAccountHint() => _local.loadGoogleAccountHint();
 
+  @override
+  Future<Either<Failure, void>> submitReview({
+    required int stars,
+    String? comment,
+  }) async {
+    try {
+      final deviceId = await _identity.getDeviceId();
+      await _remote.addReview(
+          deviceId: deviceId, stars: stars, comment: comment);
+      // Only marked after the server accepted it: a failed send must leave the
+      // prompt available so the user can retry.
+      await _local.markReviewSent();
+      return const Right(null);
+    } on ApiException catch (e) {
+      return Left(
+          e.isOffline ? NetworkFailure(e.message) : ServerFailure(e.message));
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<bool> hasReviewed() => _local.loadReviewSent();
+
   // ── mapping helpers ────────────────────────────────────────────────────────
 
   LicenseStatus _statusFromJson(Map<String, dynamic> json) => LicenseStatus(

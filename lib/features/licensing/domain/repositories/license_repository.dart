@@ -72,4 +72,16 @@ abstract class LicenseRepository {
   /// it must never return a usable address. This is only ever a recognition cue
   /// for the user who owns the account — never treat it as an email.
   Future<String?> cachedGoogleAccountHint();
+
+  /// Submit a star rating (1–5) with an optional comment (`add_review`).
+  /// Unlike the fire-and-forget syncs, this reports failure: the user pressed
+  /// send and is owed an answer. Records it locally on success so the prompt
+  /// stops being offered.
+  Future<Either<Failure, void>> submitReview({
+    required int stars,
+    String? comment,
+  });
+
+  /// Whether this device already sent a review — used to hide the prompt.
+  Future<bool> hasReviewed();
 }
