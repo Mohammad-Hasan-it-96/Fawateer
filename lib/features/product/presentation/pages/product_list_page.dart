@@ -35,6 +35,10 @@ String _productMessageText(ProductMessage m, AppLocalizations l10n) {
       return l10n.errorSaveFailed;
     case ProductMessage.loadFailed:
       return l10n.errorLoadFailed;
+    case ProductMessage.labelPrinted:
+      return l10n.labelPrinted;
+    case ProductMessage.labelPrintFailed:
+      return l10n.labelPrintFailed;
   }
 }
 
@@ -428,6 +432,22 @@ class _ProductListPageState extends State<ProductListPage> {
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: IconButton(
+                                  icon: const Icon(Icons.print_rounded,
+                                      color: AppTheme.primaryColor, size: 22),
+                                  tooltip: l10n.printLabelTitle,
+                                  constraints: const BoxConstraints(
+                                      minWidth: 48, minHeight: 48),
+                                  onPressed: () => _printLabel(context, product),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryColor
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: IconButton(
                                   icon: const Icon(Icons.edit_rounded,
                                       color: AppTheme.primaryColor, size: 22),
                                   constraints: const BoxConstraints(
@@ -438,7 +458,7 @@ class _ProductListPageState extends State<ProductListPage> {
                                   },
                                 ),
                               ),
-                              const SizedBox(width: 16),
+                              const SizedBox(width: 12),
                               Container(
                                 decoration: BoxDecoration(
                                   color: Colors.red.withValues(alpha: 0.1),
@@ -547,6 +567,100 @@ class _ProductListPageState extends State<ProductListPage> {
                   style: const TextStyle(color: Colors.red)),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  /// Print label(s) for a product (Plan 010): a small dialog for the copy count
+  /// and — when the product has a barcode — the code type (barcode vs QR), then
+  /// dispatch to [ProductBloc]. The printed price is currency-aware.
+  void _printLabel(BuildContext context, Product product) {
+    final l10n = AppLocalizations.of(context)!;
+    final shopState = context.read<ShopBloc>().state;
+    final currency =
+        shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
+    final priceText = product.priceCurrency.label(product.price, currency);
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) {
+        int copies = 1;
+        bool useQr = false;
+        return StatefulBuilder(
+          builder: (dialogCtx, setDialog) {
+            return AlertDialog(
+              title: Text(l10n.printLabelTitle),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(product.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(priceText,
+                      style: TextStyle(
+                          color:
+                              Theme.of(dialogCtx).colorScheme.onSurfaceVariant)),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Text(l10n.labelCopies),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline),
+                        onPressed: copies > 1
+                            ? () => setDialog(() => copies--)
+                            : null,
+                      ),
+                      Text('$copies',
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline),
+                        onPressed: copies < 99
+                            ? () => setDialog(() => copies++)
+                            : null,
+                      ),
+                    ],
+                  ),
+                  if (product.barcode.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    SegmentedButton<bool>(
+                      showSelectedIcon: false,
+                      segments: [
+                        ButtonSegment(
+                            value: false, label: Text(l10n.labelBarcode)),
+                        ButtonSegment(value: true, label: Text(l10n.labelQr)),
+                      ],
+                      selected: {useQr},
+                      onSelectionChanged: (s) =>
+                          setDialog(() => useQr = s.first),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.pop(dialogCtx);
+                    context.read<ProductBloc>().add(PrintProductLabel(
+                          name: product.name,
+                          priceText: priceText,
+                          barcodeData: product.barcode,
+                          useQr: useQr,
+                          copies: copies,
+                        ));
+                  },
+                  icon: const Icon(Icons.print, size: 18),
+                  label: Text(l10n.printLabelAction),
+                ),
+              ],
+            );
+          },
         );
       },
     );

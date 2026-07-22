@@ -234,6 +234,19 @@ class _FakePrinterRepository implements PrinterRepository {
       const Right([]);
   @override
   Future<bool> printStatement(String text) async => printerAvailable;
+  int printLabelCount = 0;
+  @override
+  Future<bool> printLabel({
+    required String name,
+    required String priceText,
+    String barcodeData = '',
+    bool useQr = false,
+    int copies = 1,
+  }) async {
+    printLabelCount++;
+    return printerAvailable;
+  }
+
   @override
   Future<bool> connect(String macAddress) async => false;
   @override
@@ -673,7 +686,7 @@ void main() {
   group('ProductBloc', () {
     test('LoadProducts subscribes to the stream and emits loaded', () async {
       final repo = _FakeProductRepository();
-      final bloc = ProductBloc(repository: repo);
+      final bloc = ProductBloc(repository: repo, printerRepository: _FakePrinterRepository());
       final loaded = bloc.stream.firstWhere((s) => s.products.isNotEmpty);
       bloc.add(LoadProducts());
       repo.emit([_product()]);
@@ -687,7 +700,7 @@ void main() {
 
     test('add success → typed "added" feedback', () async {
       final repo = _FakeProductRepository();
-      final bloc = ProductBloc(repository: repo);
+      final bloc = ProductBloc(repository: repo, printerRepository: _FakePrinterRepository());
       final done = bloc.stream.firstWhere((s) => s.message != null);
       bloc.add(AddProduct(_product()));
 
@@ -700,7 +713,7 @@ void main() {
     test('duplicate barcode → typed "barcodeExists" feedback', () async {
       final repo = _FakeProductRepository()
         ..addResult = const Left(DuplicateFailure('dup'));
-      final bloc = ProductBloc(repository: repo);
+      final bloc = ProductBloc(repository: repo, printerRepository: _FakePrinterRepository());
       final done = bloc.stream.firstWhere((s) => s.message != null);
       bloc.add(AddProduct(_product()));
 
@@ -708,6 +721,34 @@ void main() {
       expect(state.status, ProductStatus.error);
       expect(state.message, ProductMessage.barcodeExists);
       await bloc.close(); // stream unused here, so no repo.dispose()
+    });
+
+    test('print label → dispatches to the printer and reports success/failure',
+        () async {
+      final repo = _FakeProductRepository();
+      final printer = _FakePrinterRepository(printerAvailable: true);
+      final bloc = ProductBloc(repository: repo, printerRepository: printer);
+
+      final printed = bloc.stream.firstWhere((s) => s.message != null);
+      bloc.add(const PrintProductLabel(
+          name: 'Phone', priceText: '10', barcodeData: '123', copies: 2));
+      final s1 = await printed.timeout(_timeout);
+      expect(s1.status, ProductStatus.success);
+      expect(s1.message, ProductMessage.labelPrinted);
+      expect(printer.printLabelCount, 1);
+      await bloc.close();
+
+      // Printer unavailable → typed failure feedback.
+      final offline = ProductBloc(
+          repository: repo,
+          printerRepository: _FakePrinterRepository(printerAvailable: false));
+      final failed = offline.stream.firstWhere((s) => s.message != null);
+      offline.add(const PrintProductLabel(
+          name: 'Phone', priceText: '10', barcodeData: '123'));
+      final s2 = await failed.timeout(_timeout);
+      expect(s2.status, ProductStatus.error);
+      expect(s2.message, ProductMessage.labelPrintFailed);
+      await offline.close();
     });
   });
 

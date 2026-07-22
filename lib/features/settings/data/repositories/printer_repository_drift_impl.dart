@@ -128,6 +128,24 @@ class PrinterRepositoryDriftImpl implements PrinterRepository {
     return _printerHelper.printStatement(text);
   }
 
+  @override
+  Future<bool> printLabel({
+    required String name,
+    required String priceText,
+    String barcodeData = '',
+    bool useQr = false,
+    int copies = 1,
+  }) async {
+    if (!await _ensureConnected()) return false;
+    return _printerHelper.printLabel(
+      name: name,
+      priceText: priceText,
+      barcodeData: barcodeData,
+      useQr: useQr,
+      copies: copies,
+    );
+  }
+
   /// Make sure we have a *live* connection, reconnecting to the saved printer if
   /// the socket is dead. Returns false when there's nothing to connect to.
   Future<bool> _ensureConnected() async {

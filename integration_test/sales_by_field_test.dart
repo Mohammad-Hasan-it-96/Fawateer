@@ -7,6 +7,7 @@
 // Run: flutter test integration_test/sales_by_field_test.dart -d <deviceId>
 import 'package:billing_app/core/database/app_database.dart';
 import 'package:billing_app/core/database/daos/dashboard_dao.dart';
+import 'package:billing_app/core/utils/label_image.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -73,5 +74,29 @@ void main() {
     expect(rows.length, 1);
     expect(rows.single.productName, '—');
     expect(rows.single.revenue, 280); // 200 + 50 + 30
+  });
+
+  // Product labels (Plan 010): rendering a barcode/QR to ESC/POS raster needs a
+  // real engine (dart:ui toImage), so it's exercised here rather than on the
+  // host. Proves the `barcode` package + raster pipeline produce printable bytes.
+  testWidgets('LabelImage renders barcode and QR labels to ESC/POS bytes',
+      (tester) async {
+    final barcodeBytes = await LabelImage.buildEscPosBytes(
+        name: 'هاتف', priceText: '10,000 ل.س', barcodeData: '6291234567890');
+    expect(barcodeBytes.length, greaterThan(100));
+    expect(barcodeBytes.take(2).toList(), [0x1B, 0x40]); // ESC @ init
+
+    final qrBytes = await LabelImage.buildEscPosBytes(
+        name: 'هاتف',
+        priceText: '10,000 ل.س',
+        barcodeData: '6291234567890',
+        useQr: true,
+        copies: 3);
+    expect(qrBytes.length, greaterThan(barcodeBytes.length)); // 3 copies
+
+    // A label with no code still prints (name/price tag).
+    final noCode = await LabelImage.buildEscPosBytes(
+        name: 'تفاح', priceText: '2,000 ل.س');
+    expect(noCode.length, greaterThan(50));
   });
 }

@@ -1502,4 +1502,25 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get reportFieldNone => 'إيقاف';
+
+  @override
+  String get printLabelTitle => 'طباعة ملصق';
+
+  @override
+  String get printLabelAction => 'طباعة';
+
+  @override
+  String get labelCopies => 'عدد النسخ';
+
+  @override
+  String get labelBarcode => 'باركود';
+
+  @override
+  String get labelQr => 'QR';
+
+  @override
+  String get labelPrinted => 'تم إرسال الملصق إلى الطابعة';
+
+  @override
+  String get labelPrintFailed => 'تعذّرت الطباعة — تحقّق من اتصال الطابعة';
 }

@@ -503,5 +503,12 @@
   "noFilterableFields": "لا توجد حقول قابلة للتصفية. أضف حقل قائمة خيارات لتصفّي حسبه.",
   "salesByFieldTitle": "المبيعات حسب الحقل",
   "salesByFieldHint": "اختر حقلاً لتفصيل المبيعات حسب قيمه.",
-  "reportFieldNone": "إيقاف"
+  "reportFieldNone": "إيقاف",
+  "printLabelTitle": "طباعة ملصق",
+  "printLabelAction": "طباعة",
+  "labelCopies": "عدد النسخ",
+  "labelBarcode": "باركود",
+  "labelQr": "QR",
+  "labelPrinted": "تم إرسال الملصق إلى الطابعة",
+  "labelPrintFailed": "تعذّرت الطباعة — تحقّق من اتصال الطابعة"
 }

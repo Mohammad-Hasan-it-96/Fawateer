@@ -159,7 +159,8 @@ Future<void> init() async {
       () => PushNotificationService(sl()));
 
   // ── BLoCs ─────────────────────────────────────────────────────────────────
-  sl.registerFactory(() => ProductBloc(repository: sl()));
+  sl.registerFactory(
+      () => ProductBloc(repository: sl(), printerRepository: sl()));
   sl.registerFactory(
       () => AttributeDefinitionBloc(repository: sl<AttributeDefinitionRepository>()));
 

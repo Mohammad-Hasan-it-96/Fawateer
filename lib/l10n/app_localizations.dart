@@ -2954,6 +2954,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Off'**
   String get reportFieldNone;
+
+  /// No description provided for @printLabelTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print label'**
+  String get printLabelTitle;
+
+  /// No description provided for @printLabelAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Print'**
+  String get printLabelAction;
+
+  /// No description provided for @labelCopies.
+  ///
+  /// In en, this message translates to:
+  /// **'Copies'**
+  String get labelCopies;
+
+  /// No description provided for @labelBarcode.
+  ///
+  /// In en, this message translates to:
+  /// **'Barcode'**
+  String get labelBarcode;
+
+  /// No description provided for @labelQr.
+  ///
+  /// In en, this message translates to:
+  /// **'QR'**
+  String get labelQr;
+
+  /// No description provided for @labelPrinted.
+  ///
+  /// In en, this message translates to:
+  /// **'Label sent to the printer'**
+  String get labelPrinted;
+
+  /// No description provided for @labelPrintFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t print — check the printer connection'**
+  String get labelPrintFailed;
 }
 
 class _AppLocalizationsDelegate

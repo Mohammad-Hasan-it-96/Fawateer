@@ -624,5 +624,12 @@
   "noFilterableFields": "No filterable fields. Add a choice-list field to filter by it.",
   "salesByFieldTitle": "Sales by field",
   "salesByFieldHint": "Pick a field to break sales down by its values.",
-  "reportFieldNone": "Off"
+  "reportFieldNone": "Off",
+  "printLabelTitle": "Print label",
+  "printLabelAction": "Print",
+  "labelCopies": "Copies",
+  "labelBarcode": "Barcode",
+  "labelQr": "QR",
+  "labelPrinted": "Label sent to the printer",
+  "labelPrintFailed": "Couldn't print — check the printer connection"
 }

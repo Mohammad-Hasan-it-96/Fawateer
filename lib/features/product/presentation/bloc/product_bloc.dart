@@ -4,18 +4,21 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/error/failure.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/repositories/product_repository.dart';
+import '../../../settings/domain/repositories/printer_repository.dart';
 
 part 'product_event.dart';
 part 'product_state.dart';
 
 class ProductBloc extends Bloc<ProductEvent, ProductState> {
   final ProductRepository repository;
+  final PrinterRepository printerRepository;
 
   /// Guards against a second [LoadProducts] spinning up a duplicate stream
   /// subscription (and duplicate emits).
   bool _watching = false;
 
-  ProductBloc({required this.repository}) : super(const ProductState()) {
+  ProductBloc({required this.repository, required this.printerRepository})
+      : super(const ProductState()) {
     on<LoadProducts>(_onLoadProducts);
     on<AddProduct>((e, emit) =>
         _runMutation(emit, () => repository.addProduct(e.product),
@@ -26,6 +29,24 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     on<DeleteProduct>((e, emit) =>
         _runMutation(emit, () => repository.deleteProduct(e.id),
             ProductMessage.deleted));
+    on<PrintProductLabel>(_onPrintLabel);
+  }
+
+  /// Print product label(s) via the printer (best-effort, like a receipt).
+  /// Emits a transient success/failure message the page maps to a snackbar.
+  Future<void> _onPrintLabel(
+      PrintProductLabel event, Emitter<ProductState> emit) async {
+    final ok = await printerRepository.printLabel(
+      name: event.name,
+      priceText: event.priceText,
+      barcodeData: event.barcodeData,
+      useQr: event.useQr,
+      copies: event.copies,
+    );
+    emit(state.copyWith(
+      status: ok ? ProductStatus.success : ProductStatus.error,
+      message: ok ? ProductMessage.labelPrinted : ProductMessage.labelPrintFailed,
+    ));
   }
 
   /// Subscribe to the product stream. Dispatched once at startup; the list then

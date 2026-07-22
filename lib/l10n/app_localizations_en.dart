@@ -1515,4 +1515,26 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get reportFieldNone => 'Off';
+
+  @override
+  String get printLabelTitle => 'Print label';
+
+  @override
+  String get printLabelAction => 'Print';
+
+  @override
+  String get labelCopies => 'Copies';
+
+  @override
+  String get labelBarcode => 'Barcode';
+
+  @override
+  String get labelQr => 'QR';
+
+  @override
+  String get labelPrinted => 'Label sent to the printer';
+
+  @override
+  String get labelPrintFailed =>
+      'Couldn\'t print — check the printer connection';
 }

@@ -51,7 +51,17 @@
 > descriptive fields). `json_valid` guards the empty/legacy default; products
 > with no value bucket under `'—'`. Requires SQLite **JSON1** (bundled in
 > `sqlite3_flutter_libs`, on by default). Covered by a bloc test.
-> **Still deferred:** product **labels/QR**.
+> **V1.4 shipped — product labels/QR:** a print-label action on each product-list
+> row opens a dialog (copies + Barcode/QR toggle) and prints thermal labels
+> (name, price, a scannable Code128 **or** QR of the product's barcode) via a new
+> `LabelImage` (pure-Dart `barcode` package → the shared `ReceiptImage.imageToRaster`
+> ESC/POS pipeline), `PrinterRepository.printLabel`, and a `ProductBloc`
+> `PrintProductLabel` event. The encoded value is the product barcode, so a
+> printed label scans back through the app's own scanner. Covered by a ProductBloc
+> test (host) + a `LabelImage` byte-render test (device, real engine).
+> **Plan 010 is now feature-complete** for the approved bucket-A scope; the only
+> remaining items are the separately-carved-out **serialized units** (IMEI/Serial,
+> bucket C) and **variants** (Size×Color, bucket B) plans.
 >
 > **One-line design:** Hybrid — *typed core columns stay fixed; owner-defined
 > descriptive attributes live in a JSON map on the product row, driven by an

@@ -226,6 +226,10 @@ class ReceiptImage {
     return image;
   }
 
+  /// Public entry to the raster encoder, so other renderers (e.g. product
+  /// labels, [LabelImage]) can reuse the exact `GS v 0` band-splitting logic.
+  static Future<List<int>> imageToRaster(ui.Image image) => _imageToRaster(image);
+
   /// Convert the rendered image to ESC/POS `GS v 0` raster, split into vertical
   /// bands so a tall receipt never exceeds a printer's per-command buffer.
   static Future<List<int>> _imageToRaster(ui.Image image) async {
