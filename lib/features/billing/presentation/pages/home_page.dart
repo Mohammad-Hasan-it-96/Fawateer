@@ -273,10 +273,28 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               if (state.error == BillingError.productNotFound &&
                   (state.errorBarcode ?? '').isNotEmpty) {
                 final barcode = state.errorBarcode!;
-                ScaffoldMessenger.of(context)
+                final messenger = ScaffoldMessenger.of(context);
+                messenger
                   ..hideCurrentSnackBar()
                   ..showSnackBar(SnackBar(
-                    content: Text(l10n.productNotFound(barcode)),
+                    content: Row(
+                      children: [
+                        Expanded(child: Text(l10n.productNotFound(barcode))),
+                        // Explicit dismiss: a wrong barcode read must be
+                        // clearable instantly. Without it the only button was
+                        // "Add", so a misread of an existing product looked
+                        // like it was forcing the cashier to create a duplicate.
+                        InkWell(
+                          onTap: messenger.hideCurrentSnackBar,
+                          borderRadius: BorderRadius.circular(20),
+                          child: const Padding(
+                            padding: EdgeInsets.only(left: 8),
+                            child: Icon(Icons.close,
+                                color: Colors.white70, size: 20),
+                          ),
+                        ),
+                      ],
+                    ),
                     backgroundColor: Colors.red.shade700,
                     behavior: SnackBarBehavior.floating,
                     duration: const Duration(seconds: 4),
