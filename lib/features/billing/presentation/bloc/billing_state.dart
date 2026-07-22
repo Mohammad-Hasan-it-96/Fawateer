@@ -9,6 +9,10 @@ enum BillingError {
   printFailed,
   emptyCart,
   exchangeRateMissing,
+
+  /// Strict inventory is on and the cart sells a tracked item past its on-hand
+  /// count. Only reachable when the owner enabled the toggle.
+  insufficientStock,
 }
 
 /// Sentinel so [BillingState.copyWith] can distinguish "leave the nullable rate
@@ -45,6 +49,11 @@ class BillingState extends Equatable {
   /// Clamped to the subtotal via [effectiveInvoiceDiscount]. 0 = none.
   final double invoiceDiscount;
 
+  /// When true, the checkout refuses to sell a tracked item past its on-hand
+  /// count (Settings → Inventory). Off by default — stock is optional, so
+  /// overselling stays allowed unless the owner opts in.
+  final bool blockOversell;
+
   const BillingState({
     this.cartItems = const [],
     this.error,
@@ -59,6 +68,7 @@ class BillingState extends Equatable {
     this.exchangeRate,
     this.rateUpdatedAt,
     this.invoiceDiscount = 0,
+    this.blockOversell = false,
   });
 
   /// Sum of the (line-discounted) line totals, before the whole-cart discount.
@@ -82,6 +92,25 @@ class BillingState extends Equatable {
   /// rate set) — the checkout guard uses this to block the sale.
   bool get hasUnpricedItems => cartItems.any((i) => i.isUnpriced);
 
+  /// Names of cart lines selling more than the product's on-hand quantity — the
+  /// strict-inventory **block** list.
+  ///
+  /// Unlike [lowStockWarnings] (a soft amber heads-up that deliberately skips
+  /// untracked loose items so they don't nag), this counts **every** product:
+  /// turning strict inventory on means "enforce stock for everything", so a
+  /// sold-out item (on-hand 0) is blocked too — which is exactly what the toggle
+  /// promises. `qty > onHand`, so selling the last unit down to 0 is fine; only
+  /// going *past* on-hand is blocked.
+  List<String> get oversoldItems => cartItems
+      .where((i) => i.quantity > i.product.quantity)
+      .map((i) => i.product.name)
+      .toList();
+
+  /// True when strict inventory is on AND the cart would sell past on-hand. The
+  /// checkout uses this to turn the warning into a hard block and disable
+  /// Confirm; [_onConfirmSale] refuses the sale.
+  bool get isStockBlocked => blockOversell && oversoldItems.isNotEmpty;
+
   BillingState copyWith({
     List<CartItem>? cartItems,
     BillingError? error,
@@ -99,6 +128,7 @@ class BillingState extends Equatable {
     Object? exchangeRate = _unset,
     Object? rateUpdatedAt = _unset,
     double? invoiceDiscount,
+    bool? blockOversell,
   }) {
     return BillingState(
       cartItems: cartItems ?? this.cartItems,
@@ -120,6 +150,7 @@ class BillingState extends Equatable {
           ? this.rateUpdatedAt
           : rateUpdatedAt as DateTime?,
       invoiceDiscount: invoiceDiscount ?? this.invoiceDiscount,
+      blockOversell: blockOversell ?? this.blockOversell,
     );
   }
 
@@ -138,5 +169,6 @@ class BillingState extends Equatable {
         exchangeRate,
         rateUpdatedAt,
         invoiceDiscount,
+        blockOversell,
       ];
 }

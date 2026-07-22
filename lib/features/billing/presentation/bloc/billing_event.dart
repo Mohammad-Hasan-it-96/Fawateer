@@ -74,6 +74,12 @@ class LoadExchangeRateEvent extends BillingEvent {
   const LoadExchangeRateEvent();
 }
 
+/// Load (or reload) the strict-inventory flag into the bloc. Dispatched at
+/// startup and after the toggle is flipped in Settings → Inventory.
+class LoadInventorySettingsEvent extends BillingEvent {
+  const LoadInventorySettingsEvent();
+}
+
 class PrintReceiptEvent extends BillingEvent {
   final String shopName;
   final String address1;

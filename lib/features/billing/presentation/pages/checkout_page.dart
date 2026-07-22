@@ -122,33 +122,23 @@ class CheckoutPage extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                            if (billingState.lowStockWarnings.isNotEmpty)
-                              Container(
-                                width: double.infinity,
-                                margin: const EdgeInsets.only(bottom: 16),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 12),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF3CD),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                      color: const Color(0xFFFFD700)),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.warning_amber_rounded,
-                                        color: Color(0xFFB8860B), size: 20),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        '${l10n.lowStockPrefix}${billingState.lowStockWarnings.join(', ')}',
-                                        style: const TextStyle(
-                                            fontSize: 13,
-                                            color: Color(0xFF856404)),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                            // Strict inventory would refuse this cart → a hard
+                            // red block (Confirm disabled). Lists the *oversold*
+                            // items, which can include sold-out (on-hand 0)
+                            // products that the softer amber warning skips.
+                            if (billingState.isStockBlocked)
+                              _stockNoticeBox(
+                                blocking: true,
+                                text:
+                                    '${l10n.outOfStockPrefix}${billingState.oversoldItems.join(', ')}',
+                              )
+                            // Otherwise the usual amber low-stock heads-up that
+                            // still lets the sale through.
+                            else if (billingState.lowStockWarnings.isNotEmpty)
+                              _stockNoticeBox(
+                                blocking: false,
+                                text:
+                                    '${l10n.lowStockPrefix}${billingState.lowStockWarnings.join(', ')}',
                               ),
 
                             Container(
@@ -586,6 +576,38 @@ class CheckoutPage extends StatelessWidget {
   }
 }
 
+/// A stock notice strip above the cart: red (a strict-inventory *block*) or
+/// amber (a soft low-stock heads-up). [text] is the pre-composed prefix + names.
+Widget _stockNoticeBox({required bool blocking, required String text}) {
+  return Container(
+    width: double.infinity,
+    margin: const EdgeInsets.only(bottom: 16),
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    decoration: BoxDecoration(
+      color: blocking ? const Color(0xFFFDE2E1) : const Color(0xFFFFF3CD),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(
+          color: blocking ? const Color(0xFFE57373) : const Color(0xFFFFD700)),
+    ),
+    child: Row(
+      children: [
+        Icon(blocking ? Icons.block : Icons.warning_amber_rounded,
+            color: blocking ? const Color(0xFFC62828) : const Color(0xFFB8860B),
+            size: 20),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(text,
+              style: TextStyle(
+                  fontSize: 13,
+                  color: blocking
+                      ? const Color(0xFFC62828)
+                      : const Color(0xFF856404))),
+        ),
+      ],
+    ),
+  );
+}
+
 /// Cash/credit selector + the confirm button. Holds the chosen credit customer
 /// locally; on confirm it passes [ConfirmSaleEvent.customerId] (null for cash),
 /// which books the debt atomically with the sale.
@@ -704,7 +726,12 @@ class _CreditAwareConfirmState extends State<_CreditAwareConfirm> {
           ),
           const SizedBox(height: 10),
           PrimaryButton(
-            onPressed: widget.billingState.isSaving ? null : _confirm,
+            // Disabled while saving, and hard-disabled when strict inventory
+            // would reject the cart (the bloc guards it too, as a backstop).
+            onPressed:
+                (widget.billingState.isSaving || widget.billingState.isStockBlocked)
+                    ? null
+                    : _confirm,
             label: l10n.confirmSale,
             icon: Icons.check_circle_outline,
             isLoading: widget.billingState.isSaving,

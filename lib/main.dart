@@ -198,8 +198,9 @@ class MyApp extends StatelessWidget {
         BlocProvider<ShopBloc>(
             create: (context) => di.sl<ShopBloc>()..add(LoadShopEvent())),
         BlocProvider<BillingBloc>(
-            create: (context) =>
-                di.sl<BillingBloc>()..add(const LoadExchangeRateEvent())),
+            create: (context) => di.sl<BillingBloc>()
+              ..add(const LoadExchangeRateEvent())
+              ..add(const LoadInventorySettingsEvent())),
         BlocProvider<PrinterBloc>(
             create: (context) =>
                 di.sl<PrinterBloc>()..add(InitPrinterEvent())),

@@ -8,6 +8,7 @@
 import 'dart:async';
 
 import 'package:billing_app/core/currency/exchange_rate_service.dart';
+import 'package:billing_app/core/settings/inventory_settings_service.dart';
 import 'package:billing_app/core/error/failure.dart';
 import 'package:billing_app/features/billing/domain/entities/invoice.dart';
 import 'package:billing_app/features/billing/domain/entities/invoice_item.dart';
@@ -50,6 +51,17 @@ class _FakeExchangeRateService implements ExchangeRateService {
   Future<DateTime?> getUpdatedAt() async => null;
   @override
   Future<void> setRate(double rate) async {}
+}
+
+/// Strict-inventory flag fake. Defaults to off (overselling allowed), matching
+/// the app default; pass `block: true` to exercise the checkout stock gate.
+class _FakeInventorySettingsService implements InventorySettingsService {
+  final bool block;
+  _FakeInventorySettingsService({this.block = false});
+  @override
+  Future<bool> isBlockOversellEnabled() async => block;
+  @override
+  Future<void> setBlockOversell(bool enabled) async {}
 }
 
 class _FakeProductRepository implements ProductRepository {
@@ -231,6 +243,7 @@ void main() {
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: _FakeInvoiceRepository(),
         exchangeRateService: _FakeExchangeRateService(),
+        inventorySettingsService: _FakeInventorySettingsService(),
       );
       final next = bloc.stream.firstWhere((s) => s.error != null);
       bloc.add(const ScanBarcodeEvent('999'));
@@ -248,6 +261,7 @@ void main() {
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: _FakeInvoiceRepository(),
         exchangeRateService: _FakeExchangeRateService(),
+        inventorySettingsService: _FakeInventorySettingsService(),
       );
       final next = bloc.stream.firstWhere((s) => s.cartItems.isNotEmpty);
       bloc.add(const ScanBarcodeEvent('123'));
@@ -265,6 +279,7 @@ void main() {
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
+        inventorySettingsService: _FakeInventorySettingsService(),
       );
       final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
       bloc.add(AddProductToCartEvent(_product()));
@@ -292,6 +307,7 @@ void main() {
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
+        inventorySettingsService: _FakeInventorySettingsService(),
       );
       final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
       bloc.add(AddProductToCartEvent(_product()));
@@ -316,6 +332,7 @@ void main() {
         printerRepository: _FakePrinterRepository(printerAvailable: false),
         invoiceRepository: _FakeInvoiceRepository(),
         exchangeRateService: _FakeExchangeRateService(),
+        inventorySettingsService: _FakeInventorySettingsService(),
       );
       final next = bloc.stream.firstWhere((s) => s.error != null);
       bloc.add(const PrintReceiptEvent(
@@ -337,6 +354,7 @@ void main() {
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: _FakeInvoiceRepository(),
         exchangeRateService: _FakeExchangeRateService(),
+        inventorySettingsService: _FakeInventorySettingsService(),
       );
 
       // Tracked item, on-hand 1: selling 2 (add twice) must warn.
@@ -359,6 +377,49 @@ void main() {
       await bloc.close();
     });
 
+    test('strict inventory blocks a sold-out (0 on-hand) item; in-stock sells',
+        () async {
+      final invoiceRepo = _FakeInvoiceRepository();
+      final bloc = BillingBloc(
+        productRepository: _FakeProductRepository(),
+        printerRepository: _FakePrinterRepository(),
+        invoiceRepository: invoiceRepo,
+        exchangeRateService: _FakeExchangeRateService(),
+        inventorySettingsService: _FakeInventorySettingsService(block: true),
+      );
+
+      // Startup loads the strict flag into state (as main.dart does).
+      bloc.add(const LoadInventorySettingsEvent());
+      await bloc.stream.firstWhere((s) => s.blockOversell).timeout(_timeout);
+
+      // On-hand 0 → selling even a single unit must be refused. This is the
+      // reported bug: strict mode has to block sold-out items, not just ones
+      // with a leftover positive count or a low-stock alert.
+      const soldOut = Product(
+          id: 's1', name: 'Cola', barcode: '', price: 5, quantity: 0);
+      bloc.add(const AddProductToCartEvent(soldOut));
+      final blocked = bloc.stream
+          .firstWhere((s) => s.error == BillingError.insufficientStock);
+      bloc.add(const ConfirmSaleEvent(
+          shopName: 'Shop', address1: '', address2: '', phone: '', footer: ''));
+      await blocked.timeout(_timeout);
+      expect(invoiceRepo.saveCount, 0);
+
+      // Clearing the cart must NOT drop the strict flag (session setting); a
+      // line within its stock still sells through under strict inventory.
+      bloc.add(ClearCartEvent());
+      const inStock = Product(
+          id: 'i1', name: 'Rice', barcode: '', price: 3, quantity: 4);
+      bloc.add(const AddProductToCartEvent(inStock));
+      final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
+      bloc.add(const ConfirmSaleEvent(
+          shopName: 'Shop', address1: '', address2: '', phone: '', footer: ''));
+      await confirmed.timeout(_timeout);
+      expect(invoiceRepo.saveCount, 1);
+      expect(bloc.state.blockOversell, isTrue);
+      await bloc.close();
+    });
+
     test('empty cart confirm → emptyCart error, nothing saved', () async {
       final invoiceRepo = _FakeInvoiceRepository();
       final bloc = BillingBloc(
@@ -366,6 +427,7 @@ void main() {
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
+        inventorySettingsService: _FakeInventorySettingsService(),
       );
       final errored = bloc.stream.firstWhere((s) => s.error != null);
       bloc.add(const ConfirmSaleEvent(
@@ -385,6 +447,7 @@ void main() {
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
+        inventorySettingsService: _FakeInventorySettingsService(),
       );
       final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
       bloc.add(AddProductToCartEvent(_product()));
@@ -408,6 +471,7 @@ void main() {
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(rate: 15000),
+        inventorySettingsService: _FakeInventorySettingsService(),
       );
       bloc.add(const LoadExchangeRateEvent());
       await bloc.stream
@@ -450,6 +514,7 @@ void main() {
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(), // no rate set
+        inventorySettingsService: _FakeInventorySettingsService(),
       );
       bloc.add(const LoadExchangeRateEvent());
 
@@ -479,6 +544,7 @@ void main() {
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
+        inventorySettingsService: _FakeInventorySettingsService(),
       );
       const p = Product(id: 'p1', name: 'X', barcode: '', price: 10, quantity: 5);
       bloc.add(const AddProductToCartEvent(p));
@@ -507,6 +573,7 @@ void main() {
         printerRepository: _FakePrinterRepository(),
         invoiceRepository: _FakeInvoiceRepository(),
         exchangeRateService: _FakeExchangeRateService(),
+        inventorySettingsService: _FakeInventorySettingsService(),
       );
       const p = Product(id: 'p1', name: 'X', barcode: '', price: 10, quantity: 5);
       bloc.add(const AddProductToCartEvent(p)); // gross 10

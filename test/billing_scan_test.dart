@@ -1,4 +1,5 @@
 import 'package:billing_app/core/currency/exchange_rate_service.dart';
+import 'package:billing_app/core/settings/inventory_settings_service.dart';
 import 'package:billing_app/core/error/failure.dart';
 import 'package:billing_app/features/billing/domain/repositories/invoice_repository.dart';
 import 'package:billing_app/features/billing/presentation/bloc/billing_bloc.dart';
@@ -48,6 +49,15 @@ class _FakeExchangeRateService implements ExchangeRateService {
       throw UnimplementedError('${invocation.memberName} not used by this test');
 }
 
+class _FakeInventorySettingsService implements InventorySettingsService {
+  @override
+  Future<bool> isBlockOversellEnabled() async => false;
+
+  @override
+  noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} not used by this test');
+}
+
 Product _product(String id, String barcode) => Product(
       id: id,
       name: 'Item $id',
@@ -67,6 +77,7 @@ void main() {
       printerRepository: _FakePrinterRepository(),
       invoiceRepository: _FakeInvoiceRepository(),
       exchangeRateService: _FakeExchangeRateService(),
+      inventorySettingsService: _FakeInventorySettingsService(),
     );
   });
 

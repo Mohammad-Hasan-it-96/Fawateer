@@ -18,5 +18,7 @@ String billingErrorText(
       return l10n.cartEmptyError;
     case BillingError.exchangeRateMissing:
       return l10n.exchangeRateMissingError;
+    case BillingError.insufficientStock:
+      return l10n.insufficientStockError;
   }
 }

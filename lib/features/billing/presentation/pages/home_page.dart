@@ -212,34 +212,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     });
   }
 
-  /// Offers to create a product from a barcode the catalogue doesn't know.
-  ///
   /// Routes to the products tab's add page with the barcode already filled, so
-  /// the cashier never has to read the digits off this dialog and retype them.
-  Future<void> _promptAddUnknownBarcode(
-      BuildContext context, AppLocalizations l10n, String barcode) {
-    // The camera stays suspended across both the dialog and the add page it
-    // leads to: left running it keeps decoding the same barcode and re-fires
-    // this dialog on top of the add form.
+  /// the cashier never has to read the digits off a message and retype them.
+  ///
+  /// Invoked from the "Add" action on the unknown-barcode snackbar — the tap is
+  /// the confirmation, so there's no second dialog. The camera stays suspended
+  /// across the navigation (via [_withOverlay]): left running it keeps decoding
+  /// the same barcode and would re-fire the snackbar on top of the add form.
+  Future<void> _goCreateProduct(BuildContext context, String barcode) {
     return _withOverlay(() async {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(l10n.unknownBarcodeTitle),
-          content: Text(l10n.unknownBarcodeMessage(barcode)),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(false),
-              child: Text(l10n.cancel),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.of(dialogContext).pop(true),
-              child: Text(l10n.unknownBarcodeAdd),
-            ),
-          ],
-        ),
-      );
-      if (confirmed != true || !context.mounted) return;
+      if (!context.mounted) return;
       await context.push('/products/add', extra: barcode);
     });
   }
@@ -283,11 +265,27 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 prev.error != curr.error && curr.error != null,
             listener: (context, state) {
               // An unknown barcode isn't really an error — it's an unstocked
-              // item, and the useful next step is creating it. Offer that
-              // instead of a snackbar the cashier can only dismiss.
+              // item (or a one-off misread during continuous scanning). Surface
+              // it as a *dismissible* snackbar with an "Add" action, never a
+              // modal: a stray read must not hijack the screen or suspend the
+              // camera mid-sale. Tapping "Add" opens the create-product page
+              // with the barcode pre-filled.
               if (state.error == BillingError.productNotFound &&
                   (state.errorBarcode ?? '').isNotEmpty) {
-                _promptAddUnknownBarcode(context, l10n, state.errorBarcode!);
+                final barcode = state.errorBarcode!;
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(SnackBar(
+                    content: Text(l10n.productNotFound(barcode)),
+                    backgroundColor: Colors.red.shade700,
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 4),
+                    action: SnackBarAction(
+                      label: l10n.unknownBarcodeAdd,
+                      textColor: Colors.white,
+                      onPressed: () => _goCreateProduct(context, barcode),
+                    ),
+                  ));
                 return;
               }
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(

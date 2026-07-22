@@ -6,6 +6,7 @@ import '../../domain/entities/invoice.dart';
 import '../../domain/entities/invoice_item.dart';
 import '../../domain/repositories/invoice_repository.dart';
 import 'package:billing_app/core/currency/exchange_rate_service.dart';
+import 'package:billing_app/core/settings/inventory_settings_service.dart';
 import 'package:billing_app/features/product/domain/entities/price_currency.dart';
 import 'package:billing_app/features/product/domain/entities/product.dart';
 import 'package:billing_app/features/product/domain/repositories/product_repository.dart';
@@ -20,12 +21,14 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
   final PrinterRepository printerRepository;
   final InvoiceRepository invoiceRepository;
   final ExchangeRateService exchangeRateService;
+  final InventorySettingsService inventorySettingsService;
 
   BillingBloc({
     required this.productRepository,
     required this.printerRepository,
     required this.invoiceRepository,
     required this.exchangeRateService,
+    required this.inventorySettingsService,
   }) : super(const BillingState()) {
     on<ScanBarcodeEvent>(_onScanBarcode);
     on<AddProductToCartEvent>(_onAddProductToCart);
@@ -37,8 +40,18 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     on<PrintReceiptEvent>(_onPrintReceipt);
     on<ConfirmSaleEvent>(_onConfirmSale);
     on<LoadExchangeRateEvent>(_onLoadExchangeRate);
+    on<LoadInventorySettingsEvent>(_onLoadInventorySettings);
     on<SetLineDiscountEvent>(_onSetLineDiscount);
     on<SetCartDiscountEvent>(_onSetCartDiscount);
+  }
+
+  /// Load the strict-inventory flag into state. Dispatched at startup and again
+  /// whenever the owner flips the toggle in Settings, so the checkout gate and
+  /// the on-screen block reflect the current setting without a restart.
+  Future<void> _onLoadInventorySettings(
+      LoadInventorySettingsEvent event, Emitter<BillingState> emit) async {
+    final block = await inventorySettingsService.isBlockOversellEnabled();
+    emit(state.copyWith(blockOversell: block));
   }
 
   void _onSetLineDiscount(
@@ -191,7 +204,17 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
   }
 
   void _onClearCart(ClearCartEvent event, Emitter<BillingState> emit) {
-    emit(const BillingState());
+    // Reset the cart and every per-sale flag, but carry the session-loaded
+    // settings across: the exchange rate and the strict-inventory flag are
+    // dispatched once at startup, never after a sale, so emitting a bare
+    // `const BillingState()` here would silently drop them — the next sale
+    // would then treat USD lines as unpriced and forget strict inventory until
+    // the app restarts.
+    emit(BillingState(
+      exchangeRate: state.exchangeRate,
+      rateUpdatedAt: state.rateUpdatedAt,
+      blockOversell: state.blockOversell,
+    ));
   }
 
   Future<void> _onConfirmSale(
@@ -213,6 +236,15 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     // rate in Settings → Currency.
     if (state.cartItems.any((i) => i.isUnpriced)) {
       emit(state.copyWith(error: BillingError.exchangeRateMissing));
+      return;
+    }
+
+    // Strict inventory (opt-in): refuse to sell any line past its on-hand count,
+    // sold-out items included (see [BillingState.oversoldItems] — this is NOT
+    // the softer `lowStockWarnings` predicate, which skips untracked items). Off
+    // by default; overselling stays allowed.
+    if (state.isStockBlocked) {
+      emit(state.copyWith(error: BillingError.insufficientStock));
       return;
     }
 

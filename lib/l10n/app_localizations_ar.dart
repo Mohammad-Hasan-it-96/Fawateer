@@ -93,6 +93,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get lowStockPrefix => 'مخزون منخفض: ';
 
   @override
+  String get outOfStockPrefix => 'نفد المخزون: ';
+
+  @override
+  String get insufficientStockError =>
+      'تعذّر إتمام البيع — بعض الأصناف تتجاوز الكمية المتوفرة';
+
+  @override
   String get saleConfirmed => 'تم تأكيد البيع!';
 
   @override
@@ -362,6 +369,15 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get managementSection => 'الإدارة';
+
+  @override
+  String get inventorySection => 'المخزون';
+
+  @override
+  String get inventoryStrictTitle => 'منع البيع عند نفاد المخزون';
+
+  @override
+  String get inventoryStrictSubtitle => 'لا تسمح ببيع كمية أكبر من المتوفرة';
 
   @override
   String get shopDetailsItem => 'تفاصيل المحل';

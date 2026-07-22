@@ -7,9 +7,11 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/service_locator.dart' as di;
+import '../../../../core/settings/inventory_settings_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../billing/presentation/bloc/billing_bloc.dart';
 import '../../../licensing/domain/repositories/license_repository.dart';
 import '../../../licensing/presentation/bloc/license_bloc.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
@@ -49,11 +51,35 @@ class _SettingsPageState extends State<SettingsPage> {
   /// Hides the rating prompt once this device has reviewed.
   bool _reviewed = false;
 
+  /// Strict-inventory toggle state ("don't sell below zero"). Off by default.
+  bool _blockOversell = false;
+
   @override
   void initState() {
     super.initState();
     context.read<PrinterBloc>().add(InitPrinterEvent());
     _loadAbout();
+    _loadInventory();
+  }
+
+  /// Best-effort read of the strict-inventory flag; leaves it off on error.
+  Future<void> _loadInventory() async {
+    var blocked = false;
+    try {
+      blocked =
+          await di.sl<InventorySettingsService>().isBlockOversellEnabled();
+    } catch (_) {/* leave off */}
+    if (!mounted) return;
+    setState(() => _blockOversell = blocked);
+  }
+
+  /// Persist the strict-inventory flag and push it into the app-wide
+  /// [BillingBloc] so checkout reflects it immediately, no restart.
+  Future<void> _setBlockOversell(bool value) async {
+    setState(() => _blockOversell = value);
+    await di.sl<InventorySettingsService>().setBlockOversell(value);
+    if (!mounted) return;
+    context.read<BillingBloc>().add(const LoadInventorySettingsEvent());
   }
 
   /// Both reads are best-effort: settings must render even if package info or
@@ -244,6 +270,24 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: l10n.backupItem,
                   subtitle: l10n.backupSubtitle,
                   onTap: () => context.push('/settings/backup'),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            _buildSectionHeader(l10n.inventorySection),
+            _buildListGroup(
+              children: [
+                _buildListItem(
+                  icon: Icons.inventory_2_outlined,
+                  title: l10n.inventoryStrictTitle,
+                  subtitle: l10n.inventoryStrictSubtitle,
+                  trailingWidget: Switch(
+                    value: _blockOversell,
+                    onChanged: _setBlockOversell,
+                  ),
+                  onTap: () => _setBlockOversell(!_blockOversell),
                 ),
               ],
             ),

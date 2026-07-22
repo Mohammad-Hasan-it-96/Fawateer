@@ -94,6 +94,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lowStockPrefix => 'Low stock: ';
 
   @override
+  String get outOfStockPrefix => 'Out of stock: ';
+
+  @override
+  String get insufficientStockError =>
+      'Can\'t complete the sale — some items exceed available stock';
+
+  @override
   String get saleConfirmed => 'Sale Confirmed!';
 
   @override
@@ -364,6 +371,16 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get managementSection => 'Management';
+
+  @override
+  String get inventorySection => 'Inventory';
+
+  @override
+  String get inventoryStrictTitle => 'Block selling out of stock';
+
+  @override
+  String get inventoryStrictSubtitle =>
+      'Don\'t allow selling more than what\'s on hand';
 
   @override
   String get shopDetailsItem => 'Shop Details';

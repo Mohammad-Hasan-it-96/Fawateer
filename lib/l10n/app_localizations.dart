@@ -260,6 +260,18 @@ abstract class AppLocalizations {
   /// **'Low stock: '**
   String get lowStockPrefix;
 
+  /// No description provided for @outOfStockPrefix.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of stock: '**
+  String get outOfStockPrefix;
+
+  /// No description provided for @insufficientStockError.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t complete the sale — some items exceed available stock'**
+  String get insufficientStockError;
+
   /// No description provided for @saleConfirmed.
   ///
   /// In en, this message translates to:
@@ -787,6 +799,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Management'**
   String get managementSection;
+
+  /// No description provided for @inventorySection.
+  ///
+  /// In en, this message translates to:
+  /// **'Inventory'**
+  String get inventorySection;
+
+  /// No description provided for @inventoryStrictTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Block selling out of stock'**
+  String get inventoryStrictTitle;
+
+  /// No description provided for @inventoryStrictSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Don\'t allow selling more than what\'s on hand'**
+  String get inventoryStrictSubtitle;
 
   /// No description provided for @shopDetailsItem.
   ///
