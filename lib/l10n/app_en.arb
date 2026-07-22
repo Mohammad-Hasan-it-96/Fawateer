@@ -1,15 +1,19 @@
 {
   "@@locale": "en",
-
   "posTab": "POS",
   "historyTab": "History",
   "productsTab": "Products",
   "customersTab": "Customers",
   "settingsTab": "Settings",
-
   "scannedItems": "Scanned Items",
   "itemsCount": "{count} items total",
-  "@itemsCount": { "placeholders": { "count": { "type": "String" } } },
+  "@itemsCount": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
   "totalPrice": "TOTAL PRICE",
   "reviewOrder": "Review Order",
   "cameraUnavailable": "Camera unavailable",
@@ -23,7 +27,6 @@
   "flash": "Flash",
   "camera": "Camera",
   "addItem": "Add Item",
-
   "checkoutTitle": "Checkout",
   "colProduct": "Product",
   "colPrice": "Price",
@@ -37,7 +40,6 @@
   "newSale": "New Sale",
   "shopNotLoaded": "Shop details not loaded",
   "cartEmptyError": "Add an item before confirming the sale.",
-
   "salesHistory": "Sales History",
   "todaysSales": "TODAY'S SALES",
   "invoicesLabel": "invoices",
@@ -45,7 +47,6 @@
   "noSalesHint": "Completed sales will appear here.",
   "historyLoadFailed": "Couldn't load sales history.",
   "itemsLoadFailed": "Couldn't load items. Tap to retry.",
-
   "filterYesterday": "Yesterday",
   "filterThisWeek": "This Week",
   "filterThisMonth": "This Month",
@@ -65,7 +66,13 @@
   "searchInvoicesHint": "Search invoice # or customer…",
   "noSalesMatch": "No sales match your filters.",
   "itemCountLabel": "{count} items",
-  "@itemCountLabel": { "placeholders": { "count": { "type": "int" } } },
+  "@itemCountLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "invoiceDetails": "Invoice Details",
   "invoiceNumber": "Invoice #",
   "dateLabel": "Date",
@@ -74,10 +81,8 @@
   "unitPrice": "Unit Price",
   "walkInCustomer": "Walk-in customer",
   "reprint": "Reprint",
-
   "shopLoadFailed": "Couldn't load shop details.",
   "shopSaveFailed": "Couldn't save. Please try again.",
-
   "productsTitle": "Products",
   "searchHint": "Search products…",
   "tapToScan": "Tap the icon to open camera scanner",
@@ -85,15 +90,26 @@
   "noProductsMatch": "No products match your search.",
   "deleteProductTitle": "Delete Product",
   "deleteProductConfirm": "Are you sure you want to delete {name}?",
-  "@deleteProductConfirm": { "placeholders": { "name": { "type": "String" } } },
+  "@deleteProductConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "stockCountLabel": "In stock: {qty}",
-  "@stockCountLabel": { "placeholders": { "qty": { "type": "String" } } },
+  "@stockCountLabel": {
+    "placeholders": {
+      "qty": {
+        "type": "String"
+      }
+    }
+  },
   "lowStockBadge": "Low stock",
   "cancel": "Cancel",
   "delete": "Delete",
   "save": "Save",
   "quantityDialogTitle": "Quantity",
-
   "saleTypeLabel": "Sale type",
   "saleTypePiece": "By piece",
   "saleTypeWeight": "By weight",
@@ -101,7 +117,6 @@
   "unitKg": "kg",
   "weightFieldLabel": "Weight (kg)",
   "amountFieldLabel": "Amount",
-
   "addProductTitle": "Add Product",
   "barcodeLabel": "Barcode (optional)",
   "scanOrEnterBarcode": "Scan or enter barcode",
@@ -121,13 +136,11 @@
   "productDeleted": "Product deleted",
   "errorSaveFailed": "Couldn't save. Please try again.",
   "errorLoadFailed": "Couldn't load products.",
-
   "editProductTitle": "Edit Product",
   "barcodeDisplay": "BARCODE",
   "stockEditLabel": "Stock Quantity",
   "stockEditHint": "Set to 0 to disable stock tracking",
   "saveChangesBtn": "Save Changes",
-
   "settingsTitle": "Settings",
   "managementSection": "Management",
   "shopDetailsItem": "Shop Details",
@@ -200,7 +213,6 @@
   "expiresOnLabel": "Expires",
   "planLabelShort": "Plan",
   "hardwareSection": "Hardware",
-
   "appearanceSection": "Appearance",
   "themeModeTitle": "App theme",
   "themeLight": "Light",
@@ -211,7 +223,6 @@
   "noPrinterConnected": "No printer connected",
   "connectedBadge": "CONNECTED",
   "bluetoothHint": "To connect: pair from phone Bluetooth settings, then tap Refresh.",
-
   "shopDetailsTitle": "Shop Details",
   "generalInfo": "General Information",
   "receiptInfoNote": "These details will appear on your receipts.",
@@ -230,22 +241,31 @@
   "footerMaxChars": "Max 150 chars",
   "saveDetailsBtn": "Save Details",
   "shopSaved": "Shop details saved!",
-
   "fieldRequired": "Required",
   "invalidPrice": "Please enter a valid price",
   "negativePriceError": "Price cannot be negative",
   "priceMustBePositive": "Price must be greater than zero",
   "invalidNumber": "Please enter a valid number",
   "negativeNotAllowed": "Cannot be negative",
-
   "printedSuccessfully": "Printed successfully",
   "noItems": "No items",
-
   "productNotFound": "Product not found: {barcode}",
-  "@productNotFound": { "placeholders": { "barcode": { "type": "String" } } },
+  "@productNotFound": {
+    "placeholders": {
+      "barcode": {
+        "type": "String"
+      }
+    }
+  },
   "unknownBarcodeTitle": "Barcode not registered",
   "unknownBarcodeMessage": "This barcode does not exist: {barcode}\nDo you want to add it as a new product?",
-  "@unknownBarcodeMessage": { "placeholders": { "barcode": { "type": "String" } } },
+  "@unknownBarcodeMessage": {
+    "placeholders": {
+      "barcode": {
+        "type": "String"
+      }
+    }
+  },
   "unknownBarcodeAdd": "Add new product",
   "saleSaveFailed": "Could not save the sale. Please try again.",
   "printerUnavailable": "No printer is connected.",
@@ -254,33 +274,40 @@
   "printerNoPairedDevices": "No paired printer found. Pair one in Bluetooth settings.",
   "printerConnectFailed": "Could not connect to the printer.",
   "printerScanFailed": "Could not scan for printers.",
-
   "licenseChecking": "Checking your subscription…",
   "licenseErrorNetwork": "No internet connection. Please check your network and try again.",
   "licenseErrorServer": "Couldn't verify your subscription right now. Please try again.",
   "licenseErrorUnexpected": "Something went wrong. Please try again.",
-
   "activationTitle": "Activate Fawateer",
   "activationSubtitle": "Enter your details to verify your subscription, or choose a plan to get started.",
   "activationNameLabel": "Full Name",
   "activationPhoneLabel": "Phone Number",
   "activationCheckButton": "Verify Activation",
   "activationViewPlans": "View Subscription Plans",
-
   "licenseExpiredTitle": "Subscription Expired",
   "licenseExpiredSubtitle": "Renew your subscription to keep using the app.",
   "licenseExpiresOn": "Valid until {date}",
-  "@licenseExpiresOn": { "placeholders": { "date": { "type": "String" } } },
-
+  "@licenseExpiresOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "plansTitle": "Subscription Plans",
   "plansEmpty": "No plans available right now.",
   "retry": "Retry",
   "planRecommended": "BEST VALUE",
   "planDurationMonths": "{count} month(s)",
-  "@planDurationMonths": { "placeholders": { "count": { "type": "int" } } },
+  "@planDurationMonths": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "planSubscribe": "Subscribe",
   "planRequestSent": "Your request was sent. We'll activate your device shortly.",
-
   "contactMethodTitle": "Contact us to complete your subscription",
   "contactWhatsApp": "WhatsApp",
   "contactTelegram": "Telegram",
@@ -291,10 +318,24 @@
   "updateAvailableGeneric": "A new version of the app is available.",
   "updateLater": "Later",
   "contactMessage": "Hello,\nI'd like to subscribe to Fawateer.\nPlan: {plan}\nName: {name}\nPhone: {phone}\nDevice ID: {deviceId}",
-  "@contactMessage": { "placeholders": { "plan": { "type": "String" }, "name": { "type": "String" }, "phone": { "type": "String" }, "deviceId": { "type": "String" } } },
+  "@contactMessage": {
+    "placeholders": {
+      "plan": {
+        "type": "String"
+      },
+      "name": {
+        "type": "String"
+      },
+      "phone": {
+        "type": "String"
+      },
+      "deviceId": {
+        "type": "String"
+      }
+    }
+  },
   "contactMessagePreview": "The message we'll send",
   "contactLaunchFailed": "Couldn't open that app. Copy the message and send it to us manually.",
-
   "customersTitle": "Customers",
   "addCustomer": "Add Customer",
   "editCustomer": "Edit Customer",
@@ -324,9 +365,21 @@
   },
   "balanceSettled": "Settled",
   "balanceOwed": "Owes {amount}",
-  "@balanceOwed": { "placeholders": { "amount": { "type": "String" } } },
+  "@balanceOwed": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "balanceCredit": "Credit {amount}",
-  "@balanceCredit": { "placeholders": { "amount": { "type": "String" } } },
+  "@balanceCredit": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "balanceOwedLabel": "Owes you",
   "balanceCreditLabel": "You owe",
   "recordPayment": "Record Payment",
@@ -347,23 +400,32 @@
   "amountLabel": "Amount",
   "noteOptional": "Note (optional)",
   "amountMustBePositive": "Enter an amount greater than zero",
-
   "sellOnCredit": "Sell on credit",
   "cashSale": "Cash",
   "chooseCustomer": "Choose customer",
   "creditToLabel": "Credit — {name}",
-  "@creditToLabel": { "placeholders": { "name": { "type": "String" } } },
-
+  "@creditToLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "shareStatement": "Share statement",
   "printStatement": "Print statement",
   "statementPrinted": "Statement printed",
   "statementHeader": "Account Statement — {shop}",
-  "@statementHeader": { "placeholders": { "shop": { "type": "String" } } },
+  "@statementHeader": {
+    "placeholders": {
+      "shop": {
+        "type": "String"
+      }
+    }
+  },
   "statementDate": "Date",
   "statementTotalDebts": "Total debts",
   "statementTotalPaid": "Total paid",
   "statementBalance": "Balance",
-
   "accountSection": "Account",
   "accountInfoSection": "Account details",
   "notSet": "Not set",
@@ -378,36 +440,56 @@
   "statusExpired": "Expired",
   "statusInactive": "Not activated",
   "daysRemaining": "{days} days left",
-  "@daysRemaining": { "placeholders": { "days": { "type": "int" } } },
+  "@daysRemaining": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "lastChecked": "Last checked: {date}",
-  "@lastChecked": { "placeholders": { "date": { "type": "String" } } },
+  "@lastChecked": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "neverChecked": "never",
   "refreshStatus": "Refresh status",
   "renewSubscription": "Renew / change plan",
-
   "deviceIdLabel": "Device ID",
   "deviceIdHint": "Send this ID to support to activate your device.",
   "copy": "Copy",
   "copied": "Copied",
-
   "subscriptionActivatedBanner": "Your subscription has been activated",
-
   "trialBanner": "Free trial — {days} days left",
-  "@trialBanner": { "placeholders": { "days": { "type": "int" } } },
+  "@trialBanner": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "trialUpgrade": "Upgrade",
-
   "backupTitle": "Backup & Restore",
   "backupItem": "Backup & Restore",
   "backupSubtitle": "Protect your data with Google Drive",
   "backupSignInPrompt": "Sign in with your Google account to keep a safe copy of all your data (sales, products, customers, debts, cash) in your own Google Drive. If your phone is lost or broken, you can restore everything on a new device.",
   "backupAccountHint": "Your previous backups are on the account {account}",
   "@backupAccountHint": {
-    "placeholders": { "account": { "type": "String" } }
+    "placeholders": {
+      "account": {
+        "type": "String"
+      }
+    }
   },
   "backupSignInButton": "Sign in with Google",
   "backupSignOut": "Sign out",
   "backupAccountLabel": "Signed-in account",
   "backupNowButton": "Back up now",
+  "backupAutoTitle": "Automatic daily backup",
+  "backupAutoSubtitle": "Backs up once a day when the app is opened and you are online.",
   "backupExportButton": "Export a copy to share",
   "backupLastLabel": "Last backup",
   "backupNever": "No backup yet — your data is not protected",
@@ -430,7 +512,6 @@
   "backupErrorUnknown": "Something went wrong. Please try again.",
   "backupBusyBackingUp": "Backing up…",
   "backupBusyRestoring": "Restoring…",
-
   "priceCurrencyLabel": "Price currency",
   "currencySp": "SP",
   "currencyUsd": "USD",
@@ -445,9 +526,14 @@
   "exchangeRateNever": "Not set yet",
   "setExchangeRateShort": "Set $ rate",
   "exchangeRateUpdatedAt": "Last updated: {date}",
-  "@exchangeRateUpdatedAt": { "placeholders": { "date": { "type": "String" } } },
+  "@exchangeRateUpdatedAt": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "exchangeRateMissingError": "Set the USD exchange rate in Settings → Currency before selling a dollar-priced item.",
-
   "discountTitle": "Discount",
   "discountPercent": "Percent",
   "discountAmount": "Amount",
@@ -458,7 +544,6 @@
   "discountLabel": "Discount",
   "subtotalLabel": "Subtotal",
   "cartDiscountLabel": "Cart discount",
-
   "shareAction": "Share",
   "shareFailed": "Couldn't prepare the share — please try again",
   "estimatedProfit": "Estimated profit",
@@ -468,7 +553,6 @@
   "salesSummaryTitle": "Sales summary",
   "reportPeriodLabel": "Period",
   "receiptThankYou": "Thank you for your business",
-
   "reportsTab": "Reports",
   "dashboardTab": "Dashboard",
   "salesTabLabel": "Sales",
@@ -491,5 +575,13 @@
   "dashboardNoData": "No sales in this period yet",
   "dashboardLoadFailed": "Couldn't load the dashboard",
   "unitsSuffix": "{count} sold",
-  "@unitsSuffix": { "placeholders": { "count": { "type": "String" } } }
+  "@unitsSuffix": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "scanBarcodeTitle": "Scan Barcode",
+  "alignBarcodeHint": "Align barcode within frame"
 }

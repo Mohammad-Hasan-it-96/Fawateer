@@ -106,8 +106,18 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       ScanBarcodeEvent event, Emitter<BillingState> emit) async {
     final result = await productRepository.getProductByBarcode(event.barcode);
     result.fold(
-      (failure) => emit(state.copyWith(
-          error: BillingError.productNotFound, errorBarcode: event.barcode)),
+      (failure) {
+        // Bloc drops an emit equal to the current state, so scanning the same
+        // unknown barcode twice in a row used to produce *nothing* the second
+        // time — no dialog, no message, the scan simply vanished. Clearing
+        // first makes every scan a real transition the UI can react to.
+        if (state.error == BillingError.productNotFound &&
+            state.errorBarcode == event.barcode) {
+          emit(state.copyWith(clearError: true));
+        }
+        emit(state.copyWith(
+            error: BillingError.productNotFound, errorBarcode: event.barcode));
+      },
       (product) {
         // A measured product (e.g. sold by weight) needs a weight/amount entry
         // first — surface it to the UI instead of auto-adding one unit.
@@ -263,9 +273,20 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         total: invoice.totalAmount,
         items: _receiptLines(),
       );
-      if (printed) emit(state.copyWith(printSuccess: true));
+      if (printed) {
+        emit(state.copyWith(printSuccess: true));
+      } else {
+        // Say so. Silence here read as "printed fine" while no receipt came
+        // out — the cashier has no way to tell a dead Bluetooth link from a
+        // slow printer, and would hand the customer nothing. Matches what the
+        // manual print button already reports.
+        emit(state.copyWith(error: BillingError.printerUnavailable));
+        emit(state.copyWith(clearError: true));
+      }
     } catch (_) {
-      // Print failure is non-fatal after a confirmed sale.
+      // Non-fatal — the sale is already committed — but still reported.
+      emit(state.copyWith(error: BillingError.printFailed));
+      emit(state.copyWith(clearError: true));
     }
   }
 

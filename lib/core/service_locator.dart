@@ -31,6 +31,7 @@ import '../features/cashbox/domain/repositories/cashbox_repository.dart';
 import '../features/cashbox/presentation/bloc/cashbox_bloc.dart';
 
 // Features — Backup (cloud backup / restore)
+import '../features/backup/data/auto_backup_service.dart';
 import '../features/backup/data/backup_engine.dart';
 import '../features/backup/data/backup_repository_impl.dart';
 import '../features/backup/data/google_drive_backup_target.dart';
@@ -131,6 +132,8 @@ Future<void> init() async {
           // Registered further down, but these are lazy singletons: the closure
           // resolves on first access, not here.
           sl<LicenseRepository>()));
+  sl.registerLazySingleton<AutoBackupService>(
+      () => AutoBackupService(sl<BackupRepository>(), sl<SettingsDao>()));
 
   // ── Licensing (network-backed; no DAO) ───────────────────────────────────
   sl.registerLazySingleton<DeviceIdentityService>(
@@ -171,7 +174,7 @@ Future<void> init() async {
 
   sl.registerFactory(() => DashboardBloc(repository: sl()));
 
-  sl.registerFactory(() => BackupBloc(repository: sl<BackupRepository>()));
+  sl.registerFactory(() => BackupBloc(repository: sl<BackupRepository>(), autoBackup: sl<AutoBackupService>()));
 
   // LicenseBloc is a SINGLETON (not a factory): the GoRouter gate redirect and
   // the widget tree must observe the same instance for the gate to react.

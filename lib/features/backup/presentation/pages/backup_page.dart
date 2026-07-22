@@ -212,6 +212,19 @@ class _BackupPageState extends State<BackupPage> {
               ),
               const Divider(height: 24),
               _lastBackupLine(l10n, state.lastBackupAt),
+              const Divider(height: 24),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                value: state.autoEnabled,
+                onChanged: (v) => bloc.add(BackupAutoToggled(v)),
+                title: Text(l10n.backupAutoTitle,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w600, fontSize: 14)),
+                subtitle: Text(l10n.backupAutoSubtitle,
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              ),
             ],
           ),
         ),

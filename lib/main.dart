@@ -9,6 +9,7 @@ import 'core/config/remote_config_service.dart';
 import 'core/service_locator.dart' as di;
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
+import 'features/backup/data/auto_backup_service.dart';
 import 'features/billing/presentation/bloc/billing_bloc.dart';
 import 'features/billing/presentation/bloc/history_bloc.dart';
 import 'features/product/presentation/bloc/product_bloc.dart';
@@ -94,13 +95,34 @@ class _UpdateChecker extends StatefulWidget {
   State<_UpdateChecker> createState() => _UpdateCheckerState();
 }
 
-class _UpdateCheckerState extends State<_UpdateChecker> {
+class _UpdateCheckerState extends State<_UpdateChecker>
+    with WidgetsBindingObserver {
   bool _prompted = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybePrompt());
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybePrompt();
+      // Launch is the main backup opportunity: the shop opens the app every
+      // morning. Fire-and-forget — it decides for itself whether one is due.
+      di.sl<AutoBackupService>().maybeRun();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Also on resume, so a device left running for days still backs up daily.
+    if (state == AppLifecycleState.resumed) {
+      di.sl<AutoBackupService>().maybeRun();
+    }
   }
 
   Future<void> _maybePrompt() async {

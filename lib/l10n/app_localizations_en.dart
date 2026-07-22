@@ -1129,6 +1129,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupNowButton => 'Back up now';
 
   @override
+  String get backupAutoTitle => 'Automatic daily backup';
+
+  @override
+  String get backupAutoSubtitle =>
+      'Backs up once a day when the app is opened and you are online.';
+
+  @override
   String get backupExportButton => 'Export a copy to share';
 
   @override
@@ -1373,4 +1380,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String unitsSuffix(String count) {
     return '$count sold';
   }
+
+  @override
+  String get scanBarcodeTitle => 'Scan Barcode';
+
+  @override
+  String get alignBarcodeHint => 'Align barcode within frame';
 }

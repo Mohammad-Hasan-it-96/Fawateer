@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../data/auto_backup_service.dart';
 import '../../domain/entities/backup_info.dart';
 import '../../domain/repositories/backup_repository.dart';
 
@@ -12,10 +14,15 @@ part 'backup_state.dart';
 
 class BackupBloc extends Bloc<BackupEvent, BackupState> {
   final BackupRepository _repo;
+  final AutoBackupService _auto;
 
-  BackupBloc({required BackupRepository repository})
-      : _repo = repository,
+  BackupBloc({
+    required BackupRepository repository,
+    required AutoBackupService autoBackup,
+  })  : _repo = repository,
+        _auto = autoBackup,
         super(const BackupState()) {
+    on<BackupAutoToggled>(_onAutoToggled);
     on<BackupStatusRequested>(_onStatus);
     on<BackupSignInRequested>(_onSignIn);
     on<BackupSignOutRequested>(_onSignOut);
@@ -32,14 +39,24 @@ class BackupBloc extends Bloc<BackupEvent, BackupState> {
     final last = await _repo.lastBackupAt();
     // Only meaningful while signed out; skip the read otherwise.
     final hint = signedIn ? null : await _repo.accountHint();
+    final auto = await _auto.isEnabled();
     emit(state.copyWith(
       signedIn: signedIn,
       email: email,
       accountHint: hint,
       lastBackupAt: last,
+      autoEnabled: auto,
       clearEmail: !signedIn,
     ));
     if (signedIn) add(const BackupListRequested());
+  }
+
+  Future<void> _onAutoToggled(
+      BackupAutoToggled e, Emitter<BackupState> emit) async {
+    await _auto.setEnabled(e.enabled);
+    emit(state.copyWith(autoEnabled: e.enabled));
+    // Turning it on shouldn't leave the user waiting a day for the first one.
+    if (e.enabled) unawaited(_auto.maybeRun());
   }
 
   Future<void> _onSignIn(

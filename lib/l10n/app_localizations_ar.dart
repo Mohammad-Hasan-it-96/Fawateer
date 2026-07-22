@@ -1118,6 +1118,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get backupNowButton => 'أنشئ نسخة الآن';
 
   @override
+  String get backupAutoTitle => 'نسخ احتياطي تلقائي يومي';
+
+  @override
+  String get backupAutoSubtitle =>
+      'يتم النسخ مرة يومياً عند فتح التطبيق ووجود اتصال بالإنترنت.';
+
+  @override
   String get backupExportButton => 'تصدير نسخة للمشاركة';
 
   @override
@@ -1362,4 +1369,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String unitsSuffix(String count) {
     return '$count مبيعاً';
   }
+
+  @override
+  String get scanBarcodeTitle => 'مسح الباركود';
+
+  @override
+  String get alignBarcodeHint => 'وجّه الباركود داخل الإطار';
 }

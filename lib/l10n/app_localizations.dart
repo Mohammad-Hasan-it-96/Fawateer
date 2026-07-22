@@ -2217,6 +2217,18 @@ abstract class AppLocalizations {
   /// **'Back up now'**
   String get backupNowButton;
 
+  /// No description provided for @backupAutoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic daily backup'**
+  String get backupAutoTitle;
+
+  /// No description provided for @backupAutoSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Backs up once a day when the app is opened and you are online.'**
+  String get backupAutoSubtitle;
+
   /// No description provided for @backupExportButton.
   ///
   /// In en, this message translates to:
@@ -2684,6 +2696,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} sold'**
   String unitsSuffix(String count);
+
+  /// No description provided for @scanBarcodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan Barcode'**
+  String get scanBarcodeTitle;
+
+  /// No description provided for @alignBarcodeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Align barcode within frame'**
+  String get alignBarcodeHint;
 }
 
 class _AppLocalizationsDelegate

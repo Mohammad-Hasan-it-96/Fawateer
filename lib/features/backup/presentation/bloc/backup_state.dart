@@ -14,6 +14,9 @@ class BackupState extends Equatable {
   /// their backups. Never a usable address.
   final String? accountHint;
   final DateTime? lastBackupAt;
+
+  /// Whether the daily automatic backup is on (see [AutoBackupService]).
+  final bool autoEnabled;
   final List<BackupInfo> backups;
   final bool loadingList;
   final BackupBusy busy;
@@ -30,6 +33,7 @@ class BackupState extends Equatable {
     this.email,
     this.accountHint,
     this.lastBackupAt,
+    this.autoEnabled = true,
     this.backups = const [],
     this.loadingList = false,
     this.busy = BackupBusy.idle,
@@ -46,6 +50,7 @@ class BackupState extends Equatable {
     String? accountHint,
     bool clearEmail = false,
     DateTime? lastBackupAt,
+    bool? autoEnabled,
     List<BackupInfo>? backups,
     bool? loadingList,
     BackupBusy? busy,
@@ -59,6 +64,7 @@ class BackupState extends Equatable {
       email: clearEmail ? null : (email ?? this.email),
       accountHint: accountHint ?? this.accountHint,
       lastBackupAt: lastBackupAt ?? this.lastBackupAt,
+      autoEnabled: autoEnabled ?? this.autoEnabled,
       backups: backups ?? this.backups,
       loadingList: loadingList ?? this.loadingList,
       busy: busy ?? this.busy,
@@ -77,6 +83,7 @@ class BackupState extends Equatable {
         email,
         accountHint,
         lastBackupAt,
+        autoEnabled,
         backups,
         loadingList,
         busy,

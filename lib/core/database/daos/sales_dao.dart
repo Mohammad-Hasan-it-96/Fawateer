@@ -5,6 +5,7 @@ import '../tables/sales_items_table.dart';
 import '../tables/ledger_entries_table.dart';
 import '../tables/cashbox_transactions_table.dart';
 import '../tables/customers_table.dart';
+import '../tables/products_table.dart';
 
 part 'sales_dao.g.dart';
 
@@ -14,6 +15,9 @@ part 'sales_dao.g.dart';
   LedgerEntries,
   CashboxTransactions,
   Customers,
+  // Not selected from here — declared so the stock deduction below can name it
+  // as an updated table, which is what re-runs `watchAllProducts`.
+  Products,
 ])
 class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   SalesDao(super.db);
@@ -182,9 +186,23 @@ $whereSql''';
         await into(salesInvoices).insert(invoice);
         for (final item in items) {
           await into(salesItems).insert(item);
-          await customStatement(
+          // `customUpdate` with `updates:`, never `customStatement`: the raw
+          // form writes the row but tells Drift nothing, so `watchAllProducts`
+          // never re-runs and every screen keeps showing the pre-sale quantity
+          // until the app restarts. The stock was decrementing correctly all
+          // along — it simply never reached the UI, which reads as "stock does
+          // not go down after a sale".
+          //
+          // Still raw SQL rather than a typed update because the write is
+          // *relative* (`quantity - ?`) and floor-clamped in one statement, so
+          // two concurrent sales can't read-modify-write over each other.
+          await customUpdate(
             'UPDATE products SET quantity = MAX(quantity - ?, 0) WHERE id = ?',
-            [item.quantity.value, item.productId.value],
+            variables: [
+              Variable<double>(item.quantity.value),
+              Variable<String>(item.productId.value),
+            ],
+            updates: {products},
           );
         }
         if (creditCharge != null) {
@@ -199,6 +217,15 @@ $whereSql''';
   /// orphaned `sales_items` rows are left behind. Also reverses the invoice's
   /// cashbox entry (if it was a cash sale) so the cash-on-hand balance stays
   /// honest; no-op for a credit sale (nothing was posted there).
+  ///
+  /// **Incomplete for credit sales — do not wire this to a UI as-is.** A credit
+  /// sale also writes a `charge` row to `ledger_entries` (see the ledger
+  /// section of CLAUDE.md), and this does not remove it. Deleting a credit
+  /// invoice today would leave the customer still owing money for a sale that
+  /// no longer exists, and the debt is derived from those rows, so the error is
+  /// permanent and invisible. Nothing calls this yet; whoever adds "delete
+  /// invoice" must delete the matching `ledger_entries` row (by `invoiceId`) in
+  /// this same transaction.
   Future<void> deleteInvoice(String id) => transaction(() async {
         await (delete(salesItems)..where((i) => i.invoiceId.equals(id))).go();
         await (delete(salesInvoices)..where((i) => i.id.equals(id))).go();

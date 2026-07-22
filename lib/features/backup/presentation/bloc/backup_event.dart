@@ -11,6 +11,14 @@ class BackupStatusRequested extends BackupEvent {
   const BackupStatusRequested();
 }
 
+/// Turn the daily automatic backup on or off.
+class BackupAutoToggled extends BackupEvent {
+  final bool enabled;
+  const BackupAutoToggled(this.enabled);
+  @override
+  List<Object?> get props => [enabled];
+}
+
 class BackupSignInRequested extends BackupEvent {
   const BackupSignInRequested();
 }

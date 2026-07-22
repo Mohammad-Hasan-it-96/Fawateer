@@ -33,14 +33,69 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
-  final MobileScannerController _scannerController = MobileScannerController(
-    detectionSpeed: DetectionSpeed.normal,
-    returnImage: false,
-  );
+  /// Not `final`: a controller that has latched an error can only be replaced,
+  /// never revived — see [_recoverCamera].
+  MobileScannerController _scannerController = _newController();
 
+  static MobileScannerController _newController() => MobileScannerController(
+        detectionSpeed: DetectionSpeed.normal,
+        returnImage: false,
+      );
+
+  /// Serializes every camera start/stop.
+  ///
+  /// The native scanner rejects a `start()` issued while the camera is already
+  /// running (`AlreadyStarted`), and mobile_scanner latches that rejection into
+  /// `controller.value.error` — which `MobileScanner` renders through
+  /// [errorBuilder] forever, because `stop()` returns early while `isRunning`
+  /// is false and so can never clear it. Two callers each firing a start was
+  /// therefore enough to strand the preview on "camera unavailable" until the
+  /// app was killed. Queuing the calls removes the overlap that causes it.
+  Future<void> _cameraOp = Future<void>.value();
+
+  /// Bumped on every controller swap so `MobileScanner` rebuilds its state
+  /// against the new instance instead of holding the disposed one.
+  int _cameraGeneration = 0;
+
+  /// Bounds [_recoverCamera] so a genuinely broken camera can't loop; reset
+  /// whenever a start succeeds.
+  int _recoveryAttempts = 0;
+  static const int _maxRecoveryAttempts = 2;
+
+  // ── camera desired-state inputs ────────────────────────────────────────────
+  // Each of these is set by exactly one concern, and every change funnels
+  // through [_syncCamera]. Driving the camera imperatively instead — a `stop()`
+  // at each callsite paired with a `start()` on the way back — is what stranded
+  // the preview on black: any path that stopped without a matching start (an
+  // overlay dismissed while the app was backgrounded, a tab change during
+  // checkout) left the camera off with nothing left to turn it on.
+
+  /// The user's camera toggle.
   bool _isCameraOn = true;
-  bool _isFlashOn = false;
+
+  /// This tab is the visible branch of the shell.
+  bool _tabVisible = false;
+
+  /// The app is in the foreground.
+  bool _appResumed = true;
+
+  /// The checkout route is pushed over this page.
   bool _onCheckout = false;
+
+  /// A sheet or dialog is covering the scanner (picker, measured entry, unknown
+  /// barcode) — it owns the screen, and a live camera behind it would keep
+  /// decoding and re-fire the prompt on top of itself.
+  int _overlayDepth = 0;
+
+  bool _isFlashOn = false;
+
+  /// The camera should run only when nothing else wants the screen.
+  bool get _shouldScan =>
+      _isCameraOn &&
+      _tabVisible &&
+      _appResumed &&
+      !_onCheckout &&
+      _overlayDepth == 0;
 
   final Map<String, DateTime> _lastScanTimes = {};
 
@@ -48,44 +103,113 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _scannerController.addListener(_onScannerState);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Start/stop camera based on whether this branch is the visible tab
-    final visible = TickerMode.of(context);
-    if (visible && _isCameraOn) {
-      _startScanner();
-    } else if (!visible) {
-      _scannerController.stop();
-    }
+    // Fires for any inherited change (keyboard, theme, locale), not just the
+    // tab — [_syncCamera] is idempotent, so re-running it is free.
+    _tabVisible = TickerMode.of(context);
+    _syncCamera();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      if (_isCameraOn && !_onCheckout && TickerMode.of(context)) {
-        _startScanner();
-      }
-    } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
-      _scannerController.stop();
-    }
+    // `inactive` also covers a transient interruption (notification shade, a
+    // permission prompt), where holding the camera open is what makes the
+    // preview come back black once Android has torn the surface down.
+    _appResumed = state == AppLifecycleState.resumed;
+    _syncCamera();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _scannerController.removeListener(_onScannerState);
     _scannerController.dispose();
     super.dispose();
   }
 
-  /// Start the camera, swallowing platform errors (permission denied, no
-  /// camera). The [MobileScanner] errorBuilder renders the user-facing fallback,
-  /// so an unhandled async throw never escapes here.
-  void _startScanner() {
-    _scannerController.start().catchError((_) {});
+  /// Queue [action] behind whatever camera work is already in flight, so two
+  /// starts can never overlap. Platform errors are swallowed: the
+  /// [MobileScanner] errorBuilder is the user-facing channel.
+  Future<void> _enqueue(Future<void> Function() action) {
+    final next = _cameraOp.then((_) => action()).catchError((_) {});
+    _cameraOp = next;
+    return next;
+  }
+
+  /// Drive the camera to whatever [_shouldScan] currently says.
+  ///
+  /// Every camera decision goes through here, and it re-reads [_shouldScan]
+  /// *inside* the queue rather than capturing it at call time — so when several
+  /// events land together (tab change plus a resume, say) the last one wins
+  /// instead of a stale start re-opening a camera the newer state wants closed.
+  Future<void> _syncCamera() => _enqueue(() async {
+        if (!mounted) return;
+        if (_shouldScan) {
+          await _scannerController.start();
+        } else {
+          await _scannerController.stop();
+        }
+      });
+
+  /// Run [body] with the scanner treated as covered, restoring it afterwards
+  /// even if [body] throws — a sheet that closed on an error used to leave the
+  /// camera stopped for good.
+  Future<T> _withOverlay<T>(Future<T> Function() body) async {
+    _overlayDepth++;
+    _syncCamera();
+    try {
+      return await body();
+    } finally {
+      _overlayDepth--;
+      _syncCamera();
+    }
+  }
+
+  /// Auto-recovers a stuck camera, so the cashier doesn't have to notice a
+  /// retry button to get back to scanning.
+  void _onScannerState() {
+    final error = _scannerController.value.error;
+    if (error == null) {
+      _recoveryAttempts = 0;
+      return;
+    }
+    // A denied permission is the user's to resolve, and the error state already
+    // offers Settings; recreating the controller would only re-fail. Anything
+    // else is a native camera we still hold but can no longer drive.
+    if (error.errorCode == MobileScannerErrorCode.permissionDenied) return;
+    if (!mounted || !_isCameraOn) return;
+    if (_recoveryAttempts >= _maxRecoveryAttempts) return;
+    _recoveryAttempts++;
+    _recoverCamera();
+  }
+
+  /// Replace a controller that has latched an error and start the fresh one.
+  ///
+  /// Disposing the old controller is what releases the native camera it is
+  /// still holding — without that, the new controller's start would be
+  /// rejected as `AlreadyStarted` exactly like the one that stranded it.
+  Future<void> _recoverCamera() {
+    return _enqueue(() async {
+      final old = _scannerController;
+      old.removeListener(_onScannerState);
+      if (!mounted) {
+        await old.dispose();
+        return;
+      }
+      final fresh = _newController();
+      setState(() {
+        _scannerController = fresh;
+        _cameraGeneration++;
+      });
+      fresh.addListener(_onScannerState);
+      await old.dispose();
+      if (mounted && _shouldScan) await fresh.start();
+    });
   }
 
   /// Offers to create a product from a barcode the catalogue doesn't know.
@@ -93,32 +217,31 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   /// Routes to the products tab's add page with the barcode already filled, so
   /// the cashier never has to read the digits off this dialog and retype them.
   Future<void> _promptAddUnknownBarcode(
-      BuildContext context, AppLocalizations l10n, String barcode) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.unknownBarcodeTitle),
-        content: Text(l10n.unknownBarcodeMessage(barcode)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: Text(l10n.cancel),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            child: Text(l10n.unknownBarcodeAdd),
-          ),
-        ],
-      ),
-    );
-    if (confirmed != true || !context.mounted) return;
-    // Stop the camera before leaving: it keeps decoding behind the pushed page
-    // otherwise, and would re-fire this same dialog on top of the add form.
-    await _scannerController.stop().catchError((_) {});
-    if (!context.mounted) return;
-    await context.push('/products/add', extra: barcode);
-    // Returning to the POS resumes scanning, matching the checkout round-trip.
-    if (mounted && _isCameraOn) _startScanner();
+      BuildContext context, AppLocalizations l10n, String barcode) {
+    // The camera stays suspended across both the dialog and the add page it
+    // leads to: left running it keeps decoding the same barcode and re-fires
+    // this dialog on top of the add form.
+    return _withOverlay(() async {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: Text(l10n.unknownBarcodeTitle),
+          content: Text(l10n.unknownBarcodeMessage(barcode)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(false),
+              child: Text(l10n.cancel),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(dialogContext).pop(true),
+              child: Text(l10n.unknownBarcodeAdd),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !context.mounted) return;
+      await context.push('/products/add', extra: barcode);
+    });
   }
 
   void _onDetect(BarcodeCapture capture) async {
@@ -193,19 +316,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               }
             },
           ),
-          // Restart camera when returning from checkout (cart cleared)
-          BlocListener<BillingBloc, BillingState>(
-            listenWhen: (prev, curr) =>
-                _onCheckout &&
-                prev.cartItems.isNotEmpty &&
-                curr.cartItems.isEmpty,
-            listener: (context, state) {
-              if (_onCheckout) {
-                setState(() => _onCheckout = false);
-                if (_isCameraOn) _startScanner();
-              }
-            },
-          ),
         ],
         child: Stack(
           children: [
@@ -233,13 +343,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 ? null
                 : () async {
                     setState(() => _onCheckout = true);
-                    _scannerController.stop();
-                    await context.push('/pos/checkout');
-                    // Back from checkout: cart may be preserved (Back) or
-                    // cleared (New Sale) — either way, resume scanning.
-                    if (mounted) {
-                      setState(() => _onCheckout = false);
-                      if (_isCameraOn) _startScanner();
+                    _syncCamera();
+                    try {
+                      await context.push('/pos/checkout');
+                    } finally {
+                      // Back from checkout, by any route (Back, New Sale, or a
+                      // navigation error): the camera resumes because the flag
+                      // clears, not because this callsite restarted it.
+                      if (mounted) {
+                        setState(() => _onCheckout = false);
+                        _syncCamera();
+                      }
                     }
                   },
             icon: Icons.payment,
@@ -257,6 +371,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         fit: StackFit.expand,
         children: [
           MobileScanner(
+            // Rebuilds against a replaced controller (see [_recoverCamera]).
+            key: ValueKey(_cameraGeneration),
             controller: _scannerController,
             onDetect: _onDetect,
             // Shown when the camera can't start (permission denied, no camera).
@@ -293,11 +409,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   label: l10n.camera,
                   onPressed: () {
                     setState(() => _isCameraOn = !_isCameraOn);
-                    if (_isCameraOn) {
-                      _startScanner();
-                    } else {
-                      _scannerController.stop();
-                    }
+                    _syncCamera();
                   },
                 ),
               ],
@@ -366,7 +478,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             onPressed: () {
               setState(() => _isCameraOn = true);
-              _startScanner();
+              _syncCamera();
             },
           ),
         ],
@@ -406,22 +518,50 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 style: const TextStyle(color: Colors.white70, fontSize: 12)),
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            icon: const Icon(Icons.settings),
-            label: Text(l10n.openSettings,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-            // asAnotherTask: launches Settings with FLAG_ACTIVITY_NEW_TASK —
-            // without it Android silently drops the launch on many devices
-            // ("nothing happens"). Opens App Info → Permissions → Camera.
-            onPressed: () =>
-                AppSettings.openAppSettings(asAnotherTask: true),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Manual escape hatch for the case auto-recovery gave up on
+              // (see [_maxRecoveryAttempts]) — cheaper for the cashier than
+              // restarting the app.
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white54),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+                icon: const Icon(Icons.refresh),
+                label: Text(l10n.retry,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                onPressed: () {
+                  _recoveryAttempts = 0;
+                  _recoverCamera();
+                },
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+                icon: const Icon(Icons.settings),
+                label: Text(l10n.openSettings,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                // asAnotherTask: launches Settings with FLAG_ACTIVITY_NEW_TASK
+                // — without it Android silently drops the launch on many
+                // devices ("nothing happens"). Opens App Info → Permissions →
+                // Camera.
+                onPressed: () =>
+                    AppSettings.openAppSettings(asAnotherTask: true),
+              ),
+            ],
           ),
         ],
       ),
@@ -954,51 +1094,51 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         break;
       }
     }
-    return showDialog<double>(
-      context: context,
-      builder: (_) => _MeasuredEntryDialog(
-        product: product,
-        currency: currency,
-        pricePerUnit: spPerUnit,
-        initialWeight: existing,
-      ),
-    );
+    // Suspended while the dialog is up: a live camera behind it would keep
+    // decoding and re-raise the measured prompt on top of itself. Nesting
+    // inside the picker's overlay is fine — [_overlayDepth] counts.
+    return _withOverlay(() => showDialog<double>(
+          context: context,
+          builder: (_) => _MeasuredEntryDialog(
+            product: product,
+            currency: currency,
+            pricePerUnit: spPerUnit,
+            initialWeight: existing,
+          ),
+        ));
   }
 
   /// Opens a searchable product grid so the cashier can add items that have
   /// no barcode (or when scanning fails). Pauses the camera while open.
-  void _showProductPicker(BuildContext context) {
-    _scannerController.stop();
+  Future<void> _showProductPicker(BuildContext context) {
     final shopState = context.read<ShopBloc>().state;
     final currency =
         shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => _ProductPickerSheet(
-        currency: currency,
-        onAdd: (product) async {
-          final bloc = context.read<BillingBloc>();
-          if (product.saleType.isMeasured) {
-            // Ask for weight/amount before adding a measured product.
-            final weight = await _promptMeasuredEntry(context, product);
-            if (weight == null) return;
-            bloc.add(AddProductToCartEvent(product, quantity: weight));
-          } else {
-            bloc.add(AddProductToCartEvent(product));
-          }
-          final canVibrate = await Vibrate.canVibrate;
-          if (canVibrate) Vibrate.feedback(FeedbackType.success);
-        },
-      ),
-    ).whenComplete(() {
-      if (mounted && _isCameraOn && !_onCheckout) _startScanner();
-    });
+    return _withOverlay(() => showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          builder: (_) => _ProductPickerSheet(
+            currency: currency,
+            onAdd: (product) async {
+              final bloc = context.read<BillingBloc>();
+              if (product.saleType.isMeasured) {
+                // Ask for weight/amount before adding a measured product.
+                final weight = await _promptMeasuredEntry(context, product);
+                if (weight == null) return;
+                bloc.add(AddProductToCartEvent(product, quantity: weight));
+              } else {
+                bloc.add(AddProductToCartEvent(product));
+              }
+              final canVibrate = await Vibrate.canVibrate;
+              if (canVibrate) Vibrate.feedback(FeedbackType.success);
+            },
+          ),
+        ));
   }
 }
 
