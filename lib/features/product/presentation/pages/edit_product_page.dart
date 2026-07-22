@@ -59,6 +59,22 @@ class _EditProductPageState extends State<EditProductPage> {
     if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
 
+      // Product names must stay unique (case-insensitive), excluding this same
+      // product — so renaming can't collide with another existing product.
+      final products = context.read<ProductBloc>().state.products;
+      final nameExists = products.any((p) =>
+          p.id != widget.product.id &&
+          p.name.trim().toLowerCase() == _name.trim().toLowerCase());
+      if (nameExists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(AppLocalizations.of(context)!.productNameExistsError),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
       // copyWith so fields not on this form (id, barcode, …) are preserved.
       final updatedProduct = widget.product.copyWith(
         name: _name,

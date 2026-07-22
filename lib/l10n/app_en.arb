@@ -631,5 +631,7 @@
   "labelBarcode": "Barcode",
   "labelQr": "QR",
   "labelPrinted": "Label sent to the printer",
-  "labelPrintFailed": "Couldn't print — check the printer connection"
+  "labelPrintFailed": "Couldn't print — check the printer connection",
+  "unknownBarcodeSearch": "Search",
+  "productNameExistsError": "A product with this name already exists"
 }

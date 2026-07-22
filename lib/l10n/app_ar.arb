@@ -510,5 +510,7 @@
   "labelBarcode": "باركود",
   "labelQr": "QR",
   "labelPrinted": "تم إرسال الملصق إلى الطابعة",
-  "labelPrintFailed": "تعذّرت الطباعة — تحقّق من اتصال الطابعة"
+  "labelPrintFailed": "تعذّرت الطباعة — تحقّق من اتصال الطابعة",
+  "unknownBarcodeSearch": "بحث",
+  "productNameExistsError": "يوجد منتج بهذا الاسم بالفعل"
 }

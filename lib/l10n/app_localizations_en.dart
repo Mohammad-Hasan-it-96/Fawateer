@@ -1537,4 +1537,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get labelPrintFailed =>
       'Couldn\'t print — check the printer connection';
+
+  @override
+  String get unknownBarcodeSearch => 'Search';
+
+  @override
+  String get productNameExistsError =>
+      'A product with this name already exists';
 }
