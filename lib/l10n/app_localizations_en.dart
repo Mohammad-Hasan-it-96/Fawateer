@@ -1495,4 +1495,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get showArchivedFields => 'Show archived';
+
+  @override
+  String get filterProductsTitle => 'Filter products';
+
+  @override
+  String get clearFiltersBtn => 'Clear all';
+
+  @override
+  String get noFilterableFields =>
+      'No filterable fields. Add a choice-list field to filter by it.';
 }

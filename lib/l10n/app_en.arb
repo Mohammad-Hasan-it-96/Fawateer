@@ -618,5 +618,8 @@
   "attrTypeBoolean": "Yes / No",
   "attrTypeDate": "Date",
   "templateAppliedMsg": "Fields added",
-  "showArchivedFields": "Show archived"
+  "showArchivedFields": "Show archived",
+  "filterProductsTitle": "Filter products",
+  "clearFiltersBtn": "Clear all",
+  "noFilterableFields": "No filterable fields. Add a choice-list field to filter by it."
 }

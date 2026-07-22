@@ -497,5 +497,8 @@
   "attrTypeBoolean": "نعم / لا",
   "attrTypeDate": "تاريخ",
   "templateAppliedMsg": "تمت إضافة الحقول",
-  "showArchivedFields": "عرض المؤرشفة"
+  "showArchivedFields": "عرض المؤرشفة",
+  "filterProductsTitle": "تصفية المنتجات",
+  "clearFiltersBtn": "مسح الكل",
+  "noFilterableFields": "لا توجد حقول قابلة للتصفية. أضف حقل قائمة خيارات لتصفّي حسبه."
 }

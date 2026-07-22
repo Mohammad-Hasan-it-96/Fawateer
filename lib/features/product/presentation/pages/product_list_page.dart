@@ -3,11 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../bloc/product_bloc.dart';
 import '../../domain/entities/product.dart';
+import '../../domain/product_search.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
 import '../../../../core/utils/format.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../../attributes/presentation/bloc/attribute_definition_bloc.dart';
+import '../../../attributes/domain/entities/attribute_definition.dart';
+import '../../../attributes/domain/entities/attribute_type.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class ProductListPage extends StatefulWidget {
@@ -39,6 +42,15 @@ class _ProductListPageState extends State<ProductListPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
 
+  /// Active custom-field filters (Plan 010): definitionId → selected option
+  /// values. A product passes when, for every entry, its value for that field
+  /// is in the selected set (AND across fields, OR within a field). Runs in
+  /// Dart over the in-memory product list — no index/DB query.
+  final Map<String, Set<String>> _attrFilters = {};
+
+  int get _activeFilterCount =>
+      _attrFilters.values.fold(0, (n, s) => n + s.length);
+
   @override
   void initState() {
     super.initState();
@@ -66,6 +78,98 @@ class _ProductListPageState extends State<ProductListPage> {
         _searchController.text = barcode;
       }
     }
+  }
+
+  bool _matchesFilters(Product product) => productMatchesSearch(product,
+      query: _searchQuery, attrFilters: _attrFilters);
+
+  void _openFilterSheet(
+      List<AttributeDefinition> selectDefs, AppLocalizations l10n) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetCtx) {
+        return StatefulBuilder(
+          builder: (sheetCtx, setSheet) {
+            void toggle(String defId, String opt, bool selected) {
+              setState(() {
+                final set = _attrFilters.putIfAbsent(defId, () => <String>{});
+                if (selected) {
+                  set.add(opt);
+                } else {
+                  set.remove(opt);
+                }
+                if (set.isEmpty) _attrFilters.remove(defId);
+              });
+              setSheet(() {});
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(l10n.filterProductsTitle,
+                              style:
+                                  Theme.of(sheetCtx).textTheme.titleMedium),
+                        ),
+                        if (_activeFilterCount > 0)
+                          TextButton(
+                            onPressed: () {
+                              setState(() => _attrFilters.clear());
+                              setSheet(() {});
+                            },
+                            child: Text(l10n.clearFiltersBtn),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (final def in selectDefs) ...[
+                              Text(def.label,
+                                  style: Theme.of(sheetCtx)
+                                      .textTheme
+                                      .labelLarge),
+                              const SizedBox(height: 6),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: [
+                                  for (final opt in def.options)
+                                    FilterChip(
+                                      label: Text(opt),
+                                      selected: _attrFilters[def.id]
+                                              ?.contains(opt) ??
+                                          false,
+                                      onSelected: (sel) =>
+                                          toggle(def.id, opt, sel),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   @override
@@ -122,6 +226,62 @@ class _ProductListPageState extends State<ProductListPage> {
                           padding: const EdgeInsets.all(15),
                         ),
                       ),
+                      // Custom-field filter (Plan 010): shown only when the shop
+                      // has a choice-list field to filter by.
+                      Builder(builder: (context) {
+                        final selectDefs = context
+                            .watch<AttributeDefinitionBloc>()
+                            .state
+                            .active
+                            .where((d) =>
+                                d.type == AttributeType.select &&
+                                d.options.isNotEmpty)
+                            .toList();
+                        if (selectDefs.isEmpty) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(left: 12),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color:
+                                  AppTheme.primaryColor.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Stack(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.tune,
+                                      color: AppTheme.primaryColor),
+                                  onPressed: () =>
+                                      _openFilterSheet(selectDefs, l10n),
+                                  padding: const EdgeInsets.all(15),
+                                ),
+                                if (_activeFilterCount > 0)
+                                  Positioned(
+                                    right: 6,
+                                    top: 6,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: AppTheme.primaryColor,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      constraints: const BoxConstraints(
+                                          minWidth: 18, minHeight: 18),
+                                      child: Text(
+                                        '$_activeFilterCount',
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -163,11 +323,8 @@ class _ProductListPageState extends State<ProductListPage> {
                   return Center(child: Text(l10n.noProductsFound));
                 }
 
-                final filteredProducts = state.products
-                    .where((product) =>
-                        product.name.toLowerCase().contains(_searchQuery) ||
-                        product.barcode.toLowerCase().contains(_searchQuery))
-                    .toList();
+                final filteredProducts =
+                    state.products.where(_matchesFilters).toList();
 
                 if (filteredProducts.isEmpty) {
                   return Center(child: Text(l10n.noProductsMatch));

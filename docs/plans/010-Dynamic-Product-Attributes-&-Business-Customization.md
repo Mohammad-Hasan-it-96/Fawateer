@@ -32,8 +32,15 @@
 > from the frozen snapshot (`HistoryBloc._decodeAttributeSnapshot`) so an old
 > receipt is immune to later product/definition edits. Covered by a
 > snapshot-flows-and-excludes-non-receipt-fields test.
-> **Still deferred:** attribute **search/filter** UI (values are queryable in
-> Dart already), report group-by, product labels.
+> **V1.2 shipped — search & filter** (Dart-side, no index table): the product
+> list's free-text search now also matches **any custom-field value** (so typing
+> an IMEI/color/storage value finds the product), and a **filter sheet** exposes
+> every `select`-type field as option chips (AND across fields, OR within one),
+> with an active-count badge. The predicate is a pure `productMatchesSearch`
+> (`features/product/domain/product_search.dart`), covered by 7 tests. No
+> `isSearchable` flag was added — for simple shops every field is searchable and
+> every choice-list field is filterable, one less thing to configure.
+> **Still deferred:** report **group-by attribute**, product **labels/QR**.
 >
 > **One-line design:** Hybrid — *typed core columns stay fixed; owner-defined
 > descriptive attributes live in a JSON map on the product row, driven by an

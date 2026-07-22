@@ -2918,6 +2918,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Show archived'**
   String get showArchivedFields;
+
+  /// No description provided for @filterProductsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Filter products'**
+  String get filterProductsTitle;
+
+  /// No description provided for @clearFiltersBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all'**
+  String get clearFiltersBtn;
+
+  /// No description provided for @noFilterableFields.
+  ///
+  /// In en, this message translates to:
+  /// **'No filterable fields. Add a choice-list field to filter by it.'**
+  String get noFilterableFields;
 }
 
 class _AppLocalizationsDelegate

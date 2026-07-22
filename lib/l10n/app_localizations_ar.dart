@@ -1483,4 +1483,14 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get showArchivedFields => 'عرض المؤرشفة';
+
+  @override
+  String get filterProductsTitle => 'تصفية المنتجات';
+
+  @override
+  String get clearFiltersBtn => 'مسح الكل';
+
+  @override
+  String get noFilterableFields =>
+      'لا توجد حقول قابلة للتصفية. أضف حقل قائمة خيارات لتصفّي حسبه.';
 }
