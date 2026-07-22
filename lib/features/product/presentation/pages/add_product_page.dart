@@ -64,16 +64,31 @@ class _AddProductPageState extends State<AddProductPage> {
       _formKey.currentState!.save();
 
       final productState = context.read<ProductBloc>().state;
+      final l10n = AppLocalizations.of(context)!;
+
       // Only non-empty barcodes must be unique; many items legitimately have no
       // barcode (loose produce, bakery), so blank barcodes are always allowed.
       final isDuplicate = _barcode.isNotEmpty &&
           productState.products.any((p) => p.barcode == _barcode);
 
       if (isDuplicate) {
-        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.barcodeExistsError),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // Product names must be unique (case-insensitive) so a misread barcode
+      // can't spawn a second "same" product the cashier then can't tell apart.
+      final nameExists = productState.products.any(
+          (p) => p.name.trim().toLowerCase() == _name.trim().toLowerCase());
+      if (nameExists) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.productNameExistsError),
             backgroundColor: Colors.red,
           ),
         );

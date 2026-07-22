@@ -2996,6 +2996,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t print — check the printer connection'**
   String get labelPrintFailed;
+
+  /// No description provided for @unknownBarcodeSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search'**
+  String get unknownBarcodeSearch;
+
+  /// No description provided for @productNameExistsError.
+  ///
+  /// In en, this message translates to:
+  /// **'A product with this name already exists'**
+  String get productNameExistsError;
 }
 
 class _AppLocalizationsDelegate

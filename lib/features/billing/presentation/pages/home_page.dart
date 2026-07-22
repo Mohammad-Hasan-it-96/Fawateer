@@ -280,6 +280,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     content: Row(
                       children: [
                         Expanded(child: Text(l10n.productNotFound(barcode))),
+                        // "Search": a scanner often misreads a digit, so let the
+                        // cashier find the existing product by name instead of
+                        // creating a duplicate. Opens the product picker with the
+                        // search field focused.
+                        TextButton(
+                          onPressed: () {
+                            messenger.hideCurrentSnackBar();
+                            _showProductPicker(context, autofocusSearch: true);
+                          },
+                          style: TextButton.styleFrom(
+                            foregroundColor: Colors.white,
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 8),
+                            minimumSize: const Size(0, 36),
+                          ),
+                          child: Text(l10n.unknownBarcodeSearch),
+                        ),
                         // Explicit dismiss: a wrong barcode read must be
                         // clearable instantly. Without it the only button was
                         // "Add", so a misread of an existing product looked
@@ -297,7 +314,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     ),
                     backgroundColor: Colors.red.shade700,
                     behavior: SnackBarBehavior.floating,
-                    duration: const Duration(seconds: 4),
+                    duration: const Duration(seconds: 6),
                     action: SnackBarAction(
                       label: l10n.unknownBarcodeAdd,
                       textColor: Colors.white,
@@ -1126,7 +1143,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   /// Opens a searchable product grid so the cashier can add items that have
   /// no barcode (or when scanning fails). Pauses the camera while open.
-  Future<void> _showProductPicker(BuildContext context) {
+  Future<void> _showProductPicker(BuildContext context,
+      {bool autofocusSearch = false}) {
     final shopState = context.read<ShopBloc>().state;
     final currency =
         shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
@@ -1140,6 +1158,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           ),
           builder: (_) => _ProductPickerSheet(
             currency: currency,
+            autofocusSearch: autofocusSearch,
             onAdd: (product) async {
               final bloc = context.read<BillingBloc>();
               if (product.saleType.isMeasured) {
@@ -1167,9 +1186,15 @@ class _ProductPickerSheet extends StatefulWidget {
   final String currency;
   final void Function(Product) onAdd;
 
+  /// Open with the search field focused (keyboard up) — used when the picker is
+  /// launched from the "barcode not found → Search" flow, so the cashier can
+  /// immediately type the product name of a misread item.
+  final bool autofocusSearch;
+
   const _ProductPickerSheet({
     required this.currency,
     required this.onAdd,
+    this.autofocusSearch = false,
   });
 
   @override
@@ -1236,7 +1261,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: TextField(
-                  autofocus: false,
+                  autofocus: widget.autofocusSearch,
                   decoration: InputDecoration(
                     hintText: l10n.searchHint,
                     prefixIcon: const Icon(Icons.search),

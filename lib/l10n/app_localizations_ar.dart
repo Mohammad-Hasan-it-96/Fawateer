@@ -1523,4 +1523,10 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get labelPrintFailed => 'تعذّرت الطباعة — تحقّق من اتصال الطابعة';
+
+  @override
+  String get unknownBarcodeSearch => 'بحث';
+
+  @override
+  String get productNameExistsError => 'يوجد منتج بهذا الاسم بالفعل';
 }
