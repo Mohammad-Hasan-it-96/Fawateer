@@ -21,6 +21,11 @@ class Products extends Table {
   // converted to SP at sale time. Stored by name (not index) — unknown/legacy
   // values decode back to 'sp'. Additive: every existing product decodes as SP.
   TextColumn get priceCurrency => text().withDefault(const Constant('sp'))();
+  // Owner-defined custom fields (Plan 010, bucket A) as a JSON object keyed by
+  // AttributeDefinition id: {"<defId>":"<value>"}. '' = no attributes. This is
+  // the source of truth; the hot path (name/price/qty/barcode) never reads it.
+  // Additive: every existing product decodes as empty.
+  TextColumn get attributes => text().withDefault(const Constant(''))();
 
   @override
   Set<Column> get primaryKey => {id};

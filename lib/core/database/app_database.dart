@@ -9,6 +9,7 @@ import 'tables/sales_items_table.dart';
 import 'tables/customers_table.dart';
 import 'tables/ledger_entries_table.dart';
 import 'tables/cashbox_transactions_table.dart';
+import 'tables/attribute_definitions_table.dart';
 
 import 'daos/products_dao.dart';
 import 'daos/shop_dao.dart';
@@ -18,6 +19,7 @@ import 'daos/customers_dao.dart';
 import 'daos/ledger_dao.dart';
 import 'daos/cashbox_dao.dart';
 import 'daos/dashboard_dao.dart';
+import 'daos/attributes_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -31,6 +33,7 @@ part 'app_database.g.dart';
     Customers,
     LedgerEntries,
     CashboxTransactions,
+    AttributeDefinitions,
   ],
   daos: [
     ProductsDao,
@@ -41,13 +44,14 @@ part 'app_database.g.dart';
     LedgerDao,
     CashboxDao,
     DashboardDao,
+    AttributesDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'fawateer'));
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -146,6 +150,16 @@ class AppDatabase extends _$AppDatabase {
         // existing row decodes as "no discount". No table rebuild.
         await migrator.addColumn(salesItems, salesItems.discount);
         await migrator.addColumn(salesInvoices, salesInvoices.invoiceDiscount);
+      }
+      if (from < 13) {
+        // Dynamic product attributes (Plan 010, bucket A). Purely additive:
+        //  - products.attributes: JSON bag of custom field values ('' = none)
+        //  - sales_items.attributes_snapshot: printed attributes frozen at sale
+        //  - attribute_definitions: the owner's custom-field metadata (new table)
+        // No existing table is touched; every existing row decodes as empty.
+        await migrator.addColumn(products, products.attributes);
+        await migrator.addColumn(salesItems, salesItems.attributesSnapshot);
+        await migrator.createTable(attributeDefinitions);
       }
     },
   );

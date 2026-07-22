@@ -13,6 +13,7 @@ import 'features/backup/data/auto_backup_service.dart';
 import 'features/billing/presentation/bloc/billing_bloc.dart';
 import 'features/billing/presentation/bloc/history_bloc.dart';
 import 'features/product/presentation/bloc/product_bloc.dart';
+import 'features/attributes/presentation/bloc/attribute_definition_bloc.dart';
 import 'features/shop/presentation/bloc/shop_bloc.dart';
 import 'features/settings/presentation/bloc/printer_bloc.dart';
 import 'features/settings/presentation/bloc/printer_event.dart';
@@ -195,6 +196,9 @@ class MyApp extends StatelessWidget {
             value: di.sl<LicenseBloc>()..add(CheckLicenseEvent())),
         BlocProvider<ProductBloc>(
             create: (context) => di.sl<ProductBloc>()..add(LoadProducts())),
+        BlocProvider<AttributeDefinitionBloc>(
+            create: (context) => di.sl<AttributeDefinitionBloc>()
+              ..add(const LoadDefinitions())),
         BlocProvider<ShopBloc>(
             create: (context) => di.sl<ShopBloc>()..add(LoadShopEvent())),
         BlocProvider<BillingBloc>(

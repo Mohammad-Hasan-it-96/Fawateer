@@ -12,6 +12,9 @@ import '../widgets/sale_type_selector.dart';
 import '../../domain/entities/price_currency.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/product_sale_type.dart';
+import '../../../attributes/presentation/bloc/attribute_definition_bloc.dart';
+import '../../../attributes/presentation/widgets/attribute_form_fields.dart';
+import '../../../../core/attributes/product_attributes.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
 import '../../../../core/utils/num_input.dart';
@@ -39,6 +42,7 @@ class _AddProductPageState extends State<AddProductPage> {
   double _minStockAlert = 0.0;
   ProductSaleType _saleType = ProductSaleType.piece;
   PriceCurrency _priceCurrency = PriceCurrency.sp;
+  Map<String, String> _attributes = {};
 
   @override
   void initState() {
@@ -86,6 +90,7 @@ class _AddProductPageState extends State<AddProductPage> {
         minStockAlert: _minStockAlert,
         saleType: _saleType,
         priceCurrency: _priceCurrency,
+        attributes: ProductAttributes(_attributes),
       );
 
       context.read<ProductBloc>().add(AddProduct(product));
@@ -244,6 +249,19 @@ class _AddProductPageState extends State<AddProductPage> {
                     onSaved: (value) =>
                         _minStockAlert = NumInput.parseFlexibleNumber(value) ?? 0,
                   ),
+                  // Owner-defined custom fields (Plan 010) — rendered from the
+                  // active definitions; empty for shops that defined none.
+                  Builder(builder: (context) {
+                    final defs = context
+                        .watch<AttributeDefinitionBloc>()
+                        .state
+                        .active;
+                    return AttributeFormFields(
+                      definitions: defs,
+                      initialValues: _attributes,
+                      onChanged: (v) => _attributes = v,
+                    );
+                  }),
                 ],
               ),
             ),

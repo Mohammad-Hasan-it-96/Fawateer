@@ -1403,4 +1403,96 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get alignBarcodeHint => 'Align barcode within frame';
+
+  @override
+  String get productFieldsItem => 'Product fields';
+
+  @override
+  String get productFieldsSubtitle => 'Custom info stored per product';
+
+  @override
+  String get productFieldsTitle => 'Product fields';
+
+  @override
+  String get productFieldsEmpty => 'No custom fields yet';
+
+  @override
+  String get productFieldsEmptyHint =>
+      'Add fields like Color or Storage, or start from a business template.';
+
+  @override
+  String get addFieldBtn => 'Add field';
+
+  @override
+  String get useTemplateBtn => 'Start from a template';
+
+  @override
+  String get chooseBusinessType => 'Choose your business type';
+
+  @override
+  String get templateSeedNote =>
+      'Adds recommended fields. You can edit or remove them anytime.';
+
+  @override
+  String get fieldNameLabel => 'Field name';
+
+  @override
+  String get fieldNameHint => 'e.g. Color, Storage, Warranty';
+
+  @override
+  String get fieldTypeLabel => 'Field type';
+
+  @override
+  String get fieldUnitLabel => 'Unit (optional)';
+
+  @override
+  String get fieldUnitHint => 'e.g. GB, ml, V';
+
+  @override
+  String get fieldOptionsLabel => 'Choices';
+
+  @override
+  String get fieldOptionsHint => 'Separate choices with commas';
+
+  @override
+  String get fieldRequiredLabel => 'Required';
+
+  @override
+  String get fieldShowInListLabel => 'Show in product list';
+
+  @override
+  String get fieldShowOnReceiptLabel => 'Show on receipt';
+
+  @override
+  String get fieldArchiveAction => 'Archive';
+
+  @override
+  String get fieldUnarchiveAction => 'Restore';
+
+  @override
+  String get fieldDeleteAction => 'Delete';
+
+  @override
+  String get fieldArchivedBadge => 'Archived';
+
+  @override
+  String get attrTypeText => 'Text';
+
+  @override
+  String get attrTypeNumber => 'Number';
+
+  @override
+  String get attrTypeSelect => 'Choice list';
+
+  @override
+  String get attrTypeBoolean => 'Yes / No';
+
+  @override
+  String get attrTypeDate => 'Date';
+
+  @override
+  String get templateAppliedMsg => 'Fields added';
+
+  @override
+  String get showArchivedFields => 'Show archived';
 }

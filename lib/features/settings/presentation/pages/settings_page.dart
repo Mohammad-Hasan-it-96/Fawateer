@@ -260,6 +260,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   onTap: () => showExchangeRateSheet(context),
                 ),
                 _buildListItem(
+                  icon: Icons.tune,
+                  title: l10n.productFieldsItem,
+                  subtitle: l10n.productFieldsSubtitle,
+                  onTap: () => context.push('/settings/product-fields'),
+                ),
+                _buildListItem(
                   icon: Icons.savings,
                   title: l10n.cashboxItem,
                   subtitle: l10n.cashboxSubtitle,

@@ -24,5 +24,11 @@ class SalesItems extends Table {
   // entered a % or a fixed value). Snapshotted at sale time like price/cost;
   // line total = price×quantity − discount. Default 0 = no discount.
   RealColumn get discount => real().withDefault(const Constant(0))();
+  // Snapshot of the product's *printed* attributes (showOnReceipt) at sale time,
+  // as a JSON object of resolved label→value pairs (Plan 010). Read on reprint
+  // so a receipt looks identical forever even if the product/definition is later
+  // edited or archived — same discipline as price/cost/fxRate/discount above.
+  // '' = none. Additive default keeps old rows valid.
+  TextColumn get attributesSnapshot => text().withDefault(const Constant(''))();
 }
 

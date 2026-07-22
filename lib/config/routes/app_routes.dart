@@ -28,6 +28,7 @@ import '../../features/product/presentation/pages/edit_product_page.dart';
 import '../../features/product/presentation/pages/product_list_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/shop/presentation/pages/shop_details_page.dart';
+import '../../features/attributes/presentation/pages/attribute_fields_page.dart';
 import '../../features/cashbox/presentation/pages/cashbox_page.dart';
 import '../../features/cashbox/presentation/pages/cashbox_history_page.dart';
 import '../../features/backup/presentation/bloc/backup_bloc.dart';
@@ -216,6 +217,12 @@ final router = GoRouter(
                 GoRoute(
                   path: 'shop',
                   builder: (context, state) => const ShopDetailsPage(),
+                ),
+                // Product fields (Plan 010). AttributeDefinitionBloc is app-wide
+                // (provided in main.dart), so no scoped provider is needed.
+                GoRoute(
+                  path: 'product-fields',
+                  builder: (context, state) => const AttributeFieldsPage(),
                 ),
                 // Cashbox (cash ledger). The CashboxBloc is app-wide (provided
                 // in main.dart), so these routes need no scoped BlocProvider.

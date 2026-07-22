@@ -71,6 +71,14 @@ class $ProductsTable extends Products
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant('sp'));
+  static const VerificationMeta _attributesMeta =
+      const VerificationMeta('attributes');
+  @override
+  late final GeneratedColumn<String> attributes = GeneratedColumn<String>(
+      'attributes', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -81,7 +89,8 @@ class $ProductsTable extends Products
         quantity,
         minStockAlert,
         saleType,
-        priceCurrency
+        priceCurrency,
+        attributes
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -138,6 +147,12 @@ class $ProductsTable extends Products
           priceCurrency.isAcceptableOrUnknown(
               data['price_currency']!, _priceCurrencyMeta));
     }
+    if (data.containsKey('attributes')) {
+      context.handle(
+          _attributesMeta,
+          attributes.isAcceptableOrUnknown(
+              data['attributes']!, _attributesMeta));
+    }
     return context;
   }
 
@@ -165,6 +180,8 @@ class $ProductsTable extends Products
           .read(DriftSqlType.string, data['${effectivePrefix}sale_type'])!,
       priceCurrency: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}price_currency'])!,
+      attributes: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}attributes'])!,
     );
   }
 
@@ -184,6 +201,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
   final double minStockAlert;
   final String saleType;
   final String priceCurrency;
+  final String attributes;
   const ProductRow(
       {required this.id,
       required this.name,
@@ -193,7 +211,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       required this.quantity,
       required this.minStockAlert,
       required this.saleType,
-      required this.priceCurrency});
+      required this.priceCurrency,
+      required this.attributes});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -206,6 +225,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     map['min_stock_alert'] = Variable<double>(minStockAlert);
     map['sale_type'] = Variable<String>(saleType);
     map['price_currency'] = Variable<String>(priceCurrency);
+    map['attributes'] = Variable<String>(attributes);
     return map;
   }
 
@@ -220,6 +240,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       minStockAlert: Value(minStockAlert),
       saleType: Value(saleType),
       priceCurrency: Value(priceCurrency),
+      attributes: Value(attributes),
     );
   }
 
@@ -236,6 +257,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       minStockAlert: serializer.fromJson<double>(json['minStockAlert']),
       saleType: serializer.fromJson<String>(json['saleType']),
       priceCurrency: serializer.fromJson<String>(json['priceCurrency']),
+      attributes: serializer.fromJson<String>(json['attributes']),
     );
   }
   @override
@@ -251,6 +273,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       'minStockAlert': serializer.toJson<double>(minStockAlert),
       'saleType': serializer.toJson<String>(saleType),
       'priceCurrency': serializer.toJson<String>(priceCurrency),
+      'attributes': serializer.toJson<String>(attributes),
     };
   }
 
@@ -263,7 +286,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           double? quantity,
           double? minStockAlert,
           String? saleType,
-          String? priceCurrency}) =>
+          String? priceCurrency,
+          String? attributes}) =>
       ProductRow(
         id: id ?? this.id,
         name: name ?? this.name,
@@ -274,6 +298,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
         minStockAlert: minStockAlert ?? this.minStockAlert,
         saleType: saleType ?? this.saleType,
         priceCurrency: priceCurrency ?? this.priceCurrency,
+        attributes: attributes ?? this.attributes,
       );
   ProductRow copyWithCompanion(ProductsCompanion data) {
     return ProductRow(
@@ -290,6 +315,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       priceCurrency: data.priceCurrency.present
           ? data.priceCurrency.value
           : this.priceCurrency,
+      attributes:
+          data.attributes.present ? data.attributes.value : this.attributes,
     );
   }
 
@@ -304,14 +331,15 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ..write('quantity: $quantity, ')
           ..write('minStockAlert: $minStockAlert, ')
           ..write('saleType: $saleType, ')
-          ..write('priceCurrency: $priceCurrency')
+          ..write('priceCurrency: $priceCurrency, ')
+          ..write('attributes: $attributes')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode => Object.hash(id, name, barcode, price, cost, quantity,
-      minStockAlert, saleType, priceCurrency);
+      minStockAlert, saleType, priceCurrency, attributes);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -324,7 +352,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           other.quantity == this.quantity &&
           other.minStockAlert == this.minStockAlert &&
           other.saleType == this.saleType &&
-          other.priceCurrency == this.priceCurrency);
+          other.priceCurrency == this.priceCurrency &&
+          other.attributes == this.attributes);
 }
 
 class ProductsCompanion extends UpdateCompanion<ProductRow> {
@@ -337,6 +366,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
   final Value<double> minStockAlert;
   final Value<String> saleType;
   final Value<String> priceCurrency;
+  final Value<String> attributes;
   final Value<int> rowid;
   const ProductsCompanion({
     this.id = const Value.absent(),
@@ -348,6 +378,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.minStockAlert = const Value.absent(),
     this.saleType = const Value.absent(),
     this.priceCurrency = const Value.absent(),
+    this.attributes = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProductsCompanion.insert({
@@ -360,6 +391,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.minStockAlert = const Value.absent(),
     this.saleType = const Value.absent(),
     this.priceCurrency = const Value.absent(),
+    this.attributes = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         name = Value(name),
@@ -374,6 +406,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     Expression<double>? minStockAlert,
     Expression<String>? saleType,
     Expression<String>? priceCurrency,
+    Expression<String>? attributes,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -386,6 +419,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       if (minStockAlert != null) 'min_stock_alert': minStockAlert,
       if (saleType != null) 'sale_type': saleType,
       if (priceCurrency != null) 'price_currency': priceCurrency,
+      if (attributes != null) 'attributes': attributes,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -400,6 +434,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       Value<double>? minStockAlert,
       Value<String>? saleType,
       Value<String>? priceCurrency,
+      Value<String>? attributes,
       Value<int>? rowid}) {
     return ProductsCompanion(
       id: id ?? this.id,
@@ -411,6 +446,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       minStockAlert: minStockAlert ?? this.minStockAlert,
       saleType: saleType ?? this.saleType,
       priceCurrency: priceCurrency ?? this.priceCurrency,
+      attributes: attributes ?? this.attributes,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -445,6 +481,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     if (priceCurrency.present) {
       map['price_currency'] = Variable<String>(priceCurrency.value);
     }
+    if (attributes.present) {
+      map['attributes'] = Variable<String>(attributes.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -463,6 +502,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
           ..write('minStockAlert: $minStockAlert, ')
           ..write('saleType: $saleType, ')
           ..write('priceCurrency: $priceCurrency, ')
+          ..write('attributes: $attributes, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1423,6 +1463,14 @@ class $SalesItemsTable extends SalesItems
       type: DriftSqlType.double,
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
+  static const VerificationMeta _attributesSnapshotMeta =
+      const VerificationMeta('attributesSnapshot');
+  @override
+  late final GeneratedColumn<String> attributesSnapshot =
+      GeneratedColumn<String>('attributes_snapshot', aliasedName, false,
+          type: DriftSqlType.string,
+          requiredDuringInsert: false,
+          defaultValue: const Constant(''));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -1435,7 +1483,8 @@ class $SalesItemsTable extends SalesItems
         priceCurrency,
         fxRate,
         priceOriginal,
-        discount
+        discount,
+        attributesSnapshot
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1506,6 +1555,12 @@ class $SalesItemsTable extends SalesItems
       context.handle(_discountMeta,
           discount.isAcceptableOrUnknown(data['discount']!, _discountMeta));
     }
+    if (data.containsKey('attributes_snapshot')) {
+      context.handle(
+          _attributesSnapshotMeta,
+          attributesSnapshot.isAcceptableOrUnknown(
+              data['attributes_snapshot']!, _attributesSnapshotMeta));
+    }
     return context;
   }
 
@@ -1537,6 +1592,8 @@ class $SalesItemsTable extends SalesItems
           .read(DriftSqlType.double, data['${effectivePrefix}price_original'])!,
       discount: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}discount'])!,
+      attributesSnapshot: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}attributes_snapshot'])!,
     );
   }
 
@@ -1558,6 +1615,7 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
   final double fxRate;
   final double priceOriginal;
   final double discount;
+  final String attributesSnapshot;
   const SalesItemRow(
       {required this.id,
       required this.invoiceId,
@@ -1569,7 +1627,8 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       required this.priceCurrency,
       required this.fxRate,
       required this.priceOriginal,
-      required this.discount});
+      required this.discount,
+      required this.attributesSnapshot});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1584,6 +1643,7 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
     map['fx_rate'] = Variable<double>(fxRate);
     map['price_original'] = Variable<double>(priceOriginal);
     map['discount'] = Variable<double>(discount);
+    map['attributes_snapshot'] = Variable<String>(attributesSnapshot);
     return map;
   }
 
@@ -1600,6 +1660,7 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       fxRate: Value(fxRate),
       priceOriginal: Value(priceOriginal),
       discount: Value(discount),
+      attributesSnapshot: Value(attributesSnapshot),
     );
   }
 
@@ -1618,6 +1679,8 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       fxRate: serializer.fromJson<double>(json['fxRate']),
       priceOriginal: serializer.fromJson<double>(json['priceOriginal']),
       discount: serializer.fromJson<double>(json['discount']),
+      attributesSnapshot:
+          serializer.fromJson<String>(json['attributesSnapshot']),
     );
   }
   @override
@@ -1635,6 +1698,7 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       'fxRate': serializer.toJson<double>(fxRate),
       'priceOriginal': serializer.toJson<double>(priceOriginal),
       'discount': serializer.toJson<double>(discount),
+      'attributesSnapshot': serializer.toJson<String>(attributesSnapshot),
     };
   }
 
@@ -1649,7 +1713,8 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
           String? priceCurrency,
           double? fxRate,
           double? priceOriginal,
-          double? discount}) =>
+          double? discount,
+          String? attributesSnapshot}) =>
       SalesItemRow(
         id: id ?? this.id,
         invoiceId: invoiceId ?? this.invoiceId,
@@ -1662,6 +1727,7 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
         fxRate: fxRate ?? this.fxRate,
         priceOriginal: priceOriginal ?? this.priceOriginal,
         discount: discount ?? this.discount,
+        attributesSnapshot: attributesSnapshot ?? this.attributesSnapshot,
       );
   SalesItemRow copyWithCompanion(SalesItemsCompanion data) {
     return SalesItemRow(
@@ -1681,6 +1747,9 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
           ? data.priceOriginal.value
           : this.priceOriginal,
       discount: data.discount.present ? data.discount.value : this.discount,
+      attributesSnapshot: data.attributesSnapshot.present
+          ? data.attributesSnapshot.value
+          : this.attributesSnapshot,
     );
   }
 
@@ -1697,14 +1766,26 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
           ..write('priceCurrency: $priceCurrency, ')
           ..write('fxRate: $fxRate, ')
           ..write('priceOriginal: $priceOriginal, ')
-          ..write('discount: $discount')
+          ..write('discount: $discount, ')
+          ..write('attributesSnapshot: $attributesSnapshot')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, invoiceId, productId, productName, price,
-      cost, quantity, priceCurrency, fxRate, priceOriginal, discount);
+  int get hashCode => Object.hash(
+      id,
+      invoiceId,
+      productId,
+      productName,
+      price,
+      cost,
+      quantity,
+      priceCurrency,
+      fxRate,
+      priceOriginal,
+      discount,
+      attributesSnapshot);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1719,7 +1800,8 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
           other.priceCurrency == this.priceCurrency &&
           other.fxRate == this.fxRate &&
           other.priceOriginal == this.priceOriginal &&
-          other.discount == this.discount);
+          other.discount == this.discount &&
+          other.attributesSnapshot == this.attributesSnapshot);
 }
 
 class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
@@ -1734,6 +1816,7 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
   final Value<double> fxRate;
   final Value<double> priceOriginal;
   final Value<double> discount;
+  final Value<String> attributesSnapshot;
   const SalesItemsCompanion({
     this.id = const Value.absent(),
     this.invoiceId = const Value.absent(),
@@ -1746,6 +1829,7 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
     this.fxRate = const Value.absent(),
     this.priceOriginal = const Value.absent(),
     this.discount = const Value.absent(),
+    this.attributesSnapshot = const Value.absent(),
   });
   SalesItemsCompanion.insert({
     this.id = const Value.absent(),
@@ -1759,6 +1843,7 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
     this.fxRate = const Value.absent(),
     this.priceOriginal = const Value.absent(),
     this.discount = const Value.absent(),
+    this.attributesSnapshot = const Value.absent(),
   })  : invoiceId = Value(invoiceId),
         productId = Value(productId),
         productName = Value(productName),
@@ -1776,6 +1861,7 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
     Expression<double>? fxRate,
     Expression<double>? priceOriginal,
     Expression<double>? discount,
+    Expression<String>? attributesSnapshot,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1789,6 +1875,7 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
       if (fxRate != null) 'fx_rate': fxRate,
       if (priceOriginal != null) 'price_original': priceOriginal,
       if (discount != null) 'discount': discount,
+      if (attributesSnapshot != null) 'attributes_snapshot': attributesSnapshot,
     });
   }
 
@@ -1803,7 +1890,8 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
       Value<String>? priceCurrency,
       Value<double>? fxRate,
       Value<double>? priceOriginal,
-      Value<double>? discount}) {
+      Value<double>? discount,
+      Value<String>? attributesSnapshot}) {
     return SalesItemsCompanion(
       id: id ?? this.id,
       invoiceId: invoiceId ?? this.invoiceId,
@@ -1816,6 +1904,7 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
       fxRate: fxRate ?? this.fxRate,
       priceOriginal: priceOriginal ?? this.priceOriginal,
       discount: discount ?? this.discount,
+      attributesSnapshot: attributesSnapshot ?? this.attributesSnapshot,
     );
   }
 
@@ -1855,6 +1944,9 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
     if (discount.present) {
       map['discount'] = Variable<double>(discount.value);
     }
+    if (attributesSnapshot.present) {
+      map['attributes_snapshot'] = Variable<String>(attributesSnapshot.value);
+    }
     return map;
   }
 
@@ -1871,7 +1963,8 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
           ..write('priceCurrency: $priceCurrency, ')
           ..write('fxRate: $fxRate, ')
           ..write('priceOriginal: $priceOriginal, ')
-          ..write('discount: $discount')
+          ..write('discount: $discount, ')
+          ..write('attributesSnapshot: $attributesSnapshot')
           ..write(')'))
         .toString();
   }
@@ -3021,6 +3114,524 @@ class CashboxTransactionsCompanion
   }
 }
 
+class $AttributeDefinitionsTable extends AttributeDefinitions
+    with TableInfo<$AttributeDefinitionsTable, AttributeDefinitionRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AttributeDefinitionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _labelMeta = const VerificationMeta('label');
+  @override
+  late final GeneratedColumn<String> label = GeneratedColumn<String>(
+      'label', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _typeMeta = const VerificationMeta('type');
+  @override
+  late final GeneratedColumn<String> type = GeneratedColumn<String>(
+      'type', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('text'));
+  static const VerificationMeta _optionsMeta =
+      const VerificationMeta('options');
+  @override
+  late final GeneratedColumn<String> options = GeneratedColumn<String>(
+      'options', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _unitMeta = const VerificationMeta('unit');
+  @override
+  late final GeneratedColumn<String> unit = GeneratedColumn<String>(
+      'unit', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _isRequiredMeta =
+      const VerificationMeta('isRequired');
+  @override
+  late final GeneratedColumn<bool> isRequired = GeneratedColumn<bool>(
+      'is_required', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_required" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _showInListMeta =
+      const VerificationMeta('showInList');
+  @override
+  late final GeneratedColumn<bool> showInList = GeneratedColumn<bool>(
+      'show_in_list', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("show_in_list" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _showOnReceiptMeta =
+      const VerificationMeta('showOnReceipt');
+  @override
+  late final GeneratedColumn<bool> showOnReceipt = GeneratedColumn<bool>(
+      'show_on_receipt', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("show_on_receipt" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  static const VerificationMeta _sortOrderMeta =
+      const VerificationMeta('sortOrder');
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+      'sort_order', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _isArchivedMeta =
+      const VerificationMeta('isArchived');
+  @override
+  late final GeneratedColumn<bool> isArchived = GeneratedColumn<bool>(
+      'is_archived', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints:
+          GeneratedColumn.constraintIsAlways('CHECK ("is_archived" IN (0, 1))'),
+      defaultValue: const Constant(false));
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        label,
+        type,
+        options,
+        unit,
+        isRequired,
+        showInList,
+        showOnReceipt,
+        sortOrder,
+        isArchived
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'attribute_definitions';
+  @override
+  VerificationContext validateIntegrity(
+      Insertable<AttributeDefinitionRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('label')) {
+      context.handle(
+          _labelMeta, label.isAcceptableOrUnknown(data['label']!, _labelMeta));
+    } else if (isInserting) {
+      context.missing(_labelMeta);
+    }
+    if (data.containsKey('type')) {
+      context.handle(
+          _typeMeta, type.isAcceptableOrUnknown(data['type']!, _typeMeta));
+    }
+    if (data.containsKey('options')) {
+      context.handle(_optionsMeta,
+          options.isAcceptableOrUnknown(data['options']!, _optionsMeta));
+    }
+    if (data.containsKey('unit')) {
+      context.handle(
+          _unitMeta, unit.isAcceptableOrUnknown(data['unit']!, _unitMeta));
+    }
+    if (data.containsKey('is_required')) {
+      context.handle(
+          _isRequiredMeta,
+          isRequired.isAcceptableOrUnknown(
+              data['is_required']!, _isRequiredMeta));
+    }
+    if (data.containsKey('show_in_list')) {
+      context.handle(
+          _showInListMeta,
+          showInList.isAcceptableOrUnknown(
+              data['show_in_list']!, _showInListMeta));
+    }
+    if (data.containsKey('show_on_receipt')) {
+      context.handle(
+          _showOnReceiptMeta,
+          showOnReceipt.isAcceptableOrUnknown(
+              data['show_on_receipt']!, _showOnReceiptMeta));
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(_sortOrderMeta,
+          sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta));
+    }
+    if (data.containsKey('is_archived')) {
+      context.handle(
+          _isArchivedMeta,
+          isArchived.isAcceptableOrUnknown(
+              data['is_archived']!, _isArchivedMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AttributeDefinitionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AttributeDefinitionRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      label: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}label'])!,
+      type: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}type'])!,
+      options: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}options'])!,
+      unit: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}unit'])!,
+      isRequired: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_required'])!,
+      showInList: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}show_in_list'])!,
+      showOnReceipt: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}show_on_receipt'])!,
+      sortOrder: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}sort_order'])!,
+      isArchived: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_archived'])!,
+    );
+  }
+
+  @override
+  $AttributeDefinitionsTable createAlias(String alias) {
+    return $AttributeDefinitionsTable(attachedDatabase, alias);
+  }
+}
+
+class AttributeDefinitionRow extends DataClass
+    implements Insertable<AttributeDefinitionRow> {
+  final String id;
+  final String label;
+  final String type;
+  final String options;
+  final String unit;
+  final bool isRequired;
+  final bool showInList;
+  final bool showOnReceipt;
+  final int sortOrder;
+  final bool isArchived;
+  const AttributeDefinitionRow(
+      {required this.id,
+      required this.label,
+      required this.type,
+      required this.options,
+      required this.unit,
+      required this.isRequired,
+      required this.showInList,
+      required this.showOnReceipt,
+      required this.sortOrder,
+      required this.isArchived});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['label'] = Variable<String>(label);
+    map['type'] = Variable<String>(type);
+    map['options'] = Variable<String>(options);
+    map['unit'] = Variable<String>(unit);
+    map['is_required'] = Variable<bool>(isRequired);
+    map['show_in_list'] = Variable<bool>(showInList);
+    map['show_on_receipt'] = Variable<bool>(showOnReceipt);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['is_archived'] = Variable<bool>(isArchived);
+    return map;
+  }
+
+  AttributeDefinitionsCompanion toCompanion(bool nullToAbsent) {
+    return AttributeDefinitionsCompanion(
+      id: Value(id),
+      label: Value(label),
+      type: Value(type),
+      options: Value(options),
+      unit: Value(unit),
+      isRequired: Value(isRequired),
+      showInList: Value(showInList),
+      showOnReceipt: Value(showOnReceipt),
+      sortOrder: Value(sortOrder),
+      isArchived: Value(isArchived),
+    );
+  }
+
+  factory AttributeDefinitionRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AttributeDefinitionRow(
+      id: serializer.fromJson<String>(json['id']),
+      label: serializer.fromJson<String>(json['label']),
+      type: serializer.fromJson<String>(json['type']),
+      options: serializer.fromJson<String>(json['options']),
+      unit: serializer.fromJson<String>(json['unit']),
+      isRequired: serializer.fromJson<bool>(json['isRequired']),
+      showInList: serializer.fromJson<bool>(json['showInList']),
+      showOnReceipt: serializer.fromJson<bool>(json['showOnReceipt']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      isArchived: serializer.fromJson<bool>(json['isArchived']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'label': serializer.toJson<String>(label),
+      'type': serializer.toJson<String>(type),
+      'options': serializer.toJson<String>(options),
+      'unit': serializer.toJson<String>(unit),
+      'isRequired': serializer.toJson<bool>(isRequired),
+      'showInList': serializer.toJson<bool>(showInList),
+      'showOnReceipt': serializer.toJson<bool>(showOnReceipt),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'isArchived': serializer.toJson<bool>(isArchived),
+    };
+  }
+
+  AttributeDefinitionRow copyWith(
+          {String? id,
+          String? label,
+          String? type,
+          String? options,
+          String? unit,
+          bool? isRequired,
+          bool? showInList,
+          bool? showOnReceipt,
+          int? sortOrder,
+          bool? isArchived}) =>
+      AttributeDefinitionRow(
+        id: id ?? this.id,
+        label: label ?? this.label,
+        type: type ?? this.type,
+        options: options ?? this.options,
+        unit: unit ?? this.unit,
+        isRequired: isRequired ?? this.isRequired,
+        showInList: showInList ?? this.showInList,
+        showOnReceipt: showOnReceipt ?? this.showOnReceipt,
+        sortOrder: sortOrder ?? this.sortOrder,
+        isArchived: isArchived ?? this.isArchived,
+      );
+  AttributeDefinitionRow copyWithCompanion(AttributeDefinitionsCompanion data) {
+    return AttributeDefinitionRow(
+      id: data.id.present ? data.id.value : this.id,
+      label: data.label.present ? data.label.value : this.label,
+      type: data.type.present ? data.type.value : this.type,
+      options: data.options.present ? data.options.value : this.options,
+      unit: data.unit.present ? data.unit.value : this.unit,
+      isRequired:
+          data.isRequired.present ? data.isRequired.value : this.isRequired,
+      showInList:
+          data.showInList.present ? data.showInList.value : this.showInList,
+      showOnReceipt: data.showOnReceipt.present
+          ? data.showOnReceipt.value
+          : this.showOnReceipt,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      isArchived:
+          data.isArchived.present ? data.isArchived.value : this.isArchived,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttributeDefinitionRow(')
+          ..write('id: $id, ')
+          ..write('label: $label, ')
+          ..write('type: $type, ')
+          ..write('options: $options, ')
+          ..write('unit: $unit, ')
+          ..write('isRequired: $isRequired, ')
+          ..write('showInList: $showInList, ')
+          ..write('showOnReceipt: $showOnReceipt, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isArchived: $isArchived')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, label, type, options, unit, isRequired,
+      showInList, showOnReceipt, sortOrder, isArchived);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AttributeDefinitionRow &&
+          other.id == this.id &&
+          other.label == this.label &&
+          other.type == this.type &&
+          other.options == this.options &&
+          other.unit == this.unit &&
+          other.isRequired == this.isRequired &&
+          other.showInList == this.showInList &&
+          other.showOnReceipt == this.showOnReceipt &&
+          other.sortOrder == this.sortOrder &&
+          other.isArchived == this.isArchived);
+}
+
+class AttributeDefinitionsCompanion
+    extends UpdateCompanion<AttributeDefinitionRow> {
+  final Value<String> id;
+  final Value<String> label;
+  final Value<String> type;
+  final Value<String> options;
+  final Value<String> unit;
+  final Value<bool> isRequired;
+  final Value<bool> showInList;
+  final Value<bool> showOnReceipt;
+  final Value<int> sortOrder;
+  final Value<bool> isArchived;
+  final Value<int> rowid;
+  const AttributeDefinitionsCompanion({
+    this.id = const Value.absent(),
+    this.label = const Value.absent(),
+    this.type = const Value.absent(),
+    this.options = const Value.absent(),
+    this.unit = const Value.absent(),
+    this.isRequired = const Value.absent(),
+    this.showInList = const Value.absent(),
+    this.showOnReceipt = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.isArchived = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AttributeDefinitionsCompanion.insert({
+    required String id,
+    required String label,
+    this.type = const Value.absent(),
+    this.options = const Value.absent(),
+    this.unit = const Value.absent(),
+    this.isRequired = const Value.absent(),
+    this.showInList = const Value.absent(),
+    this.showOnReceipt = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.isArchived = const Value.absent(),
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        label = Value(label);
+  static Insertable<AttributeDefinitionRow> custom({
+    Expression<String>? id,
+    Expression<String>? label,
+    Expression<String>? type,
+    Expression<String>? options,
+    Expression<String>? unit,
+    Expression<bool>? isRequired,
+    Expression<bool>? showInList,
+    Expression<bool>? showOnReceipt,
+    Expression<int>? sortOrder,
+    Expression<bool>? isArchived,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (label != null) 'label': label,
+      if (type != null) 'type': type,
+      if (options != null) 'options': options,
+      if (unit != null) 'unit': unit,
+      if (isRequired != null) 'is_required': isRequired,
+      if (showInList != null) 'show_in_list': showInList,
+      if (showOnReceipt != null) 'show_on_receipt': showOnReceipt,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (isArchived != null) 'is_archived': isArchived,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AttributeDefinitionsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? label,
+      Value<String>? type,
+      Value<String>? options,
+      Value<String>? unit,
+      Value<bool>? isRequired,
+      Value<bool>? showInList,
+      Value<bool>? showOnReceipt,
+      Value<int>? sortOrder,
+      Value<bool>? isArchived,
+      Value<int>? rowid}) {
+    return AttributeDefinitionsCompanion(
+      id: id ?? this.id,
+      label: label ?? this.label,
+      type: type ?? this.type,
+      options: options ?? this.options,
+      unit: unit ?? this.unit,
+      isRequired: isRequired ?? this.isRequired,
+      showInList: showInList ?? this.showInList,
+      showOnReceipt: showOnReceipt ?? this.showOnReceipt,
+      sortOrder: sortOrder ?? this.sortOrder,
+      isArchived: isArchived ?? this.isArchived,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (label.present) {
+      map['label'] = Variable<String>(label.value);
+    }
+    if (type.present) {
+      map['type'] = Variable<String>(type.value);
+    }
+    if (options.present) {
+      map['options'] = Variable<String>(options.value);
+    }
+    if (unit.present) {
+      map['unit'] = Variable<String>(unit.value);
+    }
+    if (isRequired.present) {
+      map['is_required'] = Variable<bool>(isRequired.value);
+    }
+    if (showInList.present) {
+      map['show_in_list'] = Variable<bool>(showInList.value);
+    }
+    if (showOnReceipt.present) {
+      map['show_on_receipt'] = Variable<bool>(showOnReceipt.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (isArchived.present) {
+      map['is_archived'] = Variable<bool>(isArchived.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AttributeDefinitionsCompanion(')
+          ..write('id: $id, ')
+          ..write('label: $label, ')
+          ..write('type: $type, ')
+          ..write('options: $options, ')
+          ..write('unit: $unit, ')
+          ..write('isRequired: $isRequired, ')
+          ..write('showInList: $showInList, ')
+          ..write('showOnReceipt: $showOnReceipt, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('isArchived: $isArchived, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3033,6 +3644,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $LedgerEntriesTable ledgerEntries = $LedgerEntriesTable(this);
   late final $CashboxTransactionsTable cashboxTransactions =
       $CashboxTransactionsTable(this);
+  late final $AttributeDefinitionsTable attributeDefinitions =
+      $AttributeDefinitionsTable(this);
   late final ProductsDao productsDao = ProductsDao(this as AppDatabase);
   late final ShopDao shopDao = ShopDao(this as AppDatabase);
   late final SettingsDao settingsDao = SettingsDao(this as AppDatabase);
@@ -3041,6 +3654,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final LedgerDao ledgerDao = LedgerDao(this as AppDatabase);
   late final CashboxDao cashboxDao = CashboxDao(this as AppDatabase);
   late final DashboardDao dashboardDao = DashboardDao(this as AppDatabase);
+  late final AttributesDao attributesDao = AttributesDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3053,7 +3667,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         salesItems,
         customers,
         ledgerEntries,
-        cashboxTransactions
+        cashboxTransactions,
+        attributeDefinitions
       ];
 }
 
@@ -3067,6 +3682,7 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   Value<double> minStockAlert,
   Value<String> saleType,
   Value<String> priceCurrency,
+  Value<String> attributes,
   Value<int> rowid,
 });
 typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
@@ -3079,6 +3695,7 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<double> minStockAlert,
   Value<String> saleType,
   Value<String> priceCurrency,
+  Value<String> attributes,
   Value<int> rowid,
 });
 
@@ -3117,6 +3734,9 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<String> get priceCurrency => $composableBuilder(
       column: $table.priceCurrency, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get attributes => $composableBuilder(
+      column: $table.attributes, builder: (column) => ColumnFilters(column));
 }
 
 class $$ProductsTableOrderingComposer
@@ -3156,6 +3776,9 @@ class $$ProductsTableOrderingComposer
   ColumnOrderings<String> get priceCurrency => $composableBuilder(
       column: $table.priceCurrency,
       builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get attributes => $composableBuilder(
+      column: $table.attributes, builder: (column) => ColumnOrderings(column));
 }
 
 class $$ProductsTableAnnotationComposer
@@ -3193,6 +3816,9 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<String> get priceCurrency => $composableBuilder(
       column: $table.priceCurrency, builder: (column) => column);
+
+  GeneratedColumn<String> get attributes => $composableBuilder(
+      column: $table.attributes, builder: (column) => column);
 }
 
 class $$ProductsTableTableManager extends RootTableManager<
@@ -3227,6 +3853,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<double> minStockAlert = const Value.absent(),
             Value<String> saleType = const Value.absent(),
             Value<String> priceCurrency = const Value.absent(),
+            Value<String> attributes = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               ProductsCompanion(
@@ -3239,6 +3866,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             minStockAlert: minStockAlert,
             saleType: saleType,
             priceCurrency: priceCurrency,
+            attributes: attributes,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -3251,6 +3879,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<double> minStockAlert = const Value.absent(),
             Value<String> saleType = const Value.absent(),
             Value<String> priceCurrency = const Value.absent(),
+            Value<String> attributes = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               ProductsCompanion.insert(
@@ -3263,6 +3892,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             minStockAlert: minStockAlert,
             saleType: saleType,
             priceCurrency: priceCurrency,
+            attributes: attributes,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -3779,6 +4409,7 @@ typedef $$SalesItemsTableCreateCompanionBuilder = SalesItemsCompanion Function({
   Value<double> fxRate,
   Value<double> priceOriginal,
   Value<double> discount,
+  Value<String> attributesSnapshot,
 });
 typedef $$SalesItemsTableUpdateCompanionBuilder = SalesItemsCompanion Function({
   Value<int> id,
@@ -3792,6 +4423,7 @@ typedef $$SalesItemsTableUpdateCompanionBuilder = SalesItemsCompanion Function({
   Value<double> fxRate,
   Value<double> priceOriginal,
   Value<double> discount,
+  Value<String> attributesSnapshot,
 });
 
 class $$SalesItemsTableFilterComposer
@@ -3835,6 +4467,10 @@ class $$SalesItemsTableFilterComposer
 
   ColumnFilters<double> get discount => $composableBuilder(
       column: $table.discount, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get attributesSnapshot => $composableBuilder(
+      column: $table.attributesSnapshot,
+      builder: (column) => ColumnFilters(column));
 }
 
 class $$SalesItemsTableOrderingComposer
@@ -3880,6 +4516,10 @@ class $$SalesItemsTableOrderingComposer
 
   ColumnOrderings<double> get discount => $composableBuilder(
       column: $table.discount, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get attributesSnapshot => $composableBuilder(
+      column: $table.attributesSnapshot,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$SalesItemsTableAnnotationComposer
@@ -3923,6 +4563,9 @@ class $$SalesItemsTableAnnotationComposer
 
   GeneratedColumn<double> get discount =>
       $composableBuilder(column: $table.discount, builder: (column) => column);
+
+  GeneratedColumn<String> get attributesSnapshot => $composableBuilder(
+      column: $table.attributesSnapshot, builder: (column) => column);
 }
 
 class $$SalesItemsTableTableManager extends RootTableManager<
@@ -3962,6 +4605,7 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             Value<double> fxRate = const Value.absent(),
             Value<double> priceOriginal = const Value.absent(),
             Value<double> discount = const Value.absent(),
+            Value<String> attributesSnapshot = const Value.absent(),
           }) =>
               SalesItemsCompanion(
             id: id,
@@ -3975,6 +4619,7 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             fxRate: fxRate,
             priceOriginal: priceOriginal,
             discount: discount,
+            attributesSnapshot: attributesSnapshot,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -3988,6 +4633,7 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             Value<double> fxRate = const Value.absent(),
             Value<double> priceOriginal = const Value.absent(),
             Value<double> discount = const Value.absent(),
+            Value<String> attributesSnapshot = const Value.absent(),
           }) =>
               SalesItemsCompanion.insert(
             id: id,
@@ -4001,6 +4647,7 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             fxRate: fxRate,
             priceOriginal: priceOriginal,
             discount: discount,
+            attributesSnapshot: attributesSnapshot,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -4615,6 +5262,261 @@ typedef $$CashboxTransactionsTableProcessedTableManager = ProcessedTableManager<
     ),
     CashboxTransactionRow,
     PrefetchHooks Function()>;
+typedef $$AttributeDefinitionsTableCreateCompanionBuilder
+    = AttributeDefinitionsCompanion Function({
+  required String id,
+  required String label,
+  Value<String> type,
+  Value<String> options,
+  Value<String> unit,
+  Value<bool> isRequired,
+  Value<bool> showInList,
+  Value<bool> showOnReceipt,
+  Value<int> sortOrder,
+  Value<bool> isArchived,
+  Value<int> rowid,
+});
+typedef $$AttributeDefinitionsTableUpdateCompanionBuilder
+    = AttributeDefinitionsCompanion Function({
+  Value<String> id,
+  Value<String> label,
+  Value<String> type,
+  Value<String> options,
+  Value<String> unit,
+  Value<bool> isRequired,
+  Value<bool> showInList,
+  Value<bool> showOnReceipt,
+  Value<int> sortOrder,
+  Value<bool> isArchived,
+  Value<int> rowid,
+});
+
+class $$AttributeDefinitionsTableFilterComposer
+    extends Composer<_$AppDatabase, $AttributeDefinitionsTable> {
+  $$AttributeDefinitionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get label => $composableBuilder(
+      column: $table.label, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get type => $composableBuilder(
+      column: $table.type, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get options => $composableBuilder(
+      column: $table.options, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get unit => $composableBuilder(
+      column: $table.unit, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isRequired => $composableBuilder(
+      column: $table.isRequired, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get showInList => $composableBuilder(
+      column: $table.showInList, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get showOnReceipt => $composableBuilder(
+      column: $table.showOnReceipt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isArchived => $composableBuilder(
+      column: $table.isArchived, builder: (column) => ColumnFilters(column));
+}
+
+class $$AttributeDefinitionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $AttributeDefinitionsTable> {
+  $$AttributeDefinitionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get label => $composableBuilder(
+      column: $table.label, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get type => $composableBuilder(
+      column: $table.type, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get options => $composableBuilder(
+      column: $table.options, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get unit => $composableBuilder(
+      column: $table.unit, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isRequired => $composableBuilder(
+      column: $table.isRequired, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get showInList => $composableBuilder(
+      column: $table.showInList, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get showOnReceipt => $composableBuilder(
+      column: $table.showOnReceipt,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+      column: $table.sortOrder, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isArchived => $composableBuilder(
+      column: $table.isArchived, builder: (column) => ColumnOrderings(column));
+}
+
+class $$AttributeDefinitionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $AttributeDefinitionsTable> {
+  $$AttributeDefinitionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get label =>
+      $composableBuilder(column: $table.label, builder: (column) => column);
+
+  GeneratedColumn<String> get type =>
+      $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get options =>
+      $composableBuilder(column: $table.options, builder: (column) => column);
+
+  GeneratedColumn<String> get unit =>
+      $composableBuilder(column: $table.unit, builder: (column) => column);
+
+  GeneratedColumn<bool> get isRequired => $composableBuilder(
+      column: $table.isRequired, builder: (column) => column);
+
+  GeneratedColumn<bool> get showInList => $composableBuilder(
+      column: $table.showInList, builder: (column) => column);
+
+  GeneratedColumn<bool> get showOnReceipt => $composableBuilder(
+      column: $table.showOnReceipt, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<bool> get isArchived => $composableBuilder(
+      column: $table.isArchived, builder: (column) => column);
+}
+
+class $$AttributeDefinitionsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $AttributeDefinitionsTable,
+    AttributeDefinitionRow,
+    $$AttributeDefinitionsTableFilterComposer,
+    $$AttributeDefinitionsTableOrderingComposer,
+    $$AttributeDefinitionsTableAnnotationComposer,
+    $$AttributeDefinitionsTableCreateCompanionBuilder,
+    $$AttributeDefinitionsTableUpdateCompanionBuilder,
+    (
+      AttributeDefinitionRow,
+      BaseReferences<_$AppDatabase, $AttributeDefinitionsTable,
+          AttributeDefinitionRow>
+    ),
+    AttributeDefinitionRow,
+    PrefetchHooks Function()> {
+  $$AttributeDefinitionsTableTableManager(
+      _$AppDatabase db, $AttributeDefinitionsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AttributeDefinitionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AttributeDefinitionsTableOrderingComposer(
+                  $db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AttributeDefinitionsTableAnnotationComposer(
+                  $db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> label = const Value.absent(),
+            Value<String> type = const Value.absent(),
+            Value<String> options = const Value.absent(),
+            Value<String> unit = const Value.absent(),
+            Value<bool> isRequired = const Value.absent(),
+            Value<bool> showInList = const Value.absent(),
+            Value<bool> showOnReceipt = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
+            Value<bool> isArchived = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              AttributeDefinitionsCompanion(
+            id: id,
+            label: label,
+            type: type,
+            options: options,
+            unit: unit,
+            isRequired: isRequired,
+            showInList: showInList,
+            showOnReceipt: showOnReceipt,
+            sortOrder: sortOrder,
+            isArchived: isArchived,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String label,
+            Value<String> type = const Value.absent(),
+            Value<String> options = const Value.absent(),
+            Value<String> unit = const Value.absent(),
+            Value<bool> isRequired = const Value.absent(),
+            Value<bool> showInList = const Value.absent(),
+            Value<bool> showOnReceipt = const Value.absent(),
+            Value<int> sortOrder = const Value.absent(),
+            Value<bool> isArchived = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              AttributeDefinitionsCompanion.insert(
+            id: id,
+            label: label,
+            type: type,
+            options: options,
+            unit: unit,
+            isRequired: isRequired,
+            showInList: showInList,
+            showOnReceipt: showOnReceipt,
+            sortOrder: sortOrder,
+            isArchived: isArchived,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$AttributeDefinitionsTableProcessedTableManager
+    = ProcessedTableManager<
+        _$AppDatabase,
+        $AttributeDefinitionsTable,
+        AttributeDefinitionRow,
+        $$AttributeDefinitionsTableFilterComposer,
+        $$AttributeDefinitionsTableOrderingComposer,
+        $$AttributeDefinitionsTableAnnotationComposer,
+        $$AttributeDefinitionsTableCreateCompanionBuilder,
+        $$AttributeDefinitionsTableUpdateCompanionBuilder,
+        (
+          AttributeDefinitionRow,
+          BaseReferences<_$AppDatabase, $AttributeDefinitionsTable,
+              AttributeDefinitionRow>
+        ),
+        AttributeDefinitionRow,
+        PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -4635,4 +5537,6 @@ class $AppDatabaseManager {
       $$LedgerEntriesTableTableManager(_db, _db.ledgerEntries);
   $$CashboxTransactionsTableTableManager get cashboxTransactions =>
       $$CashboxTransactionsTableTableManager(_db, _db.cashboxTransactions);
+  $$AttributeDefinitionsTableTableManager get attributeDefinitions =>
+      $$AttributeDefinitionsTableTableManager(_db, _db.attributeDefinitions);
 }

@@ -7,6 +7,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
 import '../../../../core/utils/format.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
+import '../../../attributes/presentation/bloc/attribute_definition_bloc.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class ProductListPage extends StatefulWidget {
@@ -222,6 +223,34 @@ class _ProductListPageState extends State<ProductListPage> {
                                         color: Theme.of(context)
                                             .colorScheme
                                             .onSurfaceVariant),
+                                  );
+                                }),
+                                Builder(builder: (context) {
+                                  // Custom-field subtitle (Plan 010): only the
+                                  // fields the owner flagged showInList, with a
+                                  // value on this product.
+                                  final defs = context
+                                      .watch<AttributeDefinitionBloc>()
+                                      .state
+                                      .active
+                                      .where((d) => d.showInList);
+                                  final bits = <String>[];
+                                  for (final d in defs) {
+                                    final v = product.attributes[d.id];
+                                    if (v == null || v.isEmpty) continue;
+                                    bits.add(d.unit.isEmpty ? v : '$v ${d.unit}');
+                                  }
+                                  if (bits.isEmpty) return const SizedBox.shrink();
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      bits.join(' · '),
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant),
+                                    ),
                                   );
                                 }),
                                 if (product.minStockAlert > 0 ||

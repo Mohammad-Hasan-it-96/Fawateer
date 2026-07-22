@@ -10,6 +10,7 @@ import 'database/daos/customers_dao.dart';
 import 'database/daos/ledger_dao.dart';
 import 'database/daos/cashbox_dao.dart';
 import 'database/daos/dashboard_dao.dart';
+import 'database/daos/attributes_dao.dart';
 
 // Core — Network
 import 'network/api_client.dart';
@@ -17,6 +18,11 @@ import 'config/remote_config_service.dart';
 import 'currency/exchange_rate_service.dart';
 import 'settings/inventory_settings_service.dart';
 import 'theme/theme_controller.dart';
+
+// Features — Attributes (dynamic product fields, Plan 010)
+import '../features/attributes/data/repositories/attribute_definition_repository_drift_impl.dart';
+import '../features/attributes/domain/repositories/attribute_definition_repository.dart';
+import '../features/attributes/presentation/bloc/attribute_definition_bloc.dart';
 
 // Features — Ledger (customers & debts)
 import '../features/ledger/data/repositories/customer_repository_drift_impl.dart';
@@ -93,6 +99,7 @@ Future<void> init() async {
   sl.registerLazySingleton<LedgerDao>(() => LedgerDao(sl()));
   sl.registerLazySingleton<CashboxDao>(() => CashboxDao(sl()));
   sl.registerLazySingleton<DashboardDao>(() => DashboardDao(sl()));
+  sl.registerLazySingleton<AttributesDao>(() => AttributesDao(sl()));
 
   // ── Services ─────────────────────────────────────────────────────────────
   sl.registerLazySingleton<ExchangeRateService>(
@@ -121,6 +128,8 @@ Future<void> init() async {
       () => CashboxRepositoryDriftImpl(sl()));
   sl.registerLazySingleton<DashboardRepository>(
       () => DashboardRepositoryDriftImpl(sl<DashboardDao>()));
+  sl.registerLazySingleton<AttributeDefinitionRepository>(
+      () => AttributeDefinitionRepositoryDriftImpl(sl<AttributesDao>()));
 
   // ── Backup (Drift snapshot + Google Drive target) ────────────────────────
   sl.registerLazySingleton<BackupEngine>(() => BackupEngine(sl(), sl()));
@@ -151,6 +160,8 @@ Future<void> init() async {
 
   // ── BLoCs ─────────────────────────────────────────────────────────────────
   sl.registerFactory(() => ProductBloc(repository: sl()));
+  sl.registerFactory(
+      () => AttributeDefinitionBloc(repository: sl<AttributeDefinitionRepository>()));
 
   sl.registerFactory(() => ShopBloc(repository: sl()));
 

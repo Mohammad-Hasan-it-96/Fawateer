@@ -2738,6 +2738,186 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Align barcode within frame'**
   String get alignBarcodeHint;
+
+  /// No description provided for @productFieldsItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Product fields'**
+  String get productFieldsItem;
+
+  /// No description provided for @productFieldsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom info stored per product'**
+  String get productFieldsSubtitle;
+
+  /// No description provided for @productFieldsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Product fields'**
+  String get productFieldsTitle;
+
+  /// No description provided for @productFieldsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No custom fields yet'**
+  String get productFieldsEmpty;
+
+  /// No description provided for @productFieldsEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add fields like Color or Storage, or start from a business template.'**
+  String get productFieldsEmptyHint;
+
+  /// No description provided for @addFieldBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Add field'**
+  String get addFieldBtn;
+
+  /// No description provided for @useTemplateBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Start from a template'**
+  String get useTemplateBtn;
+
+  /// No description provided for @chooseBusinessType.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose your business type'**
+  String get chooseBusinessType;
+
+  /// No description provided for @templateSeedNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Adds recommended fields. You can edit or remove them anytime.'**
+  String get templateSeedNote;
+
+  /// No description provided for @fieldNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Field name'**
+  String get fieldNameLabel;
+
+  /// No description provided for @fieldNameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. Color, Storage, Warranty'**
+  String get fieldNameHint;
+
+  /// No description provided for @fieldTypeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Field type'**
+  String get fieldTypeLabel;
+
+  /// No description provided for @fieldUnitLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit (optional)'**
+  String get fieldUnitLabel;
+
+  /// No description provided for @fieldUnitHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. GB, ml, V'**
+  String get fieldUnitHint;
+
+  /// No description provided for @fieldOptionsLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Choices'**
+  String get fieldOptionsLabel;
+
+  /// No description provided for @fieldOptionsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Separate choices with commas'**
+  String get fieldOptionsHint;
+
+  /// No description provided for @fieldRequiredLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Required'**
+  String get fieldRequiredLabel;
+
+  /// No description provided for @fieldShowInListLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Show in product list'**
+  String get fieldShowInListLabel;
+
+  /// No description provided for @fieldShowOnReceiptLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Show on receipt'**
+  String get fieldShowOnReceiptLabel;
+
+  /// No description provided for @fieldArchiveAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Archive'**
+  String get fieldArchiveAction;
+
+  /// No description provided for @fieldUnarchiveAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get fieldUnarchiveAction;
+
+  /// No description provided for @fieldDeleteAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete'**
+  String get fieldDeleteAction;
+
+  /// No description provided for @fieldArchivedBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Archived'**
+  String get fieldArchivedBadge;
+
+  /// No description provided for @attrTypeText.
+  ///
+  /// In en, this message translates to:
+  /// **'Text'**
+  String get attrTypeText;
+
+  /// No description provided for @attrTypeNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'Number'**
+  String get attrTypeNumber;
+
+  /// No description provided for @attrTypeSelect.
+  ///
+  /// In en, this message translates to:
+  /// **'Choice list'**
+  String get attrTypeSelect;
+
+  /// No description provided for @attrTypeBoolean.
+  ///
+  /// In en, this message translates to:
+  /// **'Yes / No'**
+  String get attrTypeBoolean;
+
+  /// No description provided for @attrTypeDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Date'**
+  String get attrTypeDate;
+
+  /// No description provided for @templateAppliedMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Fields added'**
+  String get templateAppliedMsg;
+
+  /// No description provided for @showArchivedFields.
+  ///
+  /// In en, this message translates to:
+  /// **'Show archived'**
+  String get showArchivedFields;
 }
 
 class _AppLocalizationsDelegate

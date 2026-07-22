@@ -11,6 +11,9 @@ import '../widgets/sale_type_selector.dart';
 import '../../domain/entities/price_currency.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/product_sale_type.dart';
+import '../../../attributes/presentation/bloc/attribute_definition_bloc.dart';
+import '../../../attributes/presentation/widgets/attribute_form_fields.dart';
+import '../../../../core/attributes/product_attributes.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
 import '../../../../core/utils/num_input.dart';
@@ -37,6 +40,7 @@ class _EditProductPageState extends State<EditProductPage> {
   late double _minStockAlert;
   late ProductSaleType _saleType;
   late PriceCurrency _priceCurrency;
+  late Map<String, String> _attributes;
 
   @override
   void initState() {
@@ -48,6 +52,7 @@ class _EditProductPageState extends State<EditProductPage> {
     _minStockAlert = widget.product.minStockAlert;
     _saleType = widget.product.saleType;
     _priceCurrency = widget.product.priceCurrency;
+    _attributes = Map<String, String>.from(widget.product.attributes.values);
   }
 
   void _submit() {
@@ -63,6 +68,7 @@ class _EditProductPageState extends State<EditProductPage> {
         minStockAlert: _minStockAlert,
         saleType: _saleType,
         priceCurrency: _priceCurrency,
+        attributes: ProductAttributes(_attributes),
       );
 
       context.read<ProductBloc>().add(UpdateProduct(updatedProduct));
@@ -221,6 +227,18 @@ class _EditProductPageState extends State<EditProductPage> {
                     onSaved: (value) =>
                         _minStockAlert = NumInput.parseFlexibleNumber(value) ?? 0,
                   ),
+                  // Owner-defined custom fields (Plan 010).
+                  Builder(builder: (context) {
+                    final defs = context
+                        .watch<AttributeDefinitionBloc>()
+                        .state
+                        .active;
+                    return AttributeFormFields(
+                      definitions: defs,
+                      initialValues: _attributes,
+                      onChanged: (v) => _attributes = v,
+                    );
+                  }),
                 ],
               ),
             ),

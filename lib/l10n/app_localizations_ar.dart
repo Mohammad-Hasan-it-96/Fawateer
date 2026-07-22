@@ -1391,4 +1391,96 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get alignBarcodeHint => 'وجّه الباركود داخل الإطار';
+
+  @override
+  String get productFieldsItem => 'حقول المنتج';
+
+  @override
+  String get productFieldsSubtitle => 'معلومات مخصّصة تُحفظ لكل منتج';
+
+  @override
+  String get productFieldsTitle => 'حقول المنتج';
+
+  @override
+  String get productFieldsEmpty => 'لا توجد حقول مخصّصة بعد';
+
+  @override
+  String get productFieldsEmptyHint =>
+      'أضف حقولاً مثل اللون أو السعة، أو ابدأ من قالب جاهز لنوع متجرك.';
+
+  @override
+  String get addFieldBtn => 'إضافة حقل';
+
+  @override
+  String get useTemplateBtn => 'ابدأ من قالب';
+
+  @override
+  String get chooseBusinessType => 'اختر نوع نشاطك';
+
+  @override
+  String get templateSeedNote =>
+      'يضيف حقولاً مقترحة. يمكنك تعديلها أو حذفها في أي وقت.';
+
+  @override
+  String get fieldNameLabel => 'اسم الحقل';
+
+  @override
+  String get fieldNameHint => 'مثال: اللون، السعة، الكفالة';
+
+  @override
+  String get fieldTypeLabel => 'نوع الحقل';
+
+  @override
+  String get fieldUnitLabel => 'الوحدة (اختياري)';
+
+  @override
+  String get fieldUnitHint => 'مثال: GB، ml، V';
+
+  @override
+  String get fieldOptionsLabel => 'الخيارات';
+
+  @override
+  String get fieldOptionsHint => 'افصل الخيارات بفواصل';
+
+  @override
+  String get fieldRequiredLabel => 'إلزامي';
+
+  @override
+  String get fieldShowInListLabel => 'إظهار في قائمة المنتجات';
+
+  @override
+  String get fieldShowOnReceiptLabel => 'إظهار على الفاتورة';
+
+  @override
+  String get fieldArchiveAction => 'أرشفة';
+
+  @override
+  String get fieldUnarchiveAction => 'استعادة';
+
+  @override
+  String get fieldDeleteAction => 'حذف';
+
+  @override
+  String get fieldArchivedBadge => 'مؤرشف';
+
+  @override
+  String get attrTypeText => 'نص';
+
+  @override
+  String get attrTypeNumber => 'رقم';
+
+  @override
+  String get attrTypeSelect => 'قائمة خيارات';
+
+  @override
+  String get attrTypeBoolean => 'نعم / لا';
+
+  @override
+  String get attrTypeDate => 'تاريخ';
+
+  @override
+  String get templateAppliedMsg => 'تمت إضافة الحقول';
+
+  @override
+  String get showArchivedFields => 'عرض المؤرشفة';
 }

@@ -21,7 +21,8 @@ flutter analyze
 flutter test
 
 # Run a single test file (test/ holds app_smoke_test, num_input_test,
-# cashbox_test, dashboard_test, billing_scan_test, license_guards_test)
+# cashbox_test, dashboard_test, billing_scan_test, license_guards_test,
+# subscription_plan_test, support_launcher_test, product_attributes_test)
 flutter test test/num_input_test.dart
 
 # Regenerate Drift database code (*.g.dart files)
@@ -98,7 +99,7 @@ There's also a generic `AppSettings` key-value table (`SettingRow`, `key`/`value
 
 Note the DAO list is one longer than the table list: `DashboardDao` is a read-only `@DriftAccessor` over existing tables and owns none of its own.
 
-Schema is at **version 12** with a `MigrationStrategy`. When changing tables, bump `schemaVersion` and **append** a new `if (from < N)` block to `onUpgrade` — never edit a shipped block (old installs have already run it). Existing steps:
+Schema is at **version 13** with a `MigrationStrategy`. When changing tables, bump `schemaVersion` and **append** a new `if (from < N)` block to `onUpgrade` — never edit a shipped block (old installs have already run it). Existing steps:
 - v1→v2: added `shopSettings.currencySymbol`
 - v2→v3: dropped removed `customers`/`debts`/`purchase_invoices`/`purchase_items`/`cashbox_entries` tables
 - v3→v4: added `cost` column to `products` and `salesItems`; created barcode/sales indexes
@@ -110,6 +111,7 @@ Schema is at **version 12** with a `MigrationStrategy`. When changing tables, bu
 - v9→v10: dual currency — added `products.priceCurrency`, and `salesItems.priceCurrency`/`fxRate`/`priceOriginal` (the per-line FX snapshot). All `addColumn` with defaults, so existing rows decode as SP-native.
 - v10→v11: **data fix, no DDL** — the old default `shop_settings.currencySymbol` was `'₹'` (Indian rupee), wrong for this Syria-first app. Normalizes `'₹'` *and* blank to `'ل.س'`; a shop that deliberately chose another symbol keeps it.
 - v11→v12: manual discounts (Plan 005) — added `salesItems.discount` and `salesInvoices.invoiceDiscount`. Additive; every existing row decodes as "no discount".
+- v12→v13: dynamic product attributes (Plan 010) — added `products.attributes` (JSON bag of owner-defined custom-field values) and `salesItems.attributesSnapshot` (printed-attribute snapshot, reserved for the deferred V1.1 receipt wiring), and created the new `attribute_definitions` table. **Purely additive** (`addColumn` × 2 + `createTable`); every existing row decodes as empty. No table rebuild.
 
 The v5→v6 `TableMigration` remains the **only** table rebuild in the whole history — everything since has been `addColumn` + one data-normalizing `UPDATE`. Keep it that way when you can.
 
@@ -167,6 +169,7 @@ Plan 005. Two additive columns (v11→v12): `salesItems.discount` (per line) and
 | cashbox | `CashboxBloc` | Cash drawer / signed cash ledger (see below). App-wide, stream-backed; auto-posts on cash sales & debt repayments. |
 | dashboard | `DashboardBloc` | Analytics/KPIs (see below). Route-scoped to `/history`; reads `DashboardDao` (no tables of its own). |
 | backup | `BackupBloc` | Google Drive backup/restore of the whole SQLite file (see below). Route-scoped to `/settings/backup`. |
+| attributes | `AttributeDefinitionBloc` | Owner-defined **dynamic product fields** (Plan 010, bucket A). App-wide, stream-backed; loaded at startup. Definitions live in `attribute_definitions` (via `AttributesDao`); per-product values are a JSON map in `products.attributes` (the `ProductAttributes` value object in `core/attributes/`, kept as `Map<String,String>`). Managed at Settings → **Product fields** (`/settings/product-fields`); dynamic form renders in add/edit product; `showInList` fields show as a product-list subtitle. Curated seed **templates** in `data/business_templates.dart` (const map, not a table). **Deliberately not attributes:** IMEI/Serial (per-unit, bucket C) and Size×Color variants (bucket B) — separate future plans. **Deferred (V1.1):** `showOnReceipt` printing (the `salesItems.attributesSnapshot` column is migrated but not yet wired). |
 
 ### Licensing & networking (subscription gate)
 
