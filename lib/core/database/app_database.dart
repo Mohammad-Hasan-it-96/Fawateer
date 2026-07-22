@@ -50,6 +50,12 @@ part 'app_database.g.dart';
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'fawateer'));
 
+  /// Test-only: build the database over a caller-supplied executor (e.g. an
+  /// in-memory `NativeDatabase.memory()`), so integration tests can exercise the
+  /// real schema/migrations/SQL against the device's bundled SQLite without
+  /// touching the app's on-disk `fawateer` database.
+  AppDatabase.forTesting(super.executor);
+
   @override
   int get schemaVersion => 13;
 
