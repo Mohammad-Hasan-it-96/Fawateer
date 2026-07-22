@@ -116,6 +116,7 @@ class PrinterRepositoryDriftImpl implements PrinterRepository {
                 'price': i.price,
                 'total': i.total,
                 'unit': i.unit,
+                'attributes': i.attributes,
               })
           .toList(),
     );
@@ -125,6 +126,24 @@ class PrinterRepositoryDriftImpl implements PrinterRepository {
   Future<bool> printStatement(String text) async {
     if (!await _ensureConnected()) return false;
     return _printerHelper.printStatement(text);
+  }
+
+  @override
+  Future<bool> printLabel({
+    required String name,
+    required String priceText,
+    String barcodeData = '',
+    bool useQr = false,
+    int copies = 1,
+  }) async {
+    if (!await _ensureConnected()) return false;
+    return _printerHelper.printLabel(
+      name: name,
+      priceText: priceText,
+      barcodeData: barcodeData,
+      useQr: useQr,
+      copies: copies,
+    );
   }
 
   /// Make sure we have a *live* connection, reconnecting to the saved printer if

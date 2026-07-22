@@ -3,10 +3,14 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../bloc/product_bloc.dart';
 import '../../domain/entities/product.dart';
+import '../../domain/product_search.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
 import '../../../../core/utils/format.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
+import '../../../attributes/presentation/bloc/attribute_definition_bloc.dart';
+import '../../../attributes/domain/entities/attribute_definition.dart';
+import '../../../attributes/domain/entities/attribute_type.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class ProductListPage extends StatefulWidget {
@@ -31,12 +35,25 @@ String _productMessageText(ProductMessage m, AppLocalizations l10n) {
       return l10n.errorSaveFailed;
     case ProductMessage.loadFailed:
       return l10n.errorLoadFailed;
+    case ProductMessage.labelPrinted:
+      return l10n.labelPrinted;
+    case ProductMessage.labelPrintFailed:
+      return l10n.labelPrintFailed;
   }
 }
 
 class _ProductListPageState extends State<ProductListPage> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
+
+  /// Active custom-field filters (Plan 010): definitionId → selected option
+  /// values. A product passes when, for every entry, its value for that field
+  /// is in the selected set (AND across fields, OR within a field). Runs in
+  /// Dart over the in-memory product list — no index/DB query.
+  final Map<String, Set<String>> _attrFilters = {};
+
+  int get _activeFilterCount =>
+      _attrFilters.values.fold(0, (n, s) => n + s.length);
 
   @override
   void initState() {
@@ -67,9 +84,101 @@ class _ProductListPageState extends State<ProductListPage> {
     }
   }
 
+  bool _matchesFilters(Product product) => productMatchesSearch(product,
+      query: _searchQuery, attrFilters: _attrFilters);
+
+  void _openFilterSheet(
+      List<AttributeDefinition> selectDefs, AppLocalizations l10n) {
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetCtx) {
+        return StatefulBuilder(
+          builder: (sheetCtx, setSheet) {
+            void toggle(String defId, String opt, bool selected) {
+              setState(() {
+                final set = _attrFilters.putIfAbsent(defId, () => <String>{});
+                if (selected) {
+                  set.add(opt);
+                } else {
+                  set.remove(opt);
+                }
+                if (set.isEmpty) _attrFilters.remove(defId);
+              });
+              setSheet(() {});
+            }
+
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(l10n.filterProductsTitle,
+                              style:
+                                  Theme.of(sheetCtx).textTheme.titleMedium),
+                        ),
+                        if (_activeFilterCount > 0)
+                          TextButton(
+                            onPressed: () {
+                              setState(() => _attrFilters.clear());
+                              setSheet(() {});
+                            },
+                            child: Text(l10n.clearFiltersBtn),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            for (final def in selectDefs) ...[
+                              Text(def.label,
+                                  style: Theme.of(sheetCtx)
+                                      .textTheme
+                                      .labelLarge),
+                              const SizedBox(height: 6),
+                              Wrap(
+                                spacing: 8,
+                                runSpacing: 4,
+                                children: [
+                                  for (final opt in def.options)
+                                    FilterChip(
+                                      label: Text(opt),
+                                      selected: _attrFilters[def.id]
+                                              ?.contains(opt) ??
+                                          false,
+                                      onSelected: (sel) =>
+                                          toggle(def.id, opt, sel),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final borderColor = Colors.grey[100]!;
+    final borderColor = Theme.of(context).dividerColor;
     final l10n = AppLocalizations.of(context)!;
 
     return Scaffold(
@@ -100,7 +209,9 @@ class _ProductListPageState extends State<ProductListPage> {
                             hintText: l10n.searchHint,
                             prefixIcon: Icon(
                               Icons.search,
-                              color: Colors.grey[400],
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
                           ),
                           validator: AppValidators.required(l10n.fieldRequired),
@@ -119,12 +230,70 @@ class _ProductListPageState extends State<ProductListPage> {
                           padding: const EdgeInsets.all(15),
                         ),
                       ),
+                      // Custom-field filter (Plan 010): shown only when the shop
+                      // has a choice-list field to filter by.
+                      Builder(builder: (context) {
+                        final selectDefs = context
+                            .watch<AttributeDefinitionBloc>()
+                            .state
+                            .active
+                            .where((d) =>
+                                d.type == AttributeType.select &&
+                                d.options.isNotEmpty)
+                            .toList();
+                        if (selectDefs.isEmpty) return const SizedBox.shrink();
+                        return Padding(
+                          padding: const EdgeInsets.only(left: 12),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color:
+                                  AppTheme.primaryColor.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Stack(
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.tune,
+                                      color: AppTheme.primaryColor),
+                                  onPressed: () =>
+                                      _openFilterSheet(selectDefs, l10n),
+                                  padding: const EdgeInsets.all(15),
+                                ),
+                                if (_activeFilterCount > 0)
+                                  Positioned(
+                                    right: 6,
+                                    top: 6,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: const BoxDecoration(
+                                        color: AppTheme.primaryColor,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      constraints: const BoxConstraints(
+                                          minWidth: 18, minHeight: 18),
+                                      child: Text(
+                                        '$_activeFilterCount',
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(l10n.tapToScan,
-                      style: const TextStyle(
-                          fontSize: 12, color: Color(0xFF4C669A))),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant)),
                 ],
               );
             }),
@@ -158,11 +327,8 @@ class _ProductListPageState extends State<ProductListPage> {
                   return Center(child: Text(l10n.noProductsFound));
                 }
 
-                final filteredProducts = state.products
-                    .where((product) =>
-                        product.name.toLowerCase().contains(_searchQuery) ||
-                        product.barcode.toLowerCase().contains(_searchQuery))
-                    .toList();
+                final filteredProducts =
+                    state.products.where(_matchesFilters).toList();
 
                 if (filteredProducts.isEmpty) {
                   return Center(child: Text(l10n.noProductsMatch));
@@ -178,14 +344,14 @@ class _ProductListPageState extends State<ProductListPage> {
                     final product = filteredProducts[index];
                     return Container(
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: Theme.of(context).colorScheme.surface,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(color: borderColor),
-                        boxShadow: const [
+                        boxShadow: [
                           BoxShadow(
-                              color: Colors.black12,
+                              color: Colors.black.withValues(alpha: 0.08),
                               blurRadius: 4,
-                              offset: Offset(0, 2))
+                              offset: const Offset(0, 2))
                         ],
                       ),
                       padding: const EdgeInsets.all(16),
@@ -210,11 +376,42 @@ class _ProductListPageState extends State<ProductListPage> {
                                       ? shopState.shop.currencySymbol
                                       : '';
                                   return Text(
-                                    '$currency${product.price.toStringAsFixed(2)}',
+                                    product.priceCurrency
+                                        .label(product.price, currency),
                                     style: TextStyle(
                                         fontWeight: FontWeight.w600,
                                         fontSize: 15,
-                                        color: Colors.grey[700]),
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurfaceVariant),
+                                  );
+                                }),
+                                Builder(builder: (context) {
+                                  // Custom-field subtitle (Plan 010): only the
+                                  // fields the owner flagged showInList, with a
+                                  // value on this product.
+                                  final defs = context
+                                      .watch<AttributeDefinitionBloc>()
+                                      .state
+                                      .active
+                                      .where((d) => d.showInList);
+                                  final bits = <String>[];
+                                  for (final d in defs) {
+                                    final v = product.attributes[d.id];
+                                    if (v == null || v.isEmpty) continue;
+                                    bits.add(d.unit.isEmpty ? v : '$v ${d.unit}');
+                                  }
+                                  if (bits.isEmpty) return const SizedBox.shrink();
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 4),
+                                    child: Text(
+                                      bits.join(' · '),
+                                      style: TextStyle(
+                                          fontSize: 13,
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant),
+                                    ),
                                   );
                                 }),
                                 if (product.minStockAlert > 0 ||
@@ -235,6 +432,22 @@ class _ProductListPageState extends State<ProductListPage> {
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: IconButton(
+                                  icon: const Icon(Icons.print_rounded,
+                                      color: AppTheme.primaryColor, size: 22),
+                                  tooltip: l10n.printLabelTitle,
+                                  constraints: const BoxConstraints(
+                                      minWidth: 48, minHeight: 48),
+                                  onPressed: () => _printLabel(context, product),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Container(
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryColor
+                                      .withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                child: IconButton(
                                   icon: const Icon(Icons.edit_rounded,
                                       color: AppTheme.primaryColor, size: 22),
                                   constraints: const BoxConstraints(
@@ -245,7 +458,7 @@ class _ProductListPageState extends State<ProductListPage> {
                                   },
                                 ),
                               ),
-                              const SizedBox(width: 16),
+                              const SizedBox(width: 12),
                               Container(
                                 decoration: BoxDecoration(
                                   color: Colors.red.withValues(alpha: 0.1),
@@ -290,14 +503,19 @@ class _ProductListPageState extends State<ProductListPage> {
     return Row(
       children: [
         Icon(Icons.inventory_2_outlined,
-            size: 16, color: low ? Colors.red : Colors.grey[600]),
+            size: 16,
+            color: low
+                ? Colors.red
+                : Theme.of(context).colorScheme.onSurfaceVariant),
         const SizedBox(width: 4),
         Text(
           l10n.stockCountLabel(formatQty(product.quantity)),
           style: TextStyle(
             fontSize: 13,
             fontWeight: low ? FontWeight.bold : FontWeight.w500,
-            color: low ? Colors.red : Colors.grey[700],
+            color: low
+                ? Colors.red
+                : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         if (low) ...[
@@ -349,6 +567,100 @@ class _ProductListPageState extends State<ProductListPage> {
                   style: const TextStyle(color: Colors.red)),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  /// Print label(s) for a product (Plan 010): a small dialog for the copy count
+  /// and — when the product has a barcode — the code type (barcode vs QR), then
+  /// dispatch to [ProductBloc]. The printed price is currency-aware.
+  void _printLabel(BuildContext context, Product product) {
+    final l10n = AppLocalizations.of(context)!;
+    final shopState = context.read<ShopBloc>().state;
+    final currency =
+        shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
+    final priceText = product.priceCurrency.label(product.price, currency);
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) {
+        int copies = 1;
+        bool useQr = false;
+        return StatefulBuilder(
+          builder: (dialogCtx, setDialog) {
+            return AlertDialog(
+              title: Text(l10n.printLabelTitle),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(product.name,
+                      style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(priceText,
+                      style: TextStyle(
+                          color:
+                              Theme.of(dialogCtx).colorScheme.onSurfaceVariant)),
+                  const SizedBox(height: 16),
+                  Row(
+                    children: [
+                      Text(l10n.labelCopies),
+                      const Spacer(),
+                      IconButton(
+                        icon: const Icon(Icons.remove_circle_outline),
+                        onPressed: copies > 1
+                            ? () => setDialog(() => copies--)
+                            : null,
+                      ),
+                      Text('$copies',
+                          style: const TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.bold)),
+                      IconButton(
+                        icon: const Icon(Icons.add_circle_outline),
+                        onPressed: copies < 99
+                            ? () => setDialog(() => copies++)
+                            : null,
+                      ),
+                    ],
+                  ),
+                  if (product.barcode.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    SegmentedButton<bool>(
+                      showSelectedIcon: false,
+                      segments: [
+                        ButtonSegment(
+                            value: false, label: Text(l10n.labelBarcode)),
+                        ButtonSegment(value: true, label: Text(l10n.labelQr)),
+                      ],
+                      selected: {useQr},
+                      onSelectionChanged: (s) =>
+                          setDialog(() => useQr = s.first),
+                    ),
+                  ],
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton.icon(
+                  onPressed: () {
+                    Navigator.pop(dialogCtx);
+                    context.read<ProductBloc>().add(PrintProductLabel(
+                          name: product.name,
+                          priceText: priceText,
+                          barcodeData: product.barcode,
+                          useQr: useQr,
+                          copies: copies,
+                        ));
+                  },
+                  icon: const Icon(Icons.print, size: 18),
+                  label: Text(l10n.printLabelAction),
+                ),
+              ],
+            );
+          },
         );
       },
     );

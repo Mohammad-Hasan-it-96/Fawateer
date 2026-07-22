@@ -16,6 +16,16 @@ class Products extends Table {
   // Stored as a name string (not an index) so future enum cases/reordering can't
   // remap existing rows; unknown values decode back to 'piece'.
   TextColumn get saleType => text().withDefault(const Constant('piece'))();
+  // Currency the `price`/`cost` are entered in: the PriceCurrency name
+  // ('sp' | 'usd' | …). SP is the base/book currency; a 'usd' product is
+  // converted to SP at sale time. Stored by name (not index) — unknown/legacy
+  // values decode back to 'sp'. Additive: every existing product decodes as SP.
+  TextColumn get priceCurrency => text().withDefault(const Constant('sp'))();
+  // Owner-defined custom fields (Plan 010, bucket A) as a JSON object keyed by
+  // AttributeDefinition id: {"<defId>":"<value>"}. '' = no attributes. This is
+  // the source of truth; the hot path (name/price/qty/barcode) never reads it.
+  // Additive: every existing product decodes as empty.
+  TextColumn get attributes => text().withDefault(const Constant(''))();
 
   @override
   Set<Column> get primaryKey => {id};

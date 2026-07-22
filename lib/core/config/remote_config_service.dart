@@ -10,8 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../network/api_config.dart';
 import 'remote_config.dart';
 
-/// Fetches the hosted `fawateer_version.json`, applies it (API base URL +
-/// support contacts) and works out whether an app update is available.
+/// Fetches the hosted `fawateer.json`, applies it (API base URL + support
+/// contacts) and works out whether an app update is available.
 ///
 /// It's resilient by design: the network fetch is time-boxed and falls back to
 /// the last cached copy, and a total failure just leaves the baked-in
@@ -22,10 +22,24 @@ class RemoteConfigService {
 
   final http.Client _client;
 
-  /// Google-Drive direct-download endpoint for the shared `fawateer_version.json`
-  /// (file id `1pVMkNYKAGjiO8tRSG3nEcVGvEQS8xcVk`).
+  /// The hosted config.
+  ///
+  /// **Source of truth is the `device_apps` row on the platform API**, edited
+  /// from the dashboard. This URL is served by evotech-web, which proxies
+  /// `/api/{app}/remote-config` and answers from a committed fallback
+  /// (`src/content/device-config-fallback.ts`) when the API is unreachable — so
+  /// a device always gets a usable config, in particular a base URL.
+  /// `deploy/fawateer.json` in this repo is the superseded hand-edited copy and
+  /// no longer drives anything.
+  ///
+  /// Deliberately on the **web** host, not the API host: this file is what tells
+  /// the app where the API is, so hosting it behind that same API would mean an
+  /// API outage could not be routed around — the lever and the thing it moves
+  /// would fail together.
+  ///
+  /// (Was a Google-Drive direct-download link; moved onto our own domain.)
   static const String _configUrl =
-      'https://drive.google.com/uc?export=download&id=1pVMkNYKAGjiO8tRSG3nEcVGvEQS8xcVk';
+      'https://evotech-sys.com/config/fawateer.json';
 
   static const String _kCache = 'remote_config_json';
 
@@ -117,8 +131,15 @@ class RemoteConfigService {
     try {
       final info = await PackageInfo.fromPlatform();
       if (!_isNewer(cfg.latestVersion, info.version)) return;
+      final url = await _pickDownload(cfg.downloads);
+      // No reachable APK → no prompt. Announcing an update the user cannot
+      // install is worse than staying quiet: the dialog's only action is dead,
+      // and it reappears every launch. This makes the common publishing
+      // mistake (bumping `latest_version` while `downloads` is still empty)
+      // harmless instead of shipping a dead end to every install.
+      if (url == null || url.isEmpty) return;
       updateAvailable = true;
-      downloadUrl = await _pickDownload(cfg.downloads);
+      downloadUrl = url;
     } catch (_) {
       updateAvailable = false;
     }

@@ -1,10 +1,17 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:uuid/uuid.dart';
+import 'package:billing_app/features/attributes/domain/entities/attribute_definition.dart';
+import 'package:billing_app/features/attributes/domain/repositories/attribute_definition_repository.dart';
 import '../../domain/entities/cart_item.dart';
 import '../../domain/entities/invoice.dart';
 import '../../domain/entities/invoice_item.dart';
 import '../../domain/repositories/invoice_repository.dart';
+import 'package:billing_app/core/currency/exchange_rate_service.dart';
+import 'package:billing_app/core/settings/inventory_settings_service.dart';
+import 'package:billing_app/features/product/domain/entities/price_currency.dart';
 import 'package:billing_app/features/product/domain/entities/product.dart';
 import 'package:billing_app/features/product/domain/repositories/product_repository.dart';
 import 'package:billing_app/features/settings/domain/entities/receipt_line.dart';
@@ -17,12 +24,30 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
   final ProductRepository productRepository;
   final PrinterRepository printerRepository;
   final InvoiceRepository invoiceRepository;
+  final ExchangeRateService exchangeRateService;
+  final InventorySettingsService inventorySettingsService;
+  final AttributeDefinitionRepository attributeRepository;
+
+  /// Active custom fields flagged *show on receipt* (Plan 010), kept fresh via a
+  /// subscription so a field the owner adds/edits mid-session prints without a
+  /// restart. Read synchronously when building receipt lines and the sale-time
+  /// snapshot, so it's cached rather than fetched per sale.
+  List<AttributeDefinition> _receiptDefs = const [];
+  StreamSubscription<List<AttributeDefinition>>? _receiptDefsSub;
 
   BillingBloc({
     required this.productRepository,
     required this.printerRepository,
     required this.invoiceRepository,
+    required this.exchangeRateService,
+    required this.inventorySettingsService,
+    required this.attributeRepository,
   }) : super(const BillingState()) {
+    _receiptDefsSub = attributeRepository.watchDefinitions().listen((defs) {
+      _receiptDefs = defs
+          .where((d) => !d.isArchived && d.showOnReceipt)
+          .toList();
+    });
     on<ScanBarcodeEvent>(_onScanBarcode);
     on<AddProductToCartEvent>(_onAddProductToCart);
     on<RemoveProductFromCartEvent>(_onRemoveProductFromCart);
@@ -32,14 +57,98 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     on<ClearCartEvent>(_onClearCart);
     on<PrintReceiptEvent>(_onPrintReceipt);
     on<ConfirmSaleEvent>(_onConfirmSale);
+    on<LoadExchangeRateEvent>(_onLoadExchangeRate);
+    on<LoadInventorySettingsEvent>(_onLoadInventorySettings);
+    on<SetLineDiscountEvent>(_onSetLineDiscount);
+    on<SetCartDiscountEvent>(_onSetCartDiscount);
+  }
+
+  /// Load the strict-inventory flag into state. Dispatched at startup and again
+  /// whenever the owner flips the toggle in Settings, so the checkout gate and
+  /// the on-screen block reflect the current setting without a restart.
+  Future<void> _onLoadInventorySettings(
+      LoadInventorySettingsEvent event, Emitter<BillingState> emit) async {
+    final block = await inventorySettingsService.isBlockOversellEnabled();
+    emit(state.copyWith(blockOversell: block));
+  }
+
+  void _onSetLineDiscount(
+      SetLineDiscountEvent event, Emitter<BillingState> emit) {
+    final index =
+        state.cartItems.indexWhere((i) => i.product.id == event.productId);
+    if (index < 0) return;
+    final items = List<CartItem>.from(state.cartItems);
+    final d = event.discount < 0 ? 0.0 : event.discount;
+    items[index] = items[index].copyWith(discount: d);
+    emit(state.copyWith(cartItems: items));
+  }
+
+  void _onSetCartDiscount(
+      SetCartDiscountEvent event, Emitter<BillingState> emit) {
+    emit(state.copyWith(
+        invoiceDiscount: event.discount < 0 ? 0.0 : event.discount));
+  }
+
+  /// Build a cart line, resolving a USD-priced product to whole SP at the
+  /// current rate. SP products pass through unchanged. A USD product with no
+  /// valid rate is left *unpriced* (fxRate 0) so the checkout guard blocks it.
+  CartItem _priceLine(Product p, double qty) {
+    if (p.priceCurrency == PriceCurrency.usd) {
+      final rate = state.exchangeRate;
+      final sp = usdToSp(p.price, rate);
+      if (sp != null) {
+        return CartItem(
+          product: p,
+          quantity: qty,
+          unitPriceSp: sp,
+          unitCostSp: usdToSp(p.cost, rate) ?? 0,
+          fxRate: rate!,
+        );
+      }
+      return CartItem(
+          product: p, quantity: qty, unitPriceSp: 0, unitCostSp: 0, fxRate: 0);
+    }
+    return CartItem(
+        product: p, quantity: qty, unitPriceSp: p.price, unitCostSp: p.cost);
+  }
+
+  /// Load the current exchange rate and re-price any foreign lines already in
+  /// the cart, so setting/changing the rate keeps the displayed SP consistent.
+  Future<void> _onLoadExchangeRate(
+      LoadExchangeRateEvent event, Emitter<BillingState> emit) async {
+    final rate = await exchangeRateService.getRate();
+    final updatedAt = await exchangeRateService.getUpdatedAt();
+    final rebuilt = state.cartItems.map((i) {
+      if (!i.isForeign) return i;
+      final sp = usdToSp(i.product.price, rate);
+      if (sp == null) {
+        return i.copyWith(unitPriceSp: 0, unitCostSp: 0, fxRate: 0);
+      }
+      return i.copyWith(
+          unitPriceSp: sp,
+          unitCostSp: usdToSp(i.product.cost, rate) ?? 0,
+          fxRate: rate!);
+    }).toList();
+    emit(state.copyWith(
+        cartItems: rebuilt, exchangeRate: rate, rateUpdatedAt: updatedAt));
   }
 
   Future<void> _onScanBarcode(
       ScanBarcodeEvent event, Emitter<BillingState> emit) async {
     final result = await productRepository.getProductByBarcode(event.barcode);
     result.fold(
-      (failure) => emit(state.copyWith(
-          error: BillingError.productNotFound, errorBarcode: event.barcode)),
+      (failure) {
+        // Bloc drops an emit equal to the current state, so scanning the same
+        // unknown barcode twice in a row used to produce *nothing* the second
+        // time — no dialog, no message, the scan simply vanished. Clearing
+        // first makes every scan a real transition the UI can react to.
+        if (state.error == BillingError.productNotFound &&
+            state.errorBarcode == event.barcode) {
+          emit(state.copyWith(clearError: true));
+        }
+        emit(state.copyWith(
+            error: BillingError.productNotFound, errorBarcode: event.barcode));
+      },
       (product) {
         // A measured product (e.g. sold by weight) needs a weight/amount entry
         // first — surface it to the UI instead of auto-adding one unit.
@@ -77,7 +186,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     } else {
       updatedItems = [
         ...cleanState.cartItems,
-        CartItem(product: event.product, quantity: event.quantity ?? 1),
+        _priceLine(event.product, event.quantity ?? 1),
       ];
     }
 
@@ -113,7 +222,17 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
   }
 
   void _onClearCart(ClearCartEvent event, Emitter<BillingState> emit) {
-    emit(const BillingState());
+    // Reset the cart and every per-sale flag, but carry the session-loaded
+    // settings across: the exchange rate and the strict-inventory flag are
+    // dispatched once at startup, never after a sale, so emitting a bare
+    // `const BillingState()` here would silently drop them — the next sale
+    // would then treat USD lines as unpriced and forget strict inventory until
+    // the app restarts.
+    emit(BillingState(
+      exchangeRate: state.exchangeRate,
+      rateUpdatedAt: state.rateUpdatedAt,
+      blockOversell: state.blockOversell,
+    ));
   }
 
   Future<void> _onConfirmSale(
@@ -130,6 +249,23 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       return;
     }
 
+    // A USD-priced line with no exchange rate can't be converted to SP — block
+    // the sale rather than book a wrong (or zero) total. The owner sets the
+    // rate in Settings → Currency.
+    if (state.cartItems.any((i) => i.isUnpriced)) {
+      emit(state.copyWith(error: BillingError.exchangeRateMissing));
+      return;
+    }
+
+    // Strict inventory (opt-in): refuse to sell any line past its on-hand count,
+    // sold-out items included (see [BillingState.oversoldItems] — this is NOT
+    // the softer `lowStockWarnings` predicate, which skips untracked items). Off
+    // by default; overselling stays allowed.
+    if (state.isStockBlocked) {
+      emit(state.copyWith(error: BillingError.insufficientStock));
+      return;
+    }
+
     emit(state.copyWith(isSaving: true, clearError: true));
 
     final invoiceId = const Uuid().v4();
@@ -137,16 +273,27 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       id: invoiceId,
       createdAt: DateTime.now(),
       totalAmount: state.totalAmount,
+      invoiceDiscount: state.effectiveInvoiceDiscount,
     );
 
     final items = state.cartItems
         .map((cartItem) => InvoiceItem(
               invoiceId: invoiceId,
               productId: cartItem.product.id,
+              // Resolved SP values — the books settle in SP regardless of how
+              // the product was priced. The original currency/rate/price are
+              // snapshotted for display & audit only.
               productName: cartItem.product.name,
-              price: cartItem.product.price,
-              cost: cartItem.product.cost,
+              price: cartItem.unitPriceSp,
+              cost: cartItem.unitCostSp,
               quantity: cartItem.quantity,
+              priceCurrency: cartItem.sellCurrency.name,
+              fxRate: cartItem.fxRate,
+              priceOriginal: cartItem.product.price,
+              discount: cartItem.effectiveDiscount,
+              // Freeze the show-on-receipt custom fields (Plan 010) so a reprint
+              // is immune to later product/definition edits.
+              attributesSnapshot: _printableAttrsJson(cartItem.product),
             ))
         .toList();
 
@@ -179,9 +326,20 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         total: invoice.totalAmount,
         items: _receiptLines(),
       );
-      if (printed) emit(state.copyWith(printSuccess: true));
+      if (printed) {
+        emit(state.copyWith(printSuccess: true));
+      } else {
+        // Say so. Silence here read as "printed fine" while no receipt came
+        // out — the cashier has no way to tell a dead Bluetooth link from a
+        // slow printer, and would hand the customer nothing. Matches what the
+        // manual print button already reports.
+        emit(state.copyWith(error: BillingError.printerUnavailable));
+        emit(state.copyWith(clearError: true));
+      }
     } catch (_) {
-      // Print failure is non-fatal after a confirmed sale.
+      // Non-fatal — the sale is already committed — but still reported.
+      emit(state.copyWith(error: BillingError.printFailed));
+      emit(state.copyWith(clearError: true));
     }
   }
 
@@ -222,13 +380,46 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       .map((i) => ReceiptLine(
             name: i.product.name,
             quantity: i.quantity,
-            price: i.product.price,
+            // Print the resolved SP unit price so the receipt reconciles with
+            // the SP grand total (a USD sticker is converted before printing).
+            price: i.unitPriceSp,
             total: i.total,
             // Receipts render as an Arabic bitmap; tag weighed lines with the
             // kg unit so "0.333 كغ × رز" reads clearly.
             unit: i.product.saleType.isMeasured ? 'كغ' : '',
+            attributes: _printableAttrStrings(i.product),
           ))
       .toList();
+
+  /// Printable custom fields for a product (Plan 010) as `{label: value}` — the
+  /// *show-on-receipt* definitions that have a value on this product, with the
+  /// unit appended so the stored snapshot is self-contained (needs no later
+  /// definition lookup to reprint).
+  Map<String, String> _printableAttrs(Product p) {
+    final out = <String, String>{};
+    for (final d in _receiptDefs) {
+      final v = p.attributes[d.id];
+      if (v == null || v.isEmpty) continue;
+      out[d.label] = d.unit.isEmpty ? v : '$v ${d.unit}';
+    }
+    return out;
+  }
+
+  /// The printable pairs as "label: value" display lines for a live receipt.
+  List<String> _printableAttrStrings(Product p) =>
+      _printableAttrs(p).entries.map((e) => '${e.key}: ${e.value}').toList();
+
+  /// JSON snapshot of the printable pairs, frozen onto the sale line ('' none).
+  String _printableAttrsJson(Product p) {
+    final m = _printableAttrs(p);
+    return m.isEmpty ? '' : jsonEncode(m);
+  }
+
+  @override
+  Future<void> close() {
+    _receiptDefsSub?.cancel();
+    return super.close();
+  }
 
   List<String> _computeStockWarnings(List<CartItem> items) {
     // i.product.quantity = on-hand inventory; i.quantity = units being sold.

@@ -2,17 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/share/share_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/num_input.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../domain/entities/ledger_entry.dart';
+import '../bloc/customer_bloc.dart';
 import '../bloc/ledger_bloc.dart';
 import '../customer_statement.dart';
 import '../ledger_money.dart';
+import 'customers_page.dart' show customerMessageText;
 
 /// Map a [LedgerMessage] to a localized string.
 String ledgerMessageText(LedgerMessage m, AppLocalizations l10n) {
@@ -87,6 +89,24 @@ class CustomerDetailPage extends StatelessWidget {
                       extra: state.customer),
             ),
           ),
+          // Delete is only offered once the account is settled (zero balance);
+          // the repository still guards against dropping a customer who has
+          // ledger history (archive instead).
+          BlocBuilder<LedgerBloc, LedgerState>(
+            buildWhen: (p, c) =>
+                p.customer != c.customer || p.balance != c.balance,
+            builder: (context, state) {
+              final canDelete =
+                  state.customer != null && state.balance.abs() < 0.005;
+              if (!canDelete) return const SizedBox.shrink();
+              return IconButton(
+                icon: const Icon(Icons.delete_outline),
+                tooltip: l10n.delete,
+                color: Colors.red.shade400,
+                onPressed: () => _confirmDeleteCustomer(context, l10n),
+              );
+            },
+          ),
         ],
       ),
       body: BlocConsumer<LedgerBloc, LedgerState>(
@@ -108,7 +128,7 @@ class CustomerDetailPage extends StatelessWidget {
               const Divider(height: 1),
               Expanded(
                 child: state.entries.isEmpty
-                    ? _empty(l10n)
+                    ? _empty(context, l10n)
                     : ListView.separated(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         itemCount: state.entries.length,
@@ -144,7 +164,7 @@ class CustomerDetailPage extends StatelessWidget {
       BuildContext context, LedgerState state, AppLocalizations l10n) {
     final shopState = context.read<ShopBloc>().state;
     final shopName = shopState is ShopLoaded ? shopState.shop.name : '';
-    Share.share(_statementText(context, state, l10n),
+    ShareService.shareText(_statementText(context, state, l10n),
         subject: l10n.statementHeader(shopName));
   }
 
@@ -153,7 +173,7 @@ class CustomerDetailPage extends StatelessWidget {
     final settled = balance.abs() < 0.005;
     final owes = balance > 0;
     final color = settled
-        ? Colors.grey
+        ? Theme.of(context).colorScheme.onSurfaceVariant
         : (owes ? Colors.red.shade600 : Colors.green.shade600);
     final label = settled
         ? l10n.balanceSettled
@@ -214,10 +234,10 @@ class CustomerDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _empty(AppLocalizations l10n) {
+  Widget _empty(BuildContext context, AppLocalizations l10n) {
     return Center(
       child: Text(l10n.noLedgerEntries,
-          style: TextStyle(color: Colors.grey[500])),
+          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
     );
   }
 
@@ -257,7 +277,7 @@ class CustomerDetailPage extends StatelessWidget {
       ),
       subtitle: Text(
         e.note.isEmpty ? date : '$date · ${e.note}',
-        style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+        style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
       trailing: Text('$sign${moneyText(context, e.amount)}',
           style: TextStyle(fontWeight: FontWeight.bold, color: color)),
@@ -286,6 +306,52 @@ class CustomerDetailPage extends StatelessWidget {
       ),
     );
     if (ok == true) bloc.add(DeleteLedgerEntry(e.id));
+  }
+
+  /// Delete the whole customer (only reachable when the balance is settled).
+  /// Routed through the app-wide [CustomerBloc]; on success we leave the detail
+  /// route, otherwise (e.g. the customer still has ledger history) we surface the
+  /// localized reason.
+  Future<void> _confirmDeleteCustomer(
+      BuildContext context, AppLocalizations l10n) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(l10n.deleteCustomerTitle),
+        content: Text(l10n.deleteCustomerConfirm),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text(l10n.cancel)),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(l10n.delete, style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    final bloc = context.read<CustomerBloc>();
+    final messenger = ScaffoldMessenger.of(context);
+    final router = GoRouter.of(context);
+
+    // Subscribe before dispatching so we don't miss the outcome.
+    final outcome = bloc.stream.firstWhere((s) =>
+        s.message == CustomerMessage.deleted ||
+        s.message == CustomerMessage.deleteBlocked ||
+        s.message == CustomerMessage.saveFailed);
+    bloc.add(DeleteCustomer(customerId));
+    final result = await outcome;
+
+    if (result.message == CustomerMessage.deleted) {
+      router.go('/customers');
+    } else {
+      messenger.showSnackBar(SnackBar(
+        content: Text(customerMessageText(result.message!, l10n)),
+        backgroundColor: Colors.red,
+      ));
+    }
   }
 
   void _showEntrySheet(

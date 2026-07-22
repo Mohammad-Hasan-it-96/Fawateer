@@ -30,7 +30,6 @@ dependencies:
   sqlite3_flutter_libs: ^0.5.24
 
   # UI & Utilities
-  google_fonts: ^6.1.0
   flutter_vibrate: ^1.3.0
   intl: ^0.20.2
   permission_handler: ^11.3.1
@@ -38,6 +37,8 @@ dependencies:
   # Scanner & Printer
   print_bluetooth_thermal: ^1.1.2
   mobile_scanner: ^5.1.0
+  # Pure-Dart 1D/2D code generation for printed product labels (Plan 010).
+  barcode: ^2.2.0
   bloc: ^8.1.4
   uuid: ^4.5.2
   app_settings: ^7.0.0
@@ -54,14 +55,28 @@ dependencies:
   # Sharing (customer account statements)
   share_plus: ^10.1.4
 
+  # Charts (Plan 008 analytics dashboard) — pure-Dart, offline, no native deps.
+  fl_chart: ^0.69.0
+
+  # Cloud backup (Plan 001) — Google Drive via the user's own account.
+  # drive.file scope only (non-sensitive; no Play Console). See
+  # docs/plans/001-backup-system.md and docs/google-drive-api-setup.md.
+  google_sign_in: ^6.2.2
+  googleapis: ^13.2.0
+  extension_google_sign_in_as_googleapis_auth: ^2.0.12
+  path_provider: ^2.1.5
+
   # Push notifications (FCM live-unlock of the subscription).
   # Dormant until a Firebase project is configured (see android/README-fcm.md);
   # Firebase.initializeApp() fails gracefully and push stays disabled without it.
   firebase_core: ^4.11.0
   firebase_messaging: ^16.4.1
+  audioplayers: ^6.7.1
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  integration_test:
     sdk: flutter
   flutter_lints: ^3.0.0
   
@@ -72,3 +87,19 @@ dev_dependencies:
 flutter:
   generate: true
   uses-material-design: true
+
+  # Cairo is bundled, not fetched. This app is offline-first and Arabic-only in
+  # practice: a shop's first launch is often on a device with no connectivity,
+  # and the `google_fonts` runtime fetch would silently fall back to Roboto and
+  # render the whole UI in a font with no Arabic shaping. Both faces are real
+  # static instances cut from the upstream Cairo variable font (wght 400 / 700),
+  # so `FontWeight.bold` uses a drawn bold rather than a synthesized one.
+  assets:
+    - assets/sounds/
+
+  fonts:
+    - family: Cairo
+      fonts:
+        - asset: assets/fonts/Cairo-Regular.ttf
+        - asset: assets/fonts/Cairo-Bold.ttf
+          weight: 700

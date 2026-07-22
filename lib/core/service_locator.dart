@@ -8,10 +8,21 @@ import 'database/daos/settings_dao.dart';
 import 'database/daos/sales_dao.dart';
 import 'database/daos/customers_dao.dart';
 import 'database/daos/ledger_dao.dart';
+import 'database/daos/cashbox_dao.dart';
+import 'database/daos/dashboard_dao.dart';
+import 'database/daos/attributes_dao.dart';
 
 // Core — Network
 import 'network/api_client.dart';
 import 'config/remote_config_service.dart';
+import 'currency/exchange_rate_service.dart';
+import 'settings/inventory_settings_service.dart';
+import 'theme/theme_controller.dart';
+
+// Features — Attributes (dynamic product fields, Plan 010)
+import '../features/attributes/data/repositories/attribute_definition_repository_drift_impl.dart';
+import '../features/attributes/domain/repositories/attribute_definition_repository.dart';
+import '../features/attributes/presentation/bloc/attribute_definition_bloc.dart';
 
 // Features — Ledger (customers & debts)
 import '../features/ledger/data/repositories/customer_repository_drift_impl.dart';
@@ -20,6 +31,19 @@ import '../features/ledger/domain/repositories/customer_repository.dart';
 import '../features/ledger/domain/repositories/ledger_repository.dart';
 import '../features/ledger/presentation/bloc/customer_bloc.dart';
 import '../features/ledger/presentation/bloc/ledger_bloc.dart';
+
+// Features — Cashbox (cash ledger)
+import '../features/cashbox/data/repositories/cashbox_repository_drift_impl.dart';
+import '../features/cashbox/domain/repositories/cashbox_repository.dart';
+import '../features/cashbox/presentation/bloc/cashbox_bloc.dart';
+
+// Features — Backup (cloud backup / restore)
+import '../features/backup/data/auto_backup_service.dart';
+import '../features/backup/data/backup_engine.dart';
+import '../features/backup/data/backup_repository_impl.dart';
+import '../features/backup/data/google_drive_backup_target.dart';
+import '../features/backup/domain/repositories/backup_repository.dart';
+import '../features/backup/presentation/bloc/backup_bloc.dart';
 
 // Features — Licensing (subscription)
 import '../features/licensing/data/datasources/license_local_storage.dart';
@@ -51,6 +75,11 @@ import '../features/billing/domain/repositories/invoice_repository.dart';
 import '../features/billing/presentation/bloc/billing_bloc.dart';
 import '../features/billing/presentation/bloc/history_bloc.dart';
 
+// Features — Dashboard (analytics)
+import '../features/dashboard/data/repositories/dashboard_repository_drift_impl.dart';
+import '../features/dashboard/domain/repositories/dashboard_repository.dart';
+import '../features/dashboard/presentation/bloc/dashboard_bloc.dart';
+
 final sl = GetIt.instance;
 
 Future<void> init() async {
@@ -68,6 +97,19 @@ Future<void> init() async {
   sl.registerLazySingleton<SalesDao>(() => SalesDao(sl()));
   sl.registerLazySingleton<CustomersDao>(() => CustomersDao(sl()));
   sl.registerLazySingleton<LedgerDao>(() => LedgerDao(sl()));
+  sl.registerLazySingleton<CashboxDao>(() => CashboxDao(sl()));
+  sl.registerLazySingleton<DashboardDao>(() => DashboardDao(sl()));
+  sl.registerLazySingleton<AttributesDao>(() => AttributesDao(sl()));
+
+  // ── Services ─────────────────────────────────────────────────────────────
+  sl.registerLazySingleton<ExchangeRateService>(
+      () => ExchangeRateService(sl<SettingsDao>()));
+  sl.registerLazySingleton<InventorySettingsService>(
+      () => InventorySettingsService(sl<SettingsDao>()));
+  // Singleton, not a factory: `MyApp` listens to this instance and the settings
+  // page writes to it — two copies would leave the UI out of sync.
+  sl.registerLazySingleton<ThemeController>(
+      () => ThemeController(sl<SettingsDao>()));
 
   // ── Repositories ─────────────────────────────────────────────────────────
   sl.registerLazySingleton<ProductRepository>(
@@ -81,7 +123,29 @@ Future<void> init() async {
   sl.registerLazySingleton<CustomerRepository>(
       () => CustomerRepositoryDriftImpl(sl()));
   sl.registerLazySingleton<LedgerRepository>(
-      () => LedgerRepositoryDriftImpl(sl()));
+      () => LedgerRepositoryDriftImpl(sl(), sl(), sl()));
+  sl.registerLazySingleton<CashboxRepository>(
+      () => CashboxRepositoryDriftImpl(sl()));
+  sl.registerLazySingleton<DashboardRepository>(
+      () => DashboardRepositoryDriftImpl(sl<DashboardDao>()));
+  sl.registerLazySingleton<AttributeDefinitionRepository>(
+      () => AttributeDefinitionRepositoryDriftImpl(sl<AttributesDao>()));
+
+  // ── Backup (Drift snapshot + Google Drive target) ────────────────────────
+  sl.registerLazySingleton<BackupEngine>(() => BackupEngine(sl(), sl()));
+  sl.registerLazySingleton<GoogleDriveBackupTarget>(
+      () => GoogleDriveBackupTarget());
+  sl.registerLazySingleton<BackupRepository>(
+      () => BackupRepositoryImpl(
+          sl<BackupEngine>(),
+          sl<GoogleDriveBackupTarget>(),
+          sl<SettingsDao>(),
+          sl(),
+          // Registered further down, but these are lazy singletons: the closure
+          // resolves on first access, not here.
+          sl<LicenseRepository>()));
+  sl.registerLazySingleton<AutoBackupService>(
+      () => AutoBackupService(sl<BackupRepository>(), sl<SettingsDao>()));
 
   // ── Licensing (network-backed; no DAO) ───────────────────────────────────
   sl.registerLazySingleton<DeviceIdentityService>(
@@ -95,18 +159,25 @@ Future<void> init() async {
       () => PushNotificationService(sl()));
 
   // ── BLoCs ─────────────────────────────────────────────────────────────────
-  sl.registerFactory(() => ProductBloc(repository: sl()));
+  sl.registerFactory(
+      () => ProductBloc(repository: sl(), printerRepository: sl()));
+  sl.registerFactory(
+      () => AttributeDefinitionBloc(repository: sl<AttributeDefinitionRepository>()));
 
   sl.registerFactory(() => ShopBloc(repository: sl()));
 
   sl.registerFactory(() => PrinterBloc(repository: sl()));
 
-  sl.registerFactory(() => HistoryBloc(repository: sl()));
+  sl.registerFactory(
+      () => HistoryBloc(repository: sl(), printerRepository: sl()));
 
   sl.registerFactory(() => BillingBloc(
         productRepository: sl(),
         printerRepository: sl(),
         invoiceRepository: sl(),
+        exchangeRateService: sl(),
+        inventorySettingsService: sl(),
+        attributeRepository: sl(),
       ));
 
   sl.registerFactory(() => CustomerBloc(repository: sl()));
@@ -115,6 +186,12 @@ Future<void> init() async {
         ledgerRepository: sl(),
         printerRepository: sl(),
       ));
+
+  sl.registerFactory(() => CashboxBloc(repository: sl()));
+
+  sl.registerFactory(() => DashboardBloc(repository: sl()));
+
+  sl.registerFactory(() => BackupBloc(repository: sl<BackupRepository>(), autoBackup: sl<AutoBackupService>()));
 
   // LicenseBloc is a SINGLETON (not a factory): the GoRouter gate redirect and
   // the widget tree must observe the same instance for the gate to react.

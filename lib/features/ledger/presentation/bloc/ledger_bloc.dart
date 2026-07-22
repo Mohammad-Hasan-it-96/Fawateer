@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 
@@ -18,6 +20,7 @@ class LedgerBloc extends Bloc<LedgerEvent, LedgerState> {
   final LedgerRepository ledgerRepository;
   final PrinterRepository printerRepository;
   bool _watching = false;
+  StreamSubscription<Customer?>? _customerSub;
 
   LedgerBloc({
     required this.customerRepository,
@@ -25,6 +28,7 @@ class LedgerBloc extends Bloc<LedgerEvent, LedgerState> {
     required this.printerRepository,
   }) : super(const LedgerState()) {
     on<LoadLedger>(_onLoad);
+    on<_CustomerChanged>(_onCustomerChanged);
     on<AddLedgerEntry>(_onAddEntry);
     on<DeleteLedgerEntry>(_onDeleteEntry);
     on<PrintStatement>(_onPrintStatement);
@@ -35,11 +39,10 @@ class LedgerBloc extends Bloc<LedgerEvent, LedgerState> {
     _watching = true;
     emit(state.copyWith(status: LedgerStatus.loading));
 
-    final customerResult = await customerRepository.getCustomer(event.customerId);
-    customerResult.fold(
-      (_) {},
-      (customer) => emit(state.copyWith(customer: customer)),
-    );
+    // Stream the customer so edits (e.g. a renamed name) reflect immediately.
+    _customerSub = customerRepository
+        .watchCustomer(event.customerId)
+        .listen((customer) => add(_CustomerChanged(customer)));
 
     await emit.forEach(
       ledgerRepository.watchEntries(event.customerId),
@@ -52,6 +55,10 @@ class LedgerBloc extends Bloc<LedgerEvent, LedgerState> {
       onError: (_, __) => state.copyWith(
           status: LedgerStatus.error, message: LedgerMessage.loadFailed),
     );
+  }
+
+  void _onCustomerChanged(_CustomerChanged event, Emitter<LedgerState> emit) {
+    emit(state.copyWith(customer: event.customer));
   }
 
   Future<void> _onAddEntry(
@@ -82,5 +89,11 @@ class LedgerBloc extends Bloc<LedgerEvent, LedgerState> {
         message: printed
             ? LedgerMessage.statementPrinted
             : LedgerMessage.printerUnavailable));
+  }
+
+  @override
+  Future<void> close() {
+    _customerSub?.cancel();
+    return super.close();
   }
 }

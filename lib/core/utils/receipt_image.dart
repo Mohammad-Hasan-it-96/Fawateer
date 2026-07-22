@@ -178,6 +178,22 @@ class ReceiptImage {
         FontWeight.normal);
     divider();
 
+    // A small right-aligned (RTL) sub-line, indented under an item — used for
+    // per-line custom attributes (Plan 010).
+    void subLine(String text) {
+      if (text.trim().isEmpty) return;
+      final p = TextPainter(
+        text: TextSpan(
+            text: text,
+            style: const TextStyle(
+                color: _black, fontSize: 16, fontWeight: FontWeight.normal)),
+        textDirection: ui.TextDirection.rtl,
+        maxLines: 2,
+      )..layout(maxWidth: contentWidth - 16);
+      p.paint(canvas, Offset(width - _pad - p.width, y));
+      y += p.height + 2;
+    }
+
     // Items
     for (final item in items) {
       final qty = formatQty(item['qty'] as num);
@@ -186,6 +202,13 @@ class ReceiptImage {
       final qtyLabel = unit.isEmpty ? qty : '$qty $unit';
       row('$qtyLabel × $name', _money(currency, item['total'] as num), 22,
           FontWeight.normal);
+      // Custom fields flagged show-on-receipt, printed under the item line.
+      final attrs = item['attributes'];
+      if (attrs is List) {
+        for (final a in attrs) {
+          subLine(a.toString());
+        }
+      }
     }
     divider();
 
@@ -202,6 +225,10 @@ class ReceiptImage {
     picture.dispose();
     return image;
   }
+
+  /// Public entry to the raster encoder, so other renderers (e.g. product
+  /// labels, [LabelImage]) can reuse the exact `GS v 0` band-splitting logic.
+  static Future<List<int>> imageToRaster(ui.Image image) => _imageToRaster(image);
 
   /// Convert the rendered image to ESC/POS `GS v 0` raster, split into vertical
   /// bands so a tall receipt never exceeds a printer's per-command buffer.

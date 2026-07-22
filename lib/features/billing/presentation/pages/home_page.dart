@@ -4,14 +4,21 @@ import 'package:go_router/go_router.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:app_settings/app_settings.dart';
+import 'package:intl/intl.dart' hide TextDirection;
+
+import '../../../settings/presentation/widgets/exchange_rate_sheet.dart';
+import '../widgets/discount_dialog.dart';
 
 import '../../../../core/utils/num_input.dart';
+import '../../../../core/utils/scan_feedback.dart';
 
 import '../../../billing/presentation/bloc/billing_bloc.dart';
 import '../billing_error_text.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../../product/presentation/bloc/product_bloc.dart';
 import '../../../product/domain/entities/product.dart';
+import '../../../product/domain/entities/price_currency.dart';
+import '../../../../core/currency/exchange_rate_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/format.dart';
 import '../../../../core/widgets/primary_button.dart';
@@ -26,14 +33,69 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
-  final MobileScannerController _scannerController = MobileScannerController(
-    detectionSpeed: DetectionSpeed.normal,
-    returnImage: false,
-  );
+  /// Not `final`: a controller that has latched an error can only be replaced,
+  /// never revived — see [_recoverCamera].
+  MobileScannerController _scannerController = _newController();
 
+  static MobileScannerController _newController() => MobileScannerController(
+        detectionSpeed: DetectionSpeed.normal,
+        returnImage: false,
+      );
+
+  /// Serializes every camera start/stop.
+  ///
+  /// The native scanner rejects a `start()` issued while the camera is already
+  /// running (`AlreadyStarted`), and mobile_scanner latches that rejection into
+  /// `controller.value.error` — which `MobileScanner` renders through
+  /// [errorBuilder] forever, because `stop()` returns early while `isRunning`
+  /// is false and so can never clear it. Two callers each firing a start was
+  /// therefore enough to strand the preview on "camera unavailable" until the
+  /// app was killed. Queuing the calls removes the overlap that causes it.
+  Future<void> _cameraOp = Future<void>.value();
+
+  /// Bumped on every controller swap so `MobileScanner` rebuilds its state
+  /// against the new instance instead of holding the disposed one.
+  int _cameraGeneration = 0;
+
+  /// Bounds [_recoverCamera] so a genuinely broken camera can't loop; reset
+  /// whenever a start succeeds.
+  int _recoveryAttempts = 0;
+  static const int _maxRecoveryAttempts = 2;
+
+  // ── camera desired-state inputs ────────────────────────────────────────────
+  // Each of these is set by exactly one concern, and every change funnels
+  // through [_syncCamera]. Driving the camera imperatively instead — a `stop()`
+  // at each callsite paired with a `start()` on the way back — is what stranded
+  // the preview on black: any path that stopped without a matching start (an
+  // overlay dismissed while the app was backgrounded, a tab change during
+  // checkout) left the camera off with nothing left to turn it on.
+
+  /// The user's camera toggle.
   bool _isCameraOn = true;
-  bool _isFlashOn = false;
+
+  /// This tab is the visible branch of the shell.
+  bool _tabVisible = false;
+
+  /// The app is in the foreground.
+  bool _appResumed = true;
+
+  /// The checkout route is pushed over this page.
   bool _onCheckout = false;
+
+  /// A sheet or dialog is covering the scanner (picker, measured entry, unknown
+  /// barcode) — it owns the screen, and a live camera behind it would keep
+  /// decoding and re-fire the prompt on top of itself.
+  int _overlayDepth = 0;
+
+  bool _isFlashOn = false;
+
+  /// The camera should run only when nothing else wants the screen.
+  bool get _shouldScan =>
+      _isCameraOn &&
+      _tabVisible &&
+      _appResumed &&
+      !_onCheckout &&
+      _overlayDepth == 0;
 
   final Map<String, DateTime> _lastScanTimes = {};
 
@@ -41,44 +103,127 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _scannerController.addListener(_onScannerState);
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Start/stop camera based on whether this branch is the visible tab
-    final visible = TickerMode.of(context);
-    if (visible && _isCameraOn) {
-      _startScanner();
-    } else if (!visible) {
-      _scannerController.stop();
-    }
+    // Fires for any inherited change (keyboard, theme, locale), not just the
+    // tab — [_syncCamera] is idempotent, so re-running it is free.
+    _tabVisible = TickerMode.of(context);
+    _syncCamera();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      if (_isCameraOn && !_onCheckout && TickerMode.of(context)) {
-        _startScanner();
-      }
-    } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
-      _scannerController.stop();
-    }
+    // `inactive` also covers a transient interruption (notification shade, a
+    // permission prompt), where holding the camera open is what makes the
+    // preview come back black once Android has torn the surface down.
+    _appResumed = state == AppLifecycleState.resumed;
+    _syncCamera();
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _scannerController.removeListener(_onScannerState);
     _scannerController.dispose();
     super.dispose();
   }
 
-  /// Start the camera, swallowing platform errors (permission denied, no
-  /// camera). The [MobileScanner] errorBuilder renders the user-facing fallback,
-  /// so an unhandled async throw never escapes here.
-  void _startScanner() {
-    _scannerController.start().catchError((_) {});
+  /// Queue [action] behind whatever camera work is already in flight, so two
+  /// starts can never overlap. Platform errors are swallowed: the
+  /// [MobileScanner] errorBuilder is the user-facing channel.
+  Future<void> _enqueue(Future<void> Function() action) {
+    final next = _cameraOp.then((_) => action()).catchError((_) {});
+    _cameraOp = next;
+    return next;
+  }
+
+  /// Drive the camera to whatever [_shouldScan] currently says.
+  ///
+  /// Every camera decision goes through here, and it re-reads [_shouldScan]
+  /// *inside* the queue rather than capturing it at call time — so when several
+  /// events land together (tab change plus a resume, say) the last one wins
+  /// instead of a stale start re-opening a camera the newer state wants closed.
+  Future<void> _syncCamera() => _enqueue(() async {
+        if (!mounted) return;
+        if (_shouldScan) {
+          await _scannerController.start();
+        } else {
+          await _scannerController.stop();
+        }
+      });
+
+  /// Run [body] with the scanner treated as covered, restoring it afterwards
+  /// even if [body] throws — a sheet that closed on an error used to leave the
+  /// camera stopped for good.
+  Future<T> _withOverlay<T>(Future<T> Function() body) async {
+    _overlayDepth++;
+    _syncCamera();
+    try {
+      return await body();
+    } finally {
+      _overlayDepth--;
+      _syncCamera();
+    }
+  }
+
+  /// Auto-recovers a stuck camera, so the cashier doesn't have to notice a
+  /// retry button to get back to scanning.
+  void _onScannerState() {
+    final error = _scannerController.value.error;
+    if (error == null) {
+      _recoveryAttempts = 0;
+      return;
+    }
+    // A denied permission is the user's to resolve, and the error state already
+    // offers Settings; recreating the controller would only re-fail. Anything
+    // else is a native camera we still hold but can no longer drive.
+    if (error.errorCode == MobileScannerErrorCode.permissionDenied) return;
+    if (!mounted || !_isCameraOn) return;
+    if (_recoveryAttempts >= _maxRecoveryAttempts) return;
+    _recoveryAttempts++;
+    _recoverCamera();
+  }
+
+  /// Replace a controller that has latched an error and start the fresh one.
+  ///
+  /// Disposing the old controller is what releases the native camera it is
+  /// still holding — without that, the new controller's start would be
+  /// rejected as `AlreadyStarted` exactly like the one that stranded it.
+  Future<void> _recoverCamera() {
+    return _enqueue(() async {
+      final old = _scannerController;
+      old.removeListener(_onScannerState);
+      if (!mounted) {
+        await old.dispose();
+        return;
+      }
+      final fresh = _newController();
+      setState(() {
+        _scannerController = fresh;
+        _cameraGeneration++;
+      });
+      fresh.addListener(_onScannerState);
+      await old.dispose();
+      if (mounted && _shouldScan) await fresh.start();
+    });
+  }
+
+  /// Routes to the products tab's add page with the barcode already filled, so
+  /// the cashier never has to read the digits off a message and retype them.
+  ///
+  /// Invoked from the "Add" action on the unknown-barcode snackbar — the tap is
+  /// the confirmation, so there's no second dialog. The camera stays suspended
+  /// across the navigation (via [_withOverlay]): left running it keeps decoding
+  /// the same barcode and would re-fire the snackbar on top of the add form.
+  Future<void> _goCreateProduct(BuildContext context, String barcode) {
+    return _withOverlay(() async {
+      if (!context.mounted) return;
+      await context.push('/products/add', extra: barcode);
+    });
   }
 
   void _onDetect(BarcodeCapture capture) async {
@@ -91,6 +236,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           continue;
         }
         _lastScanTimes[rawValue] = now;
+
+        // Beep first, then buzz: the sound is the primary confirmation for a
+        // cashier whose eyes are on the goods, and awaiting `canVibrate` first
+        // would delay it noticeably on some devices.
+        ScanFeedback.beep();
 
         final canVibrate = await Vibrate.canVibrate;
         if (canVibrate) Vibrate.feedback(FeedbackType.success);
@@ -114,6 +264,48 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             listenWhen: (prev, curr) =>
                 prev.error != curr.error && curr.error != null,
             listener: (context, state) {
+              // An unknown barcode isn't really an error — it's an unstocked
+              // item (or a one-off misread during continuous scanning). Surface
+              // it as a *dismissible* snackbar with an "Add" action, never a
+              // modal: a stray read must not hijack the screen or suspend the
+              // camera mid-sale. Tapping "Add" opens the create-product page
+              // with the barcode pre-filled.
+              if (state.error == BillingError.productNotFound &&
+                  (state.errorBarcode ?? '').isNotEmpty) {
+                final barcode = state.errorBarcode!;
+                final messenger = ScaffoldMessenger.of(context);
+                messenger
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(SnackBar(
+                    content: Row(
+                      children: [
+                        Expanded(child: Text(l10n.productNotFound(barcode))),
+                        // Explicit dismiss: a wrong barcode read must be
+                        // clearable instantly. Without it the only button was
+                        // "Add", so a misread of an existing product looked
+                        // like it was forcing the cashier to create a duplicate.
+                        InkWell(
+                          onTap: messenger.hideCurrentSnackBar,
+                          borderRadius: BorderRadius.circular(20),
+                          child: const Padding(
+                            padding: EdgeInsets.only(left: 8),
+                            child: Icon(Icons.close,
+                                color: Colors.white70, size: 20),
+                          ),
+                        ),
+                      ],
+                    ),
+                    backgroundColor: Colors.red.shade700,
+                    behavior: SnackBarBehavior.floating,
+                    duration: const Duration(seconds: 4),
+                    action: SnackBarAction(
+                      label: l10n.unknownBarcodeAdd,
+                      textColor: Colors.white,
+                      onPressed: () => _goCreateProduct(context, barcode),
+                    ),
+                  ));
+                return;
+              }
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                 content: Text(
                     billingErrorText(state.error!, state.errorBarcode, l10n)),
@@ -137,19 +329,6 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 bloc.add(AddProductToCartEvent(product, quantity: weight));
               } else {
                 bloc.add(const ClearMeasuredPromptEvent());
-              }
-            },
-          ),
-          // Restart camera when returning from checkout (cart cleared)
-          BlocListener<BillingBloc, BillingState>(
-            listenWhen: (prev, curr) =>
-                _onCheckout &&
-                prev.cartItems.isNotEmpty &&
-                curr.cartItems.isEmpty,
-            listener: (context, state) {
-              if (_onCheckout) {
-                setState(() => _onCheckout = false);
-                if (_isCameraOn) _startScanner();
               }
             },
           ),
@@ -180,13 +359,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 ? null
                 : () async {
                     setState(() => _onCheckout = true);
-                    _scannerController.stop();
-                    await context.push('/pos/checkout');
-                    // Back from checkout: cart may be preserved (Back) or
-                    // cleared (New Sale) — either way, resume scanning.
-                    if (mounted) {
-                      setState(() => _onCheckout = false);
-                      if (_isCameraOn) _startScanner();
+                    _syncCamera();
+                    try {
+                      await context.push('/pos/checkout');
+                    } finally {
+                      // Back from checkout, by any route (Back, New Sale, or a
+                      // navigation error): the camera resumes because the flag
+                      // clears, not because this callsite restarted it.
+                      if (mounted) {
+                        setState(() => _onCheckout = false);
+                        _syncCamera();
+                      }
                     }
                   },
             icon: Icons.payment,
@@ -204,6 +387,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         fit: StackFit.expand,
         children: [
           MobileScanner(
+            // Rebuilds against a replaced controller (see [_recoverCamera]).
+            key: ValueKey(_cameraGeneration),
             controller: _scannerController,
             onDetect: _onDetect,
             // Shown when the camera can't start (permission denied, no camera).
@@ -211,6 +396,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 _buildCameraErrorState(l10n),
           ),
           if (!_isCameraOn) _buildCameraOffState(l10n),
+
+          // Quick currency-rate chip (top-start): tap to set/update the USD→SP
+          // exchange rate without leaving the POS.
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 12,
+            left: 12,
+            child: _buildRateChip(l10n),
+          ),
 
           // Two overlay buttons (flash + camera toggle) — top-right horizontal row
           Positioned(
@@ -232,11 +425,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   label: l10n.camera,
                   onPressed: () {
                     setState(() => _isCameraOn = !_isCameraOn);
-                    if (_isCameraOn) {
-                      _startScanner();
-                    } else {
-                      _scannerController.stop();
-                    }
+                    _syncCamera();
                   },
                 ),
               ],
@@ -305,7 +494,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 style: const TextStyle(fontWeight: FontWeight.bold)),
             onPressed: () {
               setState(() => _isCameraOn = true);
-              _startScanner();
+              _syncCamera();
             },
           ),
         ],
@@ -345,21 +534,100 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 style: const TextStyle(color: Colors.white70, fontSize: 12)),
           ),
           const SizedBox(height: 24),
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppTheme.primaryColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(20)),
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-            ),
-            icon: const Icon(Icons.settings),
-            label: Text(l10n.openSettings,
-                style: const TextStyle(fontWeight: FontWeight.bold)),
-            onPressed: () => AppSettings.openAppSettings(),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Manual escape hatch for the case auto-recovery gave up on
+              // (see [_maxRecoveryAttempts]) — cheaper for the cashier than
+              // restarting the app.
+              OutlinedButton.icon(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white,
+                  side: const BorderSide(color: Colors.white54),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+                icon: const Icon(Icons.refresh),
+                label: Text(l10n.retry,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                onPressed: () {
+                  _recoveryAttempts = 0;
+                  _recoverCamera();
+                },
+              ),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+                icon: const Icon(Icons.settings),
+                label: Text(l10n.openSettings,
+                    style: const TextStyle(fontWeight: FontWeight.bold)),
+                // asAnotherTask: launches Settings with FLAG_ACTIVITY_NEW_TASK
+                // — without it Android silently drops the launch on many
+                // devices ("nothing happens"). Opens App Info → Permissions →
+                // Camera.
+                onPressed: () =>
+                    AppSettings.openAppSettings(asAnotherTask: true),
+              ),
+            ],
           ),
         ],
       ),
+    );
+  }
+
+  /// Compact tappable pill showing the current USD→SP rate (or a prompt to set
+  /// it). Opens the rate modal — a fast in-place edit from the POS.
+  Widget _buildRateChip(AppLocalizations l10n) {
+    return BlocBuilder<BillingBloc, BillingState>(
+      buildWhen: (p, c) => p.exchangeRate != c.exchangeRate,
+      builder: (context, state) {
+        final rate = state.exchangeRate;
+        final shopState = context.read<ShopBloc>().state;
+        final sym =
+            shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
+        final label = rate == null
+            ? l10n.setExchangeRateShort
+            : '\$1 = ${NumberFormat('#,###').format(rate)} $sym';
+        return GestureDetector(
+          onTap: () => showExchangeRateSheet(context),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.black54,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.currency_exchange,
+                    color: Colors.white, size: 16),
+                const SizedBox(width: 6),
+                // Force LTR so "$1 = 13,000 ل.س" keeps a stable, readable order
+                // in the Arabic (RTL) layout instead of the number/symbol
+                // reshuffling into a confusing mix.
+                Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Text(label,
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -425,8 +693,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       decoration: BoxDecoration(
         color: Theme.of(context).scaffoldBackgroundColor,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-        boxShadow: const [
-          BoxShadow(color: Colors.black26, blurRadius: 15, offset: Offset(0, -5))
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 15,
+              offset: const Offset(0, -5))
         ],
       ),
       child: Column(
@@ -436,7 +707,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             height: 4,
             margin: const EdgeInsets.symmetric(vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.grey.withValues(alpha: 0.3),
+              color: Theme.of(context).colorScheme.onSurfaceVariant
+                  .withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(2),
             ),
           ),
@@ -456,8 +728,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             style: const TextStyle(
                                 fontSize: 18, fontWeight: FontWeight.w600)),
                         Text(l10n.itemsCount(formatQty(totalItems)),
-                            style: const TextStyle(
-                                fontSize: 12, color: Colors.grey)),
+                            style: TextStyle(
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant)),
                       ],
                     ),
                     Column(
@@ -467,7 +742,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                             style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.grey[700])),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant)),
                         BlocBuilder<ShopBloc, ShopState>(
                           builder: (context, shopState) {
                             final currency = shopState is ShopLoaded
@@ -540,9 +817,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             width: 80,
             height: 80,
             decoration: BoxDecoration(
-                color: Colors.grey[100], shape: BoxShape.circle),
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                shape: BoxShape.circle),
             alignment: Alignment.center,
-            child: Icon(Icons.shopping_basket, size: 40, color: Colors.grey[300]),
+            child: Icon(Icons.shopping_basket,
+                size: 40,
+                color: Theme.of(context).colorScheme.outlineVariant),
           ),
           const SizedBox(height: 16),
           Text(l10n.cartEmpty,
@@ -553,7 +833,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             padding: const EdgeInsets.symmetric(horizontal: 40),
             child: Text(l10n.cartEmptyHint,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.grey, fontSize: 14)),
+                style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    fontSize: 14)),
           ),
         ],
       ),
@@ -569,11 +851,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-        boxShadow: const [
-          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+        border: Border.all(color: Theme.of(context).dividerColor),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 4,
+              offset: const Offset(0, 2))
         ],
       ),
       padding: const EdgeInsets.all(16),
@@ -593,13 +878,22 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 Text(
                   measured
                       // e.g. "0.333 كغ × 15000.00" then the line total below.
-                      ? '${formatQty(item.quantity)} ${l10n.unitKg} × $currency${item.product.price.toStringAsFixed(2)}'
-                      : '$currency${item.product.price.toStringAsFixed(2)}',
+                      ? '${formatQty(item.quantity)} ${l10n.unitKg} × $currency${item.unitPriceSp.toStringAsFixed(2)}'
+                      : '$currency${item.unitPriceSp.toStringAsFixed(2)}',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: measured ? 12 : 14,
-                      color: Colors.grey[600]),
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
+                if (item.isForeign) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    item.sellCurrency.label(item.product.price, ''),
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ),
+                ],
                 if (measured) ...[
                   const SizedBox(height: 2),
                   Text('$currency${item.total.toStringAsFixed(2)}',
@@ -608,6 +902,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                           fontSize: 14,
                           color: AppTheme.primaryColor)),
                 ],
+                const SizedBox(height: 6),
+                _buildLineDiscount(context, item, currency, l10n),
               ],
             ),
           ),
@@ -651,7 +947,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           else
             Container(
               decoration: BoxDecoration(
-                color: Colors.grey[100],
+                color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
               padding: const EdgeInsets.all(4),
@@ -706,7 +1002,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         width: 44,
         height: 44,
         alignment: Alignment.center,
-        child: Icon(icon, size: 24, color: Colors.grey[800]),
+        child: Icon(icon,
+            size: 24, color: Theme.of(context).colorScheme.onSurfaceVariant),
       ),
     );
   }
@@ -723,6 +1020,60 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
     if (newQty != null) {
       bloc.add(UpdateQuantityEvent(item.product.id, newQty));
+    }
+  }
+
+  /// Compact per-line discount affordance: a tappable chip showing the current
+  /// markdown ("−500 • net 4500"), or a subtle "Discount" button when none is
+  /// set. Opens the % / fixed discount dialog.
+  Widget _buildLineDiscount(BuildContext context, CartItem item, String currency,
+      AppLocalizations l10n) {
+    final has = item.effectiveDiscount > 0;
+    // Grouped, no decimals — SP amounts here are large; ".00" just wastes space
+    // and pushed the row into a right-overflow.
+    final fmt = NumberFormat('#,###');
+    final color = has ? Colors.red : AppTheme.primaryColor;
+    return InkWell(
+      onTap: () => _editLineDiscount(context, item, currency),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.10),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(has ? Icons.local_offer : Icons.local_offer_outlined,
+                size: 14, color: color),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                has ? '- $currency${fmt.format(item.effectiveDiscount)}'
+                    : l10n.addDiscountAction,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                    fontSize: 12, fontWeight: FontWeight.bold, color: color),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editLineDiscount(
+      BuildContext context, CartItem item, String currency) async {
+    final bloc = context.read<BillingBloc>();
+    final result = await showDiscountDialog(
+      context: context,
+      base: item.gross,
+      currency: currency,
+      initialDiscount: item.discount,
+    );
+    if (result != null) {
+      bloc.add(SetLineDiscountEvent(item.product.id, result));
     }
   }
 
@@ -744,57 +1095,66 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     final shopState = context.read<ShopBloc>().state;
     final currency =
         shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
+    final billingState = context.read<BillingBloc>().state;
+    // Work the weight↔amount linkage in SP: a USD-priced weighed item is
+    // resolved to its SP per-kg price at the current rate so the dialog's money
+    // field is in SP (matching the cart total). 0 if no rate yet → amount field
+    // disabled and the checkout guard blocks the sale.
+    final spPerUnit = product.priceCurrency == PriceCurrency.usd
+        ? (usdToSp(product.price, billingState.exchangeRate) ?? 0)
+        : product.price;
     double existing = 0;
-    for (final c in context.read<BillingBloc>().state.cartItems) {
+    for (final c in billingState.cartItems) {
       if (c.product.id == product.id) {
         existing = c.quantity;
         break;
       }
     }
-    return showDialog<double>(
-      context: context,
-      builder: (_) => _MeasuredEntryDialog(
-        product: product,
-        currency: currency,
-        initialWeight: existing,
-      ),
-    );
+    // Suspended while the dialog is up: a live camera behind it would keep
+    // decoding and re-raise the measured prompt on top of itself. Nesting
+    // inside the picker's overlay is fine — [_overlayDepth] counts.
+    return _withOverlay(() => showDialog<double>(
+          context: context,
+          builder: (_) => _MeasuredEntryDialog(
+            product: product,
+            currency: currency,
+            pricePerUnit: spPerUnit,
+            initialWeight: existing,
+          ),
+        ));
   }
 
   /// Opens a searchable product grid so the cashier can add items that have
   /// no barcode (or when scanning fails). Pauses the camera while open.
-  void _showProductPicker(BuildContext context) {
-    _scannerController.stop();
+  Future<void> _showProductPicker(BuildContext context) {
     final shopState = context.read<ShopBloc>().state;
     final currency =
         shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => _ProductPickerSheet(
-        currency: currency,
-        onAdd: (product) async {
-          final bloc = context.read<BillingBloc>();
-          if (product.saleType.isMeasured) {
-            // Ask for weight/amount before adding a measured product.
-            final weight = await _promptMeasuredEntry(context, product);
-            if (weight == null) return;
-            bloc.add(AddProductToCartEvent(product, quantity: weight));
-          } else {
-            bloc.add(AddProductToCartEvent(product));
-          }
-          final canVibrate = await Vibrate.canVibrate;
-          if (canVibrate) Vibrate.feedback(FeedbackType.success);
-        },
-      ),
-    ).whenComplete(() {
-      if (mounted && _isCameraOn && !_onCheckout) _startScanner();
-    });
+    return _withOverlay(() => showModalBottomSheet<void>(
+          context: context,
+          isScrollControlled: true,
+          backgroundColor: Theme.of(context).colorScheme.surface,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          builder: (_) => _ProductPickerSheet(
+            currency: currency,
+            onAdd: (product) async {
+              final bloc = context.read<BillingBloc>();
+              if (product.saleType.isMeasured) {
+                // Ask for weight/amount before adding a measured product.
+                final weight = await _promptMeasuredEntry(context, product);
+                if (weight == null) return;
+                bloc.add(AddProductToCartEvent(product, quantity: weight));
+              } else {
+                bloc.add(AddProductToCartEvent(product));
+              }
+              final canVibrate = await Vibrate.canVibrate;
+              if (canVibrate) Vibrate.feedback(FeedbackType.success);
+            },
+          ),
+        ));
   }
 }
 
@@ -853,7 +1213,8 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                 height: 4,
                 margin: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: Colors.grey.withValues(alpha: 0.3),
+                  color: Theme.of(context).colorScheme.onSurfaceVariant
+                      .withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -890,7 +1251,10 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                     : filtered.isEmpty
                     ? Center(
                         child: Text(l10n.noProductsFound,
-                            style: const TextStyle(color: Colors.grey)))
+                            style: TextStyle(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant)))
                     : GridView.builder(
                         controller: scrollController,
                         padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
@@ -975,17 +1339,19 @@ class _ProductTileState extends State<_ProductTile> {
               decoration: BoxDecoration(
                 color: highlighted
                     ? AppTheme.primaryColor.withValues(alpha: 0.06)
-                    : Colors.white,
+                    : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
                   color: highlighted
                       ? AppTheme.primaryColor
-                      : Colors.grey.shade200,
+                      : Theme.of(context).dividerColor,
                   width: highlighted ? 1.5 : 1,
                 ),
-                boxShadow: const [
+                boxShadow: [
                   BoxShadow(
-                      color: Colors.black12, blurRadius: 4, offset: Offset(0, 2))
+                      color: Colors.black.withValues(alpha: 0.08),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2))
                 ],
               ),
               child: Column(
@@ -1002,7 +1368,8 @@ class _ProductTileState extends State<_ProductTile> {
                     children: [
                       Flexible(
                         child: Text(
-                          '${widget.currency}${widget.product.price.toStringAsFixed(2)}',
+                          widget.product.priceCurrency
+                              .label(widget.product.price, widget.currency),
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                               fontWeight: FontWeight.bold,
@@ -1131,11 +1498,17 @@ class _QuantityDialogState extends State<_QuantityDialog> {
 class _MeasuredEntryDialog extends StatefulWidget {
   final Product product;
   final String currency;
+
+  /// The per-unit (per-kg) price **in SP** — already resolved from the product's
+  /// currency at the current rate, so weight↔amount linkage and the shown total
+  /// are all in SP.
+  final double pricePerUnit;
   final double initialWeight;
 
   const _MeasuredEntryDialog({
     required this.product,
     required this.currency,
+    required this.pricePerUnit,
     this.initialWeight = 0,
   });
 
@@ -1148,7 +1521,7 @@ class _MeasuredEntryDialogState extends State<_MeasuredEntryDialog> {
   late final TextEditingController _amountCtrl;
   double _weight = 0;
 
-  double get _price => widget.product.price;
+  double get _price => widget.pricePerUnit;
 
   @override
   void initState() {
@@ -1200,7 +1573,9 @@ class _MeasuredEntryDialogState extends State<_MeasuredEntryDialog> {
         children: [
           Text(
             '${l10n.priceLabel}: ${widget.currency}${_price.toStringAsFixed(2)} / ${l10n.unitKg}',
-            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+            style: TextStyle(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+                fontSize: 13),
           ),
           const SizedBox(height: 16),
           TextField(

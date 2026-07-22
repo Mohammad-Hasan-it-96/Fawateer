@@ -1,8 +1,10 @@
 import 'package:drift/drift.dart';
 import 'package:fpdart/fpdart.dart';
+import '../../../../core/attributes/product_attributes.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/daos/products_dao.dart';
 import '../../../../core/error/failure.dart';
+import '../../domain/entities/price_currency.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/product_sale_type.dart';
 import '../../domain/repositories/product_repository.dart';
@@ -23,6 +25,8 @@ class ProductRepositoryDriftImpl implements ProductRepository {
         quantity: row.quantity,
         minStockAlert: row.minStockAlert,
         saleType: ProductSaleType.fromName(row.saleType),
+        priceCurrency: PriceCurrency.fromName(row.priceCurrency),
+        attributes: ProductAttributes.fromJson(row.attributes),
       );
 
   static ProductsCompanion _toCompanion(Product p) => ProductsCompanion(
@@ -34,6 +38,8 @@ class ProductRepositoryDriftImpl implements ProductRepository {
         quantity: Value(p.quantity),
         minStockAlert: Value(p.minStockAlert),
         saleType: Value(p.saleType.name),
+        priceCurrency: Value(p.priceCurrency.name),
+        attributes: Value(p.attributes.toJson()),
       );
 
   // ── repository interface ──────────────────────────────────────────────────

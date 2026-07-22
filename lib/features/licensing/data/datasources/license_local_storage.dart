@@ -19,6 +19,11 @@ class LicenseLocalStorage {
   static const _kName = 'lic_agent_name';
   static const _kPhone = 'lic_agent_phone';
   static const _kPushToken = 'lic_push_token'; // last FCM token sent to server
+  // Server-side *masked* Drive account (e.g. 'y••••n@gmail.com') echoed by
+  // check_device. A hint for a reinstalled user, never a usable address — see
+  // [saveGoogleAccountHint].
+  static const _kGoogleHint = 'lic_google_account_hint';
+  static const _kReviewSent = 'lic_review_sent'; // asked for a rating only once
 
   SharedPreferences? _prefs;
   Future<SharedPreferences> get _p async =>
@@ -69,6 +74,26 @@ class LicenseLocalStorage {
 
   Future<void> savePushToken(String token) async =>
       (await _p).setString(_kPushToken, token);
+
+  /// Cache the masked Drive account echoed by `check_device`. A null/blank value
+  /// removes the key, so a device whose backup account was cleared server-side
+  /// stops showing a stale hint.
+  Future<void> saveGoogleAccountHint(String? masked) async {
+    final p = await _p;
+    if (masked == null || masked.trim().isEmpty) {
+      await p.remove(_kGoogleHint);
+    } else {
+      await p.setString(_kGoogleHint, masked.trim());
+    }
+  }
+
+  Future<String?> loadGoogleAccountHint() async =>
+      (await _p).getString(_kGoogleHint);
+
+  /// Set once the device's review reaches the server, so the app asks only once.
+  Future<bool> loadReviewSent() async => (await _p).getBool(_kReviewSent) ?? false;
+
+  Future<void> markReviewSent() async => (await _p).setBool(_kReviewSent, true);
 
   /// Read the cached status with offline/tamper guards applied against [now].
   Future<LicenseStatus> loadStatus(DateTime now) async {

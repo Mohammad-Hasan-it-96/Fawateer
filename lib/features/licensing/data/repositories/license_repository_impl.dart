@@ -27,6 +27,12 @@ class LicenseRepositoryImpl implements LicenseRepository {
       await _local.saveStatus(status);
       await _local.markSynced(now,
           serverTime: json == null ? null : _parseDate(json['server_time']));
+      // The masked backup-account hint rides along on this response but is NOT
+      // part of the license: it's cached separately so [LicenseStatus] — the
+      // entity the whole app gates on — stays free of backup concerns.
+      if (json != null) {
+        await _local.saveGoogleAccountHint(json['google_account']?.toString());
+      }
       // Re-read so offline/tamper guards are consistently applied.
       return Right(await _local.loadStatus(DateTime.now()));
     } on ApiException catch (e) {
@@ -143,6 +149,46 @@ class LicenseRepositoryImpl implements LicenseRepository {
       // Non-fatal: token stays cached and re-registers on next launch/rotation.
     }
   }
+
+  @override
+  Future<void> syncGoogleAccount(String email) async {
+    if (email.trim().isEmpty) return;
+    try {
+      final deviceId = await _identity.getDeviceId();
+      await _remote.updateGoogleAccount(
+          deviceId: deviceId, googleAccount: email.trim());
+    } catch (_) {
+      // Non-fatal by contract: the backup itself already succeeded, and the
+      // next sign-in or backup re-sends this. Never surface it to the user.
+    }
+  }
+
+  @override
+  Future<String?> cachedGoogleAccountHint() => _local.loadGoogleAccountHint();
+
+  @override
+  Future<Either<Failure, void>> submitReview({
+    required int stars,
+    String? comment,
+  }) async {
+    try {
+      final deviceId = await _identity.getDeviceId();
+      await _remote.addReview(
+          deviceId: deviceId, stars: stars, comment: comment);
+      // Only marked after the server accepted it: a failed send must leave the
+      // prompt available so the user can retry.
+      await _local.markReviewSent();
+      return const Right(null);
+    } on ApiException catch (e) {
+      return Left(
+          e.isOffline ? NetworkFailure(e.message) : ServerFailure(e.message));
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<bool> hasReviewed() => _local.loadReviewSent();
 
   // ── mapping helpers ────────────────────────────────────────────────────────
 

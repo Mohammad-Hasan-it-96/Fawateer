@@ -94,6 +94,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lowStockPrefix => 'Low stock: ';
 
   @override
+  String get outOfStockPrefix => 'Out of stock: ';
+
+  @override
+  String get insufficientStockError =>
+      'Can\'t complete the sale — some items exceed available stock';
+
+  @override
   String get saleConfirmed => 'Sale Confirmed!';
 
   @override
@@ -131,6 +138,89 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get itemsLoadFailed => 'Couldn\'t load items. Tap to retry.';
+
+  @override
+  String get filterYesterday => 'Yesterday';
+
+  @override
+  String get filterThisWeek => 'This Week';
+
+  @override
+  String get filterThisMonth => 'This Month';
+
+  @override
+  String get paymentCash => 'Cash';
+
+  @override
+  String get paymentCredit => 'Credit';
+
+  @override
+  String get paymentType => 'Payment';
+
+  @override
+  String get sortBy => 'Sort';
+
+  @override
+  String get sortNewest => 'Newest';
+
+  @override
+  String get sortOldest => 'Oldest';
+
+  @override
+  String get sortHighest => 'Highest amount';
+
+  @override
+  String get sortLowest => 'Lowest amount';
+
+  @override
+  String get summaryInvoices => 'Invoices';
+
+  @override
+  String get summaryTotal => 'Total';
+
+  @override
+  String get summaryCash => 'Cash';
+
+  @override
+  String get summaryCredit => 'Credit';
+
+  @override
+  String get summaryAverage => 'Average';
+
+  @override
+  String get searchInvoicesHint => 'Search invoice # or customer…';
+
+  @override
+  String get noSalesMatch => 'No sales match your filters.';
+
+  @override
+  String itemCountLabel(int count) {
+    return '$count items';
+  }
+
+  @override
+  String get invoiceDetails => 'Invoice Details';
+
+  @override
+  String get invoiceNumber => 'Invoice #';
+
+  @override
+  String get dateLabel => 'Date';
+
+  @override
+  String get timeLabel => 'Time';
+
+  @override
+  String get customerLabel => 'Customer';
+
+  @override
+  String get unitPrice => 'Unit Price';
+
+  @override
+  String get walkInCustomer => 'Walk-in customer';
+
+  @override
+  String get reprint => 'Reprint';
 
   @override
   String get shopLoadFailed => 'Couldn\'t load shop details.';
@@ -283,13 +373,243 @@ class AppLocalizationsEn extends AppLocalizations {
   String get managementSection => 'Management';
 
   @override
+  String get inventorySection => 'Inventory';
+
+  @override
+  String get inventoryStrictTitle => 'Block selling out of stock';
+
+  @override
+  String get inventoryStrictSubtitle =>
+      'Don\'t allow selling more than what\'s on hand';
+
+  @override
   String get shopDetailsItem => 'Shop Details';
 
   @override
   String get shopDetailsSubtitle => 'Edit business info & address';
 
   @override
+  String get cashboxItem => 'Cashbox';
+
+  @override
+  String get cashboxSubtitle => 'Cash on hand, deposits & expenses';
+
+  @override
+  String get cashboxTitle => 'Cashbox';
+
+  @override
+  String get cashboxBalanceLabel => 'Current cash balance';
+
+  @override
+  String get todayCashIn => 'Today\'s cash in';
+
+  @override
+  String get todayCashOut => 'Today\'s cash out';
+
+  @override
+  String get addDeposit => 'Add deposit';
+
+  @override
+  String get withdrawMoney => 'Withdraw';
+
+  @override
+  String get addExpense => 'Add expense';
+
+  @override
+  String get viewHistory => 'History';
+
+  @override
+  String get addCashTransaction => 'Add transaction';
+
+  @override
+  String get selectType => 'Select type';
+
+  @override
+  String get recentTransactions => 'Recent activity';
+
+  @override
+  String get noCashTransactions => 'No cash transactions yet';
+
+  @override
+  String get cashHistoryTitle => 'Transaction history';
+
+  @override
+  String get cashInflow => 'In';
+
+  @override
+  String get cashOutflow => 'Out';
+
+  @override
+  String get filterAll => 'All';
+
+  @override
+  String get filterToday => 'Today';
+
+  @override
+  String get filterDateRange => 'Date range';
+
+  @override
+  String get filterByType => 'Type';
+
+  @override
+  String get cashDeleteTitle => 'Delete transaction?';
+
+  @override
+  String get cashDeleteConfirm =>
+      'This cash transaction will be removed and the balance recalculated.';
+
+  @override
+  String get cashTransactionAdded => 'Transaction saved';
+
+  @override
+  String get cashTransactionDeleted => 'Transaction deleted';
+
+  @override
+  String get cashDeleteNotAllowed =>
+      'Auto-created entries are removed by deleting their sale or payment';
+
+  @override
+  String get cashSaveFailed => 'Could not save the transaction';
+
+  @override
+  String get cashLoadFailed => 'Could not load the cashbox';
+
+  @override
+  String get cashTypeOpeningBalance => 'Opening balance';
+
+  @override
+  String get cashTypeCashSale => 'Cash sale';
+
+  @override
+  String get cashTypeCustomerDebtPayment => 'Debt payment';
+
+  @override
+  String get cashTypeManualDeposit => 'Deposit';
+
+  @override
+  String get cashTypeExpense => 'Expense';
+
+  @override
+  String get cashTypePersonalWithdrawal => 'Personal withdrawal';
+
+  @override
+  String get cashTypePurchasePayment => 'Purchase payment';
+
+  @override
+  String get cashTypeSupplierPayment => 'Supplier payment';
+
+  @override
+  String get cashTypeManualAdjustment => 'Adjustment';
+
+  @override
+  String get supportSection => 'Support & About';
+
+  @override
+  String get contactSupportItem => 'Contact support';
+
+  @override
+  String get contactSupportSubtitle => 'Get help with a problem or question';
+
+  @override
+  String get rateAppItem => 'Rate the app';
+
+  @override
+  String get rateAppSubtitle => 'Tell us how we are doing';
+
+  @override
+  String get rateAppThanksSubtitle => 'Thanks for your rating';
+
+  @override
+  String get shareAppItem => 'Share the app';
+
+  @override
+  String get shareAppSubtitle => 'Send it to another shop owner';
+
+  @override
+  String get shareAppMessage =>
+      'Fawateer — a simple point-of-sale app for shops. Invoices, inventory, customer debts and reports, all offline.';
+
+  @override
+  String get appVersionItem => 'App version';
+
+  @override
+  String get aboutItem => 'About Fawateer';
+
+  @override
+  String get rateTitle => 'Rate Fawateer';
+
+  @override
+  String get ratePrompt => 'How is the app working for you?';
+
+  @override
+  String get rateCommentHint => 'Add a comment (optional)';
+
+  @override
+  String get rateSubmit => 'Send rating';
+
+  @override
+  String get rateThanks => 'Thank you! Your rating was sent.';
+
+  @override
+  String get rateFailed => 'Could not send your rating. Please try again.';
+
+  @override
+  String get supportSheetTitle => 'How would you like to reach us?';
+
+  @override
+  String get supportWhatsApp => 'WhatsApp';
+
+  @override
+  String get supportTelegram => 'Telegram';
+
+  @override
+  String get supportEmail => 'Email';
+
+  @override
+  String get supportEmailSubject => 'Fawateer support request';
+
+  @override
+  String get supportLaunchFailed =>
+      'Could not open that app. Please try another way.';
+
+  @override
+  String get poweredBy => 'Developed by Evo Tech Systems';
+
+  @override
+  String get visitWebsite => 'evotech-sys.com';
+
+  @override
+  String get subscriptionActiveChip => 'Active';
+
+  @override
+  String get subscriptionInactiveChip => 'Inactive';
+
+  @override
+  String get trialChip => 'Trial';
+
+  @override
+  String get expiresOnLabel => 'Expires';
+
+  @override
+  String get planLabelShort => 'Plan';
+
+  @override
   String get hardwareSection => 'Hardware';
+
+  @override
+  String get appearanceSection => 'Appearance';
+
+  @override
+  String get themeModeTitle => 'App theme';
+
+  @override
+  String get themeLight => 'Light';
+
+  @override
+  String get themeDark => 'Dark';
+
+  @override
+  String get themeSystem => 'Follow system';
 
   @override
   String get printDeviceItem => 'Print Device';
@@ -344,7 +664,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get currencyLabel => 'Currency Symbol';
 
   @override
-  String get currencyHint => '₹  \$  €  £';
+  String get currencyHint => 'ل.س  \$  €  £';
 
   @override
   String get footerLabel => 'Receipt Footer (optional)';
@@ -389,6 +709,17 @@ class AppLocalizationsEn extends AppLocalizations {
   String productNotFound(String barcode) {
     return 'Product not found: $barcode';
   }
+
+  @override
+  String get unknownBarcodeTitle => 'Barcode not registered';
+
+  @override
+  String unknownBarcodeMessage(String barcode) {
+    return 'This barcode does not exist: $barcode\nDo you want to add it as a new product?';
+  }
+
+  @override
+  String get unknownBarcodeAdd => 'Add new product';
 
   @override
   String get saleSaveFailed => 'Could not save the sale. Please try again.';
@@ -504,12 +835,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateDownload => 'Download update';
 
   @override
+  String get updateAvailableGeneric => 'A new version of the app is available.';
+
+  @override
   String get updateLater => 'Later';
 
   @override
-  String contactMessage(String plan) {
-    return 'Hello, I\'d like to subscribe to the $plan plan for Fawateer.';
+  String contactMessage(
+      String plan, String name, String phone, String deviceId) {
+    return 'Hello,\nI\'d like to subscribe to Fawateer.\nPlan: $plan\nName: $name\nPhone: $phone\nDevice ID: $deviceId';
   }
+
+  @override
+  String get contactMessagePreview => 'The message we\'ll send';
+
+  @override
+  String get contactLaunchFailed =>
+      'Couldn\'t open that app. Copy the message and send it to us manually.';
 
   @override
   String get customersTitle => 'Customers';
@@ -556,6 +898,27 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add a customer to track credit sales and payments.';
 
   @override
+  String get selectCustomer => 'Select customer';
+
+  @override
+  String get addNewCustomer => 'Add new customer';
+
+  @override
+  String get searchCustomerHint => 'Search customers';
+
+  @override
+  String get noMatchingCustomers => 'No matching customers';
+
+  @override
+  String get duplicateCustomerName =>
+      'A customer with this name already exists';
+
+  @override
+  String andMoreTypeToSearch(int count) {
+    return '+$count more — type to search';
+  }
+
+  @override
   String get balanceSettled => 'Settled';
 
   @override
@@ -597,6 +960,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get deleteEntryConfirm => 'Delete this ledger entry?';
+
+  @override
+  String get deleteCustomerTitle => 'Delete Customer';
+
+  @override
+  String get deleteCustomerConfirm =>
+      'Delete this customer? This can\'t be undone.';
 
   @override
   String get debtAdded => 'Debt added';
@@ -736,4 +1106,435 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get subscriptionActivatedBanner =>
       'Your subscription has been activated';
+
+  @override
+  String trialBanner(int days) {
+    return 'Free trial — $days days left';
+  }
+
+  @override
+  String get trialUpgrade => 'Upgrade';
+
+  @override
+  String get backupTitle => 'Backup & Restore';
+
+  @override
+  String get backupItem => 'Backup & Restore';
+
+  @override
+  String get backupSubtitle => 'Protect your data with Google Drive';
+
+  @override
+  String get backupSignInPrompt =>
+      'Sign in with your Google account to keep a safe copy of all your data (sales, products, customers, debts, cash) in your own Google Drive. If your phone is lost or broken, you can restore everything on a new device.';
+
+  @override
+  String backupAccountHint(String account) {
+    return 'Your previous backups are on the account $account';
+  }
+
+  @override
+  String get backupSignInButton => 'Sign in with Google';
+
+  @override
+  String get backupSignOut => 'Sign out';
+
+  @override
+  String get backupAccountLabel => 'Signed-in account';
+
+  @override
+  String get backupNowButton => 'Back up now';
+
+  @override
+  String get backupAutoTitle => 'Automatic daily backup';
+
+  @override
+  String get backupAutoSubtitle =>
+      'Backs up once a day when the app is opened and you are online.';
+
+  @override
+  String get backupExportButton => 'Export a copy to share';
+
+  @override
+  String get backupLastLabel => 'Last backup';
+
+  @override
+  String get backupNever => 'No backup yet — your data is not protected';
+
+  @override
+  String get backupListTitle => 'Your backups';
+
+  @override
+  String get backupListEmpty => 'No backups found in this account';
+
+  @override
+  String get backupRestore => 'Restore';
+
+  @override
+  String get backupThisDevice => 'This device';
+
+  @override
+  String get backupRestoreConfirmTitle => 'Restore this backup?';
+
+  @override
+  String get backupRestoreConfirmBody =>
+      'This will replace ALL current data on this device with the selected backup. This cannot be undone. The app will close so you can reopen it fresh.';
+
+  @override
+  String get backupRestartTitle => 'Restore complete';
+
+  @override
+  String get backupRestartBody =>
+      'Your data has been restored. Please reopen the app to finish.';
+
+  @override
+  String get backupRestartAction => 'Close app';
+
+  @override
+  String get backupSuccessBackedUp => 'Backup completed successfully';
+
+  @override
+  String get backupSuccessExported => 'Copy ready — choose where to share it';
+
+  @override
+  String get backupErrorNetwork =>
+      'No internet connection. Connect and try again.';
+
+  @override
+  String get backupErrorServer => 'Google Drive error. Please try again.';
+
+  @override
+  String get backupErrorSignIn => 'Sign-in was cancelled or not completed.';
+
+  @override
+  String get backupErrorIncompatibleNew =>
+      'This backup was made by a newer version of the app. Please update the app before restoring.';
+
+  @override
+  String get backupErrorCorrupt =>
+      'This backup file is damaged and cannot be restored.';
+
+  @override
+  String get backupErrorUnknown => 'Something went wrong. Please try again.';
+
+  @override
+  String get backupBusyBackingUp => 'Backing up…';
+
+  @override
+  String get backupBusyRestoring => 'Restoring…';
+
+  @override
+  String get priceCurrencyLabel => 'Price currency';
+
+  @override
+  String get currencySp => 'SP';
+
+  @override
+  String get currencyUsd => 'USD';
+
+  @override
+  String get currencySettingsItem => 'Currency & Exchange Rate';
+
+  @override
+  String get currencySettingsSubtitle =>
+      'Set the USD → SP rate for dollar-priced products';
+
+  @override
+  String get currencySettingsTitle => 'Currency & Exchange Rate';
+
+  @override
+  String get currencySettingsNote =>
+      'Syrian Pound is your main currency. Products priced in US Dollars are converted to SP at this rate when you sell them. Changing the rate only affects new sales — past invoices keep their original rate.';
+
+  @override
+  String get exchangeRateLabel => 'SP per 1 USD';
+
+  @override
+  String get exchangeRateHint => 'e.g. 15000';
+
+  @override
+  String get exchangeRateInvalid => 'Enter a rate greater than zero';
+
+  @override
+  String get exchangeRateSaved => 'Exchange rate saved';
+
+  @override
+  String get exchangeRateNever => 'Not set yet';
+
+  @override
+  String get setExchangeRateShort => 'Set \$ rate';
+
+  @override
+  String exchangeRateUpdatedAt(String date) {
+    return 'Last updated: $date';
+  }
+
+  @override
+  String get exchangeRateMissingError =>
+      'Set the USD exchange rate in Settings → Currency before selling a dollar-priced item.';
+
+  @override
+  String get discountTitle => 'Discount';
+
+  @override
+  String get discountPercent => 'Percent';
+
+  @override
+  String get discountAmount => 'Amount';
+
+  @override
+  String get discountValueHint => 'Value';
+
+  @override
+  String get discountApply => 'Apply';
+
+  @override
+  String get discountRemove => 'Remove';
+
+  @override
+  String get addDiscountAction => 'Discount';
+
+  @override
+  String get discountLabel => 'Discount';
+
+  @override
+  String get subtotalLabel => 'Subtotal';
+
+  @override
+  String get cartDiscountLabel => 'Cart discount';
+
+  @override
+  String get shareAction => 'Share';
+
+  @override
+  String get shareFailed => 'Couldn\'t prepare the share — please try again';
+
+  @override
+  String get estimatedProfit => 'Estimated profit';
+
+  @override
+  String get openingBalance => 'Opening balance';
+
+  @override
+  String get closingBalance => 'Closing balance';
+
+  @override
+  String get cashboxDailySummaryTitle => 'Daily cashbox summary';
+
+  @override
+  String get salesSummaryTitle => 'Sales summary';
+
+  @override
+  String get reportPeriodLabel => 'Period';
+
+  @override
+  String get receiptThankYou => 'Thank you for your business';
+
+  @override
+  String get reportsTab => 'Reports';
+
+  @override
+  String get dashboardTab => 'Dashboard';
+
+  @override
+  String get salesTabLabel => 'Sales';
+
+  @override
+  String get filterLast7Days => 'Last 7 days';
+
+  @override
+  String get filterLast30Days => 'Last 30 days';
+
+  @override
+  String get revenueLabel => 'Revenue';
+
+  @override
+  String get outstandingDebtsLabel => 'Outstanding debts';
+
+  @override
+  String get inventoryValueLabel => 'Inventory value';
+
+  @override
+  String get salesTrendTitle => 'Sales trend';
+
+  @override
+  String get topProductsTitle => 'Top products';
+
+  @override
+  String get cashFlowTitle => 'Cash flow';
+
+  @override
+  String get lowStockTitle => 'Low stock';
+
+  @override
+  String get topDebtorsTitle => 'Top debtors';
+
+  @override
+  String get metricQuantity => 'Quantity';
+
+  @override
+  String get metricProfit => 'Profit';
+
+  @override
+  String get cashInLabel => 'Cash in';
+
+  @override
+  String get cashOutLabel => 'Cash out';
+
+  @override
+  String get expensesLabel => 'Expenses';
+
+  @override
+  String get withdrawalsLabel => 'Withdrawals';
+
+  @override
+  String get dashboardNoData => 'No sales in this period yet';
+
+  @override
+  String get dashboardLoadFailed => 'Couldn\'t load the dashboard';
+
+  @override
+  String unitsSuffix(String count) {
+    return '$count sold';
+  }
+
+  @override
+  String get scanBarcodeTitle => 'Scan Barcode';
+
+  @override
+  String get alignBarcodeHint => 'Align barcode within frame';
+
+  @override
+  String get productFieldsItem => 'Product fields';
+
+  @override
+  String get productFieldsSubtitle => 'Custom info stored per product';
+
+  @override
+  String get productFieldsTitle => 'Product fields';
+
+  @override
+  String get productFieldsEmpty => 'No custom fields yet';
+
+  @override
+  String get productFieldsEmptyHint =>
+      'Add fields like Color or Storage, or start from a business template.';
+
+  @override
+  String get addFieldBtn => 'Add field';
+
+  @override
+  String get useTemplateBtn => 'Start from a template';
+
+  @override
+  String get chooseBusinessType => 'Choose your business type';
+
+  @override
+  String get templateSeedNote =>
+      'Adds recommended fields. You can edit or remove them anytime.';
+
+  @override
+  String get fieldNameLabel => 'Field name';
+
+  @override
+  String get fieldNameHint => 'e.g. Color, Storage, Warranty';
+
+  @override
+  String get fieldTypeLabel => 'Field type';
+
+  @override
+  String get fieldUnitLabel => 'Unit (optional)';
+
+  @override
+  String get fieldUnitHint => 'e.g. GB, ml, V';
+
+  @override
+  String get fieldOptionsLabel => 'Choices';
+
+  @override
+  String get fieldOptionsHint => 'Separate choices with commas';
+
+  @override
+  String get fieldRequiredLabel => 'Required';
+
+  @override
+  String get fieldShowInListLabel => 'Show in product list';
+
+  @override
+  String get fieldShowOnReceiptLabel => 'Show on receipt';
+
+  @override
+  String get fieldArchiveAction => 'Archive';
+
+  @override
+  String get fieldUnarchiveAction => 'Restore';
+
+  @override
+  String get fieldDeleteAction => 'Delete';
+
+  @override
+  String get fieldArchivedBadge => 'Archived';
+
+  @override
+  String get attrTypeText => 'Text';
+
+  @override
+  String get attrTypeNumber => 'Number';
+
+  @override
+  String get attrTypeSelect => 'Choice list';
+
+  @override
+  String get attrTypeBoolean => 'Yes / No';
+
+  @override
+  String get attrTypeDate => 'Date';
+
+  @override
+  String get templateAppliedMsg => 'Fields added';
+
+  @override
+  String get showArchivedFields => 'Show archived';
+
+  @override
+  String get filterProductsTitle => 'Filter products';
+
+  @override
+  String get clearFiltersBtn => 'Clear all';
+
+  @override
+  String get noFilterableFields =>
+      'No filterable fields. Add a choice-list field to filter by it.';
+
+  @override
+  String get salesByFieldTitle => 'Sales by field';
+
+  @override
+  String get salesByFieldHint =>
+      'Pick a field to break sales down by its values.';
+
+  @override
+  String get reportFieldNone => 'Off';
+
+  @override
+  String get printLabelTitle => 'Print label';
+
+  @override
+  String get printLabelAction => 'Print';
+
+  @override
+  String get labelCopies => 'Copies';
+
+  @override
+  String get labelBarcode => 'Barcode';
+
+  @override
+  String get labelQr => 'QR';
+
+  @override
+  String get labelPrinted => 'Label sent to the printer';
+
+  @override
+  String get labelPrintFailed =>
+      'Couldn\'t print — check the printer connection';
 }

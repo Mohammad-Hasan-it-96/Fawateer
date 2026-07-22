@@ -3,14 +3,25 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:app_settings/app_settings.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/service_locator.dart' as di;
+import '../../../../core/settings/inventory_settings_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/theme_controller.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../billing/presentation/bloc/billing_bloc.dart';
+import '../../../licensing/domain/repositories/license_repository.dart';
 import '../../../licensing/presentation/bloc/license_bloc.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/printer_bloc.dart';
 import '../bloc/printer_event.dart';
 import '../bloc/printer_state.dart';
+import '../widgets/exchange_rate_sheet.dart';
+import '../widgets/powered_by_footer.dart';
+import '../widgets/rate_app_sheet.dart';
+import '../widgets/support_sheet.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -34,10 +45,60 @@ String _printerErrorText(PrinterError error, AppLocalizations l10n) {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
+  /// Installed version, shown read-only. Empty until [_loadAbout] resolves.
+  String _version = '';
+
+  /// Hides the rating prompt once this device has reviewed.
+  bool _reviewed = false;
+
+  /// Strict-inventory toggle state ("don't sell below zero"). Off by default.
+  bool _blockOversell = false;
+
   @override
   void initState() {
     super.initState();
     context.read<PrinterBloc>().add(InitPrinterEvent());
+    _loadAbout();
+    _loadInventory();
+  }
+
+  /// Best-effort read of the strict-inventory flag; leaves it off on error.
+  Future<void> _loadInventory() async {
+    var blocked = false;
+    try {
+      blocked =
+          await di.sl<InventorySettingsService>().isBlockOversellEnabled();
+    } catch (_) {/* leave off */}
+    if (!mounted) return;
+    setState(() => _blockOversell = blocked);
+  }
+
+  /// Persist the strict-inventory flag and push it into the app-wide
+  /// [BillingBloc] so checkout reflects it immediately, no restart.
+  Future<void> _setBlockOversell(bool value) async {
+    setState(() => _blockOversell = value);
+    await di.sl<InventorySettingsService>().setBlockOversell(value);
+    if (!mounted) return;
+    context.read<BillingBloc>().add(const LoadInventorySettingsEvent());
+  }
+
+  /// Both reads are best-effort: settings must render even if package info or
+  /// prefs fail, so a failure leaves the version blank rather than erroring.
+  Future<void> _loadAbout() async {
+    String version = '';
+    try {
+      final info = await PackageInfo.fromPlatform();
+      version = '${info.version} (${info.buildNumber})';
+    } catch (_) {/* leave blank */}
+    var reviewed = false;
+    try {
+      reviewed = await di.sl<LicenseRepository>().hasReviewed();
+    } catch (_) {/* offer the prompt rather than hide it on error */}
+    if (!mounted) return;
+    setState(() {
+      _version = version;
+      _reviewed = reviewed;
+    });
   }
 
   @override
@@ -59,7 +120,7 @@ class _SettingsPageState extends State<SettingsPage> {
             // Profile Section
             Container(
               width: double.infinity,
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
               child: BlocBuilder<ShopBloc, ShopState>(
                 builder: (context, state) {
@@ -103,6 +164,11 @@ class _SettingsPageState extends State<SettingsPage> {
                         Text(shopName,
                             style: const TextStyle(
                                 fontSize: 20, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 14),
+                      // Subscription at a glance. Previously the header showed
+                      // only a name, so the one thing that can stop the shop
+                      // trading was two taps away with no warning.
+                      _subscriptionSummary(context, l10n),
                     ],
                   );
                 },
@@ -187,6 +253,48 @@ class _SettingsPageState extends State<SettingsPage> {
                   subtitle: l10n.shopDetailsSubtitle,
                   onTap: () => context.push('/settings/shop'),
                 ),
+                _buildListItem(
+                  icon: Icons.currency_exchange,
+                  title: l10n.currencySettingsItem,
+                  subtitle: l10n.currencySettingsSubtitle,
+                  onTap: () => showExchangeRateSheet(context),
+                ),
+                _buildListItem(
+                  icon: Icons.tune,
+                  title: l10n.productFieldsItem,
+                  subtitle: l10n.productFieldsSubtitle,
+                  onTap: () => context.push('/settings/product-fields'),
+                ),
+                _buildListItem(
+                  icon: Icons.savings,
+                  title: l10n.cashboxItem,
+                  subtitle: l10n.cashboxSubtitle,
+                  onTap: () => context.push('/settings/cashbox'),
+                ),
+                _buildListItem(
+                  icon: Icons.cloud_upload_outlined,
+                  title: l10n.backupItem,
+                  subtitle: l10n.backupSubtitle,
+                  onTap: () => context.push('/settings/backup'),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            _buildSectionHeader(l10n.inventorySection),
+            _buildListGroup(
+              children: [
+                _buildListItem(
+                  icon: Icons.inventory_2_outlined,
+                  title: l10n.inventoryStrictTitle,
+                  subtitle: l10n.inventoryStrictSubtitle,
+                  trailingWidget: Switch(
+                    value: _blockOversell,
+                    onChanged: _setBlockOversell,
+                  ),
+                  onTap: () => _setBlockOversell(!_blockOversell),
+                ),
               ],
             ),
 
@@ -200,6 +308,21 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: l10n.subscriptionItem,
                   subtitle: l10n.subscriptionSubtitle,
                   onTap: () => context.push('/settings/subscription'),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            _buildSectionHeader(l10n.appearanceSection),
+            _buildListGroup(
+              children: [
+                _buildListItem(
+                  icon: Icons.brightness_6_outlined,
+                  title: l10n.themeModeTitle,
+                  subtitle: _themeModeLabel(
+                      di.sl<ThemeController>().mode, l10n),
+                  onTap: () => _showThemeSheet(context, l10n),
                 ),
               ],
             ),
@@ -232,7 +355,10 @@ class _SettingsPageState extends State<SettingsPage> {
                                 ? (state.connectedName ?? l10n.printerConnected)
                                 : l10n.noPrinterConnected,
                             style: TextStyle(
-                                fontSize: 12, color: Colors.grey[500]),
+                                fontSize: 12,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant),
                           ),
                           if (state.connectedMac != null) ...[
                             const SizedBox(width: 8),
@@ -276,9 +402,10 @@ class _SettingsPageState extends State<SettingsPage> {
                             icon: const Icon(Icons.settings),
                             onPressed: () {
                               AppSettings.openAppSettings(
-                                  type: AppSettingsType.bluetooth);
+                                  type: AppSettingsType.bluetooth,
+                                  asAnotherTask: true);
                             },
-                            color: Colors.grey,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                         ],
                       ),
@@ -295,14 +422,146 @@ class _SettingsPageState extends State<SettingsPage> {
                 style: TextStyle(
                     fontSize: 11,
                     fontStyle: FontStyle.italic,
-                    color: Colors.grey[500]),
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
               ),
             ),
 
-            const SizedBox(height: 48),
+            const SizedBox(height: 12),
+
+            _buildSectionHeader(l10n.supportSection),
+            _buildListGroup(
+              children: [
+                _buildListItem(
+                  icon: Icons.support_agent,
+                  title: l10n.contactSupportItem,
+                  subtitle: l10n.contactSupportSubtitle,
+                  onTap: () => showSupportSheet(context),
+                ),
+                _buildListItem(
+                  icon: Icons.star_outline_rounded,
+                  title: l10n.rateAppItem,
+                  subtitle: _reviewed
+                      ? l10n.rateAppThanksSubtitle
+                      : l10n.rateAppSubtitle,
+                  // Already reviewed → inert row, kept visible so the section
+                  // doesn't reflow between launches.
+                  trailingIcon: _reviewed ? null : Icons.chevron_right,
+                  trailingWidget: _reviewed
+                      ? Icon(Icons.check_circle,
+                          size: 20, color: Colors.green.shade600)
+                      : null,
+                  onTap: _reviewed ? null : () => _rate(context, l10n),
+                ),
+                _buildListItem(
+                  icon: Icons.share_outlined,
+                  title: l10n.shareAppItem,
+                  subtitle: l10n.shareAppSubtitle,
+                  onTap: () => _shareApp(context, l10n),
+                ),
+                _buildListItem(
+                  icon: Icons.info_outline,
+                  title: l10n.appVersionItem,
+                  // Blank until PackageInfo resolves; never shows an error.
+                  subtitle: _version,
+                  trailingIcon: null,
+                ),
+              ],
+            ),
+
+            const PoweredByFooter(),
+
+            const SizedBox(height: 32),
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _rate(BuildContext context, AppLocalizations l10n) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final sent = await showRateAppSheet(context);
+    if (!sent || !mounted) return;
+    setState(() => _reviewed = true);
+    messenger.showSnackBar(SnackBar(
+      content: Text(l10n.rateThanks),
+      backgroundColor: Colors.green,
+    ));
+  }
+
+  Future<void> _shareApp(BuildContext context, AppLocalizations l10n) async {
+    // Text only, no download link: the APK is distributed per-ABI outside a
+    // store, so there is no single URL that is correct for every device.
+    await Share.share(
+      '${l10n.shareAppMessage}\n${PoweredByFooter.websiteUrl}',
+    );
+  }
+
+  /// Status / plan / expiry strip under the shop name, tappable through to the
+  /// subscription page. Reads the shared [LicenseBloc], so it follows a live
+  /// re-check or an FCM unlock with no manual refresh.
+  Widget _subscriptionSummary(BuildContext context, AppLocalizations l10n) {
+    return BlocBuilder<LicenseBloc, LicenseState>(
+      builder: (context, state) {
+        final status = state.license;
+        final active = status.isActive;
+        final days = status.daysRemaining;
+        // Match the trial banner's threshold so the two never disagree.
+        final urgent = active && days != null && days <= 3;
+        final accent = !active
+            ? Theme.of(context).colorScheme.error
+            : urgent
+                ? Colors.orange.shade800
+                : Colors.green.shade600;
+
+        return InkWell(
+          onTap: () => context.push('/settings/subscription'),
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: accent.withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: accent.withValues(alpha: 0.35)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(active ? Icons.verified_rounded : Icons.error_outline,
+                    size: 18, color: accent),
+                const SizedBox(width: 8),
+                Text(
+                  active
+                      ? (status.isTrial
+                          ? l10n.trialChip
+                          : l10n.subscriptionActiveChip)
+                      : l10n.subscriptionInactiveChip,
+                  style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: accent),
+                ),
+                if (active && days != null) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                      width: 1,
+                      height: 14,
+                      color: accent.withValues(alpha: 0.35)),
+                  const SizedBox(width: 8),
+                  Text(
+                    // Clamped at zero: a same-day expiry floors to 0 rather
+                    // than showing a negative count.
+                    '${l10n.expiresOnLabel}: ${days < 0 ? 0 : days}',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -319,7 +578,7 @@ class _SettingsPageState extends State<SettingsPage> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).colorScheme.surface,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -336,7 +595,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: Theme.of(context).colorScheme.outlineVariant,
                     borderRadius: BorderRadius.circular(2)),
               ),
               Text(l10n.editAccountTitle,
@@ -401,6 +660,51 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
+  String _themeModeLabel(ThemeMode mode, AppLocalizations l10n) =>
+      switch (mode) {
+        ThemeMode.light => l10n.themeLight,
+        ThemeMode.dark => l10n.themeDark,
+        ThemeMode.system => l10n.themeSystem,
+      };
+
+  void _showThemeSheet(BuildContext context, AppLocalizations l10n) {
+    final controller = di.sl<ThemeController>();
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Text(l10n.themeModeTitle,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            for (final mode in ThemeMode.values)
+              ListTile(
+                leading: Icon(switch (mode) {
+                  ThemeMode.light => Icons.light_mode_outlined,
+                  ThemeMode.dark => Icons.dark_mode_outlined,
+                  ThemeMode.system => Icons.brightness_auto_outlined,
+                }),
+                title: Text(_themeModeLabel(mode, l10n)),
+                trailing: controller.mode == mode
+                    ? const Icon(Icons.check, color: AppTheme.primaryColor)
+                    : null,
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  await controller.setMode(mode);
+                  // The controller drives MaterialApp, but this page's own
+                  // subtitle is plain state — repaint it too.
+                  if (mounted) setState(() {});
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
@@ -411,7 +715,7 @@ class _SettingsPageState extends State<SettingsPage> {
           style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: Colors.grey[700]),
+              color: Theme.of(context).colorScheme.onSurfaceVariant),
         ),
       ),
     );
@@ -421,9 +725,9 @@ class _SettingsPageState extends State<SettingsPage> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[100]!),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(children: children),
     );
@@ -465,8 +769,11 @@ class _SettingsPageState extends State<SettingsPage> {
                   if (subtitle != null) ...[
                     const SizedBox(height: 2),
                     Text(subtitle,
-                        style:
-                            TextStyle(fontSize: 12, color: Colors.grey[500])),
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant)),
                   ],
                   if (subtitleWidget != null) ...[
                     const SizedBox(height: 4),
@@ -478,7 +785,8 @@ class _SettingsPageState extends State<SettingsPage> {
             if (trailingWidget != null)
               trailingWidget
             else if (trailingIcon != null)
-              Icon(trailingIcon, color: Colors.grey[300]),
+              Icon(trailingIcon,
+                  color: Theme.of(context).colorScheme.outlineVariant),
           ],
         ),
       ),

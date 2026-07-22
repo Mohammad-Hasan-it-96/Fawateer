@@ -4,7 +4,7 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
 **online-validated subscriptions** and a **customer debt ledger**.
 
 **Branch:** `refactor/architecture-hardening`
-**Last updated:** 2026-07-06 (iOS device-id + foreground push banner)
+**Last updated:** 2026-07-11 (cashbox / cash drawer, sales audit center, customer duplicate-name guard, Android release-build fix)
 
 ---
 
@@ -40,6 +40,15 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
 | 3 | FCM live-unlock | ✅ Done (dormant until Firebase configured) |
 | 3 | iOS device-id | ✅ Done |
 | 3 | Foreground push banner | ✅ Done |
+| 3.5 | Remote config (base URL + support) + in-app update check | ✅ Done |
+| 3.5 | Runtime API base URL + splash-freeze fix | ✅ Done |
+| 3.5 | Editable account (name/phone) in Settings | ✅ Done |
+| POS | Product picker — live list + tap-add feedback | ✅ Done |
+| POS | Sell by weight / sale type (schema **v8**) | ✅ Done |
+| POS | Sales **audit center** (filter / summary / pagination) | ✅ Done |
+| Cash | **Cashbox** / cash drawer (schema **v9**) | ✅ Done |
+| Ledger | Customer duplicate-name guard | ✅ Done |
+| Build | Android release-build fix (`flutter_vibrate` lStar) | ✅ Done |
 | 4+ | Inventory / purchases / expenses / reports / multi-store | ⬜ Future |
 
 ---
@@ -122,6 +131,116 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
   don't double up. No new dependency (uses the built-in `ScaffoldMessenger`);
   stays dormant with the rest of FCM until Firebase is configured.
 
+### ✅ Phase 3.5 — Remote config + in-app update check
+- `core/config/` (`RemoteConfig`, `RemoteConfigService`): fetches a hosted
+  `fawateer_version.json` at startup (Google-Drive `uc?export=download`, 10s
+  time-boxed → SharedPreferences cache → baked-in defaults), and applies it.
+- **Runtime API base URL + support contacts**: `ApiConfig.baseUrl` / WhatsApp /
+  Telegram / email are now mutable and read per-request by `ApiClient`, so the
+  server or contact channels can move **without shipping a build** — the config's
+  `api.base_url` + `support` block overwrite them at boot. Baked-in default is
+  still `harrypotter.foodsalebot.com/api`.
+- **In-app update prompt**: compares the config's `latest_version` to the
+  installed build (`package_info_plus`) and, if newer, shows a one-time Arabic
+  dialog with `update_notes` + a **Download** button opening the ABI-matched APK
+  URL (`device_info_plus` `supportedAbis`). Wrapped app-wide via `_UpdateChecker`
+  so it fires regardless of the licensing-gate screen.
+- Deps: `package_info_plus`. Note: Drive hosting is fragile — moving the JSON to
+  the same server that serves the APKs is recommended.
+
+### ✅ Phase 3.5 — Splash-freeze fix + gate hardening
+- **Root-cause fix for the "checking subscription…" forever-freeze**: the only
+  unbounded startup await — the `ANDROID_ID` / `identifierForVendor` platform
+  channel — is now time-boxed (`DeviceIdentityService` 3s `.timeout()` → falls
+  back to the constant id). Brand-new devices skip the network poll entirely
+  and go straight to the activation form; `_onCheck` is wrapped so **nothing**
+  can leave the splash spinning (always `bootstrapped: true`).
+- **Gate rewrite**: fixed a latent stuck-on-`/splash` case for a not-active user
+  and made the redirect key cleanly off `bootstrapped` + `registered` + `isBusy`.
+
+### ✅ Phase 3.5 — Editable account (name/phone) in Settings
+- Settings gained an **Account details** section (modeled on Smart-Agent's
+  `AccountSettingsPage`): the agent **name** + **phone** are editable via a
+  bottom sheet, plus a copyable **device ID** tile — all live from the shared
+  `LicenseBloc`.
+- `LicenseRepository.updateAgent` **saves locally first** (never lost), then
+  best-effort syncs to the server (`update_my_data` with `full_name`/`phone`);
+  a one-shot `AgentSaveOutcome` drives a green "synced" / orange "saved locally"
+  snackbar. New `UpdateAgentEvent` + `isSavingAgent` state.
+
+### ✅ POS — Product picker: live list + tap-add feedback
+- The "Add item" sheet now reads the product list **live** from `ProductBloc`
+  (was a one-time snapshot) — fixes the empty-on-first-open bug and shows a
+  spinner until the first stream emission; search filters as you type.
+- Each tile gives clear add feedback: a scale **pop + green check flash** on tap
+  and a **live cart-count badge** (how many are already on the order).
+
+### ✅ POS — Sell by weight / sale type  *(Drift schema v8)*
+- New extensible `ProductSaleType` enum (`piece` | `weight`, room for
+  volume/length/box) on `Product`, persisted **by name** in an additive
+  `products.saleType` text column (**schema v7 → v8**, `addColumn`, defaults
+  `'piece'` — every existing product unchanged). Product add/edit forms gained a
+  segmented sale-type selector; the price label flips to "per kg".
+- **Weighed sale entry**: a dual-field dialog shows **weight (kg)** and **money
+  amount** together, live-linked (type one → the other recomputes at the per-kg
+  price). Wired into the picker, barcode scan (state-driven `measuredPrompt` so
+  the BLoC stays UI-free), and cart-line editing (`AddProductToCartEvent` gained
+  an optional absolute `quantity`).
+- **Exact-money precision**: weight is stored at full `double` precision (only
+  rounded for display), so `price × quantity` reconstructs the entered amount
+  exactly (`5000` → `5000.00`) — no stored line-total column needed. Checkout
+  and the Arabic raster receipt render the weight + `كغ` unit.
+
+### ✅ POS — Sales audit center  *(reworked History tab)*
+- `HistoryBloc` / `HistoryPage` became a **filter-driven, paginated audit center**:
+  a `SalesFilter` (date preset `today`/`yesterday`/`thisWeek`/`thisMonth`/`custom`,
+  `PaymentFilter` `all`/`cash`/`credit`, text search, sort — defaults to **today**)
+  plus a live **summary aggregate** (count / total / credit total).
+- Cash-vs-credit is **derived** per invoice (credit iff the invoice has a `charge`
+  ledger entry). New DAO projections `AuditInvoiceRow` (with `isCredit`,
+  `customerName`, `itemCount`) + `AuditSummaryRow`, via
+  `SalesDao.watchAuditInvoices` / `watchAuditSummary`.
+- **Live + paginated**: list and summary each ride a `StreamSubscription` feeding
+  internal `_InvoicesUpdated` / `_SummaryUpdated` events (can't `emit` outside a
+  handler); a filter change or `LoadMoreEvent` (`_kPageSize = 30`) re-subscribes.
+  Invoice line items lazy-load + cache for `/history/detail/:id` →
+  `InvoiceDetailPage`; reprint reuses `PrinterRepository.printReceipt`.
+
+### ✅ Cashbox — cash drawer  *(Drift schema v9)*
+- New `features/cashbox/` — a **single-entry, signed, derived-balance** cash
+  ledger (same shape as the debt ledger). One `cashbox_transactions` row per
+  movement; balance = `SUM(amount)` (`amount` signed, `+` in / `−` out), never
+  stored. Money `double`, rounded 2dp at write time. Additive **schema v8 → v9**
+  (`createTable` + `_createCashboxIndexes()`); no existing table touched.
+- Extensible `CashTransactionType` enum, persisted **by name** (never index),
+  each with a `defaultDirection`. `purchasePayment` / `supplierPayment` are
+  **reserved** for the not-yet-built purchases/suppliers modules — they can post
+  here with no migration when those ship.
+- **Auto-posting, source-owned**: a **cash sale** posts a `cashSale` inflow inside
+  the sale's transaction (`SalesDao.insertInvoiceWithItems`); a **debt repayment**
+  posts a `customerDebtPayment` inflow inside the payment's transaction
+  (`LedgerRepositoryDriftImpl` — `LedgerRepository` now also depends on
+  `CashboxDao`). Both link via `relatedId`, are `isSystemGenerated` (not
+  user-deletable), and are **reversed** when their source invoice / ledger entry
+  is deleted (`CashboxDao.deleteByRelatedId`) so the balance stays honest.
+- Reachable from **Settings → Cashbox** (`/settings/cashbox` → `/history`), not a
+  new tab (shell stays 5 tabs). `CashboxBloc` is app-wide (`LoadCashbox` at
+  startup). Shared `core/utils/money_display.dart` formatting with the ledger.
+
+### ✅ Ledger — customer duplicate-name guard
+- Adding/editing a customer with a name another customer already uses now returns
+  `Left(DuplicateFailure)` (new `Failure` subtype), mapped to
+  `CustomerMessage.duplicateName` → the localized `duplicateCustomerName` string.
+  The add/edit form also validates inline (`CustomersDao.nameExists(exceptId:)`).
+
+### ✅ Build — Android release-build fix
+- `flutter build apk` failed on `flutter_vibrate` (discontinued): it links its
+  resources against an SDK older than API 31 → `android:attr/lStar not found`.
+  `android/build.gradle.kts` now bumps any stale subproject's `compileSdkVersion`
+  to 34 via a `subprojects { afterEvaluate { … } }` block, registered **before**
+  the `evaluationDependsOn(":app")` block (you can't `afterEvaluate` an
+  already-evaluated project). Verified: `--split-per-abi` produces all three APKs.
+
 ---
 
 ## Not started
@@ -139,6 +258,12 @@ Everything so far is validated by **`flutter analyze` only**:
 - Nothing has been exercised on a **real device** — especially the printer /
   Arabic-raster path, the licensing HTTP calls, and the FCM flow (which also
   needs a live Firebase project + server-side push).
+- **Newly untested on-device flows:** the **v8→v9 migration** (cashbox table)
+  over a real pre-existing DB; the **cashbox** auto-post + reversal (cash sale,
+  debt repayment, and deleting either source) and the derived-balance math; the
+  **sales audit center** filters/summary/pagination over real data; the
+  duplicate-name guard; and — still pending from before — the **sell-by-weight**
+  entry, **editable account** sync, and **in-app update** dialog.
 
 **Recommended:** a device smoke-test pass before further feature work.
 
@@ -158,3 +283,14 @@ Everything so far is validated by **`flutter analyze` only**:
 | `3ff2fe8` | Add ROADMAP.md tracking commercialization progress |
 | `728c342` | iOS device-id via `identifierForVendor` |
 | `d71ab8f` | Foreground in-app banner on live subscription unlock |
+| `b05c357` | Remote config (dynamic base URL + support) + in-app update check + splash-freeze fix |
+| `9927e82` | Product picker — live list + tap-add feedback |
+| `abba223` | Sale type: sell products by weight/amount (schema v8) |
+| `f02617d` | Editable account name/phone in Settings (+ new l10n strings) |
+| `1c2d765` | docs: record weight sales, remote config, editable account, picker UX |
+| `4f2a774` | Cashbox transactions table + localization (schema v9) |
+| `9bf5378` | Cash transaction model + repository |
+| `0c69c32` | Customer select/add localization |
+| `b9e41b8` | Customer duplicate-name validation + localization |
+| `3e1e961` | Sales history & audit center |
+| `f6b5e82` | Android release-build fix (`flutter_vibrate` lStar / compileSdk 34) |

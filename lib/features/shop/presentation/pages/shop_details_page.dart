@@ -131,7 +131,7 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
                     const SizedBox(height: 5),
                     Text(
                       l10n.receiptInfoNote,
-                      style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 24),
                     InputLabel(text: l10n.shopNameLabel),
@@ -175,7 +175,7 @@ class _ShopDetailsPageState extends State<ShopDetailsPage> {
                         InputLabel(text: l10n.footerLabel),
                         Text(l10n.footerMaxChars,
                             style: TextStyle(
-                                fontSize: 11, color: Colors.grey[400])),
+                                fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant)),
                       ],
                     ),
                     _buildTextField(

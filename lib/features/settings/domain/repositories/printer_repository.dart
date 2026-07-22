@@ -32,4 +32,17 @@ abstract class PrinterRepository {
   /// image so Arabic prints correctly. Ensures/reconnects the printer like
   /// [printReceipt]; returns `true` only when the bytes were actually written.
   Future<bool> printStatement(String text);
+
+  /// Print [copies] of a product label (name, price, and a scannable code of
+  /// [barcodeData]). [useQr] switches the code from a 1D barcode to QR; an empty
+  /// [barcodeData] prints a name/price tag with no code. Ensures/reconnects the
+  /// printer like [printReceipt]; returns `true` only when the bytes were
+  /// actually written.
+  Future<bool> printLabel({
+    required String name,
+    required String priceText,
+    String barcodeData,
+    bool useQr,
+    int copies,
+  });
 }

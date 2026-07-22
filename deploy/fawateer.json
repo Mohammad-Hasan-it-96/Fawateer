@@ -1,0 +1,16 @@
+{
+  "latest_version": "1.0.0",
+  "api": {
+    "base_url": "https://api.evotech-sys.com/api/fawateer"
+  },
+  "downloads": {
+    "arm64-v8a": "https://api.evotech-sys.com/api/v1/downloads/latest/invoices/android/arm64-v8a",
+    "armeabi-v7a": "https://api.evotech-sys.com/api/v1/downloads/latest/invoices/android/armeabi-v7a"
+  },
+  "update_notes": [],
+  "support": {
+    "email": "mohamad.hasan.it.96@gmail.com",
+    "whatsapp": "963959027196",
+    "telegram": "https://t.me/+963959027196"
+  }
+}

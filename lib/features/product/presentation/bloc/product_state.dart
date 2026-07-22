@@ -4,7 +4,16 @@ enum ProductStatus { initial, loading, loaded, error, success }
 
 /// Localizable feedback for a product action; the page maps it to a string so
 /// no user-facing English lives in the BLoC.
-enum ProductMessage { added, updated, deleted, barcodeExists, saveFailed, loadFailed }
+enum ProductMessage {
+  added,
+  updated,
+  deleted,
+  barcodeExists,
+  saveFailed,
+  loadFailed,
+  labelPrinted,
+  labelPrintFailed,
+}
 
 class ProductState extends Equatable {
   final ProductStatus status;

@@ -12,6 +12,10 @@ class CurrencyField extends StatelessWidget {
   final String? Function(String?)? validator;
   final void Function(String?)? onSaved;
 
+  /// When set, overrides the shop's currency symbol as the field prefix — used
+  /// to show `$` on a USD-priced product instead of the SP base symbol.
+  final String? currencySymbol;
+
   const CurrencyField({
     super.key,
     this.initialValue,
@@ -19,13 +23,14 @@ class CurrencyField extends StatelessWidget {
     this.helperText,
     this.validator,
     this.onSaved,
+    this.currencySymbol,
   });
 
   @override
   Widget build(BuildContext context) {
     final shopState = context.watch<ShopBloc>().state;
-    final currency =
-        shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
+    final currency = currencySymbol ??
+        (shopState is ShopLoaded ? shopState.shop.currencySymbol : '');
     return TextFormField(
       initialValue: initialValue,
       keyboardType: const TextInputType.numberWithOptions(decimal: true),
@@ -34,8 +39,12 @@ class CurrencyField extends StatelessWidget {
         hintText: hintText,
         helperText: helperText,
         prefixText: currency.isNotEmpty ? '$currency ' : null,
-        prefixStyle: const TextStyle(
-            fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black),
+        // Not `Colors.black`: this prefix sits inside a themed field, so a
+        // fixed black rendered invisible against the dark fill.
+        prefixStyle: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: Theme.of(context).colorScheme.onSurface),
       ),
       validator: validator,
       onSaved: onSaved,

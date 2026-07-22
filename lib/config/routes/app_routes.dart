@@ -5,10 +5,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/service_locator.dart';
+import '../../features/billing/domain/entities/invoice_list_item.dart';
 import '../../features/billing/presentation/pages/checkout_page.dart';
 import '../../features/billing/presentation/pages/history_page.dart';
+import '../../features/billing/presentation/pages/invoice_detail_page.dart';
 import '../../features/billing/presentation/pages/home_page.dart';
 import '../../features/billing/presentation/pages/scanner_page.dart';
+import '../../features/dashboard/presentation/bloc/dashboard_bloc.dart';
 import '../../features/ledger/domain/entities/customer.dart';
 import '../../features/ledger/presentation/bloc/ledger_bloc.dart';
 import '../../features/ledger/presentation/pages/add_edit_customer_page.dart';
@@ -25,6 +28,11 @@ import '../../features/product/presentation/pages/edit_product_page.dart';
 import '../../features/product/presentation/pages/product_list_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/shop/presentation/pages/shop_details_page.dart';
+import '../../features/attributes/presentation/pages/attribute_fields_page.dart';
+import '../../features/cashbox/presentation/pages/cashbox_page.dart';
+import '../../features/cashbox/presentation/pages/cashbox_history_page.dart';
+import '../../features/backup/presentation/bloc/backup_bloc.dart';
+import '../../features/backup/presentation/pages/backup_page.dart';
 import 'app_shell.dart';
 
 /// The single shared LicenseBloc instance the gate reacts to.
@@ -114,12 +122,28 @@ final router = GoRouter(
           ],
         ),
 
-        // ── Branch 1: History ──────────────────────────────────────────
+        // ── Branch 1: Reports (analytics dashboard + sales audit) ──────
         StatefulShellBranch(
           routes: [
             GoRoute(
               path: '/history',
-              builder: (context, state) => const HistoryPage(),
+              // DashboardBloc is scoped here (like LedgerBloc/BackupBloc): it
+              // lives as long as this branch is kept alive by the indexed stack,
+              // reloading off its own change ticker.
+              builder: (context, state) => BlocProvider(
+                create: (_) => sl<DashboardBloc>()..add(const LoadDashboard()),
+                child: const HistoryPage(),
+              ),
+              routes: [
+                GoRoute(
+                  path: 'detail/:id',
+                  builder: (context, state) {
+                    final invoice = state.extra as InvoiceListItem?;
+                    if (invoice == null) return const HistoryPage();
+                    return InvoiceDetailPage(invoice: invoice);
+                  },
+                ),
+              ],
             ),
           ],
         ),
@@ -133,7 +157,10 @@ final router = GoRouter(
               routes: [
                 GoRoute(
                   path: 'add',
-                  builder: (context, state) => const AddProductPage(),
+                  // `extra` carries a barcode when the POS sends the user here
+                  // after scanning one that isn't registered yet.
+                  builder: (context, state) =>
+                      AddProductPage(initialBarcode: state.extra as String?),
                 ),
                 GoRoute(
                   path: 'edit/:id',
@@ -190,6 +217,33 @@ final router = GoRouter(
                 GoRoute(
                   path: 'shop',
                   builder: (context, state) => const ShopDetailsPage(),
+                ),
+                // Product fields (Plan 010). AttributeDefinitionBloc is app-wide
+                // (provided in main.dart), so no scoped provider is needed.
+                GoRoute(
+                  path: 'product-fields',
+                  builder: (context, state) => const AttributeFieldsPage(),
+                ),
+                // Cashbox (cash ledger). The CashboxBloc is app-wide (provided
+                // in main.dart), so these routes need no scoped BlocProvider.
+                GoRoute(
+                  path: 'cashbox',
+                  builder: (context, state) => const CashboxPage(),
+                  routes: [
+                    GoRoute(
+                      path: 'history',
+                      builder: (context, state) => const CashboxHistoryPage(),
+                    ),
+                  ],
+                ),
+                // Backup & Restore (Google Drive). BackupBloc is scoped to this
+                // route (like LedgerBloc) — only needed while this page is open.
+                GoRoute(
+                  path: 'backup',
+                  builder: (context, state) => BlocProvider(
+                    create: (_) => sl<BackupBloc>(),
+                    child: const BackupPage(),
+                  ),
                 ),
                 // Subscription management (reachable only while active; the gate
                 // funnels unlicensed users to /activation instead).

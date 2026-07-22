@@ -2,16 +2,22 @@ import 'package:billing_app/core/widgets/primary_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
+import 'package:uuid/uuid.dart';
 
+import '../../../../core/share/cards/invoice_share_card.dart';
+import '../../../../core/share/share_card_action.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/format.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../ledger/domain/entities/customer.dart';
 import '../../../ledger/domain/entities/customer_account.dart';
 import '../../../ledger/presentation/bloc/customer_bloc.dart';
 import '../../../shop/domain/entities/shop.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/billing_bloc.dart';
 import '../billing_error_text.dart';
+import '../widgets/discount_dialog.dart';
 
 class CheckoutPage extends StatelessWidget {
   const CheckoutPage({super.key});
@@ -33,7 +39,7 @@ class CheckoutPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const borderColor = Color(0xFFE5E5EA);
+    final borderColor = Theme.of(context).dividerColor;
     final l10n = AppLocalizations.of(context)!;
 
     return PopScope(
@@ -88,44 +94,62 @@ class CheckoutPage extends StatelessWidget {
                             horizontal: 16, vertical: 16),
                         child: Column(
                           children: [
-                            if (billingState.lowStockWarnings.isNotEmpty)
+                            if (billingState.hasUnpricedItems)
                               Container(
                                 width: double.infinity,
                                 margin: const EdgeInsets.only(bottom: 16),
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 16, vertical: 12),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFFFF3CD),
+                                  color: const Color(0xFFFDE2E1),
                                   borderRadius: BorderRadius.circular(10),
-                                  border: Border.all(
-                                      color: const Color(0xFFFFD700)),
+                                  border:
+                                      Border.all(color: const Color(0xFFE57373)),
                                 ),
                                 child: Row(
                                   children: [
-                                    const Icon(Icons.warning_amber_rounded,
-                                        color: Color(0xFFB8860B), size: 20),
+                                    const Icon(Icons.currency_exchange,
+                                        color: Color(0xFFC62828), size: 20),
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        '${l10n.lowStockPrefix}${billingState.lowStockWarnings.join(', ')}',
+                                        l10n.exchangeRateMissingError,
                                         style: const TextStyle(
                                             fontSize: 13,
-                                            color: Color(0xFF856404)),
+                                            color: Color(0xFFC62828)),
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
+                            // Strict inventory would refuse this cart → a hard
+                            // red block (Confirm disabled). Lists the *oversold*
+                            // items, which can include sold-out (on-hand 0)
+                            // products that the softer amber warning skips.
+                            if (billingState.isStockBlocked)
+                              _stockNoticeBox(
+                                blocking: true,
+                                text:
+                                    '${l10n.outOfStockPrefix}${billingState.oversoldItems.join(', ')}',
+                              )
+                            // Otherwise the usual amber low-stock heads-up that
+                            // still lets the sale through.
+                            else if (billingState.lowStockWarnings.isNotEmpty)
+                              _stockNoticeBox(
+                                blocking: false,
+                                text:
+                                    '${l10n.lowStockPrefix}${billingState.lowStockWarnings.join(', ')}',
+                              ),
 
                             Container(
                               decoration: BoxDecoration(
-                                color: Colors.white,
+                                color: Theme.of(context).colorScheme.surface,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(color: borderColor),
                                 boxShadow: [
                                   BoxShadow(
                                     color:
-                                        Colors.black.withValues(alpha: 0.05),
+                                        Colors.black.withValues(alpha: 0.08),
                                     blurRadius: 12,
                                     offset: const Offset(0, 4),
                                   )
@@ -134,47 +158,57 @@ class CheckoutPage extends StatelessWidget {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
                                 child: Table(
-                                  border: const TableBorder(
+                                  border: TableBorder(
                                     horizontalInside:
                                         BorderSide(color: borderColor),
                                     bottom: BorderSide(color: borderColor),
                                   ),
                                   children: [
                                     TableRow(
-                                      decoration: const BoxDecoration(
-                                        color: Color(0xFFF8FAFC),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .surfaceContainerHighest,
                                         border: Border(
                                             bottom: BorderSide(
                                                 color: borderColor)),
                                       ),
                                       children: [
-                                        _headerCell(l10n.colProduct,
+                                        _headerCell(context, l10n.colProduct,
                                             TextAlign.start),
-                                        _headerCell(
+                                        _headerCell(context,
                                             l10n.colPrice, TextAlign.end),
-                                        _headerCell(
+                                        _headerCell(context,
                                             l10n.colTotal, TextAlign.end),
                                       ],
                                     ),
                                     ...billingState.cartItems.map((item) {
                                       final measured =
                                           item.product.saleType.isMeasured;
+                                      // Resolved SP unit price; USD lines also
+                                      // show their original "$X" sticker.
+                                      final spPrice =
+                                          '$currency${item.unitPriceSp.toStringAsFixed(2)}${measured ? '/${l10n.unitKg}' : ''}';
+                                      final priceStr = item.isForeign
+                                          ? '$spPrice (${item.sellCurrency.label(item.product.price, '')})'
+                                          : spPrice;
                                       return TableRow(
                                         children: [
                                           _dataCell(
+                                            context,
                                             measured
                                                 ? '${formatQty(item.quantity)} ${l10n.unitKg} × ${item.product.name}'
                                                 : '${formatQty(item.quantity)} x ${item.product.name}',
                                             TextAlign.start,
                                           ),
                                           _dataCell(
-                                            measured
-                                                ? '$currency${item.product.price.toStringAsFixed(2)}/${l10n.unitKg}'
-                                                : '$currency${item.product.price.toStringAsFixed(2)}',
+                                            context,
+                                            priceStr,
                                             TextAlign.end,
                                             isSubtitle: true,
                                           ),
                                           _dataCell(
+                                            context,
                                             '$currency${item.total.toStringAsFixed(2)}',
                                             TextAlign.end,
                                             isBold: true,
@@ -219,12 +253,15 @@ class CheckoutPage extends StatelessWidget {
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.97),
+        color: Theme.of(context)
+            .colorScheme
+            .surface
+            .withValues(alpha: 0.97),
         borderRadius:
             const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, -4),
           ),
@@ -233,31 +270,7 @@ class CheckoutPage extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  l10n.grandTotal,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey[700],
-                  ),
-                ),
-                Text(
-                  '$currency${billingState.totalAmount.toStringAsFixed(2)}',
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF0F172A),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          _buildTotals(context, billingState, currency, l10n),
           if (billingState.saleConfirmed) ...[
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
@@ -282,10 +295,28 @@ class CheckoutPage extends StatelessWidget {
                       child: Text(
                         '${l10n.invoiceIdPrefix}${billingState.savedInvoiceId!.substring(billingState.savedInvoiceId!.length > 8 ? billingState.savedInvoiceId!.length - 8 : 0)}',
                         style: TextStyle(
-                            fontSize: 11, color: Colors.grey[400]),
+                            fontSize: 11,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant),
                       ),
                     ),
                 ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+              child: OutlinedButton.icon(
+                onPressed: () =>
+                    _shareReceipt(context, billingState, shop, currency, l10n),
+                icon: const Icon(Icons.share_outlined),
+                label: Text(l10n.shareAction),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.primaryColor,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                ),
               ),
             ),
             Row(
@@ -356,7 +387,163 @@ class CheckoutPage extends StatelessWidget {
     );
   }
 
-  Widget _headerCell(String text, TextAlign align) {
+  /// Build a styled receipt card from the just-confirmed cart and hand it to the
+  /// OS share sheet as a PNG (Plan 007). Payment/customer are omitted — this is
+  /// the customer's copy captured straight from the cart state.
+  Future<void> _shareReceipt(BuildContext context, BillingState st, dynamic shop,
+      String currency, AppLocalizations l10n) async {
+    final locale = Localizations.localeOf(context).toString();
+    final now = DateTime.now();
+    final id = st.savedInvoiceId ?? '';
+    final shortId =
+        id.length > 8 ? '#${id.substring(id.length - 8)}' : '#$id';
+    final card = InvoiceShareCard(
+      l10n: l10n,
+      currency: currency,
+      shopName: shop?.name ?? '',
+      shopAddress1: shop?.addressLine1 ?? '',
+      shopAddress2: shop?.addressLine2 ?? '',
+      shopPhone: shop?.phoneNumber ?? '',
+      footer: shop?.footerText ?? '',
+      invoiceShortId: shortId,
+      dateText: DateFormat.yMMMd(locale).format(now),
+      timeText: DateFormat.jm(locale).format(now),
+      paymentLabel: null,
+      customerName: null,
+      lines: st.cartItems
+          .map((it) => InvoiceShareLine(
+                name: it.product.name,
+                quantity: it.quantity,
+                unitPrice: it.unitPriceSp,
+                lineTotal: it.total,
+              ))
+          .toList(),
+      subtotal: st.subtotal,
+      discount: st.totalDiscount,
+      total: st.totalAmount,
+    );
+    await shareCardAsImage(context,
+        card: card,
+        fileName: 'invoice_$id.png',
+        messageText: (shop?.name as String?)?.isNotEmpty == true
+            ? shop!.name as String
+            : null);
+  }
+
+  /// Totals block: an editable cart-discount row (before confirm), an optional
+  /// subtotal + discount breakdown, then the grand total.
+  Widget _buildTotals(BuildContext context, BillingState st, String currency,
+      AppLocalizations l10n) {
+    final hasDiscount = st.totalDiscount > 0;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Column(
+        children: [
+          if (!st.saleConfirmed) _cartDiscountRow(context, st, currency, l10n),
+          if (hasDiscount) ...[
+            _miniRow(context, l10n.subtotalLabel,
+                '$currency${st.subtotal.toStringAsFixed(2)}'),
+            _miniRow(context, l10n.discountLabel,
+                '- $currency${st.totalDiscount.toStringAsFixed(2)}',
+                color: Colors.red),
+            const SizedBox(height: 4),
+          ],
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(l10n.grandTotal,
+                  style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant)),
+              Text('$currency${st.totalAmount.toStringAsFixed(2)}',
+                  style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Theme.of(context).colorScheme.onSurface)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _cartDiscountRow(BuildContext context, BillingState st,
+      String currency, AppLocalizations l10n) {
+    final has = st.effectiveInvoiceDiscount > 0;
+    return InkWell(
+      onTap: st.cartItems.isEmpty
+          ? null
+          : () => _editCartDiscount(context, st, currency),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(has ? Icons.local_offer : Icons.local_offer_outlined,
+                    size: 16,
+                    color: has
+                        ? Colors.red
+                        : Theme.of(context).colorScheme.onSurfaceVariant),
+                const SizedBox(width: 6),
+                Text(l10n.cartDiscountLabel,
+                    style: TextStyle(
+                        fontSize: 13,
+                        color:
+                            Theme.of(context).colorScheme.onSurfaceVariant)),
+              ],
+            ),
+            Text(
+              has
+                  ? '- $currency${st.effectiveInvoiceDiscount.toStringAsFixed(2)}'
+                  : l10n.addDiscountAction,
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: has ? Colors.red : AppTheme.primaryColor),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _editCartDiscount(
+      BuildContext context, BillingState st, String currency) async {
+    final result = await showDiscountDialog(
+      context: context,
+      base: st.subtotal,
+      currency: currency,
+      initialDiscount: st.invoiceDiscount,
+    );
+    if (result != null && context.mounted) {
+      context.read<BillingBloc>().add(SetCartDiscountEvent(result));
+    }
+  }
+
+  Widget _miniRow(BuildContext context, String label, String value,
+      {Color? color}) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 1),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: TextStyle(fontSize: 12, color: muted)),
+          Text(value,
+              style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: color ?? muted)),
+        ],
+      ),
+    );
+  }
+
+  Widget _headerCell(BuildContext context, String text, TextAlign align) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       child: Text(
@@ -365,14 +552,15 @@ class CheckoutPage extends StatelessWidget {
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.bold,
-          color: Colors.grey[700],
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
       ),
     );
   }
 
-  Widget _dataCell(String text, TextAlign align,
+  Widget _dataCell(BuildContext context, String text, TextAlign align,
       {bool isBold = false, bool isSubtitle = false}) {
+    final scheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
       child: Text(
@@ -381,11 +569,43 @@ class CheckoutPage extends StatelessWidget {
         style: TextStyle(
           fontSize: isSubtitle ? 12 : 14,
           fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-          color: isSubtitle ? Colors.grey[500] : Colors.black87,
+          color: isSubtitle ? scheme.onSurfaceVariant : scheme.onSurface,
         ),
       ),
     );
   }
+}
+
+/// A stock notice strip above the cart: red (a strict-inventory *block*) or
+/// amber (a soft low-stock heads-up). [text] is the pre-composed prefix + names.
+Widget _stockNoticeBox({required bool blocking, required String text}) {
+  return Container(
+    width: double.infinity,
+    margin: const EdgeInsets.only(bottom: 16),
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    decoration: BoxDecoration(
+      color: blocking ? const Color(0xFFFDE2E1) : const Color(0xFFFFF3CD),
+      borderRadius: BorderRadius.circular(10),
+      border: Border.all(
+          color: blocking ? const Color(0xFFE57373) : const Color(0xFFFFD700)),
+    ),
+    child: Row(
+      children: [
+        Icon(blocking ? Icons.block : Icons.warning_amber_rounded,
+            color: blocking ? const Color(0xFFC62828) : const Color(0xFFB8860B),
+            size: 20),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(text,
+              style: TextStyle(
+                  fontSize: 13,
+                  color: blocking
+                      ? const Color(0xFFC62828)
+                      : const Color(0xFF856404))),
+        ),
+      ],
+    ),
+  );
 }
 
 /// Cash/credit selector + the confirm button. Holds the chosen credit customer
@@ -432,37 +652,38 @@ class _CreditAwareConfirmState extends State<_CreditAwareConfirm> {
   }
 
   Future<void> _pickCustomer() async {
-    final customers = context.read<CustomerBloc>().state.customers;
-    final selected = await showModalBottomSheet<CustomerAccount>(
+    final result = await showModalBottomSheet<Object>(
       context: context,
-      builder: (sheetCtx) => SafeArea(
-        child: customers.isEmpty
-            ? Padding(
-                padding: const EdgeInsets.all(24),
-                child: Text(widget.l10n.noCustomers,
-                    textAlign: TextAlign.center),
-              )
-            : ListView.builder(
-                shrinkWrap: true,
-                itemCount: customers.length,
-                itemBuilder: (_, i) {
-                  final acc = customers[i];
-                  return ListTile(
-                    leading: const Icon(Icons.person_outline),
-                    title: Text(acc.customer.name),
-                    subtitle: acc.customer.phone.isEmpty
-                        ? null
-                        : Text(acc.customer.phone),
-                    onTap: () => Navigator.pop(sheetCtx, acc),
-                  );
-                },
-              ),
-      ),
+      isScrollControlled: true,
+      builder: (_) => const _CustomerPickerSheet(),
     );
-    if (selected != null) {
+    if (!mounted) return;
+    if (identical(result, _kAddNewCustomer)) {
+      await _addCustomerInline();
+    } else if (result is CustomerAccount) {
       setState(() {
-        _customerId = selected.customer.id;
-        _customerName = selected.customer.name;
+        _customerId = result.customer.id;
+        _customerName = result.customer.name;
+      });
+    }
+  }
+
+  /// Quick-add a customer without leaving checkout. The form lives in a
+  /// dedicated stateful sheet ([_AddCustomerSheet]) that owns its controllers,
+  /// so they're disposed by the framework only after the route is fully gone —
+  /// disposing them here (right after the await) would crash the still-animating
+  /// sheet as it rebuilds against disposed controllers.
+  Future<void> _addCustomerInline() async {
+    final created = await showModalBottomSheet<Customer>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => const _AddCustomerSheet(),
+    );
+    if (created != null && mounted) {
+      context.read<CustomerBloc>().add(AddCustomer(created));
+      setState(() {
+        _customerId = created.id;
+        _customerName = created.name;
       });
     }
   }
@@ -505,7 +726,12 @@ class _CreditAwareConfirmState extends State<_CreditAwareConfirm> {
           ),
           const SizedBox(height: 10),
           PrimaryButton(
-            onPressed: widget.billingState.isSaving ? null : _confirm,
+            // Disabled while saving, and hard-disabled when strict inventory
+            // would reject the cart (the bloc guards it too, as a backstop).
+            onPressed:
+                (widget.billingState.isSaving || widget.billingState.isStockBlocked)
+                    ? null
+                    : _confirm,
             label: l10n.confirmSale,
             icon: Icons.check_circle_outline,
             isLoading: widget.billingState.isSaving,
@@ -521,7 +747,8 @@ class _CreditAwareConfirmState extends State<_CreditAwareConfirm> {
     required bool selected,
     required VoidCallback onTap,
   }) {
-    final color = selected ? AppTheme.primaryColor : Colors.grey;
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    final color = selected ? AppTheme.primaryColor : muted;
     return InkWell(
       borderRadius: BorderRadius.circular(10),
       onTap: onTap,
@@ -535,7 +762,7 @@ class _CreditAwareConfirmState extends State<_CreditAwareConfirm> {
           border: Border.all(
               color: selected
                   ? AppTheme.primaryColor
-                  : Colors.grey.shade300),
+                  : Theme.of(context).dividerColor),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -550,8 +777,266 @@ class _CreditAwareConfirmState extends State<_CreditAwareConfirm> {
                 style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: selected ? AppTheme.primaryColor : Colors.grey[700]),
+                    color: selected ? AppTheme.primaryColor : muted),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Sentinel popped by [_CustomerPickerSheet] when the user taps "add new
+/// customer" — distinguishes that intent from a picked [CustomerAccount] or a
+/// plain dismiss (null) at the call site.
+final Object _kAddNewCustomer = Object();
+
+/// Customer picker sheet. Small lists (< 5) show in full; larger lists show a
+/// search field plus the first 4, with typing filtering live across everyone.
+/// Pops the chosen [CustomerAccount], or [_kAddNewCustomer] for the add tile.
+class _CustomerPickerSheet extends StatefulWidget {
+  const _CustomerPickerSheet();
+
+  @override
+  State<_CustomerPickerSheet> createState() => _CustomerPickerSheetState();
+}
+
+class _CustomerPickerSheetState extends State<_CustomerPickerSheet> {
+  static const _previewCount = 4;
+  static const _searchThreshold = 5;
+
+  final _search = TextEditingController();
+  String _query = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _search.addListener(() {
+      final q = _search.text.trim().toLowerCase();
+      if (q != _query) setState(() => _query = q);
+    });
+  }
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final customers = context.watch<CustomerBloc>().state.customers;
+    final showSearch = customers.length >= _searchThreshold;
+
+    // Which rows to display: filtered matches when searching, else the first 4
+    // (large list) or everything (small list).
+    List<CustomerAccount> visible;
+    var hiddenCount = 0;
+    if (_query.isNotEmpty) {
+      visible = customers
+          .where((acc) =>
+              acc.customer.name.toLowerCase().contains(_query) ||
+              acc.customer.phone.toLowerCase().contains(_query))
+          .toList();
+    } else if (showSearch) {
+      visible = customers.take(_previewCount).toList();
+      hiddenCount = customers.length - visible.length;
+    } else {
+      visible = customers;
+    }
+
+    return SafeArea(
+      child: Padding(
+        padding:
+            EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: Text(l10n.selectCustomer,
+                    style: const TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
+            ListTile(
+              leading: const CircleAvatar(
+                backgroundColor: AppTheme.primaryColor,
+                child: Icon(Icons.person_add_alt_1, color: Colors.white),
+              ),
+              title: Text(l10n.addNewCustomer,
+                  style: const TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontWeight: FontWeight.w600)),
+              onTap: () => Navigator.pop(context, _kAddNewCustomer),
+            ),
+            if (showSearch)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                child: TextField(
+                  controller: _search,
+                  decoration: InputDecoration(
+                    hintText: l10n.searchCustomerHint,
+                    prefixIcon: const Icon(Icons.search),
+                    isDense: true,
+                    border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                  ),
+                ),
+              ),
+            const Divider(height: 1),
+            if (customers.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(l10n.noCustomers, textAlign: TextAlign.center),
+              )
+            else if (visible.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(24),
+                child: Text(l10n.noMatchingCustomers,
+                    textAlign: TextAlign.center),
+              )
+            else
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: visible.length,
+                  itemBuilder: (_, i) {
+                    final acc = visible[i];
+                    return ListTile(
+                      leading: const Icon(Icons.person_outline),
+                      title: Text(acc.customer.name),
+                      subtitle: acc.customer.phone.isEmpty
+                          ? null
+                          : Text(acc.customer.phone),
+                      onTap: () => Navigator.pop(context, acc),
+                    );
+                  },
+                ),
+              ),
+            if (hiddenCount > 0)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+                child: Text(l10n.andMoreTypeToSearch(hiddenCount),
+                    style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            Theme.of(context).colorScheme.onSurfaceVariant)),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Keyboard-aware quick-add customer form. Owns its controllers (disposed in
+/// [dispose], i.e. after the sheet's exit animation completes) and pops the
+/// created [Customer] on save so the caller can select it immediately.
+class _AddCustomerSheet extends StatefulWidget {
+  const _AddCustomerSheet();
+
+  @override
+  State<_AddCustomerSheet> createState() => _AddCustomerSheetState();
+}
+
+class _AddCustomerSheetState extends State<_AddCustomerSheet> {
+  final _formKey = GlobalKey<FormState>();
+  final _name = TextEditingController();
+  final _phone = TextEditingController();
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _phone.dispose();
+    super.dispose();
+  }
+
+  /// True if a customer already has this name (case-insensitive, trimmed),
+  /// checked against the live [CustomerBloc] list.
+  bool _isDuplicateName(String value) {
+    final needle = value.trim().toLowerCase();
+    return context.read<CustomerBloc>().state.customers.any(
+        (acc) => acc.customer.name.trim().toLowerCase() == needle);
+  }
+
+  void _save() {
+    if (!_formKey.currentState!.validate()) return;
+    Navigator.pop(
+      context,
+      Customer(
+        id: const Uuid().v4(),
+        name: _name.text.trim(),
+        phone: _phone.text.trim(),
+        createdAt: DateTime.now(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+          20, 16, 20, MediaQuery.of(context).viewInsets.bottom + 20),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                  color: Theme.of(context).dividerColor,
+                  borderRadius: BorderRadius.circular(2)),
+            ),
+            Text(l10n.addNewCustomer,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: _name,
+              autofocus: true,
+              textInputAction: TextInputAction.next,
+              decoration: InputDecoration(
+                labelText: l10n.customerNameLabel,
+                prefixIcon: const Icon(Icons.person_outline),
+                border: const OutlineInputBorder(),
+              ),
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) return l10n.fieldRequired;
+                if (_isDuplicateName(v)) return l10n.duplicateCustomerName;
+                return null;
+              },
+            ),
+            const SizedBox(height: 14),
+            TextFormField(
+              controller: _phone,
+              keyboardType: TextInputType.phone,
+              textInputAction: TextInputAction.done,
+              onFieldSubmitted: (_) => _save(),
+              decoration: InputDecoration(
+                labelText: l10n.customerPhoneLabel,
+                prefixIcon: const Icon(Icons.phone_outlined),
+                border: const OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: _save,
+              style: FilledButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+              ),
+              child: Text(l10n.save),
             ),
           ],
         ),

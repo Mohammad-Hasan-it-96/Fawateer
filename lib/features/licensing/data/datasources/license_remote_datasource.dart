@@ -72,6 +72,21 @@ class LicenseRemoteDataSource {
     });
   }
 
+  /// `POST update_my_data` — record which Google account holds this device's
+  /// Drive backups, so support can see it and a reinstalled app can be reminded
+  /// which account to sign into. Sent alone (the endpoint takes every field as
+  /// optional); throws [ApiException] on transport errors.
+  Future<void> updateGoogleAccount({
+    required String deviceId,
+    required String googleAccount,
+  }) async {
+    await _client.postJson('update_my_data', {
+      'app_name': ApiConfig.appName,
+      'device_id': deviceId,
+      'google_account': googleAccount,
+    });
+  }
+
   /// `POST create_device` with a pending plan request (operator-driven flow).
   Future<Map<String, dynamic>> requestPlan({
     required String deviceId,
@@ -88,6 +103,24 @@ class LicenseRemoteDataSource {
       'requested_plan': requestedPlan,
       'contact_method': contactMethod,
       'status': 'pending',
+    });
+  }
+
+  /// `POST add_review` — a star rating (1–5) with an optional comment, tied to
+  /// the device. Throws [ApiException] so the caller can tell the user it
+  /// didn't send (unlike the fire-and-forget calls above, the user is waiting
+  /// on this one and expects to know).
+  Future<void> addReview({
+    required String deviceId,
+    required int stars,
+    String? comment,
+  }) async {
+    await _client.postJson('add_review', {
+      'app_name': ApiConfig.appName,
+      'device_id': deviceId,
+      'stars': stars,
+      if (comment != null && comment.trim().isNotEmpty)
+        'comment': comment.trim(),
     });
   }
 

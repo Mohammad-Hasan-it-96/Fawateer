@@ -16,26 +16,30 @@ class DeviceIdCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (deviceId.isEmpty) return const SizedBox.shrink();
+    final scheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.grey.shade50,
+        // surfaceContainerHighest, not `surface`: this card sits *on* a surface
+        // and needs to read as inset in both modes.
+        color: scheme.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.fingerprint, size: 16, color: Colors.grey[600]),
+              Icon(Icons.fingerprint,
+                  size: 16, color: scheme.onSurfaceVariant),
               const SizedBox(width: 6),
               Text(l10n.deviceIdLabel,
                   style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey[700])),
+                      color: scheme.onSurfaceVariant)),
             ],
           ),
           const SizedBox(height: 8),
@@ -65,7 +69,8 @@ class DeviceIdCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(l10n.deviceIdHint,
-              style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+              style:
+                  TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
         ],
       ),
     );

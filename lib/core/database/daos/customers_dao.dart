@@ -43,6 +43,24 @@ class CustomersDao extends DatabaseAccessor<AppDatabase>
   Future<CustomerRow?> getCustomer(String id) =>
       (select(customers)..where((c) => c.id.equals(id))).getSingleOrNull();
 
+  /// Reactive single customer — emits on every edit so a detail view stays live.
+  Stream<CustomerRow?> watchCustomer(String id) =>
+      (select(customers)..where((c) => c.id.equals(id))).watchSingleOrNull();
+
+  /// Whether a non-archived customer already has this [name], compared
+  /// case-insensitively and trimmed. Pass [exceptId] to ignore one customer
+  /// (the one being edited) so saving without a name change isn't a conflict.
+  Future<bool> nameExists(String name, {String? exceptId}) async {
+    final needle = name.trim().toLowerCase();
+    final query = select(customers)
+      ..where((c) => c.name.lower().equals(needle) & c.isArchived.equals(false));
+    if (exceptId != null) {
+      query.where((c) => c.id.equals(exceptId).not());
+    }
+    final rows = await query.get();
+    return rows.isNotEmpty;
+  }
+
   /// Insert or replace by id (used for both add and edit).
   Future<void> upsertCustomer(CustomersCompanion customer) =>
       into(customers).insert(customer, mode: InsertMode.insertOrReplace);

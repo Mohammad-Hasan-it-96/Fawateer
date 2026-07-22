@@ -8,6 +8,8 @@ import 'tables/sales_invoices_table.dart';
 import 'tables/sales_items_table.dart';
 import 'tables/customers_table.dart';
 import 'tables/ledger_entries_table.dart';
+import 'tables/cashbox_transactions_table.dart';
+import 'tables/attribute_definitions_table.dart';
 
 import 'daos/products_dao.dart';
 import 'daos/shop_dao.dart';
@@ -15,6 +17,9 @@ import 'daos/settings_dao.dart';
 import 'daos/sales_dao.dart';
 import 'daos/customers_dao.dart';
 import 'daos/ledger_dao.dart';
+import 'daos/cashbox_dao.dart';
+import 'daos/dashboard_dao.dart';
+import 'daos/attributes_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -27,6 +32,8 @@ part 'app_database.g.dart';
     SalesItems,
     Customers,
     LedgerEntries,
+    CashboxTransactions,
+    AttributeDefinitions,
   ],
   daos: [
     ProductsDao,
@@ -35,13 +42,22 @@ part 'app_database.g.dart';
     SalesDao,
     CustomersDao,
     LedgerDao,
+    CashboxDao,
+    DashboardDao,
+    AttributesDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(driftDatabase(name: 'fawateer'));
 
+  /// Test-only: build the database over a caller-supplied executor (e.g. an
+  /// in-memory `NativeDatabase.memory()`), so integration tests can exercise the
+  /// real schema/migrations/SQL against the device's bundled SQLite without
+  /// touching the app's on-disk `fawateer` database.
+  AppDatabase.forTesting(super.executor);
+
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -49,6 +65,7 @@ class AppDatabase extends _$AppDatabase {
       await migrator.createAll();
       await _createIndexes();
       await _createLedgerIndexes();
+      await _createCashboxIndexes();
     },
     beforeOpen: (details) async {
       // Enforce foreign keys for every connection. Set here (after migrations
@@ -109,6 +126,47 @@ class AppDatabase extends _$AppDatabase {
         // so every existing product keeps its current per-piece behavior.
         await migrator.addColumn(products, products.saleType);
       }
+      if (from < 9) {
+        // Cashbox: new signed-entry cash ledger. Additive — no existing table is
+        // touched. (A same-named `cashbox_entries` from a removed pre-v3 feature
+        // was already dropped in the v2→v3 step; this uses a distinct name.)
+        await migrator.createTable(cashboxTransactions);
+        await _createCashboxIndexes();
+      }
+      if (from < 10) {
+        // Dual currency (SP base + USD sticker): additive text/real columns,
+        // all with defaults so existing rows decode as SP-native. products
+        // gains the price currency; sales_items gains the per-line FX snapshot
+        // (currency/rate/original) used for display & audit. No table rebuild.
+        await migrator.addColumn(products, products.priceCurrency);
+        await migrator.addColumn(salesItems, salesItems.priceCurrency);
+        await migrator.addColumn(salesItems, salesItems.fxRate);
+        await migrator.addColumn(salesItems, salesItems.priceOriginal);
+      }
+      if (from < 11) {
+        // The old '₹' (Indian rupee) default was wrong for this Syria-first app.
+        // Normalize it — and any blank symbol — to the Syrian pound. A shop that
+        // deliberately chose another symbol keeps it.
+        await customStatement(
+            "UPDATE shop_settings SET currency_symbol = 'ل.س' "
+            "WHERE currency_symbol = '₹' OR currency_symbol = ''");
+      }
+      if (from < 12) {
+        // Manual discounts (Plan 005): additive SP-discount columns. Every
+        // existing row decodes as "no discount". No table rebuild.
+        await migrator.addColumn(salesItems, salesItems.discount);
+        await migrator.addColumn(salesInvoices, salesInvoices.invoiceDiscount);
+      }
+      if (from < 13) {
+        // Dynamic product attributes (Plan 010, bucket A). Purely additive:
+        //  - products.attributes: JSON bag of custom field values ('' = none)
+        //  - sales_items.attributes_snapshot: printed attributes frozen at sale
+        //  - attribute_definitions: the owner's custom-field metadata (new table)
+        // No existing table is touched; every existing row decodes as empty.
+        await migrator.addColumn(products, products.attributes);
+        await migrator.addColumn(salesItems, salesItems.attributesSnapshot);
+        await migrator.createTable(attributeDefinitions);
+      }
     },
   );
 
@@ -144,6 +202,17 @@ class AppDatabase extends _$AppDatabase {
         'CREATE INDEX IF NOT EXISTS idx_ledger_customer_id ON ledger_entries (customer_id)');
     await customStatement(
         'CREATE INDEX IF NOT EXISTS idx_ledger_invoice_id ON ledger_entries (invoice_id)');
+  }
+
+  /// Idempotent indexes for the cashbox table. Called from [onCreate] and the
+  /// v8→v9 upgrade. Speeds up the date-ordered history and the source→entry
+  /// lookup used to reverse a cashbox entry when its invoice/ledger row is
+  /// deleted.
+  Future<void> _createCashboxIndexes() async {
+    await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_cashbox_occurred_at ON cashbox_transactions (occurred_at)');
+    await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_cashbox_related_id ON cashbox_transactions (related_id)');
   }
 }
 

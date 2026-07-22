@@ -7,16 +7,26 @@ import 'package:uuid/uuid.dart';
 
 import '../bloc/product_bloc.dart';
 import '../widgets/currency_field.dart';
+import '../widgets/price_currency_selector.dart';
 import '../widgets/sale_type_selector.dart';
+import '../../domain/entities/price_currency.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/product_sale_type.dart';
+import '../../../attributes/presentation/bloc/attribute_definition_bloc.dart';
+import '../../../attributes/presentation/widgets/attribute_form_fields.dart';
+import '../../../../core/attributes/product_attributes.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
 import '../../../../core/utils/num_input.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class AddProductPage extends StatefulWidget {
-  const AddProductPage({super.key});
+  /// Pre-fills the barcode field. Set when the user scans an unknown barcode at
+  /// the POS and chooses to create the product from it, so they don't have to
+  /// read the digits off the screen and retype them.
+  final String? initialBarcode;
+
+  const AddProductPage({super.key, this.initialBarcode});
 
   @override
   State<AddProductPage> createState() => _AddProductPageState();
@@ -31,6 +41,14 @@ class _AddProductPageState extends State<AddProductPage> {
   double _quantity = 0.0;
   double _minStockAlert = 0.0;
   ProductSaleType _saleType = ProductSaleType.piece;
+  PriceCurrency _priceCurrency = PriceCurrency.sp;
+  Map<String, String> _attributes = {};
+
+  @override
+  void initState() {
+    super.initState();
+    _barcode = widget.initialBarcode ?? '';
+  }
 
   void _scanBarcode() async {
     final result = await context.push<String>('/scanner');
@@ -71,6 +89,8 @@ class _AddProductPageState extends State<AddProductPage> {
         quantity: _quantity,
         minStockAlert: _minStockAlert,
         saleType: _saleType,
+        priceCurrency: _priceCurrency,
+        attributes: ProductAttributes(_attributes),
       );
 
       context.read<ProductBloc>().add(AddProduct(product));
@@ -145,8 +165,11 @@ class _AddProductPageState extends State<AddProductPage> {
                   ),
                   const SizedBox(height: 6),
                   Text(l10n.tapToScan,
-                      style: const TextStyle(
-                          fontSize: 12, color: Color(0xFF4C669A))),
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: Theme.of(context)
+                              .colorScheme
+                              .onSurfaceVariant)),
                   const SizedBox(height: 24),
                   InputLabel(text: l10n.saleTypeLabel),
                   SaleTypeSelector(
@@ -154,11 +177,19 @@ class _AddProductPageState extends State<AddProductPage> {
                     onChanged: (t) => setState(() => _saleType = t),
                   ),
                   const SizedBox(height: 24),
+                  InputLabel(text: l10n.priceCurrencyLabel),
+                  PriceCurrencySelector(
+                    value: _priceCurrency,
+                    onChanged: (c) => setState(() => _priceCurrency = c),
+                  ),
+                  const SizedBox(height: 24),
                   InputLabel(
                       text: _saleType.isMeasured
                           ? l10n.pricePerKgLabel
                           : l10n.priceLabel),
                   CurrencyField(
+                    currencySymbol:
+                        _priceCurrency == PriceCurrency.usd ? '\$' : null,
                     validator: AppValidators.price(
                       requiredMsg: l10n.fieldRequired,
                       invalidMsg: l10n.invalidPrice,
@@ -172,6 +203,8 @@ class _AddProductPageState extends State<AddProductPage> {
                   InputLabel(text: l10n.costLabel),
                   CurrencyField(
                     initialValue: '0',
+                    currencySymbol:
+                        _priceCurrency == PriceCurrency.usd ? '\$' : null,
                     helperText: l10n.costHint,
                     validator: AppValidators.optionalNonNegative(
                       invalidMsg: l10n.invalidNumber,
@@ -216,6 +249,19 @@ class _AddProductPageState extends State<AddProductPage> {
                     onSaved: (value) =>
                         _minStockAlert = NumInput.parseFlexibleNumber(value) ?? 0,
                   ),
+                  // Owner-defined custom fields (Plan 010) — rendered from the
+                  // active definitions; empty for shops that defined none.
+                  Builder(builder: (context) {
+                    final defs = context
+                        .watch<AttributeDefinitionBloc>()
+                        .state
+                        .active;
+                    return AttributeFormFields(
+                      definitions: defs,
+                      initialValues: _attributes,
+                      onChanged: (v) => _attributes = v,
+                    );
+                  }),
                 ],
               ),
             ),

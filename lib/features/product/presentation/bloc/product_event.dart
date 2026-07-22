@@ -29,3 +29,22 @@ class DeleteProduct extends ProductEvent {
   @override
   List<Object> get props => [id];
 }
+
+/// Print one or more thermal labels for a product (Plan 010). The page resolves
+/// the display price string (currency-aware) and the code type/copies.
+class PrintProductLabel extends ProductEvent {
+  final String name;
+  final String priceText;
+  final String barcodeData;
+  final bool useQr;
+  final int copies;
+  const PrintProductLabel({
+    required this.name,
+    required this.priceText,
+    required this.barcodeData,
+    this.useQr = false,
+    this.copies = 1,
+  });
+  @override
+  List<Object> get props => [name, priceText, barcodeData, useQr, copies];
+}

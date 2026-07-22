@@ -8,7 +8,16 @@ enum BillingError {
   printerUnavailable,
   printFailed,
   emptyCart,
+  exchangeRateMissing,
+
+  /// Strict inventory is on and the cart sells a tracked item past its on-hand
+  /// count. Only reachable when the owner enabled the toggle.
+  insufficientStock,
 }
+
+/// Sentinel so [BillingState.copyWith] can distinguish "leave the nullable rate
+/// unchanged" from "set it to null" (an unset rate is a real state).
+const Object _unset = Object();
 
 class BillingState extends Equatable {
   final List<CartItem> cartItems;
@@ -29,6 +38,22 @@ class BillingState extends Equatable {
   /// for this, opens the entry dialog, then clears it. Null otherwise.
   final Product? measuredPrompt;
 
+  /// Current USD→SP rate (SP per 1 USD), or null if the owner hasn't set one.
+  /// Used to price USD products into SP as they enter the cart.
+  final double? exchangeRate;
+
+  /// When [exchangeRate] was last set — drives a "your rate is stale" hint.
+  final DateTime? rateUpdatedAt;
+
+  /// Manual whole-cart discount in SP, applied on top of any per-line discounts.
+  /// Clamped to the subtotal via [effectiveInvoiceDiscount]. 0 = none.
+  final double invoiceDiscount;
+
+  /// When true, the checkout refuses to sell a tracked item past its on-hand
+  /// count (Settings → Inventory). Off by default — stock is optional, so
+  /// overselling stays allowed unless the owner opts in.
+  final bool blockOversell;
+
   const BillingState({
     this.cartItems = const [],
     this.error,
@@ -40,9 +65,51 @@ class BillingState extends Equatable {
     this.savedInvoiceId,
     this.lowStockWarnings = const [],
     this.measuredPrompt,
+    this.exchangeRate,
+    this.rateUpdatedAt,
+    this.invoiceDiscount = 0,
+    this.blockOversell = false,
   });
 
-  double get totalAmount => cartItems.fold(0, (sum, item) => sum + item.total);
+  /// Sum of the (line-discounted) line totals, before the whole-cart discount.
+  double get subtotal => cartItems.fold(0, (sum, item) => sum + item.total);
+
+  /// Whole-cart discount actually applied — never negative, never more than
+  /// [subtotal].
+  double get effectiveInvoiceDiscount => invoiceDiscount <= 0
+      ? 0
+      : (invoiceDiscount > subtotal ? subtotal : invoiceDiscount);
+
+  /// Grand total in SP: subtotal minus the whole-cart discount.
+  double get totalAmount => subtotal - effectiveInvoiceDiscount;
+
+  /// Total of all discounts on this sale (line + whole-cart), for display.
+  double get totalDiscount =>
+      cartItems.fold<double>(0, (s, i) => s + i.effectiveDiscount) +
+      effectiveInvoiceDiscount;
+
+  /// True when any cart line is a USD product that couldn't be converted (no
+  /// rate set) — the checkout guard uses this to block the sale.
+  bool get hasUnpricedItems => cartItems.any((i) => i.isUnpriced);
+
+  /// Names of cart lines selling more than the product's on-hand quantity — the
+  /// strict-inventory **block** list.
+  ///
+  /// Unlike [lowStockWarnings] (a soft amber heads-up that deliberately skips
+  /// untracked loose items so they don't nag), this counts **every** product:
+  /// turning strict inventory on means "enforce stock for everything", so a
+  /// sold-out item (on-hand 0) is blocked too — which is exactly what the toggle
+  /// promises. `qty > onHand`, so selling the last unit down to 0 is fine; only
+  /// going *past* on-hand is blocked.
+  List<String> get oversoldItems => cartItems
+      .where((i) => i.quantity > i.product.quantity)
+      .map((i) => i.product.name)
+      .toList();
+
+  /// True when strict inventory is on AND the cart would sell past on-hand. The
+  /// checkout uses this to turn the warning into a hard block and disable
+  /// Confirm; [_onConfirmSale] refuses the sale.
+  bool get isStockBlocked => blockOversell && oversoldItems.isNotEmpty;
 
   BillingState copyWith({
     List<CartItem>? cartItems,
@@ -58,6 +125,10 @@ class BillingState extends Equatable {
     List<String>? lowStockWarnings,
     Product? measuredPrompt,
     bool clearMeasuredPrompt = false,
+    Object? exchangeRate = _unset,
+    Object? rateUpdatedAt = _unset,
+    double? invoiceDiscount,
+    bool? blockOversell,
   }) {
     return BillingState(
       cartItems: cartItems ?? this.cartItems,
@@ -72,6 +143,14 @@ class BillingState extends Equatable {
       lowStockWarnings: lowStockWarnings ?? this.lowStockWarnings,
       measuredPrompt:
           clearMeasuredPrompt ? null : (measuredPrompt ?? this.measuredPrompt),
+      exchangeRate: identical(exchangeRate, _unset)
+          ? this.exchangeRate
+          : exchangeRate as double?,
+      rateUpdatedAt: identical(rateUpdatedAt, _unset)
+          ? this.rateUpdatedAt
+          : rateUpdatedAt as DateTime?,
+      invoiceDiscount: invoiceDiscount ?? this.invoiceDiscount,
+      blockOversell: blockOversell ?? this.blockOversell,
     );
   }
 
@@ -87,5 +166,9 @@ class BillingState extends Equatable {
         savedInvoiceId,
         lowStockWarnings,
         measuredPrompt,
+        exchangeRate,
+        rateUpdatedAt,
+        invoiceDiscount,
+        blockOversell,
       ];
 }

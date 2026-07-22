@@ -2,6 +2,9 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/error/failure.dart';
 import '../entities/invoice.dart';
 import '../entities/invoice_item.dart';
+import '../entities/invoice_list_item.dart';
+import '../entities/sales_filter.dart';
+import '../entities/sales_summary.dart';
 
 abstract class InvoiceRepository {
   /// Persist a sale. Pass [customerId] for a **sale on credit**: a matching
@@ -16,6 +19,19 @@ abstract class InvoiceRepository {
 
   /// Reactive stream of all invoices (newest first), updated on every write.
   Stream<List<Invoice>> watchInvoices();
+
+  /// Reactive, paginated audit list matching [filter] — carries each invoice's
+  /// derived payment type, customer, and item count. Re-emits after every sale.
+  /// [limit] bounds how many rows the window returns; grow it to page in more.
+  Stream<List<InvoiceListItem>> watchFilteredInvoices(
+    SalesFilter filter, {
+    int limit,
+    int offset,
+  });
+
+  /// Reactive summary aggregate (count/total/cash/credit) over the same
+  /// [filter] as [watchFilteredInvoices].
+  Stream<SalesSummary> watchSummary(SalesFilter filter);
 
   Future<Either<Failure, List<InvoiceItem>>> getInvoiceItems(String invoiceId);
   Future<Either<Failure, void>> deleteInvoice(String id);

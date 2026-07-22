@@ -11,13 +11,17 @@ class ShopRepositoryDriftImpl implements ShopRepository {
 
   const ShopRepositoryDriftImpl(this._dao);
 
+  /// Arabic, because these are printed. A shopkeeper who sells before ever
+  /// opening Settings → Shop — the normal first day — would otherwise hand
+  /// every customer a receipt headed "My Shop / Thank you, Visit again!" in an
+  /// Arabic-first app. Matches the `ل.س` default already chosen here.
   static const Shop _defaultShop = Shop(
-    name: 'My Shop',
+    name: 'متجري',
     addressLine1: '',
     addressLine2: '',
     phoneNumber: '',
-    footerText: 'Thank you, Visit again!',
-    currencySymbol: '₹',
+    footerText: 'شكراً لزيارتكم',
+    currencySymbol: 'ل.س',
   );
 
   static Shop _rowToEntity(ShopRow row) => Shop(

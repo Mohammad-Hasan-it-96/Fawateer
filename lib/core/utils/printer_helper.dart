@@ -1,6 +1,7 @@
 import 'package:print_bluetooth_thermal/print_bluetooth_thermal.dart';
 import 'package:permission_handler/permission_handler.dart';
 
+import 'label_image.dart';
 import 'receipt_image.dart';
 
 class PrinterHelper {
@@ -123,6 +124,31 @@ class PrinterHelper {
     );
 
     try {
+      return await PrintBluetoothThermal.writeBytes(bytes)
+          .timeout(_btTimeout, onTimeout: () => false);
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Print [copies] of a product label (name, price, scannable code) as an
+  /// ESC/POS raster image. Returns `true` only when the bytes were written.
+  Future<bool> printLabel({
+    required String name,
+    required String priceText,
+    String barcodeData = '',
+    bool useQr = false,
+    int copies = 1,
+  }) async {
+    if (!await isLiveConnected()) return false;
+    try {
+      final bytes = await LabelImage.buildEscPosBytes(
+        name: name,
+        priceText: priceText,
+        barcodeData: barcodeData,
+        useQr: useQr,
+        copies: copies,
+      );
       return await PrintBluetoothThermal.writeBytes(bytes)
           .timeout(_btTimeout, onTimeout: () => false);
     } catch (_) {

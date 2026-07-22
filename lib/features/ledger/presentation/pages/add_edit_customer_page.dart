@@ -41,6 +41,15 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
     super.dispose();
   }
 
+  /// True if another (non-current) customer already has this name, compared
+  /// case-insensitively and trimmed against the live [CustomerBloc] list.
+  bool _isDuplicateName(String value) {
+    final needle = value.trim().toLowerCase();
+    return context.read<CustomerBloc>().state.customers.any((acc) =>
+        acc.customer.id != widget.customer?.id &&
+        acc.customer.name.trim().toLowerCase() == needle);
+  }
+
   void _save() {
     if (!_formKey.currentState!.validate()) return;
     final bloc = context.read<CustomerBloc>();
@@ -85,8 +94,11 @@ class _AddEditCustomerPageState extends State<AddEditCustomerPage> {
                 prefixIcon: const Icon(Icons.person_outline),
                 border: const OutlineInputBorder(),
               ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? l10n.fieldRequired : null,
+              validator: (v) {
+                if (v == null || v.trim().isEmpty) return l10n.fieldRequired;
+                if (_isDuplicateName(v)) return l10n.duplicateCustomerName;
+                return null;
+              },
             ),
             const SizedBox(height: 16),
             TextFormField(

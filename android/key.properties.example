@@ -1,0 +1,21 @@
+# Template for android/key.properties — COPY to `key.properties` and fill in.
+# (Copy, don't move — this template must stay put so a fresh clone still has it.)
+#
+# key.properties itself is GITIGNORED and must never be committed: it holds the
+# release keystore passwords. This .example file is committed so the required
+# shape is recoverable on a new machine.
+#
+# See docs/android-release-signing.md.
+
+# The alias you passed to keytool -alias
+keyAlias=fawateer
+
+# The two passwords you chose when running keytool.
+# (keytool lets these differ; using the same value for both is normal.)
+keyPassword=CHANGEME
+storePassword=CHANGEME
+
+# ABSOLUTE path to the .jks — keep it OUTSIDE this repo so it can never be
+# committed by accident. Use forward slashes, even on Windows.
+# Example: C:/Users/ASUS/keystores/fawateer-release.jks
+storeFile=CHANGEME

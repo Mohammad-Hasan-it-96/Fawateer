@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -7,15 +8,19 @@ import 'config/routes/app_routes.dart';
 import 'core/config/remote_config_service.dart';
 import 'core/service_locator.dart' as di;
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_controller.dart';
+import 'features/backup/data/auto_backup_service.dart';
 import 'features/billing/presentation/bloc/billing_bloc.dart';
 import 'features/billing/presentation/bloc/history_bloc.dart';
 import 'features/product/presentation/bloc/product_bloc.dart';
+import 'features/attributes/presentation/bloc/attribute_definition_bloc.dart';
 import 'features/shop/presentation/bloc/shop_bloc.dart';
 import 'features/settings/presentation/bloc/printer_bloc.dart';
 import 'features/settings/presentation/bloc/printer_event.dart';
 import 'features/licensing/presentation/bloc/license_bloc.dart';
 import 'features/licensing/data/services/push_notification_service.dart';
 import 'features/ledger/presentation/bloc/customer_bloc.dart';
+import 'features/cashbox/presentation/bloc/cashbox_bloc.dart';
 import 'l10n/app_localizations.dart';
 
 /// Lets the FCM foreground handler surface an in-app banner from outside the
@@ -25,6 +30,11 @@ final GlobalKey<ScaffoldMessengerState> rootMessengerKey =
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Portrait only, both ways up. Mirrored by `android:screenOrientation` in
+  // AndroidManifest.xml — see the comment there for why it's locked twice.
+  await SystemChrome.setPreferredOrientations(
+    [DeviceOrientation.portraitUp, DeviceOrientation.portraitDown],
+  );
   // Load locale data (Arabic month names, ص/م) for intl's DateFormat.
   await initializeDateFormatting();
   await di.init();
@@ -40,6 +50,10 @@ void main() async {
         .ensureLoaded()
         .timeout(const Duration(seconds: 4));
   } catch (_) {/* keep going; the config applies once it lands */}
+
+  // Read the stored light/dark preference before the first frame, so the app
+  // doesn't paint light and then flip. Local DB read; never throws.
+  await di.sl<ThemeController>().load();
 
   runApp(const MyApp());
 
@@ -82,13 +96,34 @@ class _UpdateChecker extends StatefulWidget {
   State<_UpdateChecker> createState() => _UpdateCheckerState();
 }
 
-class _UpdateCheckerState extends State<_UpdateChecker> {
+class _UpdateCheckerState extends State<_UpdateChecker>
+    with WidgetsBindingObserver {
   bool _prompted = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybePrompt());
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _maybePrompt();
+      // Launch is the main backup opportunity: the shop opens the app every
+      // morning. Fire-and-forget — it decides for itself whether one is due.
+      di.sl<AutoBackupService>().maybeRun();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Also on resume, so a device left running for days still backs up daily.
+    if (state == AppLifecycleState.resumed) {
+      di.sl<AutoBackupService>().maybeRun();
+    }
   }
 
   Future<void> _maybePrompt() async {
@@ -112,11 +147,16 @@ class _UpdateCheckerState extends State<_UpdateChecker> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (final note in notes)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text('• $note'),
-              ),
+            // Release notes are optional in the config; without this the
+            // dialog would render a title over an empty box.
+            if (notes.isEmpty)
+              Text(l10n.updateAvailableGeneric)
+            else
+              for (final note in notes)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Text('• $note'),
+                ),
           ],
         ),
         actions: [
@@ -156,10 +196,15 @@ class MyApp extends StatelessWidget {
             value: di.sl<LicenseBloc>()..add(CheckLicenseEvent())),
         BlocProvider<ProductBloc>(
             create: (context) => di.sl<ProductBloc>()..add(LoadProducts())),
+        BlocProvider<AttributeDefinitionBloc>(
+            create: (context) => di.sl<AttributeDefinitionBloc>()
+              ..add(const LoadDefinitions())),
         BlocProvider<ShopBloc>(
             create: (context) => di.sl<ShopBloc>()..add(LoadShopEvent())),
         BlocProvider<BillingBloc>(
-            create: (context) => di.sl<BillingBloc>()),
+            create: (context) => di.sl<BillingBloc>()
+              ..add(const LoadExchangeRateEvent())
+              ..add(const LoadInventorySettingsEvent())),
         BlocProvider<PrinterBloc>(
             create: (context) =>
                 di.sl<PrinterBloc>()..add(InitPrinterEvent())),
@@ -169,10 +214,33 @@ class MyApp extends StatelessWidget {
         BlocProvider<CustomerBloc>(
             create: (context) =>
                 di.sl<CustomerBloc>()..add(LoadCustomers())),
+        BlocProvider<CashboxBloc>(
+            create: (context) =>
+                di.sl<CashboxBloc>()..add(const LoadCashbox())),
       ],
-      child: MaterialApp.router(
+      child: const _ThemedApp(),
+    );
+  }
+}
+
+/// Rebuilds `MaterialApp.router` when the theme preference changes.
+///
+/// `AnimatedBuilder` is just the listener plumbing here (no animation) — it's
+/// the standard way to rebuild on a `ChangeNotifier` without pulling in a
+/// state-management package the app doesn't otherwise use.
+class _ThemedApp extends StatelessWidget {
+  const _ThemedApp();
+
+  @override
+  Widget build(BuildContext context) {
+    final themeController = di.sl<ThemeController>();
+    return AnimatedBuilder(
+      animation: themeController,
+      builder: (context, _) => MaterialApp.router(
         title: 'فواتير',
         theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: themeController.mode,
         scaffoldMessengerKey: rootMessengerKey,
         routerConfig: router,
         debugShowCheckedModeBanner: false,

@@ -51,6 +51,10 @@ class CustomerRepositoryDriftImpl implements CustomerRepository {
           .toList());
 
   @override
+  Stream<Customer?> watchCustomer(String id) =>
+      _dao.watchCustomer(id).map((r) => r == null ? null : _toEntity(r));
+
+  @override
   Future<Either<Failure, Customer>> getCustomer(String id) async {
     try {
       final row = await _dao.getCustomer(id);
@@ -64,6 +68,9 @@ class CustomerRepositoryDriftImpl implements CustomerRepository {
   @override
   Future<Either<Failure, void>> addCustomer(Customer customer) async {
     try {
+      if (await _dao.nameExists(customer.name, exceptId: customer.id)) {
+        return const Left(DuplicateFailure('Duplicate customer name'));
+      }
       await _dao.upsertCustomer(_toCompanion(customer));
       return const Right(null);
     } catch (e) {
@@ -74,6 +81,9 @@ class CustomerRepositoryDriftImpl implements CustomerRepository {
   @override
   Future<Either<Failure, void>> updateCustomer(Customer customer) async {
     try {
+      if (await _dao.nameExists(customer.name, exceptId: customer.id)) {
+        return const Left(DuplicateFailure('Duplicate customer name'));
+      }
       await _dao.upsertCustomer(_toCompanion(customer));
       return const Right(null);
     } catch (e) {
