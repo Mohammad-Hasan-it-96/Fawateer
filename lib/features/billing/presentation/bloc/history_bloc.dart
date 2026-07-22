@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
@@ -125,6 +126,19 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
     );
   }
 
+  /// Decode a sale line's `{label: value}` attribute snapshot (Plan 010) into
+  /// "label: value" receipt sub-lines. Defensive: blank/garbled → none.
+  static List<String> _decodeAttributeSnapshot(String raw) {
+    if (raw.isEmpty) return const [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! Map) return const [];
+      return decoded.entries.map((e) => '${e.key}: ${e.value}').toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
   /// Reprint a stored invoice. Loads its line items, maps them to
   /// [ReceiptLine]s (no `unit` — `InvoiceItem` doesn't snapshot sale type, so a
   /// weighed line reprints without the "كغ" tag), and prints via the same
@@ -145,6 +159,9 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
                 quantity: i.quantity,
                 price: i.price,
                 total: i.total,
+                // Replay the show-on-receipt custom fields snapshotted at sale
+                // time (Plan 010), so a reprint matches the original receipt.
+                attributes: _decodeAttributeSnapshot(i.attributesSnapshot),
               ))
           .toList(),
     );

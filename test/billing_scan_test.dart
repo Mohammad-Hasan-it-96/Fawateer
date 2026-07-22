@@ -5,6 +5,8 @@ import 'package:billing_app/features/billing/domain/repositories/invoice_reposit
 import 'package:billing_app/features/billing/presentation/bloc/billing_bloc.dart';
 import 'package:billing_app/features/product/domain/entities/product.dart';
 import 'package:billing_app/features/product/domain/repositories/product_repository.dart';
+import 'package:billing_app/features/attributes/domain/entities/attribute_definition.dart';
+import 'package:billing_app/features/attributes/domain/repositories/attribute_definition_repository.dart';
 import 'package:billing_app/features/settings/domain/repositories/printer_repository.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:fpdart/fpdart.dart';
@@ -49,6 +51,17 @@ class _FakeExchangeRateService implements ExchangeRateService {
       throw UnimplementedError('${invocation.memberName} not used by this test');
 }
 
+class _FakeAttributeDefinitionRepository
+    implements AttributeDefinitionRepository {
+  @override
+  Stream<List<AttributeDefinition>> watchDefinitions() =>
+      Stream.value(const []);
+
+  @override
+  noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} not used by this test');
+}
+
 class _FakeInventorySettingsService implements InventorySettingsService {
   @override
   Future<bool> isBlockOversellEnabled() async => false;
@@ -78,6 +91,7 @@ void main() {
       invoiceRepository: _FakeInvoiceRepository(),
       exchangeRateService: _FakeExchangeRateService(),
       inventorySettingsService: _FakeInventorySettingsService(),
+      attributeRepository: _FakeAttributeDefinitionRepository(),
     );
   });
 

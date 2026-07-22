@@ -10,11 +10,19 @@ class ReceiptLine {
   /// piece counts. Printed as "{qty} {unit} × {name}".
   final String unit;
 
+  /// Owner-defined custom fields flagged *show on receipt* (Plan 010), each a
+  /// pre-resolved "label: value" display string. Printed as small sub-lines
+  /// under the item. Empty for products with no printable attributes. These are
+  /// snapshotted at sale time, so a reprint shows them even if the product or
+  /// its field definitions are later edited.
+  final List<String> attributes;
+
   const ReceiptLine({
     required this.name,
     required this.quantity,
     required this.price,
     required this.total,
     this.unit = '',
+    this.attributes = const [],
   });
 }

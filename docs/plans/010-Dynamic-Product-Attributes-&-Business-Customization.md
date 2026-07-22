@@ -23,12 +23,17 @@
 > `AttributeDefinitionBloc` (stream-backed, loaded at startup); Settings →
 > **Product fields** page (add/edit/archive/delete + template picker); 8 curated
 > templates (const map); dynamic add/edit product form; product-list subtitle
-> (`showInList`). `flutter analyze` clean; **69 tests** pass (+8 attribute).
-> **Deferred to V1.1** (column already migrated, so purely additive wiring):
-> **receipt printing** of `showOnReceipt` attributes — the snapshot at sale time
-> + raster render — held back to avoid touching the money-critical checkout
-> transaction in the same pass. Also deferred: attribute **search/filter** UI
-> (values are queryable in Dart already), report group-by, product labels.
+> (`showInList`). `flutter analyze` clean; **70 tests** pass (+9 attribute).
+> **V1.1 shipped — receipt printing** of `showOnReceipt` attributes: `BillingBloc`
+> subscribes to the definitions stream (`_receiptDefs`, always fresh), snapshots
+> the resolved `{label: value}` pairs (unit baked in) onto
+> `sales_items.attributes_snapshot` in the sale transaction, renders them as
+> small RTL sub-lines under each item via `ReceiptImage`, and **reprints** them
+> from the frozen snapshot (`HistoryBloc._decodeAttributeSnapshot`) so an old
+> receipt is immune to later product/definition edits. Covered by a
+> snapshot-flows-and-excludes-non-receipt-fields test.
+> **Still deferred:** attribute **search/filter** UI (values are queryable in
+> Dart already), report group-by, product labels.
 >
 > **One-line design:** Hybrid — *typed core columns stay fixed; owner-defined
 > descriptive attributes live in a JSON map on the product row, driven by an

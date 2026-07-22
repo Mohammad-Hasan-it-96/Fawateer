@@ -1,6 +1,10 @@
+import 'dart:async';
+import 'dart:convert';
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:uuid/uuid.dart';
+import 'package:billing_app/features/attributes/domain/entities/attribute_definition.dart';
+import 'package:billing_app/features/attributes/domain/repositories/attribute_definition_repository.dart';
 import '../../domain/entities/cart_item.dart';
 import '../../domain/entities/invoice.dart';
 import '../../domain/entities/invoice_item.dart';
@@ -22,6 +26,14 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
   final InvoiceRepository invoiceRepository;
   final ExchangeRateService exchangeRateService;
   final InventorySettingsService inventorySettingsService;
+  final AttributeDefinitionRepository attributeRepository;
+
+  /// Active custom fields flagged *show on receipt* (Plan 010), kept fresh via a
+  /// subscription so a field the owner adds/edits mid-session prints without a
+  /// restart. Read synchronously when building receipt lines and the sale-time
+  /// snapshot, so it's cached rather than fetched per sale.
+  List<AttributeDefinition> _receiptDefs = const [];
+  StreamSubscription<List<AttributeDefinition>>? _receiptDefsSub;
 
   BillingBloc({
     required this.productRepository,
@@ -29,7 +41,13 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     required this.invoiceRepository,
     required this.exchangeRateService,
     required this.inventorySettingsService,
+    required this.attributeRepository,
   }) : super(const BillingState()) {
+    _receiptDefsSub = attributeRepository.watchDefinitions().listen((defs) {
+      _receiptDefs = defs
+          .where((d) => !d.isArchived && d.showOnReceipt)
+          .toList();
+    });
     on<ScanBarcodeEvent>(_onScanBarcode);
     on<AddProductToCartEvent>(_onAddProductToCart);
     on<RemoveProductFromCartEvent>(_onRemoveProductFromCart);
@@ -273,6 +291,9 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
               fxRate: cartItem.fxRate,
               priceOriginal: cartItem.product.price,
               discount: cartItem.effectiveDiscount,
+              // Freeze the show-on-receipt custom fields (Plan 010) so a reprint
+              // is immune to later product/definition edits.
+              attributesSnapshot: _printableAttrsJson(cartItem.product),
             ))
         .toList();
 
@@ -366,8 +387,39 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
             // Receipts render as an Arabic bitmap; tag weighed lines with the
             // kg unit so "0.333 كغ × رز" reads clearly.
             unit: i.product.saleType.isMeasured ? 'كغ' : '',
+            attributes: _printableAttrStrings(i.product),
           ))
       .toList();
+
+  /// Printable custom fields for a product (Plan 010) as `{label: value}` — the
+  /// *show-on-receipt* definitions that have a value on this product, with the
+  /// unit appended so the stored snapshot is self-contained (needs no later
+  /// definition lookup to reprint).
+  Map<String, String> _printableAttrs(Product p) {
+    final out = <String, String>{};
+    for (final d in _receiptDefs) {
+      final v = p.attributes[d.id];
+      if (v == null || v.isEmpty) continue;
+      out[d.label] = d.unit.isEmpty ? v : '$v ${d.unit}';
+    }
+    return out;
+  }
+
+  /// The printable pairs as "label: value" display lines for a live receipt.
+  List<String> _printableAttrStrings(Product p) =>
+      _printableAttrs(p).entries.map((e) => '${e.key}: ${e.value}').toList();
+
+  /// JSON snapshot of the printable pairs, frozen onto the sale line ('' none).
+  String _printableAttrsJson(Product p) {
+    final m = _printableAttrs(p);
+    return m.isEmpty ? '' : jsonEncode(m);
+  }
+
+  @override
+  Future<void> close() {
+    _receiptDefsSub?.cancel();
+    return super.close();
+  }
 
   List<String> _computeStockWarnings(List<CartItem> items) {
     // i.product.quantity = on-hand inventory; i.quantity = units being sold.

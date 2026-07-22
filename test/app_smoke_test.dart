@@ -21,6 +21,9 @@ import 'package:billing_app/features/billing/presentation/bloc/history_bloc.dart
 import 'package:billing_app/features/product/domain/entities/price_currency.dart';
 import 'package:billing_app/features/product/domain/entities/product.dart';
 import 'package:billing_app/features/product/domain/repositories/product_repository.dart';
+import 'package:billing_app/core/attributes/product_attributes.dart';
+import 'package:billing_app/features/attributes/domain/entities/attribute_definition.dart';
+import 'package:billing_app/features/attributes/domain/repositories/attribute_definition_repository.dart';
 import 'package:billing_app/features/product/presentation/bloc/product_bloc.dart';
 import 'package:billing_app/features/settings/domain/entities/printer_device.dart';
 import 'package:billing_app/features/settings/domain/entities/receipt_line.dart';
@@ -51,6 +54,21 @@ class _FakeExchangeRateService implements ExchangeRateService {
   Future<DateTime?> getUpdatedAt() async => null;
   @override
   Future<void> setRate(double rate) async {}
+}
+
+/// Custom-fields fake. Defaults to no definitions; pass `defs:` to exercise the
+/// receipt-attribute snapshot (Plan 010).
+class _FakeAttributeDefinitionRepository
+    implements AttributeDefinitionRepository {
+  final List<AttributeDefinition> defs;
+  _FakeAttributeDefinitionRepository({this.defs = const []});
+
+  @override
+  Stream<List<AttributeDefinition>> watchDefinitions() => Stream.value(defs);
+
+  @override
+  noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} not used by this test');
 }
 
 /// Strict-inventory flag fake. Defaults to off (overselling allowed), matching
@@ -244,6 +262,7 @@ void main() {
         invoiceRepository: _FakeInvoiceRepository(),
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       final next = bloc.stream.firstWhere((s) => s.error != null);
       bloc.add(const ScanBarcodeEvent('999'));
@@ -262,6 +281,7 @@ void main() {
         invoiceRepository: _FakeInvoiceRepository(),
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       final next = bloc.stream.firstWhere((s) => s.cartItems.isNotEmpty);
       bloc.add(const ScanBarcodeEvent('123'));
@@ -280,6 +300,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
       bloc.add(AddProductToCartEvent(_product()));
@@ -300,6 +321,52 @@ void main() {
       await bloc.close();
     });
 
+    test('show-on-receipt attributes are snapshotted onto the sale line',
+        () async {
+      final invoiceRepo = _FakeInvoiceRepository();
+      final bloc = BillingBloc(
+        productRepository: _FakeProductRepository(),
+        printerRepository: _FakePrinterRepository(),
+        invoiceRepository: invoiceRepo,
+        exchangeRateService: _FakeExchangeRateService(),
+        inventorySettingsService: _FakeInventorySettingsService(),
+        attributeRepository: _FakeAttributeDefinitionRepository(defs: const [
+          AttributeDefinition(
+              id: 'color', label: 'اللون', showOnReceipt: true),
+          AttributeDefinition(
+              id: 'storage',
+              label: 'السعة',
+              unit: 'GB',
+              showOnReceipt: true),
+          // Not flagged for the receipt → must be excluded from the snapshot.
+          AttributeDefinition(id: 'size', label: 'المقاس'),
+        ]),
+      );
+      // Let the definitions subscription deliver before the sale.
+      await Future<void>.delayed(Duration.zero);
+
+      final product = _product().copyWith(
+        attributes: ProductAttributes(
+            const {'color': 'أسود', 'storage': '128', 'size': 'L'}),
+      );
+      final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
+      bloc.add(AddProductToCartEvent(product));
+      bloc.add(const ConfirmSaleEvent(
+          shopName: 'Shop',
+          address1: '',
+          address2: '',
+          phone: '',
+          footer: ''));
+      await confirmed.timeout(_timeout);
+
+      final snap = invoiceRepo.savedItems!.single.attributesSnapshot;
+      expect(snap, contains('اللون'));
+      expect(snap, contains('أسود'));
+      expect(snap, contains('128 GB')); // unit appended into the frozen value
+      expect(snap, isNot(contains('المقاس'))); // not show-on-receipt
+      await bloc.close();
+    });
+
     test('credit sale → customerId forwarded to saveInvoice', () async {
       final invoiceRepo = _FakeInvoiceRepository();
       final bloc = BillingBloc(
@@ -308,6 +375,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
       bloc.add(AddProductToCartEvent(_product()));
@@ -333,6 +401,7 @@ void main() {
         invoiceRepository: _FakeInvoiceRepository(),
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       final next = bloc.stream.firstWhere((s) => s.error != null);
       bloc.add(const PrintReceiptEvent(
@@ -355,6 +424,7 @@ void main() {
         invoiceRepository: _FakeInvoiceRepository(),
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        attributeRepository: _FakeAttributeDefinitionRepository(),
       );
 
       // Tracked item, on-hand 1: selling 2 (add twice) must warn.
@@ -386,6 +456,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(block: true),
+        attributeRepository: _FakeAttributeDefinitionRepository(),
       );
 
       // Startup loads the strict flag into state (as main.dart does).
@@ -428,6 +499,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       final errored = bloc.stream.firstWhere((s) => s.error != null);
       bloc.add(const ConfirmSaleEvent(
@@ -448,6 +520,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
       bloc.add(AddProductToCartEvent(_product()));
@@ -472,6 +545,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(rate: 15000),
         inventorySettingsService: _FakeInventorySettingsService(),
+        attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       bloc.add(const LoadExchangeRateEvent());
       await bloc.stream
@@ -515,6 +589,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(), // no rate set
         inventorySettingsService: _FakeInventorySettingsService(),
+        attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       bloc.add(const LoadExchangeRateEvent());
 
@@ -545,6 +620,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       const p = Product(id: 'p1', name: 'X', barcode: '', price: 10, quantity: 5);
       bloc.add(const AddProductToCartEvent(p));
@@ -574,6 +650,7 @@ void main() {
         invoiceRepository: _FakeInvoiceRepository(),
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       const p = Product(id: 'p1', name: 'X', barcode: '', price: 10, quantity: 5);
       bloc.add(const AddProductToCartEvent(p)); // gross 10

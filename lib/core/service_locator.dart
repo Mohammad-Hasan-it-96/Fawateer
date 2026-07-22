@@ -176,6 +176,7 @@ Future<void> init() async {
         invoiceRepository: sl(),
         exchangeRateService: sl(),
         inventorySettingsService: sl(),
+        attributeRepository: sl(),
       ));
 
   sl.registerFactory(() => CustomerBloc(repository: sl()));

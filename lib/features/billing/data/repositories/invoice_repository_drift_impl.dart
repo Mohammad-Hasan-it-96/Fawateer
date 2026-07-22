@@ -100,6 +100,7 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
                   fxRate: Value(i.fxRate),
                   priceOriginal: Value(i.priceOriginal),
                   discount: Value(i.discount),
+                  attributesSnapshot: Value(i.attributesSnapshot),
                 ))
             .toList(),
         creditCharge: creditCharge,
@@ -189,6 +190,7 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
                 fxRate: r.fxRate,
                 priceOriginal: r.priceOriginal,
                 discount: r.discount,
+                attributesSnapshot: r.attributesSnapshot,
               ))
           .toList());
     } catch (e) {

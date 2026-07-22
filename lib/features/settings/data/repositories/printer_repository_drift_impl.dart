@@ -116,6 +116,7 @@ class PrinterRepositoryDriftImpl implements PrinterRepository {
                 'price': i.price,
                 'total': i.total,
                 'unit': i.unit,
+                'attributes': i.attributes,
               })
           .toList(),
     );
