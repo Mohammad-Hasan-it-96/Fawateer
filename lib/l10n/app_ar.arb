@@ -500,5 +500,8 @@
   "showArchivedFields": "عرض المؤرشفة",
   "filterProductsTitle": "تصفية المنتجات",
   "clearFiltersBtn": "مسح الكل",
-  "noFilterableFields": "لا توجد حقول قابلة للتصفية. أضف حقل قائمة خيارات لتصفّي حسبه."
+  "noFilterableFields": "لا توجد حقول قابلة للتصفية. أضف حقل قائمة خيارات لتصفّي حسبه.",
+  "salesByFieldTitle": "المبيعات حسب الحقل",
+  "salesByFieldHint": "اختر حقلاً لتفصيل المبيعات حسب قيمه.",
+  "reportFieldNone": "إيقاف"
 }

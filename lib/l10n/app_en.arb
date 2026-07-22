@@ -621,5 +621,8 @@
   "showArchivedFields": "Show archived",
   "filterProductsTitle": "Filter products",
   "clearFiltersBtn": "Clear all",
-  "noFilterableFields": "No filterable fields. Add a choice-list field to filter by it."
+  "noFilterableFields": "No filterable fields. Add a choice-list field to filter by it.",
+  "salesByFieldTitle": "Sales by field",
+  "salesByFieldHint": "Pick a field to break sales down by its values.",
+  "reportFieldNone": "Off"
 }

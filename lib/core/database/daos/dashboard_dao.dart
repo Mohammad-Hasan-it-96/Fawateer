@@ -123,6 +123,59 @@ LIMIT ?''',
         .toList();
   }
 
+  /// Sales grouped by a custom product field value (Plan 010 report group-by).
+  /// [jsonPath] is a JSON path like `$."<defId>"` passed as a **bound
+  /// parameter** (never interpolated — no injection), extracted from each sold
+  /// product's current `attributes` JSON. [orderByColumn] is the same
+  /// whitelisted metric column as [topProducts] (`revenue`|`qty`|`profit`).
+  ///
+  /// Reuses [TopProductRow] (its `productName` carries the attribute value;
+  /// products with no value group under `'—'`). Uses the product's **current**
+  /// attribute value (joined live), so re-classifying a product re-buckets its
+  /// past sales, and a deleted product's lines drop out — acceptable for the
+  /// descriptive fields this targets. `json_valid` guards the empty/legacy
+  /// `attributes` default so `json_extract` never errors on non-JSON.
+  Future<List<TopProductRow>> salesByAttribute(
+    int fromMs,
+    int toMs, {
+    required String jsonPath,
+    required String orderByColumn,
+    int limit = 8,
+  }) async {
+    final rows = await customSelect(
+      '''
+SELECT COALESCE(
+         CASE WHEN json_valid(p.attributes)
+              THEN json_extract(p.attributes, ?) END, '—') AS attr_value,
+       COALESCE(SUM(si.quantity), 0.0) AS qty,
+       COALESCE(SUM(si.price * si.quantity - si.discount), 0.0) AS revenue,
+       COALESCE(SUM((si.price - si.cost) * si.quantity - si.discount), 0.0) AS profit
+FROM sales_items si
+JOIN sales_invoices i ON i.id = si.invoice_id
+JOIN products p ON p.id = si.product_id
+WHERE i.created_at BETWEEN ? AND ?
+GROUP BY attr_value
+ORDER BY $orderByColumn DESC
+LIMIT ?''',
+      variables: [
+        Variable.withString(jsonPath),
+        Variable.withInt(fromMs),
+        Variable.withInt(toMs),
+        Variable.withInt(limit),
+      ],
+      readsFrom: {salesItems, salesInvoices, products},
+    ).get();
+    return rows
+        .map((r) => TopProductRow(
+              productId: '',
+              productName: r.read<String>('attr_value'),
+              quantity: r.read<double>('qty'),
+              revenue: r.read<double>('revenue'),
+              profit: r.read<double>('profit'),
+            ))
+        .toList();
+  }
+
   /// Cash in / out and the two main outflow types over a period.
   Future<CashFlowRow> cashFlow(int fromMs, int toMs) async {
     final r = await customSelect(

@@ -40,7 +40,18 @@
 > (`features/product/domain/product_search.dart`), covered by 7 tests. No
 > `isSearchable` flag was added — for simple shops every field is searchable and
 > every choice-list field is filterable, one less thing to configure.
-> **Still deferred:** report **group-by attribute**, product **labels/QR**.
+> **V1.3 shipped — report group-by attribute:** a "Sales by field" section on the
+> Reports dashboard groups sales (revenue/qty/profit, honoring the range +
+> metric toggle) by a chosen custom field's values, reusing the top-products
+> ranked bars. `DashboardDao.salesByAttribute` does it **in SQL** via
+> `json_extract(p.attributes, ?)` — the JSON path is a **bound parameter** (no
+> injection; `ORDER BY` stays the whitelisted metric column), joined live to
+> `products` so it uses each product's **current** value (re-classifying a
+> product re-buckets its past sales; deleted products drop out — fine for
+> descriptive fields). `json_valid` guards the empty/legacy default; products
+> with no value bucket under `'—'`. Requires SQLite **JSON1** (bundled in
+> `sqlite3_flutter_libs`, on by default). Covered by a bloc test.
+> **Still deferred:** product **labels/QR**.
 >
 > **One-line design:** Hybrid — *typed core columns stay fixed; owner-defined
 > descriptive attributes live in a JSON map on the product row, driven by an

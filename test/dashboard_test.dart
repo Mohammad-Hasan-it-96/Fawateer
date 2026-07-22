@@ -30,6 +30,18 @@ class _FakeDashboardRepository implements DashboardRepository {
     return Right(data);
   }
 
+  List<TopProduct> breakdown = const [];
+  String? lastFieldId;
+
+  @override
+  Future<Either<Failure, List<TopProduct>>> salesByAttribute(
+      SalesFilter range, String definitionId,
+      {required ProductMetric metric}) async {
+    lastFieldId = definitionId;
+    lastMetric = metric;
+    return Right(breakdown);
+  }
+
   @override
   Stream<void> watchChanges() => _changes.stream;
 
@@ -84,6 +96,36 @@ void main() {
 
       expect(s.metric, ProductMetric.profit);
       expect(repo.lastMetric, ProductMetric.profit);
+
+      await bloc.close();
+      await repo.dispose();
+    });
+
+    test('selecting a report field loads its breakdown; null turns it off',
+        () async {
+      final repo = _FakeDashboardRepository(const DashboardData())
+        ..breakdown = const [
+          TopProduct(name: 'أسود', quantity: 3, revenue: 300, profit: 90),
+          TopProduct(name: 'أبيض', quantity: 1, revenue: 100, profit: 30),
+        ];
+      final bloc = DashboardBloc(repository: repo);
+      bloc.add(const LoadDashboard());
+      await bloc.stream.firstWhere((s) => s.status == DashboardStatus.loaded);
+
+      bloc.add(const SelectReportField('color'));
+      // Wait for the breakdown to actually load (the handler emits the selection
+      // first, then _load emits again with the fetched rows).
+      final s = await bloc.stream.firstWhere(
+          (s) => s.selectedFieldId == 'color' && s.attributeBreakdown.isNotEmpty);
+      expect(repo.lastFieldId, 'color');
+      expect(s.attributeBreakdown.length, 2);
+      expect(s.attributeBreakdown.first.name, 'أسود');
+
+      // Turning it off clears the selection and the breakdown.
+      bloc.add(const SelectReportField(null));
+      final off = await bloc.stream.firstWhere(
+          (s) => s.selectedFieldId == null && s.attributeBreakdown.isEmpty);
+      expect(off.attributeBreakdown, isEmpty);
 
       await bloc.close();
       await repo.dispose();

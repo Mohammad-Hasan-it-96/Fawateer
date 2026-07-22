@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/money_display.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../attributes/domain/entities/attribute_definition.dart';
+import '../../../attributes/presentation/bloc/attribute_definition_bloc.dart';
 import '../../../billing/domain/entities/sales_filter.dart';
 import '../../domain/entities/dashboard_data.dart';
 import '../bloc/dashboard_bloc.dart';
@@ -66,6 +68,8 @@ class DashboardView extends StatelessWidget {
                         emptyText: l10n.dashboardNoData,
                       ),
                     ),
+                    _SalesByFieldSection(
+                        state: state, currency: currency, l10n: l10n),
                     SectionCard(
                       title: l10n.cashFlowTitle,
                       child: CashFlowCard(
@@ -221,6 +225,76 @@ class _RangeBar extends StatelessWidget {
         label: Text(label),
         onSelected: (_) => onTap(),
       ),
+    );
+  }
+}
+
+/// "Sales by field" report (Plan 010): break sales down by a custom product
+/// field's values, reusing the top-products ranked bars + the current metric.
+/// Hidden entirely when the shop has defined no custom fields.
+class _SalesByFieldSection extends StatelessWidget {
+  final DashboardState state;
+  final String currency;
+  final AppLocalizations l10n;
+  const _SalesByFieldSection(
+      {required this.state, required this.currency, required this.l10n});
+
+  @override
+  Widget build(BuildContext context) {
+    final defs = context.watch<AttributeDefinitionBloc>().state.active;
+    if (defs.isEmpty) return const SizedBox.shrink();
+    // Drop a stale selection if that field was archived/deleted meanwhile.
+    final selectedId =
+        defs.any((d) => d.id == state.selectedFieldId) ? state.selectedFieldId : null;
+
+    return SectionCard(
+      title: l10n.salesByFieldTitle,
+      trailing: _ReportFieldSelector(defs: defs, selectedId: selectedId),
+      child: selectedId == null
+          ? Padding(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              child: Center(
+                child: Text(l10n.salesByFieldHint,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 13)),
+              ),
+            )
+          : TopProductsChart(
+              products: state.attributeBreakdown,
+              metric: state.metric,
+              currency: currency,
+              emptyText: l10n.dashboardNoData,
+            ),
+    );
+  }
+}
+
+/// Dropdown to pick which custom field the "Sales by field" report groups by
+/// (or turn it off).
+class _ReportFieldSelector extends StatelessWidget {
+  final List<AttributeDefinition> defs;
+  final String? selectedId;
+  const _ReportFieldSelector({required this.defs, required this.selectedId});
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    return DropdownButton<String?>(
+      value: selectedId,
+      isDense: true,
+      underline: const SizedBox.shrink(),
+      hint: Text(l10n.reportFieldNone,
+          style: Theme.of(context).textTheme.labelMedium),
+      style: Theme.of(context).textTheme.labelLarge,
+      items: [
+        DropdownMenuItem(value: null, child: Text(l10n.reportFieldNone)),
+        for (final d in defs)
+          DropdownMenuItem(value: d.id, child: Text(d.label)),
+      ],
+      onChanged: (id) =>
+          context.read<DashboardBloc>().add(SelectReportField(id)),
     );
   }
 }

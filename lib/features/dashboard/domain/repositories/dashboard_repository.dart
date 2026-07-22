@@ -12,6 +12,16 @@ abstract class DashboardRepository {
     required ProductMetric metric,
   });
 
+  /// Sales grouped by the value of one custom product field (Plan 010),
+  /// ranked by [metric], for the given [range]. Each [TopProduct]'s `name` is a
+  /// field value (products with no value bucket under `'—'`). Uses the product's
+  /// current attribute value.
+  Future<Either<Failure, List<TopProduct>>> salesByAttribute(
+    SalesFilter range,
+    String definitionId, {
+    required ProductMetric metric,
+  });
+
   /// Emits whenever underlying data changes (sale, cash move, debt, stock) so
   /// the dashboard can reload live.
   Stream<void> watchChanges();

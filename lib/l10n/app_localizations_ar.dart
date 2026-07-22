@@ -1493,4 +1493,13 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get noFilterableFields =>
       'لا توجد حقول قابلة للتصفية. أضف حقل قائمة خيارات لتصفّي حسبه.';
+
+  @override
+  String get salesByFieldTitle => 'المبيعات حسب الحقل';
+
+  @override
+  String get salesByFieldHint => 'اختر حقلاً لتفصيل المبيعات حسب قيمه.';
+
+  @override
+  String get reportFieldNone => 'إيقاف';
 }

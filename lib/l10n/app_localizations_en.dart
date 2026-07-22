@@ -1505,4 +1505,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noFilterableFields =>
       'No filterable fields. Add a choice-list field to filter by it.';
+
+  @override
+  String get salesByFieldTitle => 'Sales by field';
+
+  @override
+  String get salesByFieldHint =>
+      'Pick a field to break sales down by its values.';
+
+  @override
+  String get reportFieldNone => 'Off';
 }

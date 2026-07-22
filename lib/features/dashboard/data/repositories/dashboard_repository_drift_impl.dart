@@ -20,6 +20,37 @@ class DashboardRepositoryDriftImpl implements DashboardRepository {
   Stream<void> watchChanges() => _dao.watchChanges();
 
   @override
+  Future<Either<Failure, List<TopProduct>>> salesByAttribute(
+    SalesFilter range,
+    String definitionId, {
+    required ProductMetric metric,
+  }) async {
+    try {
+      // definitionId is app-generated (uuid/slug), but sanitize to a safe path
+      // token anyway; it's bound as a parameter, so this only guards path
+      // correctness, not injection.
+      final safeId = definitionId.replaceAll(RegExp(r'[^A-Za-z0-9_-]'), '');
+      if (safeId.isEmpty) return const Right([]);
+      final rows = await _dao.salesByAttribute(
+        range.from.millisecondsSinceEpoch,
+        range.to.millisecondsSinceEpoch,
+        jsonPath: '\$."$safeId"',
+        orderByColumn: _metricColumn(metric),
+      );
+      return Right(rows
+          .map((r) => TopProduct(
+                name: r.productName,
+                quantity: r.quantity,
+                revenue: r.revenue,
+                profit: r.profit,
+              ))
+          .toList());
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, DashboardData>> load(
     SalesFilter range, {
     required ProductMetric metric,

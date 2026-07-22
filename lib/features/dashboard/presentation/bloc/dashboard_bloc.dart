@@ -33,6 +33,12 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       emit(state.copyWith(metric: e.metric));
       await _load(emit);
     });
+    on<SelectReportField>((e, emit) async {
+      emit(state.copyWith(
+          selectedFieldId: e.definitionId,
+          clearSelectedField: e.definitionId == null));
+      await _load(emit);
+    });
     on<_DashboardDataChanged>((e, emit) => _load(emit));
 
     // Reload live when underlying tables change.
@@ -48,11 +54,25 @@ class DashboardBloc extends Bloc<DashboardEvent, DashboardState> {
       emit(state.copyWith(status: DashboardStatus.loading, clearError: true));
     }
     final result = await _repo.load(state.filter, metric: state.metric);
+    // Refresh the "Sales by field" breakdown too, if a field is selected, so it
+    // tracks the range / metric / live changes alongside the main data.
+    final fieldId = state.selectedFieldId;
+    List<TopProduct> breakdown = state.attributeBreakdown;
+    if (fieldId != null) {
+      final b =
+          await _repo.salesByAttribute(state.filter, fieldId, metric: state.metric);
+      breakdown = b.getOrElse((_) => const []);
+    } else {
+      breakdown = const [];
+    }
     result.match(
       (failure) =>
           emit(state.copyWith(status: DashboardStatus.error, error: failure)),
       (data) => emit(state.copyWith(
-          status: DashboardStatus.loaded, data: data, clearError: true)),
+          status: DashboardStatus.loaded,
+          data: data,
+          attributeBreakdown: breakdown,
+          clearError: true)),
     );
   }
 

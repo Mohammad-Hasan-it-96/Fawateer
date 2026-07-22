@@ -2936,6 +2936,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No filterable fields. Add a choice-list field to filter by it.'**
   String get noFilterableFields;
+
+  /// No description provided for @salesByFieldTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales by field'**
+  String get salesByFieldTitle;
+
+  /// No description provided for @salesByFieldHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Pick a field to break sales down by its values.'**
+  String get salesByFieldHint;
+
+  /// No description provided for @reportFieldNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get reportFieldNone;
 }
 
 class _AppLocalizationsDelegate

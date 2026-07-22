@@ -27,6 +27,14 @@ class DashboardMetricChanged extends DashboardEvent {
   List<Object?> get props => [metric];
 }
 
+/// The "Sales by field" report field changed (Plan 010). Null turns it off.
+class SelectReportField extends DashboardEvent {
+  final String? definitionId;
+  const SelectReportField(this.definitionId);
+  @override
+  List<Object?> get props => [definitionId];
+}
+
 /// Internal: underlying data changed (a sale / cash move / debt / stock edit) —
 /// reload keeping the current filter + metric.
 class _DashboardDataChanged extends DashboardEvent {
