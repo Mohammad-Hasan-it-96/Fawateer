@@ -54,11 +54,14 @@ class LicenseRepositoryImpl implements LicenseRepository {
     try {
       await _local.saveAgent(name, phone);
       final deviceId = await _identity.getDeviceId();
+      final fcmToken = await _local.loadPushToken();
       final json = await _remote.createDevice(
-          deviceId: deviceId,
-          name: name,
-          phone: phone,
-          fcmToken: await _local.loadPushToken());
+          deviceId: deviceId, name: name, phone: phone, fcmToken: fcmToken);
+      // create_device succeeded with the token attached — the server has it,
+      // so mark it sent (same contract as registerPushToken's 2xx save).
+      if (fcmToken != null && fcmToken.isNotEmpty) {
+        await _local.saveLastSentPushToken(fcmToken);
+      }
       await _local.saveStatus(_statusFromJson(json));
       await _local.markSynced(now, serverTime: _parseDate(json['server_time']));
       return Right(await _local.loadStatus(DateTime.now()));
@@ -143,8 +146,15 @@ class LicenseRepositoryImpl implements LicenseRepository {
     try {
       // Cache first so activation can attach it even if the update call fails.
       await _local.savePushToken(token);
+      // Skip the network call when the server already confirmed this exact
+      // token (2xx on a previous send) — this runs on every launch, so without
+      // the skip each cold start would fire a redundant update_my_data.
+      if (await _local.loadLastSentPushToken() == token) return;
       final deviceId = await _identity.getDeviceId();
       await _remote.updateFcmToken(deviceId: deviceId, fcmToken: token);
+      // Only mark as sent on success (postJson throws on non-2xx), so a failed
+      // send is retried on the next launch instead of being wrongly skipped.
+      await _local.saveLastSentPushToken(token);
     } catch (_) {
       // Non-fatal: token stays cached and re-registers on next launch/rotation.
     }

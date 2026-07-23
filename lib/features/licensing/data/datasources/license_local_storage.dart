@@ -18,7 +18,12 @@ class LicenseLocalStorage {
   static const _kTrusted = 'lic_trusted_time'; // epoch ms (server time baseline)
   static const _kName = 'lic_agent_name';
   static const _kPhone = 'lic_agent_phone';
-  static const _kPushToken = 'lic_push_token'; // last FCM token sent to server
+  static const _kPushToken = 'lic_push_token'; // current device FCM token
+  // Last token the server *confirmed* receiving (2xx). Distinct from
+  // [_kPushToken]: that one is cached before any network call so activation can
+  // attach it; this one is written only after a successful send, so a failed
+  // send retries on the next launch instead of being wrongly skipped.
+  static const _kLastSentToken = 'last_sent_fcm_token';
   // Server-side *masked* Drive account (e.g. 'y••••n@gmail.com') echoed by
   // check_device. A hint for a reinstalled user, never a usable address — see
   // [saveGoogleAccountHint].
@@ -68,12 +73,20 @@ class LicenseLocalStorage {
     return (name: p.getString(_kName), phone: p.getString(_kPhone));
   }
 
-  /// The last FCM token we successfully handed to the server, so activation can
-  /// attach the current token and we can skip redundant re-registrations.
+  /// The device's current FCM token (cached before any network call), so
+  /// activation can attach it to `create_device`.
   Future<String?> loadPushToken() async => (await _p).getString(_kPushToken);
 
   Future<void> savePushToken(String token) async =>
       (await _p).setString(_kPushToken, token);
+
+  /// The last token the server confirmed (2xx) — used to skip redundant
+  /// re-sends on every launch while still retrying after a failed one.
+  Future<String?> loadLastSentPushToken() async =>
+      (await _p).getString(_kLastSentToken);
+
+  Future<void> saveLastSentPushToken(String token) async =>
+      (await _p).setString(_kLastSentToken, token);
 
   /// Cache the masked Drive account echoed by `check_device`. A null/blank value
   /// removes the key, so a device whose backup account was cleared server-side
