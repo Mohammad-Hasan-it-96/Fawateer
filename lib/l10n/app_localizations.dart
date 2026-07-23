@@ -1694,6 +1694,18 @@ abstract class AppLocalizations {
   /// **'Later'**
   String get updateLater;
 
+  /// No description provided for @trialExpiredNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Your free trial has ended. Choose a plan to activate a subscription and continue — all your data is safe.'**
+  String get trialExpiredNotice;
+
+  /// No description provided for @subscriptionExpiredNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Your subscription has ended. Choose a plan to renew and continue — all your data is safe.'**
+  String get subscriptionExpiredNotice;
+
   /// No description provided for @checkForUpdatesHint.
   ///
   /// In en, this message translates to:
@@ -2198,6 +2210,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Your subscription has been activated'**
   String get subscriptionActivatedBanner;
+
+  /// No description provided for @trialBannerNoDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Free trial'**
+  String get trialBannerNoDate;
+
+  /// No description provided for @trialBannerWithDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Free trial — {days} days left (until {date})'**
+  String trialBannerWithDate(int days, String date);
 
   /// No description provided for @trialBanner.
   ///

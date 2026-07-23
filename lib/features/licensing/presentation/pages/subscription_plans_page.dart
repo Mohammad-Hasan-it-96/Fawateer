@@ -58,13 +58,55 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
           if (state.plans.isEmpty) {
             return _empty(context, l10n);
           }
+          final expired = state.license.isExpired;
           return ListView.separated(
             padding: const EdgeInsets.all(16),
-            itemCount: state.plans.length,
+            // +1 leading slot for the expired notice, so a returning user is
+            // told *why* they're looking at plans (and that their data is safe)
+            // rather than seeing the same bare catalogue as a first subscriber.
+            itemCount: state.plans.length + (expired ? 1 : 0),
             separatorBuilder: (_, __) => const SizedBox(height: 12),
-            itemBuilder: (context, i) => _planCard(context, l10n, state.plans[i]),
+            itemBuilder: (context, i) {
+              if (expired && i == 0) {
+                return _expiredNotice(context, l10n, state.license.isTrial);
+              }
+              final plan = state.plans[expired ? i - 1 : i];
+              return _planCard(context, l10n, plan);
+            },
           );
         },
+      ),
+    );
+  }
+
+  /// Why-you're-here banner for a returning expired user (trial or paid — the
+  /// wording differs, the flow doesn't). Explicitly reassures that shop data
+  /// is untouched: fear of losing invoices/customers is the main reason a
+  /// shopkeeper hesitates here.
+  Widget _expiredNotice(
+      BuildContext context, AppLocalizations l10n, bool wasTrial) {
+    final color = Theme.of(context).colorScheme.error;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.lock_clock_outlined, color: color),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              wasTrial
+                  ? l10n.trialExpiredNotice
+                  : l10n.subscriptionExpiredNotice,
+              style: TextStyle(
+                  fontSize: 13, fontWeight: FontWeight.w600, color: color),
+            ),
+          ),
+        ],
       ),
     );
   }

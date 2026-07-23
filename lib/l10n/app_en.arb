@@ -322,6 +322,8 @@
   "updateDownload": "Download update",
   "updateAvailableGeneric": "A new version of the app is available.",
   "updateLater": "Later",
+  "trialExpiredNotice": "Your free trial has ended. Choose a plan to activate a subscription and continue — all your data is safe.",
+  "subscriptionExpiredNotice": "Your subscription has ended. Choose a plan to renew and continue — all your data is safe.",
   "checkForUpdatesHint": "Tap to check for updates",
   "updateUpToDate": "You're on the latest version",
   "updateCheckFailed": "Couldn't check for updates. Check your internet connection.",
@@ -471,6 +473,18 @@
   "copy": "Copy",
   "copied": "Copied",
   "subscriptionActivatedBanner": "Your subscription has been activated",
+  "trialBannerNoDate": "Free trial",
+  "trialBannerWithDate": "Free trial — {days} days left (until {date})",
+  "@trialBannerWithDate": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "trialBanner": "Free trial — {days} days left",
   "@trialBanner": {
     "placeholders": {

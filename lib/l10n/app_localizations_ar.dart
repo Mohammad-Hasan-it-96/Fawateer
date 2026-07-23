@@ -834,6 +834,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get updateLater => 'لاحقاً';
 
   @override
+  String get trialExpiredNotice =>
+      'انتهت الفترة التجريبية. اختر باقة لتفعيل الاشتراك والمتابعة — جميع بياناتك محفوظة.';
+
+  @override
+  String get subscriptionExpiredNotice =>
+      'انتهى اشتراكك. اختر باقة للتجديد والمتابعة — جميع بياناتك محفوظة.';
+
+  @override
   String get checkForUpdatesHint => 'اضغط للتحقق من وجود تحديثات';
 
   @override
@@ -1104,6 +1112,14 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get subscriptionActivatedBanner => 'تم تفعيل اشتراكك';
+
+  @override
+  String get trialBannerNoDate => 'نسخة تجريبية';
+
+  @override
+  String trialBannerWithDate(int days, String date) {
+    return 'نسخة تجريبية — باقٍ $days يوم (حتى $date)';
+  }
 
   @override
   String trialBanner(int days) {

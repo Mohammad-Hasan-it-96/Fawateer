@@ -841,6 +841,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateLater => 'Later';
 
   @override
+  String get trialExpiredNotice =>
+      'Your free trial has ended. Choose a plan to activate a subscription and continue — all your data is safe.';
+
+  @override
+  String get subscriptionExpiredNotice =>
+      'Your subscription has ended. Choose a plan to renew and continue — all your data is safe.';
+
+  @override
   String get checkForUpdatesHint => 'Tap to check for updates';
 
   @override
@@ -1116,6 +1124,14 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get subscriptionActivatedBanner =>
       'Your subscription has been activated';
+
+  @override
+  String get trialBannerNoDate => 'Free trial';
+
+  @override
+  String trialBannerWithDate(int days, String date) {
+    return 'Free trial — $days days left (until $date)';
+  }
 
   @override
   String trialBanner(int days) {

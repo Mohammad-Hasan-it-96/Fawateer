@@ -273,6 +273,8 @@
   "updateDownload": "تحميل التحديث",
   "updateAvailableGeneric": "يتوفر إصدار جديد من التطبيق.",
   "updateLater": "لاحقاً",
+  "trialExpiredNotice": "انتهت الفترة التجريبية. اختر باقة لتفعيل الاشتراك والمتابعة — جميع بياناتك محفوظة.",
+  "subscriptionExpiredNotice": "انتهى اشتراكك. اختر باقة للتجديد والمتابعة — جميع بياناتك محفوظة.",
   "checkForUpdatesHint": "اضغط للتحقق من وجود تحديثات",
   "updateUpToDate": "أنت على أحدث إصدار",
   "updateCheckFailed": "تعذّر التحقق من التحديثات. تحقق من اتصالك بالإنترنت.",
@@ -357,6 +359,8 @@
   "copy": "نسخ",
   "copied": "تم النسخ",
   "subscriptionActivatedBanner": "تم تفعيل اشتراكك",
+  "trialBannerNoDate": "نسخة تجريبية",
+  "trialBannerWithDate": "نسخة تجريبية — باقٍ {days} يوم (حتى {date})",
   "trialBanner": "نسخة تجريبية — باقٍ {days} يوم",
   "@trialBanner": {
     "placeholders": {

@@ -449,22 +449,37 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             ),
           ),
 
-          // Scan target corners
+          // Scan target corners. IgnorePointer is load-bearing: a Container
+          // with a BoxDecoration hit-tests as solid inside its rounded rect
+          // even with no fill, so without it this box swallows every tap in
+          // the center of the screen — exactly where the error state's
+          // Retry / Open-Settings buttons live (the cashier was left unable
+          // to tap the one button that fixes a denied camera permission).
+          // It also hides itself while the camera is errored, so scan corners
+          // don't float over the "camera unavailable" card.
           if (_isCameraOn)
-            Center(
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white24, width: 2),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Stack(children: [
-                  _buildCorner(Alignment.topLeft),
-                  _buildCorner(Alignment.topRight),
-                  _buildCorner(Alignment.bottomLeft),
-                  _buildCorner(Alignment.bottomRight),
-                ]),
+            IgnorePointer(
+              child: ValueListenableBuilder<MobileScannerState>(
+                valueListenable: _scannerController,
+                builder: (context, value, _) {
+                  if (value.error != null) return const SizedBox.shrink();
+                  return Center(
+                    child: Container(
+                      width: 220,
+                      height: 220,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.white24, width: 2),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Stack(children: [
+                        _buildCorner(Alignment.topLeft),
+                        _buildCorner(Alignment.topRight),
+                        _buildCorner(Alignment.bottomLeft),
+                        _buildCorner(Alignment.bottomRight),
+                      ]),
+                    ),
+                  );
+                },
               ),
             ),
         ],

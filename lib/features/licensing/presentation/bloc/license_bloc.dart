@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 
@@ -15,12 +17,54 @@ part 'license_state.dart';
 class LicenseBloc extends Bloc<LicenseEvent, LicenseState> {
   final LicenseRepository repository;
 
-  LicenseBloc({required this.repository}) : super(const LicenseState()) {
+  /// Buffer added past the exact expiry moment before re-checking, so the
+  /// check lands strictly after it. Injectable so tests can use milliseconds.
+  final Duration expiryCheckBuffer;
+
+  LicenseBloc({
+    required this.repository,
+    this.expiryCheckBuffer = const Duration(seconds: 10),
+  }) : super(const LicenseState()) {
     on<CheckLicenseEvent>(_onCheck);
     on<ActivateLicenseEvent>(_onActivate);
     on<UpdateAgentEvent>(_onUpdateAgent);
     on<LoadPlansEvent>(_onLoadPlans);
     on<RequestPlanEvent>(_onRequestPlan);
+  }
+
+  /// Re-check scheduled for the moment the subscription expires (capped at
+  /// 24h, re-arming itself for far-off expiries). Without it, expiry only
+  /// bites on the next navigation or restart — [LicenseStatus.isExpired] reads
+  /// `DateTime.now()`, but nothing re-evaluates the gate on pure time passage,
+  /// so a POS left open on one screen would keep selling past its end date.
+  /// The 24h cap doubles as a daily re-check for devices that are never
+  /// restarted. Offline at fire time is fine: the cached expiry still locks.
+  Timer? _expiryTimer;
+
+  void _armExpiryTimer(LicenseState s) {
+    _expiryTimer?.cancel();
+    _expiryTimer = null;
+    final expiresAt = s.license.expiresAt;
+    if (!s.license.isActive || expiresAt == null) return;
+    // Small buffer past the exact moment so the re-check lands after it.
+    final untilExpiry = expiresAt.difference(DateTime.now()) + expiryCheckBuffer;
+    const cap = Duration(hours: 24);
+    _expiryTimer = Timer(untilExpiry < cap ? untilExpiry : cap,
+        () => add(CheckLicenseEvent()));
+  }
+
+  @override
+  void onChange(Change<LicenseState> change) {
+    super.onChange(change);
+    // NOTE: must arm off [Change.nextState] — inside onChange, `state` still
+    // holds the previous state, whose license may predate this emission.
+    _armExpiryTimer(change.nextState);
+  }
+
+  @override
+  Future<void> close() {
+    _expiryTimer?.cancel();
+    return super.close();
   }
 
   Future<void> _onCheck(
