@@ -87,6 +87,18 @@ dev_dependencies:
   # Code Generation
   build_runner: ^2.4.8
   drift_dev: ^2.31.0
+  flutter_launcher_icons: ^0.14.4
+
+# Launcher icon generation (run: dart run flutter_launcher_icons).
+# Source art in assets/logo: the ribbon-ف mark (icon_mark), the adaptive
+# foreground (mark at ~62% with mask-safe margins), the gradient background,
+# and the composed full-bleed square used for legacy (pre-8.0) launchers.
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/logo/icon_full.png"
+  adaptive_icon_background: "assets/logo/icon_bg.png"
+  adaptive_icon_foreground: "assets/logo/icon_fg_adaptive.png"
 
 flutter:
   generate: true
