@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -38,11 +38,19 @@ import 'app_shell.dart';
 /// The single shared LicenseBloc instance the gate reacts to.
 final _licenseBloc = sl<LicenseBloc>();
 
+/// Root navigator key. Exists for code that lives *above* the router's
+/// Navigator — the update checker wraps `MaterialApp.router` via `builder:`,
+/// so its own context has no Navigator ancestor and `showDialog` from it
+/// throws (silently, inside a post-frame future). Dialogs opened from up
+/// there must use `rootNavigatorKey.currentContext` instead.
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 /// The activation-flow screens (reachable while unlicensed).
 const _activationForm = '/activation'; // name/phone → create_device
 const _activationPlans = '/activation/plans'; // pick a plan → contact support
 
 final router = GoRouter(
+  navigatorKey: rootNavigatorKey,
   initialLocation: '/pos',
   // Re-run [redirect] whenever the license state changes.
   refreshListenable: _LicenseGateListenable(_licenseBloc.stream),

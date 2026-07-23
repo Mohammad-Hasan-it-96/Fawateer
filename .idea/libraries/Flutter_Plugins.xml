@@ -40,6 +40,7 @@
       <root url="file://$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/google_sign_in-6.3.0" />
       <root url="file://$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/audioplayers-6.7.1" />
       <root url="file://$USER_HOME$/AppData/Local/Pub/Cache/hosted/pub.dev/audioplayers_web-5.2.1" />
+      <root url="file://C:/flutter/packages/integration_test" />
     </CLASSES>
     <JAVADOC />
     <SOURCES />

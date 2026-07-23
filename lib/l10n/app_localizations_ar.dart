@@ -834,6 +834,16 @@ class AppLocalizationsAr extends AppLocalizations {
   String get updateLater => 'لاحقاً';
 
   @override
+  String get checkForUpdatesHint => 'اضغط للتحقق من وجود تحديثات';
+
+  @override
+  String get updateUpToDate => 'أنت على أحدث إصدار';
+
+  @override
+  String get updateCheckFailed =>
+      'تعذّر التحقق من التحديثات. تحقق من اتصالك بالإنترنت.';
+
+  @override
   String contactMessage(
       String plan, String name, String phone, String deviceId) {
     return 'مرحباً،\nأرغب في الاشتراك في تطبيق فواتير.\nالباقة: $plan\nالاسم: $name\nرقم الهاتف: $phone\nمعرّف الجهاز: $deviceId';

@@ -6,6 +6,8 @@ import 'package:app_settings/app_settings.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../../../core/config/remote_config_service.dart';
+import '../../../../core/config/update_dialog.dart';
 import '../../../../core/service_locator.dart' as di;
 import '../../../../core/settings/inventory_settings_service.dart';
 import '../../../../core/theme/app_theme.dart';
@@ -53,6 +55,9 @@ class _SettingsPageState extends State<SettingsPage> {
 
   /// Strict-inventory toggle state ("don't sell below zero"). Off by default.
   bool _blockOversell = false;
+
+  /// True while a manual "check for updates" (tap on the version row) runs.
+  bool _checkingUpdate = false;
 
   @override
   void initState() {
@@ -462,8 +467,19 @@ class _SettingsPageState extends State<SettingsPage> {
                   icon: Icons.info_outline,
                   title: l10n.appVersionItem,
                   // Blank until PackageInfo resolves; never shows an error.
-                  subtitle: _version,
-                  trailingIcon: null,
+                  subtitle: _version.isEmpty
+                      ? l10n.checkForUpdatesHint
+                      : '$_version — ${l10n.checkForUpdatesHint}',
+                  trailingWidget: _checkingUpdate
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.system_update_alt,
+                          size: 20, color: AppTheme.primaryColor),
+                  onTap: _checkingUpdate
+                      ? null
+                      : () => _checkForUpdates(context, l10n),
                 ),
               ],
             ),
@@ -486,6 +502,34 @@ class _SettingsPageState extends State<SettingsPage> {
       content: Text(l10n.rateThanks),
       backgroundColor: Colors.green,
     ));
+  }
+
+  /// Manual "check for updates" — tapping the app-version row.
+  ///
+  /// Exists because the automatic prompt only runs once per process at cold
+  /// start: Android keeps the app alive in the background for days, so a shop
+  /// that never swipe-kills it may not see a new release for a long time. This
+  /// re-fetches the hosted config on demand and either shows the same update
+  /// dialog as startup, confirms "you're up to date", or reports the check
+  /// failed (offline with nothing cached).
+  Future<void> _checkForUpdates(
+      BuildContext context, AppLocalizations l10n) async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _checkingUpdate = true);
+    final service = di.sl<RemoteConfigService>();
+    final resolved = await service.refresh();
+    if (!mounted) return;
+    setState(() => _checkingUpdate = false);
+
+    if (service.updateAvailable) {
+      await showUpdateDialog(this.context, service);
+    } else {
+      messenger.showSnackBar(SnackBar(
+        content:
+            Text(resolved ? l10n.updateUpToDate : l10n.updateCheckFailed),
+        backgroundColor: resolved ? Colors.green : Colors.red,
+      ));
+    }
   }
 
   Future<void> _shareApp(BuildContext context, AppLocalizations l10n) async {

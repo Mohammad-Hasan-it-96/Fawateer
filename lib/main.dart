@@ -1,11 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'config/routes/app_routes.dart';
 import 'core/config/remote_config_service.dart';
+import 'core/config/update_dialog.dart';
 import 'core/service_locator.dart' as di;
 import 'core/theme/app_theme.dart';
 import 'core/theme/theme_controller.dart';
@@ -100,6 +102,12 @@ class _UpdateCheckerState extends State<_UpdateChecker>
     with WidgetsBindingObserver {
   bool _prompted = false;
 
+  /// Quiet post-startup retry, armed only when the startup fetch never reached
+  /// the network (device opened offline / network came up after launch).
+  /// Cancelled the moment one network fetch succeeds.
+  Timer? _retryTimer;
+  static const _retryInterval = Duration(minutes: 1);
+
   @override
   void initState() {
     super.initState();
@@ -114,6 +122,7 @@ class _UpdateCheckerState extends State<_UpdateChecker>
 
   @override
   void dispose() {
+    _retryTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -123,6 +132,10 @@ class _UpdateCheckerState extends State<_UpdateChecker>
     // Also on resume, so a device left running for days still backs up daily.
     if (state == AppLifecycleState.resumed) {
       di.sl<AutoBackupService>().maybeRun();
+      // Coming back to the app is the natural moment connectivity has changed
+      // (user toggled wifi, walked into coverage) — retry immediately rather
+      // than waiting out the timer.
+      if (!di.sl<RemoteConfigService>().networkResolved) _retryCheck();
     }
   }
 
@@ -130,53 +143,58 @@ class _UpdateCheckerState extends State<_UpdateChecker>
     final service = di.sl<RemoteConfigService>();
     await service.ensureLoaded();
     if (!mounted || _prompted) return;
-    if (!service.updateAvailable) return;
+    if (service.updateAvailable) {
+      await _showPrompt(service);
+      return;
+    }
+    // No update *seen* — but if the startup fetch never reached the network,
+    // that's inconclusive, not a verdict. Keep retrying quietly until one
+    // fetch succeeds; startup itself was never blocked on this (the awaited
+    // load in main() is capped at 4s and this all runs after the first frame).
+    if (!service.networkResolved) {
+      _retryTimer ??= Timer.periodic(_retryInterval, (_) => _retryCheck());
+    }
+  }
+
+  Future<void> _retryCheck() async {
+    final service = di.sl<RemoteConfigService>();
+    await service.refresh();
+    if (!mounted) return;
+    if (!service.networkResolved) return; // still offline — keep the timer
+    _retryTimer?.cancel();
+    _retryTimer = null;
+    if (_prompted || !service.updateAvailable) return;
+    await _showPrompt(service);
+  }
+
+  Future<void> _showPrompt(RemoteConfigService service) async {
+    // Wait for the license gate to settle first. Until `bootstrapped`, the
+    // router is on the splash and about to swap the whole page stack
+    // (splash → shell/activation); a dialog pushed before that swap rides on
+    // the splash page and is silently disposed with it (pageless routes die
+    // with the page they're attached to). Verified on device: the dialog
+    // appeared during the splash and was killed ~2s later by the redirect.
+    final licenseBloc = di.sl<LicenseBloc>();
+    if (!licenseBloc.state.bootstrapped) {
+      await licenseBloc.stream.firstWhere((s) => s.bootstrapped);
+    }
+    // Let the gate's redirect navigation + page transition finish so the
+    // dialog attaches to the destination page, not the outgoing splash.
+    await Future<void>.delayed(const Duration(milliseconds: 600));
+    if (!mounted || _prompted) return;
+
+    // MUST use the router's navigator context, not this widget's own: this
+    // widget wraps `MaterialApp.router` via `builder:`, so its context sits
+    // *above* the Navigator — `showDialog` from it throws "no Navigator
+    // ancestor", silently, inside a post-frame future. This was why the very
+    // first published update (1.0.1) never showed its prompt.
+    final navContext = rootNavigatorKey.currentContext;
+    if (navContext == null) return; // navigator not built yet; retry lands it
     _prompted = true;
-
-    final l10n = AppLocalizations.of(context);
-    final notes = service.current?.updateNotes ?? const [];
-    final url = service.downloadUrl;
-    if (l10n == null) return;
-
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.updateAvailableTitle),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Release notes are optional in the config; without this the
-            // dialog would render a title over an empty box.
-            if (notes.isEmpty)
-              Text(l10n.updateAvailableGeneric)
-            else
-              for (final note in notes)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text('• $note'),
-                ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(l10n.updateLater),
-          ),
-          FilledButton(
-            onPressed: (url == null || url.isEmpty)
-                ? null
-                : () async {
-                    Navigator.of(dialogContext).pop();
-                    await launchUrl(Uri.parse(url),
-                        mode: LaunchMode.externalApplication);
-                  },
-            child: Text(l10n.updateDownload),
-          ),
-        ],
-      ),
-    );
+    // Safe across the async gap above: navContext is fetched *fresh* from the
+    // GlobalKey after every await, never captured before one.
+    // ignore: use_build_context_synchronously
+    await showUpdateDialog(navContext, service);
   }
 
   @override

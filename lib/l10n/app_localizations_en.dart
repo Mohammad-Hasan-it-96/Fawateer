@@ -841,6 +841,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateLater => 'Later';
 
   @override
+  String get checkForUpdatesHint => 'Tap to check for updates';
+
+  @override
+  String get updateUpToDate => 'You\'re on the latest version';
+
+  @override
+  String get updateCheckFailed =>
+      'Couldn\'t check for updates. Check your internet connection.';
+
+  @override
   String contactMessage(
       String plan, String name, String phone, String deviceId) {
     return 'Hello,\nI\'d like to subscribe to Fawateer.\nPlan: $plan\nName: $name\nPhone: $phone\nDevice ID: $deviceId';

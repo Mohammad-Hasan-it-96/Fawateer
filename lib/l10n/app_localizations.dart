@@ -1694,6 +1694,24 @@ abstract class AppLocalizations {
   /// **'Later'**
   String get updateLater;
 
+  /// No description provided for @checkForUpdatesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to check for updates'**
+  String get checkForUpdatesHint;
+
+  /// No description provided for @updateUpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re on the latest version'**
+  String get updateUpToDate;
+
+  /// No description provided for @updateCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check for updates. Check your internet connection.'**
+  String get updateCheckFailed;
+
   /// No description provided for @contactMessage.
   ///
   /// In en, this message translates to:
