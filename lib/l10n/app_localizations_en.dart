@@ -841,6 +841,28 @@ class AppLocalizationsEn extends AppLocalizations {
   String get updateLater => 'Later';
 
   @override
+  String get verifyRequiredTitle => 'Subscription verification required';
+
+  @override
+  String get verifyOfflineMessage =>
+      'The app hasn\'t been able to reach the server for a while. Please connect to the internet, then tap Retry to continue.';
+
+  @override
+  String get verifyTamperMessage =>
+      'A change in the device\'s date and time was detected. Please correct the date and time, connect to the internet, then tap Retry.';
+
+  @override
+  String get verifyDataSafe => 'All your data is safe on this device.';
+
+  @override
+  String get verifyChecking => 'Checking…';
+
+  @override
+  String offlineWarnBanner(int days) {
+    return 'No server connection for $days days — connect to the internet to verify';
+  }
+
+  @override
   String get trialExpiredNotice =>
       'Your free trial has ended. Choose a plan to activate a subscription and continue — all your data is safe.';
 

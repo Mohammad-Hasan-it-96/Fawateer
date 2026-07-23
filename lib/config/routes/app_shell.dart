@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../l10n/app_localizations.dart';
+import '../../features/licensing/presentation/widgets/offline_warning_banner.dart';
 import '../../features/licensing/presentation/widgets/trial_banner.dart';
 
 class AppShell extends StatelessWidget {
@@ -15,6 +16,9 @@ class AppShell extends StatelessWidget {
         children: [
           // Persistent free-trial banner (renders nothing outside a trial).
           const TrialBanner(),
+          // "Too long offline, connect soon" warning (renders nothing when
+          // recently synced) — the fair warning before the 7-day hard lock.
+          const OfflineWarningBanner(),
           Expanded(child: navigationShell),
         ],
       ),

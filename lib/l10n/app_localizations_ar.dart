@@ -834,6 +834,28 @@ class AppLocalizationsAr extends AppLocalizations {
   String get updateLater => 'لاحقاً';
 
   @override
+  String get verifyRequiredTitle => 'مطلوب التحقق من الاشتراك';
+
+  @override
+  String get verifyOfflineMessage =>
+      'لم يتمكن التطبيق من الاتصال بالخادم منذ فترة. يرجى الاتصال بالإنترنت ثم الضغط على إعادة المحاولة للمتابعة.';
+
+  @override
+  String get verifyTamperMessage =>
+      'تم اكتشاف تغيير في تاريخ ووقت الجهاز. يرجى تصحيح التاريخ والوقت والاتصال بالإنترنت ثم الضغط على إعادة المحاولة.';
+
+  @override
+  String get verifyDataSafe => 'جميع بياناتك محفوظة على هذا الجهاز.';
+
+  @override
+  String get verifyChecking => 'جارٍ التحقق…';
+
+  @override
+  String offlineWarnBanner(int days) {
+    return 'لا يوجد اتصال بالخادم منذ $days يوم — اتصل بالإنترنت للتحقق';
+  }
+
+  @override
   String get trialExpiredNotice =>
       'انتهت الفترة التجريبية. اختر باقة لتفعيل الاشتراك والمتابعة — جميع بياناتك محفوظة.';
 

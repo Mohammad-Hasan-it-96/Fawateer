@@ -322,6 +322,19 @@
   "updateDownload": "Download update",
   "updateAvailableGeneric": "A new version of the app is available.",
   "updateLater": "Later",
+  "verifyRequiredTitle": "Subscription verification required",
+  "verifyOfflineMessage": "The app hasn't been able to reach the server for a while. Please connect to the internet, then tap Retry to continue.",
+  "verifyTamperMessage": "A change in the device's date and time was detected. Please correct the date and time, connect to the internet, then tap Retry.",
+  "verifyDataSafe": "All your data is safe on this device.",
+  "verifyChecking": "Checking…",
+  "offlineWarnBanner": "No server connection for {days} days — connect to the internet to verify",
+  "@offlineWarnBanner": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "trialExpiredNotice": "Your free trial has ended. Choose a plan to activate a subscription and continue — all your data is safe.",
   "subscriptionExpiredNotice": "Your subscription has ended. Choose a plan to renew and continue — all your data is safe.",
   "checkForUpdatesHint": "Tap to check for updates",

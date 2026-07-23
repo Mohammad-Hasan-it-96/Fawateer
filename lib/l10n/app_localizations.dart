@@ -1694,6 +1694,42 @@ abstract class AppLocalizations {
   /// **'Later'**
   String get updateLater;
 
+  /// No description provided for @verifyRequiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription verification required'**
+  String get verifyRequiredTitle;
+
+  /// No description provided for @verifyOfflineMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The app hasn\'t been able to reach the server for a while. Please connect to the internet, then tap Retry to continue.'**
+  String get verifyOfflineMessage;
+
+  /// No description provided for @verifyTamperMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'A change in the device\'s date and time was detected. Please correct the date and time, connect to the internet, then tap Retry.'**
+  String get verifyTamperMessage;
+
+  /// No description provided for @verifyDataSafe.
+  ///
+  /// In en, this message translates to:
+  /// **'All your data is safe on this device.'**
+  String get verifyDataSafe;
+
+  /// No description provided for @verifyChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking…'**
+  String get verifyChecking;
+
+  /// No description provided for @offlineWarnBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'No server connection for {days} days — connect to the internet to verify'**
+  String offlineWarnBanner(int days);
+
   /// No description provided for @trialExpiredNotice.
   ///
   /// In en, this message translates to:
