@@ -14,16 +14,36 @@ class ScannerPage extends StatefulWidget {
 }
 
 class _ScannerPageState extends State<ScannerPage> {
-  final MobileScannerController controller = MobileScannerController(
-    // `normal` (not `noDuplicates`) so the same value re-fires across frames —
-    // required for the multi-frame confirmation below (Plan 011 #11).
-    detectionSpeed: DetectionSpeed.normal,
-    returnImage: false,
-    // Retail/wholesale symbologies only — fewer wrong reads (Plan 011 #11).
-    formats: kRetailBarcodeFormats,
-    // No pinned cameraResolution — forcing a fixed size fails to start on
-    // devices that don't support it (the "camera unavailable" latch).
-  );
+  MobileScannerController controller = _newController(invert: false);
+
+  /// Inverted-barcode mode — reads white-on-color codes ML Kit can't decode
+  /// natively (Plan 011 #11). Construction-time option, so toggling swaps the
+  /// controller.
+  bool _invertScan = false;
+  int _generation = 0;
+
+  static MobileScannerController _newController({required bool invert}) =>
+      MobileScannerController(
+        // `normal` (not `noDuplicates`) so the same value re-fires across
+        // frames — required for the multi-frame confirmation below (#11).
+        detectionSpeed: DetectionSpeed.normal,
+        returnImage: false,
+        // Retail/wholesale symbologies only — fewer wrong reads (#11).
+        formats: kRetailBarcodeFormats,
+        invertImage: invert,
+        autoZoom: true,
+      );
+
+  void _toggleInvertScan() async {
+    final old = controller;
+    setState(() {
+      _invertScan = !_invertScan;
+      controller = _newController(invert: _invertScan);
+      _generation++;
+    });
+    await old.dispose();
+  }
+
   bool _isScanned = false;
 
   // Multi-frame confirmation: a value must decode identically on this many
@@ -92,7 +112,16 @@ class _ScannerPageState extends State<ScannerPage> {
         ),
         title: Text(AppLocalizations.of(context)!.scanBarcodeTitle,
             style: const TextStyle(
-                fontWeight: FontWeight.bold, fontSize: 18))),
+                fontWeight: FontWeight.bold, fontSize: 18)),
+        actions: [
+          // Inverted-barcode mode (white bars on a colored background).
+          IconButton(
+            icon: Icon(
+                _invertScan ? Icons.invert_colors : Icons.invert_colors_off),
+            tooltip: AppLocalizations.of(context)!.invertScanLabel,
+            onPressed: _toggleInvertScan,
+          ),
+        ]),
       body: Stack(
         children: [
           // Pinch / double-tap to zoom (Plan 011 #9) — helps read a small or
@@ -105,8 +134,11 @@ class _ScannerPageState extends State<ScannerPage> {
             },
             onDoubleTap: () => _applyZoom(_zoom > 0 ? 0 : 0.5),
             child: MobileScanner(
+              key: ValueKey(_generation),
               controller: controller,
               onDetect: _onDetect,
+              // Real tap-to-focus (Plan 011 #9).
+              tapToFocus: true,
             ),
           ),
           // Simple border overlay manually

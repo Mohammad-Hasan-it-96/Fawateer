@@ -206,6 +206,12 @@ abstract class AppLocalizations {
   /// **'Flash'**
   String get flash;
 
+  /// No description provided for @invertScanLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Light code'**
+  String get invertScanLabel;
+
   /// No description provided for @camera.
   ///
   /// In en, this message translates to:

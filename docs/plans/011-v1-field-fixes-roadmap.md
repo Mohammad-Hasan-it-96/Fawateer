@@ -58,26 +58,34 @@
 > `fontSizeTitle/Small/Normal/Large/ExtraLarge`,
 > `showPrintButtonTitle/Subtitle`.
 >
-> **✅ Wave D shipped** (items 11, 9 — **no package upgrade**):
-> - **Investigation result:** `mobile_scanner` (installed **5.2.3**) exposes **no
->   focus-point API in any version** — the camera autofocuses on its own, so the
->   planned 5→6 upgrade was **evaluated and rejected** (it wouldn't deliver
->   tap-to-focus and only adds breaking-change risk to the careful home-page
->   camera lifecycle).
-> - **#11 reliability.** Both scanners now restrict `formats:` to
->   `kRetailBarcodeFormats` (`core/utils/barcode_formats.dart` — EAN/UPC, **ITF**
->   for wholesale cartons, Code128/39/93/Codabar, QR; excludes exotic 2D that
->   only add misread surface) and raise `cameraResolution` to 1920×1080. This is
->   the real fix for *wrong* reads. **Residual risk:** if the failing product's
->   barcode is DataMatrix/PDF417/Aztec (excluded), it stays unread — still need
->   the owner's failing-barcode photo to confirm the symbology.
-> - **#9 "tap-to-focus" → zoom.** Since focus-point isn't available, both scanners
->   get **pinch-to-zoom + double-tap-to-toggle** (`setZoomScale`, the supported
->   API), with a live zoom-% indicator on the POS — the practical way to enlarge a
->   small/curved barcode so it decodes.
+> **✅ Wave D shipped** (items 11, 9) — landed in several rounds as the failing
+> product was diagnosed on-device; final state:
+> - **The failing product was an INVERTED barcode** — white bars on a red tin
+>   (EAN-13 `6213295315252`, misread once as the *checksum-valid* `1108009445972`).
+>   ML Kit cannot decode inverted codes natively; the reference SuperCodeReader
+>   app ships ML Kit too (`barcode-scanning*.properties` in its APK), so the
+>   engine was never the difference — frame preprocessing was.
+> - **Upgraded `mobile_scanner` 5.2.3 → 7.4.0** (an earlier note here claimed no
+>   version has a focus API — wrong: 7.x added `tapToFocus`/`setFocusPoint`,
+>   `invertImage`, and `autoZoom`). Only code change forced by the upgrade:
+>   2-arg `errorBuilder`, `BarcodeFormat.itf` → `itf14`.
+> - **#11 reliability, layered:** (1) `formats:` whitelist
+>   (`core/utils/barcode_formats.dart`); (2) analysis resolution 1280×720 with a
+>   **self-healing fallback** (`_highRes` drops on first camera error — a
+>   hard-pinned 1920×1080 had latched "camera unavailable" on-device);
+>   (3) **multi-frame confirmation** (`_kScanConfirmations = 2` consecutive
+>   identical decodes) so a one-off valid-but-wrong read can't enter the cart —
+>   ScannerPage switched `noDuplicates` → `normal` to allow the re-fires;
+>   (4) an **inverted-barcode toggle** ("باركود فاتح" overlay button on the POS,
+>   app-bar action on ScannerPage) that rebuilds the controller with
+>   `invertImage: true` — a toggle, not a default, because inversion breaks
+>   normal dark-on-light codes; (5) `autoZoom: true`.
+> - **#9:** real **tap-to-focus** (`tapToFocus: true` on both scanners) plus
+>   pinch-to-zoom / double-tap with a live zoom-% pill.
 >
-> `flutter analyze` clean; **97 tests** pass (scanner is device-facing — needs an
-> on-device pass with the real failing product). **All 11 items now addressed.**
+> `flutter analyze` clean; **97 tests** pass. **All 11 items now addressed** —
+> pending the owner's on-device confirmation on the red-tin product (invert
+> toggle ON).
 
 ---
 

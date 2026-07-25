@@ -66,6 +66,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get flash => 'فلاش';
 
   @override
+  String get invertScanLabel => 'باركود فاتح';
+
+  @override
   String get camera => 'كاميرا';
 
   @override

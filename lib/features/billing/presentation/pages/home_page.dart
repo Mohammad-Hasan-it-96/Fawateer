@@ -37,13 +37,21 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   /// Not `final`: a controller that has latched an error can only be replaced,
   /// never revived — see [_recoverCamera].
-  MobileScannerController _scannerController = _newController(highRes: true);
+  MobileScannerController _scannerController =
+      _newController(highRes: true, invert: false);
 
   /// Whether the live controller requested the higher analysis resolution.
   /// Starts high, and [_onScannerState] drops it to false on the first camera
   /// error — so a device that can't do 1280×720 analysis degrades gracefully to
   /// the default resolution instead of latching "camera unavailable".
   bool _highRes = true;
+
+  /// Inverted-barcode mode (Plan 011 #11): some products print **light bars on
+  /// a dark/colored background** (the red tin with a white-on-red EAN-13),
+  /// which ML Kit cannot decode natively. `invertImage` flips every analyzed
+  /// frame, which reads those — but breaks normal dark-on-light codes, so it's
+  /// a cashier-facing toggle (the "باركود فاتح" overlay button), not a default.
+  bool _invertScan = false;
 
   /// A hard-pinned `cameraResolution` (e.g. 1920×1080) made `start()` fail on
   /// some devices and stranded the preview on the error card. But the default
@@ -52,7 +60,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   /// the reference SuperCodeReader both use, just needs more pixels on the bars.
   /// 1280×720 is a widely-supported middle ground; if it still fails, the
   /// [_onScannerState] fallback recreates the controller at the default size.
-  static MobileScannerController _newController({required bool highRes}) =>
+  static MobileScannerController _newController(
+          {required bool highRes, required bool invert}) =>
       MobileScannerController(
         detectionSpeed: DetectionSpeed.normal,
         returnImage: false,
@@ -60,6 +69,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         // (Plan 011 #11).
         formats: kRetailBarcodeFormats,
         cameraResolution: highRes ? const Size(1280, 720) : null,
+        // Reads white-on-color barcodes; see [_invertScan]. Android-only.
+        invertImage: invert,
+        // Auto-zoom onto a barcode that's too far/small in frame (Android).
+        autoZoom: true,
       );
 
   /// Current camera zoom (0 = none … 1 = max), driven by pinch / double-tap
@@ -248,7 +261,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         await old.dispose();
         return;
       }
-      final fresh = _newController(highRes: _highRes);
+      final fresh = _newController(highRes: _highRes, invert: _invertScan);
       setState(() {
         _scannerController = fresh;
         _cameraGeneration++;
@@ -487,6 +500,15 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
   }
 
+  /// Flip inverted-barcode mode and rebuild the camera with the new polarity.
+  /// `invertImage` is a construction-time option, so this reuses the same
+  /// controller-swap machinery as error recovery.
+  void _toggleInvertScan() {
+    setState(() => _invertScan = !_invertScan);
+    _recoveryAttempts = 0;
+    _recoverCamera();
+  }
+
   /// Apply a clamped zoom level to the live camera (Plan 011 #9). Fire-and-
   /// forget: if the camera isn't running the plugin call just rejects, which we
   /// ignore.
@@ -518,9 +540,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               key: ValueKey(_cameraGeneration),
               controller: _scannerController,
               onDetect: _onDetect,
+              // Real tap-to-focus (Plan 011 #9) — like the stock camera app.
+              tapToFocus: true,
               // Shown when the camera can't start (permission denied, no camera).
-              errorBuilder: (context, error, child) =>
-                  _buildCameraErrorState(l10n),
+              errorBuilder: (context, error) => _buildCameraErrorState(l10n),
             ),
           ),
           if (!_isCameraOn) _buildCameraOffState(l10n),
@@ -539,6 +562,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             right: 12,
             child: Row(
               children: [
+                // Inverted-barcode mode (white bars on a colored background —
+                // e.g. white-on-red tins). ML Kit can't read those natively;
+                // this rebuilds the camera with invertImage (Plan 011 #11).
+                if (_isCameraOn)
+                  _buildOverlayButton(
+                    icon: _invertScan
+                        ? Icons.invert_colors
+                        : Icons.invert_colors_off,
+                    label: l10n.invertScanLabel,
+                    onPressed: _toggleInvertScan,
+                  ),
+                if (_isCameraOn) const SizedBox(width: 8),
                 if (_isCameraOn) _buildOverlayButton(
                   icon: _isFlashOn ? Icons.flashlight_off : Icons.flashlight_on,
                   label: l10n.flash,

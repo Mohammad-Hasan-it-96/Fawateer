@@ -16,7 +16,7 @@ const List<BarcodeFormat> kRetailBarcodeFormats = [
   BarcodeFormat.ean8,
   BarcodeFormat.upcA,
   BarcodeFormat.upcE,
-  BarcodeFormat.itf,
+  BarcodeFormat.itf14,
   BarcodeFormat.code128,
   BarcodeFormat.code39,
   BarcodeFormat.code93,

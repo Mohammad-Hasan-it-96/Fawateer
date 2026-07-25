@@ -67,6 +67,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get flash => 'Flash';
 
   @override
+  String get invertScanLabel => 'Light code';
+
+  @override
   String get camera => 'Camera';
 
   @override

@@ -36,7 +36,9 @@ dependencies:
   
   # Scanner & Printer
   print_bluetooth_thermal: ^1.1.2
-  mobile_scanner: ^5.1.0
+  # 7.x is required for invertImage (white-on-red barcodes — ML Kit can't read
+  # inverted codes natively), built-in tapToFocus, and autoZoom. 5.x had none.
+  mobile_scanner: ^7.4.0
   # Pure-Dart 1D/2D code generation for printed product labels (Plan 010).
   barcode: ^2.2.0
   bloc: ^8.1.4

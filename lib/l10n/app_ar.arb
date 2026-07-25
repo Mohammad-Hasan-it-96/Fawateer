@@ -18,6 +18,7 @@
   "cartEmpty": "القائمة فارغة",
   "cartEmptyHint": "تظهر هنا المنتجات الممسوحة.",
   "flash": "فلاش",
+  "invertScanLabel": "باركود فاتح",
   "camera": "كاميرا",
   "addItem": "إضافة صنف",
   "checkoutTitle": "إتمام البيع",

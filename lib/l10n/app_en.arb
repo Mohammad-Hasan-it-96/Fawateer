@@ -25,6 +25,7 @@
   "cartEmpty": "Cart is empty",
   "cartEmptyHint": "Scanned items will appear here.",
   "flash": "Flash",
+  "invertScanLabel": "Light code",
   "camera": "Camera",
   "addItem": "Add Item",
   "checkoutTitle": "Checkout",
