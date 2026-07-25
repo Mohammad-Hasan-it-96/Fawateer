@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/utils/app_snack.dart';
 import '../../../../core/utils/support_launcher.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -376,7 +377,7 @@ class _SubscriptionPlansPageState extends State<SubscriptionPlansPage> {
       messenger.showSnackBar(SnackBar(
         content: Text(l10n.contactLaunchFailed),
         backgroundColor: Colors.orange.shade800,
-        duration: const Duration(seconds: 6),
+        duration: AppSnackDuration.normal,
       ));
     }
   }

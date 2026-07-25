@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/share/cards/invoice_share_card.dart';
 import '../../../../core/share/share_card_action.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/app_snack.dart';
 import '../../../../core/utils/format.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../ledger/domain/entities/customer.dart';
@@ -70,12 +71,14 @@ class CheckoutPage extends StatelessWidget {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   content: Text(
                       billingErrorText(state.error!, state.errorBarcode, l10n)),
-                  backgroundColor: Colors.red));
+                  backgroundColor: Colors.red,
+                  duration: AppSnackDuration.brief));
             }
             if (state.printSuccess) {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   content: Text(l10n.printedSuccessfully),
-                  backgroundColor: Colors.green));
+                  backgroundColor: Colors.green,
+                  duration: AppSnackDuration.brief));
             }
             // History (incl. today's totals) auto-refreshes via the invoice
             // stream — no manual reload needed here.

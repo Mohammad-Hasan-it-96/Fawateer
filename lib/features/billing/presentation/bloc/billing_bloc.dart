@@ -174,19 +174,25 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     final existingIndex = cleanState.cartItems
         .indexWhere((item) => item.product.id == event.product.id);
 
+    // The just-touched line goes to the TOP of the cart (Plan 011 #4) so it
+    // stays visible for price confirmation on a long cart, instead of scrolling
+    // off the bottom. New scans prepend; a re-scan of an existing line updates
+    // its quantity and moves it up too.
     List<CartItem> updatedItems;
     if (existingIndex >= 0) {
       final existingItem = cleanState.cartItems[existingIndex];
-      updatedItems = List<CartItem>.from(cleanState.cartItems);
       // A measured entry (event.quantity set) sets the line absolutely; a piece
       // add increments by 1.
       final newQuantity = event.quantity ?? existingItem.quantity + 1;
-      updatedItems[existingIndex] =
-          existingItem.copyWith(quantity: newQuantity);
+      updatedItems = [
+        existingItem.copyWith(quantity: newQuantity),
+        for (var i = 0; i < cleanState.cartItems.length; i++)
+          if (i != existingIndex) cleanState.cartItems[i],
+      ];
     } else {
       updatedItems = [
-        ...cleanState.cartItems,
         _priceLine(event.product, event.quantity ?? 1),
+        ...cleanState.cartItems,
       ];
     }
 

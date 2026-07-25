@@ -20,6 +20,7 @@ import '../../../product/domain/entities/product.dart';
 import '../../../product/domain/entities/price_currency.dart';
 import '../../../../core/currency/exchange_rate_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/app_snack.dart';
 import '../../../../core/utils/format.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -314,7 +315,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     ),
                     backgroundColor: Colors.red.shade700,
                     behavior: SnackBarBehavior.floating,
-                    duration: const Duration(seconds: 6),
+                    duration: AppSnackDuration.normal,
                     action: SnackBarAction(
                       label: l10n.unknownBarcodeAdd,
                       textColor: Colors.white,

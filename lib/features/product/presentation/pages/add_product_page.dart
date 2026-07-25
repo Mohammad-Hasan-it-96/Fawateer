@@ -217,7 +217,9 @@ class _AddProductPageState extends State<AddProductPage> {
                   const SizedBox(height: 24),
                   InputLabel(text: l10n.costLabel),
                   CurrencyField(
-                    initialValue: '0',
+                    // Start empty (Plan 011 #3): a pre-filled '0' reads as a
+                    // filled field and confuses first-time entry. onSaved still
+                    // coalesces blank → 0.
                     currencySymbol:
                         _priceCurrency == PriceCurrency.usd ? '\$' : null,
                     helperText: l10n.costHint,
@@ -238,7 +240,7 @@ class _AddProductPageState extends State<AddProductPage> {
                       hintText: '0',
                       helperText: l10n.stockHint,
                     ),
-                    initialValue: '0',
+                    // Empty by default (Plan 011 #3); hint shows '0'.
                     validator: AppValidators.optionalNonNegative(
                       invalidMsg: l10n.invalidNumber,
                       negativeMsg: l10n.negativeNotAllowed,
@@ -256,7 +258,7 @@ class _AddProductPageState extends State<AddProductPage> {
                       hintText: '0',
                       helperText: l10n.lowStockAlertHint,
                     ),
-                    initialValue: '0',
+                    // Empty by default (Plan 011 #3); hint shows '0'.
                     validator: AppValidators.optionalNonNegative(
                       invalidMsg: l10n.invalidNumber,
                       negativeMsg: l10n.negativeNotAllowed,

@@ -141,4 +141,32 @@ void main() {
     expect(bloc.state.cartItems.single.product.id, 'p1');
     expect(bloc.state.error, isNull);
   });
+
+  // Plan 011 #4: the just-touched line must sit at the TOP of the cart so it
+  // stays visible for price confirmation on a long cart.
+  test('a newly added product is prepended to the top of the cart', () async {
+    bloc.add(AddProductToCartEvent(_product('a', 'A')));
+    await bloc.stream.firstWhere((s) => s.cartItems.length == 1);
+    bloc.add(AddProductToCartEvent(_product('b', 'B')));
+    await bloc.stream.firstWhere((s) => s.cartItems.length == 2);
+
+    expect(bloc.state.cartItems.map((i) => i.product.id).toList(), ['b', 'a'],
+        reason: 'newest add belongs on top');
+  });
+
+  test('re-adding an existing line moves it to the top and bumps its quantity',
+      () async {
+    bloc.add(AddProductToCartEvent(_product('a', 'A')));
+    await bloc.stream.firstWhere((s) => s.cartItems.length == 1);
+    bloc.add(AddProductToCartEvent(_product('b', 'B')));
+    await bloc.stream.firstWhere((s) => s.cartItems.length == 2);
+    // Re-add 'a' (currently at the bottom) — it should jump to the top.
+    bloc.add(AddProductToCartEvent(_product('a', 'A')));
+    await bloc.stream
+        .firstWhere((s) => s.cartItems.first.product.id == 'a');
+
+    expect(bloc.state.cartItems.map((i) => i.product.id).toList(), ['a', 'b']);
+    expect(bloc.state.cartItems.first.quantity, 2,
+        reason: 're-add increments the existing line, not a duplicate');
+  });
 }
