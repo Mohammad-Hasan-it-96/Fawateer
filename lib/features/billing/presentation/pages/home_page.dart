@@ -905,6 +905,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Widget _buildCartItemCard(BuildContext context, CartItem item) {
     final l10n = AppLocalizations.of(context)!;
     final measured = item.product.saleType.isMeasured;
+    final out = item.product.isOutOfStock;
     final shopState = context.watch<ShopBloc>().state;
     final currency =
         shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
@@ -913,7 +914,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).dividerColor),
+        // Red border flags a finished (out-of-stock) line (Plan 011 #8).
+        border: Border.all(
+            color: out ? Colors.red : Theme.of(context).dividerColor,
+            width: out ? 1.5 : 1),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withValues(alpha: 0.08),
@@ -934,6 +938,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         fontWeight: FontWeight.w600, fontSize: 14),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis),
+                if (out) ...[
+                  const SizedBox(height: 4),
+                  _outOfStockBadge(l10n),
+                ],
                 const SizedBox(height: 4),
                 Text(
                   measured
@@ -1350,6 +1358,28 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
 
 }
 
+/// Small red "out of stock" chip (Plan 011 #8), reused by the cart line and the
+/// product-picker tile so a finished item reads the same everywhere.
+Widget _outOfStockBadge(AppLocalizations l10n) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: Colors.red.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.remove_shopping_cart, size: 13, color: Colors.red),
+        const SizedBox(width: 4),
+        Text(l10n.outOfStockBadge,
+            style: const TextStyle(
+                fontSize: 11, fontWeight: FontWeight.bold, color: Colors.red)),
+      ],
+    ),
+  );
+}
+
 /// A single tappable product tile with add feedback. On tap it fires [onAdd]
 /// and plays a brief scale "pop" + green check flash, and it shows a live badge
 /// with how many of this product are already in the cart — so the cashier can
@@ -1383,6 +1413,7 @@ class _ProductTileState extends State<_ProductTile> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // Live quantity of this product already in the cart.
     double inCart = 0;
     for (final c in context.watch<BillingBloc>().state.cartItems) {
@@ -1392,6 +1423,7 @@ class _ProductTileState extends State<_ProductTile> {
       }
     }
     final highlighted = _justAdded || inCart > 0;
+    final out = widget.product.isOutOfStock;
 
     return GestureDetector(
       onTap: _handleTap,
@@ -1409,11 +1441,14 @@ class _ProductTileState extends State<_ProductTile> {
                     ? AppTheme.primaryColor.withValues(alpha: 0.06)
                     : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
+                // Red border flags a finished (out-of-stock) product (Plan 011 #8).
                 border: Border.all(
-                  color: highlighted
-                      ? AppTheme.primaryColor
-                      : Theme.of(context).dividerColor,
-                  width: highlighted ? 1.5 : 1,
+                  color: out
+                      ? Colors.red
+                      : (highlighted
+                          ? AppTheme.primaryColor
+                          : Theme.of(context).dividerColor),
+                  width: out || highlighted ? 1.5 : 1,
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -1470,6 +1505,14 @@ class _ProductTileState extends State<_ProductTile> {
                           fontSize: 12,
                           fontWeight: FontWeight.bold)),
                 ),
+              ),
+
+            // Red "out of stock" chip (top-end corner) for a finished product.
+            if (out)
+              PositionedDirectional(
+                top: 6,
+                end: 6,
+                child: _outOfStockBadge(l10n),
               ),
 
             // Brief green check flash centered on the tile right after a tap.
