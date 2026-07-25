@@ -218,6 +218,12 @@ abstract class AppLocalizations {
   /// **'Not scanning? Try light-barcode mode'**
   String get invertScanHint;
 
+  /// No description provided for @pressBackAgainToExit.
+  ///
+  /// In en, this message translates to:
+  /// **'Press back again to exit'**
+  String get pressBackAgainToExit;
+
   /// No description provided for @camera.
   ///
   /// In en, this message translates to:

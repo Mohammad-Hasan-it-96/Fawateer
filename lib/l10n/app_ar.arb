@@ -20,6 +20,7 @@
   "flash": "فلاش",
   "invertScanLabel": "باركود فاتح",
   "invertScanHint": "لا يُقرأ الباركود؟ جرّب وضع «باركود فاتح»",
+  "pressBackAgainToExit": "اضغط رجوع مرة أخرى للخروج",
   "camera": "كاميرا",
   "addItem": "إضافة صنف",
   "checkoutTitle": "إتمام البيع",

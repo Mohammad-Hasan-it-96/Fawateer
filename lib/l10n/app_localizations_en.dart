@@ -73,6 +73,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invertScanHint => 'Not scanning? Try light-barcode mode';
 
   @override
+  String get pressBackAgainToExit => 'Press back again to exit';
+
+  @override
   String get camera => 'Camera';
 
   @override

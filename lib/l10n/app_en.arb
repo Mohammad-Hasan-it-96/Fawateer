@@ -27,6 +27,7 @@
   "flash": "Flash",
   "invertScanLabel": "Light code",
   "invertScanHint": "Not scanning? Try light-barcode mode",
+  "pressBackAgainToExit": "Press back again to exit",
   "camera": "Camera",
   "addItem": "Add Item",
   "checkoutTitle": "Checkout",
