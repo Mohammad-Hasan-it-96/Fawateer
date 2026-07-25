@@ -115,6 +115,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   final Map<String, DateTime> _lastScanTimes = {};
 
+  // Multi-frame confirmation (Plan 011 #11). A barcode must decode to the SAME
+  // value on [_kScanConfirmations] consecutive frames before we accept it. A
+  // curved / glary surface can make MLKit return a checksum-valid but WRONG
+  // EAN-13 on a single bad frame (observed on-device: 6213295315252 misread as
+  // 1108009445972 — both valid EAN-13, so neither format nor checksum can catch
+  // it). A transient misread won't repeat identically, so requiring agreement
+  // across frames rejects it while the true code confirms within ~2 frames.
+  String? _pendingScan;
+  int _pendingScanCount = 0;
+  static const int _kScanConfirmations = 2;
+
   @override
   void initState() {
     super.initState();
@@ -247,11 +258,27 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     for (final barcode in capture.barcodes) {
       if (barcode.rawValue != null) {
         final rawValue = barcode.rawValue!;
+
+        // Multi-frame confirmation: only accept a value seen on
+        // [_kScanConfirmations] consecutive frames. A one-off misread off a
+        // curved/glary surface won't repeat, so it never confirms.
+        if (rawValue == _pendingScan) {
+          _pendingScanCount++;
+        } else {
+          _pendingScan = rawValue;
+          _pendingScanCount = 1;
+        }
+        if (_pendingScanCount < _kScanConfirmations) {
+          break; // wait for the next frame to agree (or disagree)
+        }
+
         final lastScan = _lastScanTimes[rawValue];
         if (lastScan != null && now.difference(lastScan).inSeconds < 2) {
-          continue;
+          break;
         }
         _lastScanTimes[rawValue] = now;
+        _pendingScan = null;
+        _pendingScanCount = 0;
 
         // Beep first, then buzz: the sound is the primary confirmation for a
         // cashier whose eyes are on the goods, and awaiting `canVibrate` first

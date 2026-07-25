@@ -15,7 +15,9 @@ class ScannerPage extends StatefulWidget {
 
 class _ScannerPageState extends State<ScannerPage> {
   final MobileScannerController controller = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
+    // `normal` (not `noDuplicates`) so the same value re-fires across frames —
+    // required for the multi-frame confirmation below (Plan 011 #11).
+    detectionSpeed: DetectionSpeed.normal,
     returnImage: false,
     // Retail/wholesale symbologies only — fewer wrong reads (Plan 011 #11).
     formats: kRetailBarcodeFormats,
@@ -23,6 +25,13 @@ class _ScannerPageState extends State<ScannerPage> {
     // devices that don't support it (the "camera unavailable" latch).
   );
   bool _isScanned = false;
+
+  // Multi-frame confirmation: a value must decode identically on this many
+  // consecutive frames before we accept it, so a one-off misread off a
+  // curved/glary surface is rejected. See the note in home_page's scanner.
+  String? _pendingScan;
+  int _pendingScanCount = 0;
+  static const int _kScanConfirmations = 2;
 
   /// Camera zoom (0…1), driven by pinch / double-tap (Plan 011 #9).
   double _zoom = 0;
@@ -46,7 +55,17 @@ class _ScannerPageState extends State<ScannerPage> {
     final List<Barcode> barcodes = capture.barcodes;
 
     for (final barcode in barcodes) {
-      if (barcode.rawValue != null) {
+      final rawValue = barcode.rawValue;
+      if (rawValue != null) {
+        // Require the same value on consecutive frames before accepting it.
+        if (rawValue == _pendingScan) {
+          _pendingScanCount++;
+        } else {
+          _pendingScan = rawValue;
+          _pendingScanCount = 1;
+        }
+        if (_pendingScanCount < _kScanConfirmations) break;
+
         _isScanned = true;
         // Vibrate
         final canVibrate = await Vibrate.canVibrate;
@@ -55,7 +74,7 @@ class _ScannerPageState extends State<ScannerPage> {
         }
 
         if (mounted) {
-          context.pop(barcode.rawValue);
+          context.pop(rawValue);
         }
         break; // Only take first one
       }
