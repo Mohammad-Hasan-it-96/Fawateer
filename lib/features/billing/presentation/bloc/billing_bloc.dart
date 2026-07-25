@@ -11,6 +11,7 @@ import '../../domain/entities/invoice_item.dart';
 import '../../domain/repositories/invoice_repository.dart';
 import 'package:billing_app/core/currency/exchange_rate_service.dart';
 import 'package:billing_app/core/settings/inventory_settings_service.dart';
+import 'package:billing_app/core/settings/print_settings_service.dart';
 import 'package:billing_app/features/product/domain/entities/price_currency.dart';
 import 'package:billing_app/features/product/domain/entities/product.dart';
 import 'package:billing_app/features/product/domain/repositories/product_repository.dart';
@@ -26,6 +27,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
   final InvoiceRepository invoiceRepository;
   final ExchangeRateService exchangeRateService;
   final InventorySettingsService inventorySettingsService;
+  final PrintSettingsService printSettingsService;
   final AttributeDefinitionRepository attributeRepository;
 
   /// Active custom fields flagged *show on receipt* (Plan 010), kept fresh via a
@@ -41,6 +43,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     required this.invoiceRepository,
     required this.exchangeRateService,
     required this.inventorySettingsService,
+    required this.printSettingsService,
     required this.attributeRepository,
   }) : super(const BillingState()) {
     _receiptDefsSub = attributeRepository.watchDefinitions().listen((defs) {
@@ -61,6 +64,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     on<ConfirmSaleEvent>(_onConfirmSale);
     on<LoadExchangeRateEvent>(_onLoadExchangeRate);
     on<LoadInventorySettingsEvent>(_onLoadInventorySettings);
+    on<LoadPrintSettingsEvent>(_onLoadPrintSettings);
     on<SetLineDiscountEvent>(_onSetLineDiscount);
     on<SetCartDiscountEvent>(_onSetCartDiscount);
   }
@@ -72,6 +76,16 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       LoadInventorySettingsEvent event, Emitter<BillingState> emit) async {
     final block = await inventorySettingsService.isBlockOversellEnabled();
     emit(state.copyWith(blockOversell: block));
+  }
+
+  /// Load the show-print-button / auto-print flag into state (Plan 011 #6).
+  /// Dispatched at startup and whenever the owner flips the toggle in Settings,
+  /// so the checkout hides its print button and skips auto-print without a
+  /// restart.
+  Future<void> _onLoadPrintSettings(
+      LoadPrintSettingsEvent event, Emitter<BillingState> emit) async {
+    final enabled = await printSettingsService.isPrintButtonEnabled();
+    emit(state.copyWith(printEnabled: enabled));
   }
 
   void _onSetLineDiscount(
@@ -248,6 +262,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       exchangeRate: state.exchangeRate,
       rateUpdatedAt: state.rateUpdatedAt,
       blockOversell: state.blockOversell,
+      printEnabled: state.printEnabled,
     ));
   }
 
@@ -328,6 +343,10 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       saleConfirmed: true,
       savedInvoiceId: invoiceId,
     ));
+
+    // Printing turned off in Settings (Plan 011 #6): the shop has no printer, so
+    // don't auto-print and don't nag with a "printer not connected" notice.
+    if (!state.printEnabled) return;
 
     // Auto-print the receipt (best-effort — a print failure never blocks a
     // sale that's already committed).

@@ -10,7 +10,9 @@ import '../../../../core/config/remote_config_service.dart';
 import '../../../../core/config/update_dialog.dart';
 import '../../../../core/service_locator.dart' as di;
 import '../../../../core/settings/inventory_settings_service.dart';
+import '../../../../core/settings/print_settings_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/theme/font_scale_controller.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../billing/presentation/bloc/billing_bloc.dart';
@@ -56,6 +58,9 @@ class _SettingsPageState extends State<SettingsPage> {
   /// Strict-inventory toggle state ("don't sell below zero"). Off by default.
   bool _blockOversell = false;
 
+  /// Show-print-button / auto-print toggle (Plan 011 #6). On by default.
+  bool _showPrintButton = true;
+
   /// True while a manual "check for updates" (tap on the version row) runs.
   bool _checkingUpdate = false;
 
@@ -65,6 +70,7 @@ class _SettingsPageState extends State<SettingsPage> {
     context.read<PrinterBloc>().add(InitPrinterEvent());
     _loadAbout();
     _loadInventory();
+    _loadPrintSetting();
   }
 
   /// Best-effort read of the strict-inventory flag; leaves it off on error.
@@ -85,6 +91,25 @@ class _SettingsPageState extends State<SettingsPage> {
     await di.sl<InventorySettingsService>().setBlockOversell(value);
     if (!mounted) return;
     context.read<BillingBloc>().add(const LoadInventorySettingsEvent());
+  }
+
+  /// Best-effort read of the print-button flag; leaves it on (default) on error.
+  Future<void> _loadPrintSetting() async {
+    var enabled = true;
+    try {
+      enabled = await di.sl<PrintSettingsService>().isPrintButtonEnabled();
+    } catch (_) {/* leave on */}
+    if (!mounted) return;
+    setState(() => _showPrintButton = enabled);
+  }
+
+  /// Persist the print-button flag and push it into the app-wide [BillingBloc]
+  /// so checkout hides the button and skips auto-print immediately, no restart.
+  Future<void> _setShowPrintButton(bool value) async {
+    setState(() => _showPrintButton = value);
+    await di.sl<PrintSettingsService>().setPrintButtonEnabled(value);
+    if (!mounted) return;
+    context.read<BillingBloc>().add(const LoadPrintSettingsEvent());
   }
 
   /// Both reads are best-effort: settings must render even if package info or
@@ -329,6 +354,13 @@ class _SettingsPageState extends State<SettingsPage> {
                       di.sl<ThemeController>().mode, l10n),
                   onTap: () => _showThemeSheet(context, l10n),
                 ),
+                _buildListItem(
+                  icon: Icons.format_size,
+                  title: l10n.fontSizeTitle,
+                  subtitle: _fontScaleLabel(
+                      di.sl<FontScaleController>().scale, l10n),
+                  onTap: () => _showFontSizeSheet(context, l10n),
+                ),
               ],
             ),
 
@@ -414,6 +446,16 @@ class _SettingsPageState extends State<SettingsPage> {
                           ),
                         ],
                       ),
+                    ),
+                    _buildListItem(
+                      icon: Icons.print_disabled_outlined,
+                      title: l10n.showPrintButtonTitle,
+                      subtitle: l10n.showPrintButtonSubtitle,
+                      trailingWidget: Switch(
+                        value: _showPrintButton,
+                        onChanged: _setShowPrintButton,
+                      ),
+                      onTap: () => _setShowPrintButton(!_showPrintButton),
                     ),
                   ],
                 );
@@ -710,6 +752,51 @@ class _SettingsPageState extends State<SettingsPage> {
         ThemeMode.dark => l10n.themeDark,
         ThemeMode.system => l10n.themeSystem,
       };
+
+  String _fontScaleLabel(AppFontScale scale, AppLocalizations l10n) =>
+      switch (scale) {
+        AppFontScale.small => l10n.fontSizeSmall,
+        AppFontScale.normal => l10n.fontSizeNormal,
+        AppFontScale.large => l10n.fontSizeLarge,
+        AppFontScale.extraLarge => l10n.fontSizeExtraLarge,
+      };
+
+  void _showFontSizeSheet(BuildContext context, AppLocalizations l10n) {
+    final controller = di.sl<FontScaleController>();
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Text(l10n.fontSizeTitle,
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            for (final scale in AppFontScale.values)
+              ListTile(
+                // Preview each option at its own size so the choice is legible.
+                title: Text(
+                  _fontScaleLabel(scale, l10n),
+                  textScaler: TextScaler.linear(scale.factor),
+                ),
+                trailing: controller.scale == scale
+                    ? const Icon(Icons.check, color: AppTheme.primaryColor)
+                    : null,
+                onTap: () async {
+                  Navigator.pop(sheetContext);
+                  await controller.setScale(scale);
+                  // The controller drives MaterialApp; repaint this page's own
+                  // subtitle too.
+                  if (mounted) setState(() {});
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
 
   void _showThemeSheet(BuildContext context, AppLocalizations l10n) {
     final controller = di.sl<ThemeController>();

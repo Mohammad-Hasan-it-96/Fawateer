@@ -37,7 +37,27 @@
 >
 > `flutter analyze` clean; **95 tests** pass (+2 cart-order, +2 out-of-stock).
 > New ARB keys: `colSerial/colQty/colUnit/colUnitPrice/unitPiece`,
-> `outOfStockBadge`, `outOfStockScanNotice`. Remaining waves: C (1, 6), D (11, 9).
+> `outOfStockBadge`, `outOfStockScanNotice`.
+>
+> **✅ Wave C shipped** (items 1, 6):
+> - **#1 app-wide font size.** `FontScaleController` (mirrors `ThemeController`) +
+>   `AppFontScale` enum (small 0.9 / normal 1.0 / large 1.15 / extraLarge 1.3),
+>   persisted by name in one `AppSettings` row. Applied globally by overriding
+>   `MediaQuery.textScaler` in `_ThemedApp`'s builder; Settings → Appearance →
+>   "Font size" sheet (each option previewed at its own size).
+> - **#6 print-button toggle + no-printer skip.** `PrintSettingsService` (KV
+>   `show_print_button`, default on) → `BillingState.printEnabled` via
+>   `LoadPrintSettingsEvent`. When off, checkout hides the print button ("New
+>   Sale" spans full width) **and** `_onConfirmSale` skips auto-print — so a
+>   printerless shop isn't nagged with the "printer not connected" red notice.
+>   When on, the existing auto-print already reports `printerUnavailable` (red
+>   snackbar) if the printer is unreachable at sale finish. Settings → Hardware →
+>   "Print receipts" switch.
+>
+> `flutter analyze` clean; **97 tests** pass (+1 auto-print-gating). New ARB keys:
+> `fontSizeTitle/Small/Normal/Large/ExtraLarge`,
+> `showPrintButtonTitle/Subtitle`. Remaining wave: D (11, 9) — the
+> `mobile_scanner` 5→6 upgrade (needs the failing-barcode sample + device retest).
 
 ---
 

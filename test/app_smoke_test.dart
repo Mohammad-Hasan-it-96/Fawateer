@@ -9,6 +9,7 @@ import 'dart:async';
 
 import 'package:billing_app/core/currency/exchange_rate_service.dart';
 import 'package:billing_app/core/settings/inventory_settings_service.dart';
+import 'package:billing_app/core/settings/print_settings_service.dart';
 import 'package:billing_app/core/error/failure.dart';
 import 'package:billing_app/features/billing/domain/entities/invoice.dart';
 import 'package:billing_app/features/billing/domain/entities/invoice_item.dart';
@@ -80,6 +81,15 @@ class _FakeInventorySettingsService implements InventorySettingsService {
   Future<bool> isBlockOversellEnabled() async => block;
   @override
   Future<void> setBlockOversell(bool enabled) async {}
+}
+
+class _FakePrintSettingsService implements PrintSettingsService {
+  final bool enabled;
+  _FakePrintSettingsService({this.enabled = true});
+  @override
+  Future<bool> isPrintButtonEnabled() async => enabled;
+  @override
+  Future<void> setPrintButtonEnabled(bool value) async {}
 }
 
 class _FakeProductRepository implements ProductRepository {
@@ -275,6 +285,7 @@ void main() {
         invoiceRepository: _FakeInvoiceRepository(),
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        printSettingsService: _FakePrintSettingsService(),
         attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       final next = bloc.stream.firstWhere((s) => s.error != null);
@@ -294,6 +305,7 @@ void main() {
         invoiceRepository: _FakeInvoiceRepository(),
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        printSettingsService: _FakePrintSettingsService(),
         attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       final next = bloc.stream.firstWhere((s) => s.cartItems.isNotEmpty);
@@ -313,6 +325,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        printSettingsService: _FakePrintSettingsService(),
         attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
@@ -334,6 +347,37 @@ void main() {
       await bloc.close();
     });
 
+    // Plan 011 #6: with printing turned off, a confirmed sale still saves but
+    // must NOT attempt to print (and so never nags "printer not connected").
+    test('printing disabled → confirmed sale saves but does not auto-print',
+        () async {
+      final invoiceRepo = _FakeInvoiceRepository();
+      final printer = _FakePrinterRepository();
+      final bloc = BillingBloc(
+        productRepository: _FakeProductRepository(),
+        printerRepository: printer,
+        invoiceRepository: invoiceRepo,
+        exchangeRateService: _FakeExchangeRateService(),
+        inventorySettingsService: _FakeInventorySettingsService(),
+        printSettingsService: _FakePrintSettingsService(enabled: false),
+        attributeRepository: _FakeAttributeDefinitionRepository(),
+      );
+      // Startup loads the flag into state (as main.dart does).
+      bloc.add(const LoadPrintSettingsEvent());
+      await bloc.stream.firstWhere((s) => !s.printEnabled).timeout(_timeout);
+
+      final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
+      bloc.add(AddProductToCartEvent(_product()));
+      bloc.add(const ConfirmSaleEvent(
+          shopName: 'Shop', address1: '', address2: '', phone: '', footer: ''));
+      await confirmed.timeout(_timeout);
+
+      expect(invoiceRepo.saveCount, 1, reason: 'the sale still commits');
+      expect(printer.printReceiptCount, 0,
+          reason: 'no printer, so no auto-print attempt');
+      await bloc.close();
+    });
+
     test('show-on-receipt attributes are snapshotted onto the sale line',
         () async {
       final invoiceRepo = _FakeInvoiceRepository();
@@ -343,6 +387,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        printSettingsService: _FakePrintSettingsService(),
         attributeRepository: _FakeAttributeDefinitionRepository(defs: const [
           AttributeDefinition(
               id: 'color', label: 'اللون', showOnReceipt: true),
@@ -388,6 +433,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        printSettingsService: _FakePrintSettingsService(),
         attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
@@ -414,6 +460,7 @@ void main() {
         invoiceRepository: _FakeInvoiceRepository(),
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        printSettingsService: _FakePrintSettingsService(),
         attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       final next = bloc.stream.firstWhere((s) => s.error != null);
@@ -437,6 +484,7 @@ void main() {
         invoiceRepository: _FakeInvoiceRepository(),
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        printSettingsService: _FakePrintSettingsService(),
         attributeRepository: _FakeAttributeDefinitionRepository(),
       );
 
@@ -469,6 +517,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(block: true),
+        printSettingsService: _FakePrintSettingsService(),
         attributeRepository: _FakeAttributeDefinitionRepository(),
       );
 
@@ -512,6 +561,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        printSettingsService: _FakePrintSettingsService(),
         attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       final errored = bloc.stream.firstWhere((s) => s.error != null);
@@ -533,6 +583,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        printSettingsService: _FakePrintSettingsService(),
         attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       final confirmed = bloc.stream.firstWhere((s) => s.saleConfirmed);
@@ -558,6 +609,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(rate: 15000),
         inventorySettingsService: _FakeInventorySettingsService(),
+        printSettingsService: _FakePrintSettingsService(),
         attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       bloc.add(const LoadExchangeRateEvent());
@@ -602,6 +654,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(), // no rate set
         inventorySettingsService: _FakeInventorySettingsService(),
+        printSettingsService: _FakePrintSettingsService(),
         attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       bloc.add(const LoadExchangeRateEvent());
@@ -633,6 +686,7 @@ void main() {
         invoiceRepository: invoiceRepo,
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        printSettingsService: _FakePrintSettingsService(),
         attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       const p = Product(id: 'p1', name: 'X', barcode: '', price: 10, quantity: 5);
@@ -663,6 +717,7 @@ void main() {
         invoiceRepository: _FakeInvoiceRepository(),
         exchangeRateService: _FakeExchangeRateService(),
         inventorySettingsService: _FakeInventorySettingsService(),
+        printSettingsService: _FakePrintSettingsService(),
         attributeRepository: _FakeAttributeDefinitionRepository(),
       );
       const p = Product(id: 'p1', name: 'X', barcode: '', price: 10, quantity: 5);

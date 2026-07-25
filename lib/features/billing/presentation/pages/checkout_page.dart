@@ -362,42 +362,47 @@ class CheckoutPage extends StatelessWidget {
             ),
             Row(
               children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
-                    child: OutlinedButton.icon(
-                      onPressed: billingState.isPrinting
-                          ? null
-                          : () {
-                              if (shop != null) {
-                                context.read<BillingBloc>().add(
-                                    PrintReceiptEvent(
-                                        shopName: shop.name,
-                                        address1: shop.addressLine1,
-                                        address2: shop.addressLine2,
-                                        phone: shop.phoneNumber,
-                                        footer: shop.footerText,
-                                        currencySymbol: currency));
-                              }
-                            },
-                      icon: billingState.isPrinting
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.print_outlined),
-                      label: Text(l10n.printReceipt),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                // Print button hidden when printing is turned off in Settings
+                // (Plan 011 #6) — "New Sale" then spans the full width.
+                if (billingState.printEnabled)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
+                      child: OutlinedButton.icon(
+                        onPressed: billingState.isPrinting
+                            ? null
+                            : () {
+                                if (shop != null) {
+                                  context.read<BillingBloc>().add(
+                                      PrintReceiptEvent(
+                                          shopName: shop.name,
+                                          address1: shop.addressLine1,
+                                          address2: shop.addressLine2,
+                                          phone: shop.phoneNumber,
+                                          footer: shop.footerText,
+                                          currencySymbol: currency));
+                                }
+                              },
+                        icon: billingState.isPrinting
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.print_outlined),
+                        label: Text(l10n.printReceipt),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
                     ),
                   ),
-                ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 20, 0),
+                    padding: EdgeInsets.fromLTRB(
+                        billingState.printEnabled ? 8 : 20, 0, 20, 0),
                     child: PrimaryButton(
                       onPressed: () {
                         context.read<BillingBloc>().add(ClearCartEvent());

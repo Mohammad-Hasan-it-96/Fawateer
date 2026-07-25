@@ -10,6 +10,7 @@ import 'core/config/remote_config_service.dart';
 import 'core/config/update_dialog.dart';
 import 'core/service_locator.dart' as di;
 import 'core/theme/app_theme.dart';
+import 'core/theme/font_scale_controller.dart';
 import 'core/theme/theme_controller.dart';
 import 'features/backup/data/auto_backup_service.dart';
 import 'features/billing/presentation/bloc/billing_bloc.dart';
@@ -56,6 +57,8 @@ void main() async {
   // Read the stored light/dark preference before the first frame, so the app
   // doesn't paint light and then flip. Local DB read; never throws.
   await di.sl<ThemeController>().load();
+  // Same for the app-wide font-size preference (Plan 011 #1).
+  await di.sl<FontScaleController>().load();
 
   runApp(const MyApp());
 
@@ -222,7 +225,8 @@ class MyApp extends StatelessWidget {
         BlocProvider<BillingBloc>(
             create: (context) => di.sl<BillingBloc>()
               ..add(const LoadExchangeRateEvent())
-              ..add(const LoadInventorySettingsEvent())),
+              ..add(const LoadInventorySettingsEvent())
+              ..add(const LoadPrintSettingsEvent())),
         BlocProvider<PrinterBloc>(
             create: (context) =>
                 di.sl<PrinterBloc>()..add(InitPrinterEvent())),
@@ -252,8 +256,9 @@ class _ThemedApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeController = di.sl<ThemeController>();
+    final fontScaleController = di.sl<FontScaleController>();
     return AnimatedBuilder(
-      animation: themeController,
+      animation: Listenable.merge([themeController, fontScaleController]),
       builder: (context, _) => MaterialApp.router(
         title: 'فواتير',
         theme: AppTheme.lightTheme,
@@ -272,9 +277,14 @@ class _ThemedApp extends StatelessWidget {
         ],
         // Wraps every route: prompts once if the remote config advertises a
         // newer app version. Lives here (not on a page) so it fires regardless
-        // of the licensing gate's current screen.
-        builder: (context, child) =>
-            _UpdateChecker(child: child ?? const SizedBox.shrink()),
+        // of the licensing gate's current screen. Also applies the app-wide
+        // font-size preference (Plan 011 #1) by overriding textScaler for the
+        // whole tree.
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+              textScaler: TextScaler.linear(fontScaleController.factor)),
+          child: _UpdateChecker(child: child ?? const SizedBox.shrink()),
+        ),
       ),
     );
   }

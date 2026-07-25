@@ -61,6 +61,11 @@ class BillingState extends Equatable {
   /// overselling stays allowed unless the owner opts in.
   final bool blockOversell;
 
+  /// When true (the default), the checkout shows its print button and auto-prints
+  /// a confirmed sale; when false the shop has no printer, so both are skipped
+  /// (Plan 011 #6). Loaded by [LoadPrintSettingsEvent] at startup and on toggle.
+  final bool printEnabled;
+
   const BillingState({
     this.cartItems = const [],
     this.error,
@@ -77,6 +82,7 @@ class BillingState extends Equatable {
     this.rateUpdatedAt,
     this.invoiceDiscount = 0,
     this.blockOversell = false,
+    this.printEnabled = true,
   });
 
   /// Sum of the (line-discounted) line totals, before the whole-cart discount.
@@ -139,6 +145,7 @@ class BillingState extends Equatable {
     Object? rateUpdatedAt = _unset,
     double? invoiceDiscount,
     bool? blockOversell,
+    bool? printEnabled,
   }) {
     return BillingState(
       cartItems: cartItems ?? this.cartItems,
@@ -164,6 +171,7 @@ class BillingState extends Equatable {
           : rateUpdatedAt as DateTime?,
       invoiceDiscount: invoiceDiscount ?? this.invoiceDiscount,
       blockOversell: blockOversell ?? this.blockOversell,
+      printEnabled: printEnabled ?? this.printEnabled,
     );
   }
 
@@ -184,5 +192,6 @@ class BillingState extends Equatable {
         rateUpdatedAt,
         invoiceDiscount,
         blockOversell,
+        printEnabled,
       ];
 }

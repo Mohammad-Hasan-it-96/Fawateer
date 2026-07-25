@@ -17,6 +17,8 @@ import 'network/api_client.dart';
 import 'config/remote_config_service.dart';
 import 'currency/exchange_rate_service.dart';
 import 'settings/inventory_settings_service.dart';
+import 'settings/print_settings_service.dart';
+import 'theme/font_scale_controller.dart';
 import 'theme/theme_controller.dart';
 
 // Features — Attributes (dynamic product fields, Plan 010)
@@ -106,10 +108,14 @@ Future<void> init() async {
       () => ExchangeRateService(sl<SettingsDao>()));
   sl.registerLazySingleton<InventorySettingsService>(
       () => InventorySettingsService(sl<SettingsDao>()));
+  sl.registerLazySingleton<PrintSettingsService>(
+      () => PrintSettingsService(sl<SettingsDao>()));
   // Singleton, not a factory: `MyApp` listens to this instance and the settings
   // page writes to it — two copies would leave the UI out of sync.
   sl.registerLazySingleton<ThemeController>(
       () => ThemeController(sl<SettingsDao>()));
+  sl.registerLazySingleton<FontScaleController>(
+      () => FontScaleController(sl<SettingsDao>()));
 
   // ── Repositories ─────────────────────────────────────────────────────────
   sl.registerLazySingleton<ProductRepository>(
@@ -177,6 +183,7 @@ Future<void> init() async {
         invoiceRepository: sl(),
         exchangeRateService: sl(),
         inventorySettingsService: sl(),
+        printSettingsService: sl(),
         attributeRepository: sl(),
       ));
 

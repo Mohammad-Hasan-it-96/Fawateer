@@ -406,6 +406,13 @@ class AppLocalizationsEn extends AppLocalizations {
       'Don\'t allow selling more than what\'s on hand';
 
   @override
+  String get showPrintButtonTitle => 'Print receipts';
+
+  @override
+  String get showPrintButtonSubtitle =>
+      'Show the print button and auto-print on a sale. Turn off if you have no printer.';
+
+  @override
   String get shopDetailsItem => 'Shop Details';
 
   @override
@@ -633,6 +640,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get themeSystem => 'Follow system';
+
+  @override
+  String get fontSizeTitle => 'Font size';
+
+  @override
+  String get fontSizeSmall => 'Small';
+
+  @override
+  String get fontSizeNormal => 'Normal';
+
+  @override
+  String get fontSizeLarge => 'Large';
+
+  @override
+  String get fontSizeExtraLarge => 'Extra large';
 
   @override
   String get printDeviceItem => 'Print Device';

@@ -403,6 +403,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get inventoryStrictSubtitle => 'لا تسمح ببيع كمية أكبر من المتوفرة';
 
   @override
+  String get showPrintButtonTitle => 'طباعة الفواتير';
+
+  @override
+  String get showPrintButtonSubtitle =>
+      'إظهار زر الطباعة والطباعة التلقائية عند البيع. أوقفه إذا لم تكن لديك طابعة.';
+
+  @override
   String get shopDetailsItem => 'تفاصيل المحل';
 
   @override
@@ -629,6 +636,21 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get themeSystem => 'حسب النظام';
+
+  @override
+  String get fontSizeTitle => 'حجم الخط';
+
+  @override
+  String get fontSizeSmall => 'صغير';
+
+  @override
+  String get fontSizeNormal => 'عادي';
+
+  @override
+  String get fontSizeLarge => 'كبير';
+
+  @override
+  String get fontSizeExtraLarge => 'كبير جداً';
 
   @override
   String get printDeviceItem => 'جهاز الطباعة';

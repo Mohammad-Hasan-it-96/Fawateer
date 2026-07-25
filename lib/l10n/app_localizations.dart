@@ -860,6 +860,18 @@ abstract class AppLocalizations {
   /// **'Don\'t allow selling more than what\'s on hand'**
   String get inventoryStrictSubtitle;
 
+  /// No description provided for @showPrintButtonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print receipts'**
+  String get showPrintButtonTitle;
+
+  /// No description provided for @showPrintButtonSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the print button and auto-print on a sale. Turn off if you have no printer.'**
+  String get showPrintButtonSubtitle;
+
   /// No description provided for @shopDetailsItem.
   ///
   /// In en, this message translates to:
@@ -1309,6 +1321,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Follow system'**
   String get themeSystem;
+
+  /// No description provided for @fontSizeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Font size'**
+  String get fontSizeTitle;
+
+  /// No description provided for @fontSizeSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Small'**
+  String get fontSizeSmall;
+
+  /// No description provided for @fontSizeNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal'**
+  String get fontSizeNormal;
+
+  /// No description provided for @fontSizeLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Large'**
+  String get fontSizeLarge;
+
+  /// No description provided for @fontSizeExtraLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra large'**
+  String get fontSizeExtraLarge;
 
   /// No description provided for @printDeviceItem.
   ///

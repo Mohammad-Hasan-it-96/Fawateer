@@ -86,6 +86,12 @@ class LoadInventorySettingsEvent extends BillingEvent {
   const LoadInventorySettingsEvent();
 }
 
+/// Load (or reload) the show-print-button / auto-print flag into the bloc.
+/// Dispatched at startup and after the toggle is flipped in Settings → Hardware.
+class LoadPrintSettingsEvent extends BillingEvent {
+  const LoadPrintSettingsEvent();
+}
+
 class PrintReceiptEvent extends BillingEvent {
   final String shopName;
   final String address1;
