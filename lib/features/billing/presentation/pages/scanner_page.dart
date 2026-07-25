@@ -19,8 +19,8 @@ class _ScannerPageState extends State<ScannerPage> {
     returnImage: false,
     // Retail/wholesale symbologies only — fewer wrong reads (Plan 011 #11).
     formats: kRetailBarcodeFormats,
-    // Higher resolution helps small / dense barcodes decode.
-    cameraResolution: const Size(1920, 1080),
+    // No pinned cameraResolution — forcing a fixed size fails to start on
+    // devices that don't support it (the "camera unavailable" latch).
   );
   bool _isScanned = false;
 

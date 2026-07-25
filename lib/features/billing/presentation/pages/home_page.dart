@@ -45,8 +45,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         // Only the symbologies a shop actually uses — fewer wrong reads
         // (Plan 011 #11).
         formats: kRetailBarcodeFormats,
-        // Higher preview resolution helps small / dense / curved barcodes decode.
-        cameraResolution: const Size(1920, 1080),
+        // NOTE: do NOT pin `cameraResolution` here. Forcing a fixed size (e.g.
+        // 1920×1080) makes `start()` fail on devices whose camera doesn't offer
+        // exactly that preview size, which latches the "camera unavailable"
+        // error state. Letting the plugin pick a supported resolution is what
+        // keeps the preview reliable across devices.
       );
 
   /// Current camera zoom (0 = none … 1 = max), driven by pinch / double-tap
