@@ -19,13 +19,13 @@
 > Decision taken on #4: a re-scan of an existing line **does** move it to the top.
 >
 > **✅ Wave B shipped** (items 8, 10 — which subsumes 2):
-> - **#8 out-of-stock visibility.** `Product.isOutOfStock` (`minStockAlert > 0 &&
->   quantity <= 0` — setting an alert is the "I track this item" opt-in, so
->   untracked loose items that sit at 0 forever don't nag). The product list shows
->   a red "out of stock" chip (supersedes the amber low-stock one); scanning a
->   finished tracked item still adds it (overselling stays allowed) but fires a
->   red notice via a transient `BillingState.outOfStockScan` +
->   `ClearOutOfStockScanEvent`.
+> - **#8 out-of-stock visibility.** `Product.isOutOfStock` = `quantity <= 0`
+>   (not gated on `minStockAlert` — the shop wants zero flagged for every
+>   product). The product-list stock row is shown for every row (a `Wrap`, so the
+>   badge can't overflow a narrow card) with a red "out of stock" chip that
+>   supersedes the amber low-stock one; scanning a finished item still adds it
+>   (overselling stays allowed) but fires a red notice via a transient
+>   `BillingState.outOfStockScan` + `ClearOutOfStockScanEvent`.
 > - **#10 invoice-as-table.** Both the checkout review and the invoice detail page
 >   now render the 6-column layout from the owner's wholesale-invoice photo:
 >   م / الصنف / الكمية / الوحدة / الإفرادي / الإجمالي. **Caveat:** the unit

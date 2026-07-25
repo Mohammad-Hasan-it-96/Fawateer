@@ -414,11 +414,11 @@ class _ProductListPageState extends State<ProductListPage> {
                                     ),
                                   );
                                 }),
-                                if (product.minStockAlert > 0 ||
-                                    product.quantity > 0) ...[
-                                  const SizedBox(height: 8),
-                                  _buildStockRow(context, product, l10n),
-                                ],
+                                // Always shown: the shop wants on-hand visible
+                                // for every product, incl. a zero "out of stock"
+                                // (Plan 011 #8).
+                                const SizedBox(height: 8),
+                                _buildStockRow(context, product, l10n),
                               ],
                             ),
                           ),
@@ -505,26 +505,35 @@ class _ProductListPageState extends State<ProductListPage> {
     // Out-of-stock supersedes the softer low-stock chip.
     final low = product.isLowStock && !out;
     final alert = out || low;
-    return Row(
+    final onVariant = Theme.of(context).colorScheme.onSurfaceVariant;
+    // A Wrap (not a Row): on a narrow card the badge drops to a second line
+    // instead of overflowing — this row shares width with the action buttons.
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Icon(out ? Icons.production_quantity_limits : Icons.inventory_2_outlined,
-            size: 16,
-            color: alert
-                ? Colors.red
-                : Theme.of(context).colorScheme.onSurfaceVariant),
-        const SizedBox(width: 4),
-        Text(
-          l10n.stockCountLabel(formatQty(product.quantity)),
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: alert ? FontWeight.bold : FontWeight.w500,
-            color: alert
-                ? Colors.red
-                : Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+                out
+                    ? Icons.production_quantity_limits
+                    : Icons.inventory_2_outlined,
+                size: 16,
+                color: alert ? Colors.red : onVariant),
+            const SizedBox(width: 4),
+            Text(
+              l10n.stockCountLabel(formatQty(product.quantity)),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: alert ? FontWeight.bold : FontWeight.w500,
+                color: alert ? Colors.red : onVariant,
+              ),
+            ),
+          ],
         ),
-        if (alert) ...[
-          const SizedBox(width: 8),
+        if (alert)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
@@ -534,8 +543,12 @@ class _ProductListPageState extends State<ProductListPage> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(out ? Icons.remove_shopping_cart : Icons.warning_amber_rounded,
-                    size: 14, color: Colors.red),
+                Icon(
+                    out
+                        ? Icons.remove_shopping_cart
+                        : Icons.warning_amber_rounded,
+                    size: 14,
+                    color: Colors.red),
                 const SizedBox(width: 4),
                 Text(out ? l10n.outOfStockBadge : l10n.lowStockBadge,
                     style: const TextStyle(
@@ -545,7 +558,6 @@ class _ProductListPageState extends State<ProductListPage> {
               ],
             ),
           ),
-        ],
       ],
     );
   }

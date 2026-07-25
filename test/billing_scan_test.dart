@@ -89,9 +89,9 @@ Product _outOfStock(String id, String barcode) => Product(
       barcode: barcode,
     );
 
-/// An untracked loose/produce item at zero — no alert set, so it must NOT read
-/// as "out of stock" (it sits at 0 forever).
-Product _untracked(String id, String barcode) => Product(
+/// A zero-qty item with no low-stock alert — still counts as out of stock (the
+/// shop wants to know whenever quantity is zero, tracked or not).
+Product _zeroNoAlert(String id, String barcode) => Product(
       id: id,
       name: 'Item $id',
       price: 1000,
@@ -207,16 +207,27 @@ void main() {
         reason: 'the finished item must be flagged for the red notice');
   });
 
-  test('scanning an untracked zero-qty product does not flag out-of-stock',
+  test('scanning any zero-qty product flags out-of-stock, even with no alert',
       () async {
-    products.byBarcode['L'] = _untracked('l1', 'L');
+    products.byBarcode['L'] = _zeroNoAlert('l1', 'L');
     bloc.add(const ScanBarcodeEvent('L'));
     await bloc.stream.firstWhere((s) => s.cartItems.isNotEmpty).timeout(
           const Duration(seconds: 2),
           onTimeout: () => throw StateError('item never reached the cart'),
         );
 
-    expect(bloc.state.outOfStockScan, isNull,
-        reason: 'untracked loose items sit at 0 forever — no nag');
+    expect(bloc.state.outOfStockScan?.id, 'l1',
+        reason: 'zero quantity is out of stock regardless of a low-stock alert');
+  });
+
+  test('scanning an in-stock product does not flag out-of-stock', () async {
+    products.byBarcode['S'] = _product('s1', 'S'); // quantity 10
+    bloc.add(const ScanBarcodeEvent('S'));
+    await bloc.stream.firstWhere((s) => s.cartItems.isNotEmpty).timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => throw StateError('item never reached the cart'),
+        );
+
+    expect(bloc.state.outOfStockScan, isNull);
   });
 }

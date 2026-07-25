@@ -33,12 +33,10 @@ class Product extends Equatable {
   /// True when a low-stock alert is set and on-hand has reached it.
   bool get isLowStock => minStockAlert > 0 && quantity <= minStockAlert;
 
-  /// True when this item's stock is *tracked* (the owner set a low-stock alert)
-  /// and it has run out (Plan 011 #8). Gating on [minStockAlert] deliberately
-  /// keeps untracked loose/produce items — which sit at 0 forever — from
-  /// falsely reading as "out of stock" and nagging on every scan. Setting an
-  /// alert is the owner's opt-in that "I track this product's quantity".
-  bool get isOutOfStock => minStockAlert > 0 && quantity <= 0;
+  /// True when on-hand has reached zero (Plan 011 #8). Deliberately *not* gated
+  /// on [minStockAlert]: the shop wants to see whether any product's quantity is
+  /// zero, tracked or not, so a finished item is always flagged.
+  bool get isOutOfStock => quantity <= 0;
 
   Product copyWith({
     String? id,
