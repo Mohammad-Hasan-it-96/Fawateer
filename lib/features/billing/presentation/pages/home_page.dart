@@ -37,19 +37,29 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   /// Not `final`: a controller that has latched an error can only be replaced,
   /// never revived — see [_recoverCamera].
-  MobileScannerController _scannerController = _newController();
+  MobileScannerController _scannerController = _newController(highRes: true);
 
-  static MobileScannerController _newController() => MobileScannerController(
+  /// Whether the live controller requested the higher analysis resolution.
+  /// Starts high, and [_onScannerState] drops it to false on the first camera
+  /// error — so a device that can't do 1280×720 analysis degrades gracefully to
+  /// the default resolution instead of latching "camera unavailable".
+  bool _highRes = true;
+
+  /// A hard-pinned `cameraResolution` (e.g. 1920×1080) made `start()` fail on
+  /// some devices and stranded the preview on the error card. But the default
+  /// analysis resolution is often too low to decode a **small / curved** barcode
+  /// (the on-device misread of 6213295315252) — ML Kit, which mobile_scanner and
+  /// the reference SuperCodeReader both use, just needs more pixels on the bars.
+  /// 1280×720 is a widely-supported middle ground; if it still fails, the
+  /// [_onScannerState] fallback recreates the controller at the default size.
+  static MobileScannerController _newController({required bool highRes}) =>
+      MobileScannerController(
         detectionSpeed: DetectionSpeed.normal,
         returnImage: false,
         // Only the symbologies a shop actually uses — fewer wrong reads
         // (Plan 011 #11).
         formats: kRetailBarcodeFormats,
-        // NOTE: do NOT pin `cameraResolution` here. Forcing a fixed size (e.g.
-        // 1920×1080) makes `start()` fail on devices whose camera doesn't offer
-        // exactly that preview size, which latches the "camera unavailable"
-        // error state. Letting the plugin pick a supported resolution is what
-        // keeps the preview reliable across devices.
+        cameraResolution: highRes ? const Size(1280, 720) : null,
       );
 
   /// Current camera zoom (0 = none … 1 = max), driven by pinch / double-tap
@@ -210,6 +220,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     // else is a native camera we still hold but can no longer drive.
     if (error.errorCode == MobileScannerErrorCode.permissionDenied) return;
     if (!mounted || !_isCameraOn) return;
+    // First response to any camera error: if we asked for the higher analysis
+    // resolution, drop it and rebuild at the default. An unsupported analysis
+    // size is a prime suspect for a failed start, and this makes the high-res
+    // request self-healing rather than a device-specific brick. Doesn't consume
+    // a recovery attempt — it's a config downgrade, not a retry.
+    if (_highRes) {
+      _highRes = false;
+      _recoverCamera();
+      return;
+    }
     if (_recoveryAttempts >= _maxRecoveryAttempts) return;
     _recoveryAttempts++;
     _recoverCamera();
@@ -228,7 +248,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         await old.dispose();
         return;
       }
-      final fresh = _newController();
+      final fresh = _newController(highRes: _highRes);
       setState(() {
         _scannerController = fresh;
         _cameraGeneration++;
