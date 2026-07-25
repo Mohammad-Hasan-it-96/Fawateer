@@ -26,6 +26,7 @@
   "cartEmptyHint": "Scanned items will appear here.",
   "flash": "Flash",
   "invertScanLabel": "Light code",
+  "invertScanHint": "Not scanning? Try light-barcode mode",
   "camera": "Camera",
   "addItem": "Add Item",
   "checkoutTitle": "Checkout",

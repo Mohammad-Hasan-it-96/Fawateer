@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -149,6 +151,25 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int _pendingScanCount = 0;
   static const int _kScanConfirmations = 2;
 
+  // "Try inverted mode" hint (Plan 011 #11 follow-up).
+  //
+  // Polarity can't be alternated automatically: `invertImage` is a
+  // construction-time option, so flipping it tears down and rebinds the camera
+  // (~0.3–0.6 s of black preview, decoding nothing). Cycling that on a timer
+  // would spend a third of the time blind and look broken. The toggle already
+  // works — what was missing is knowing *when* to reach for it.
+  //
+  // So instead of flipping blindly, detect the failure condition. mobile_scanner
+  // only reports *successful* decodes (it never says "I see bars I can't read"),
+  // so the one available signal is: actively scanning and nothing decoded for a
+  // while. A normal scan lands in ~0.3–1.5 s and a cashier fighting glare takes
+  // ~3–4 s, so 6 s is past aiming but before frustration. Shown once per scanning
+  // stretch — a repeating nag would be worse than the problem.
+  Timer? _invertHintTimer;
+  bool _showInvertHint = false;
+  bool _invertHintUsed = false;
+  static const Duration _kInvertHintDelay = Duration(seconds: 6);
+
   @override
   void initState() {
     super.initState();
@@ -177,6 +198,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _invertHintTimer?.cancel();
     _scannerController.removeListener(_onScannerState);
     _scannerController.dispose();
     super.dispose();
@@ -201,10 +223,32 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         if (!mounted) return;
         if (_shouldScan) {
           await _scannerController.start();
+          _armInvertHint();
         } else {
           await _scannerController.stop();
+          _cancelInvertHint();
         }
       });
+
+  /// Start (or restart) the countdown to the "try inverted mode" hint. Called
+  /// whenever scanning becomes active and after every successful decode, so the
+  /// hint only appears during a *sustained* failure to read anything.
+  void _armInvertHint() {
+    _invertHintTimer?.cancel();
+    // Nothing to suggest once the cashier is already in inverted mode, or once
+    // they've used the toggle this session.
+    if (_invertScan || _invertHintUsed) return;
+    _invertHintTimer = Timer(_kInvertHintDelay, () {
+      if (!mounted || !_shouldScan || _invertScan) return;
+      setState(() => _showInvertHint = true);
+    });
+  }
+
+  void _cancelInvertHint() {
+    _invertHintTimer?.cancel();
+    _invertHintTimer = null;
+    if (_showInvertHint && mounted) setState(() => _showInvertHint = false);
+  }
 
   /// Run [body] with the scanner treated as covered, restoring it afterwards
   /// even if [body] throws — a sheet that closed on an error used to leave the
@@ -312,6 +356,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         _lastScanTimes[rawValue] = now;
         _pendingScan = null;
         _pendingScanCount = 0;
+        // Reading anything proves the current polarity works — hide the hint
+        // and restart its countdown.
+        if (_showInvertHint) setState(() => _showInvertHint = false);
+        _armInvertHint();
 
         // Beep first, then buzz: the sound is the primary confirmation for a
         // cashier whose eyes are on the goods, and awaiting `canVibrate` first
@@ -504,7 +552,13 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   /// `invertImage` is a construction-time option, so this reuses the same
   /// controller-swap machinery as error recovery.
   void _toggleInvertScan() {
-    setState(() => _invertScan = !_invertScan);
+    setState(() {
+      _invertScan = !_invertScan;
+      // The cashier knows about the toggle now — don't keep hinting at it.
+      _invertHintUsed = true;
+      _showInvertHint = false;
+    });
+    _cancelInvertHint();
     _recoveryAttempts = 0;
     _recoverCamera();
   }
@@ -626,6 +680,49 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     ),
                   );
                 },
+              ),
+            ),
+
+          // "Nothing scanning? try light-barcode mode" — appears after a
+          // sustained failure to decode; tapping it flips polarity directly.
+          if (_isCameraOn && _showInvertHint)
+            Positioned(
+              bottom: 48,
+              left: 12,
+              right: 12,
+              child: Center(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _toggleInvertScan,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade700,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.invert_colors,
+                              color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              l10n.invertScanHint,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               ),
             ),
 

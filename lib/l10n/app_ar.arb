@@ -19,6 +19,7 @@
   "cartEmptyHint": "تظهر هنا المنتجات الممسوحة.",
   "flash": "فلاش",
   "invertScanLabel": "باركود فاتح",
+  "invertScanHint": "لا يُقرأ الباركود؟ جرّب وضع «باركود فاتح»",
   "camera": "كاميرا",
   "addItem": "إضافة صنف",
   "checkoutTitle": "إتمام البيع",

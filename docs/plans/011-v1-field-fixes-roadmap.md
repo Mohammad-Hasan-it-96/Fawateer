@@ -92,6 +92,19 @@
 > confidently mislabelled. **104 tests** pass (+7); the v13→v14 upgrade is
 > verified on a real device by `integration_test/migration_v14_test.dart` (data
 > survives, legacy rows read `''`, new rows store `'weight'`).
+>
+> **✅ Follow-up 2 — inverted-mode hint (not auto-alternation).** Auto-flipping
+> polarity on a timer was **investigated and rejected**: `invertImage` is a
+> construction-time option, so each flip tears down and rebinds the camera
+> (~0.3–0.6 s of black preview decoding nothing) — cycling it would spend a third
+> of the time blind and look broken. There is no "best interval"; the flip itself
+> is the problem. Instead the POS **detects the failure condition** — mobile_scanner
+> only reports *successful* decodes, so the signal is "actively scanning, nothing
+> decoded for 6 s" (past normal aiming at ~0.3–1.5 s and a cashier fighting glare
+> at ~3–4 s, before frustration) — and shows a tappable amber chip that flips
+> polarity directly. Resets on every successful decode, suppressed once the
+> toggle is used, never a repeating nag. This fixes the real gap: the toggle
+> already worked, but nothing told the cashier **when** to reach for it.
 
 ---
 

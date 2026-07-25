@@ -70,6 +70,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get invertScanLabel => 'Light code';
 
   @override
+  String get invertScanHint => 'Not scanning? Try light-barcode mode';
+
+  @override
   String get camera => 'Camera';
 
   @override

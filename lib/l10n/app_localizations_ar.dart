@@ -69,6 +69,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get invertScanLabel => 'باركود فاتح';
 
   @override
+  String get invertScanHint => 'لا يُقرأ الباركود؟ جرّب وضع «باركود فاتح»';
+
+  @override
   String get camera => 'كاميرا';
 
   @override

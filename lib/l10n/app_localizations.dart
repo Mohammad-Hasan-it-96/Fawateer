@@ -212,6 +212,12 @@ abstract class AppLocalizations {
   /// **'Light code'**
   String get invertScanLabel;
 
+  /// No description provided for @invertScanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Not scanning? Try light-barcode mode'**
+  String get invertScanHint;
+
   /// No description provided for @camera.
   ///
   /// In en, this message translates to:
