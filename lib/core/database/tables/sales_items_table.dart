@@ -30,5 +30,16 @@ class SalesItems extends Table {
   // edited or archived — same discipline as price/cost/fxRate/discount above.
   // '' = none. Additive default keeps old rows valid.
   TextColumn get attributesSnapshot => text().withDefault(const Constant(''))();
+  // How the line was sold — the ProductSaleType **name** ('piece'/'weight'),
+  // frozen at sale time like price/cost/fxRate above (Plan 011 #10). Without it
+  // a reprint lost the unit entirely and the invoice table had to guess kg-vs-
+  // piece from whether the quantity was fractional, which mislabels a whole-
+  // number weight sale (2.0 kg → "piece").
+  //
+  // Default is '' (**unknown**), not 'piece': legacy rows predate the snapshot,
+  // and claiming 'piece' for them would confidently mislabel every old weighed
+  // sale. '' instead means "fall back to the quantity heuristic", so old rows
+  // are no worse than before while new ones are exact.
+  TextColumn get saleType => text().withDefault(const Constant(''))();
 }
 

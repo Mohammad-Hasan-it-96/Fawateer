@@ -325,6 +325,9 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
               // Freeze the show-on-receipt custom fields (Plan 010) so a reprint
               // is immune to later product/definition edits.
               attributesSnapshot: _printableAttrsJson(cartItem.product),
+              // Freeze how it was sold (Plan 011 #10) so the unit survives on
+              // reprints and the invoice table never has to guess kg-vs-piece.
+              saleType: cartItem.product.saleType.name,
             ))
         .toList();
 

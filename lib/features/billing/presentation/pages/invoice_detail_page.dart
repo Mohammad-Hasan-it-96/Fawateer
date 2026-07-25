@@ -243,15 +243,11 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
                 ),
               ),
               _ivCell(formatQty(item.quantity), TextAlign.center),
-              // Unit isn't snapshotted on a historical line (only qty/price are),
-              // so infer best-effort: a fractional quantity reads as weight (kg),
-              // a whole quantity as pieces. A whole-kg weight sale can mislabel
-              // as "piece" — acceptable for this display-only column; the
-              // faithful fix is to snapshot saleType on sales_items (a migration).
+              // Exact for any sale made since Plan 011 #10 (the line snapshots
+              // its saleType); [InvoiceItem.isMeasured] falls back to the old
+              // fractional-quantity guess only for older rows.
               _ivCell(
-                item.quantity == item.quantity.roundToDouble()
-                    ? l10n.unitPiece
-                    : l10n.unitKg,
+                item.isMeasured ? l10n.unitKg : l10n.unitPiece,
                 TextAlign.center,
                 subtitle: true,
               ),

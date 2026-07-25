@@ -100,7 +100,7 @@ There's also a generic `AppSettings` key-value table (`SettingRow`, `key`/`value
 
 Note the DAO list is one longer than the table list: `DashboardDao` is a read-only `@DriftAccessor` over existing tables and owns none of its own.
 
-Schema is at **version 13** with a `MigrationStrategy`. When changing tables, bump `schemaVersion` and **append** a new `if (from < N)` block to `onUpgrade` — never edit a shipped block (old installs have already run it). Existing steps:
+Schema is at **version 14** with a `MigrationStrategy`. When changing tables, bump `schemaVersion` and **append** a new `if (from < N)` block to `onUpgrade` — never edit a shipped block (old installs have already run it). Existing steps:
 - v1→v2: added `shopSettings.currencySymbol`
 - v2→v3: dropped removed `customers`/`debts`/`purchase_invoices`/`purchase_items`/`cashbox_entries` tables
 - v3→v4: added `cost` column to `products` and `salesItems`; created barcode/sales indexes
@@ -113,6 +113,7 @@ Schema is at **version 13** with a `MigrationStrategy`. When changing tables, bu
 - v10→v11: **data fix, no DDL** — the old default `shop_settings.currencySymbol` was `'₹'` (Indian rupee), wrong for this Syria-first app. Normalizes `'₹'` *and* blank to `'ل.س'`; a shop that deliberately chose another symbol keeps it.
 - v11→v12: manual discounts (Plan 005) — added `salesItems.discount` and `salesInvoices.invoiceDiscount`. Additive; every existing row decodes as "no discount".
 - v12→v13: dynamic product attributes (Plan 010) — added `products.attributes` (JSON bag of owner-defined custom-field values) and `salesItems.attributesSnapshot` (the `{label:value}` snapshot of `showOnReceipt` fields, frozen at sale time and replayed on reprint), and created the new `attribute_definitions` table. **Purely additive** (`addColumn` × 2 + `createTable`); every existing row decodes as empty. No table rebuild.
+- v13→v14: unit fidelity (Plan 011 #10) — added `salesItems.saleType`, the `ProductSaleType` **name** frozen at sale time. Before it, a reprint dropped the `كغ` the original receipt printed (original ≠ reprint of the same invoice) and the invoice table guessed kg-vs-piece from whether the quantity was fractional, mislabelling a whole-number weight sale (2.0 kg → "piece"). Default is **`''` (unknown), deliberately not `'piece'`**: legacy rows predate the snapshot, so claiming `'piece'` would confidently mislabel every old weighed sale — `''` instead routes them to the old heuristic via `InvoiceItem.isMeasured`, which is the *only* remaining caller of that guess. Additive `addColumn`; covered by `integration_test/migration_v14_test.dart` (real-SQLite upgrade: data survives, legacy rows read `''`).
 
 The v5→v6 `TableMigration` remains the **only** table rebuild in the whole history — everything since has been `addColumn` + one data-normalizing `UPDATE`. Keep it that way when you can.
 

@@ -162,6 +162,10 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
                 // Replay the show-on-receipt custom fields snapshotted at sale
                 // time (Plan 010), so a reprint matches the original receipt.
                 attributes: _decodeAttributeSnapshot(i.attributesSnapshot),
+                // Same rule for the unit (Plan 011 #10): without this a reprint
+                // dropped the "كغ" the original receipt printed, so the two
+                // copies of one invoice didn't match.
+                unit: i.isMeasured ? 'كغ' : '',
               ))
           .toList(),
     );

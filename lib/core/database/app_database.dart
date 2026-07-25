@@ -57,7 +57,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 14;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -166,6 +166,13 @@ class AppDatabase extends _$AppDatabase {
         await migrator.addColumn(products, products.attributes);
         await migrator.addColumn(salesItems, salesItems.attributesSnapshot);
         await migrator.createTable(attributeDefinitions);
+      }
+      if (from < 14) {
+        // Unit fidelity (Plan 011 #10): snapshot how the line was sold, so a
+        // reprint keeps its "كغ" and the invoice table stops guessing kg-vs-
+        // piece from the quantity. Additive; existing rows decode as ''
+        // (unknown) and keep using the old heuristic.
+        await migrator.addColumn(salesItems, salesItems.saleType);
       }
     },
   );

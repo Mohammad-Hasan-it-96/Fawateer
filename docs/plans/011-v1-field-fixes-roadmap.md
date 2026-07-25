@@ -28,12 +28,8 @@
 >   `BillingState.outOfStockScan` + `ClearOutOfStockScanEvent`.
 > - **#10 invoice-as-table.** Both the checkout review and the invoice detail page
 >   now render the 6-column layout from the owner's wholesale-invoice photo:
->   م / الصنف / الكمية / الوحدة / الإفرادي / الإجمالي. **Caveat:** the unit
->   (kg/piece) is **not** snapshotted on historical `sales_items`, so the detail
->   page infers it (fractional qty → kg, whole → piece) — a whole-kg weight sale
->   can mislabel as "piece". The faithful fix is a `saleType` snapshot on
->   `sales_items` (schema v13→v14, additive) — deferred; flag if reprint fidelity
->   of the unit column is wanted.
+>   م / الصنف / الكمية / الوحدة / الإفرادي / الإجمالي. *(Unit fidelity was
+>   initially inferred; **resolved** by the v13→v14 snapshot below.)*
 >
 > `flutter analyze` clean; **95 tests** pass (+2 cart-order, +2 out-of-stock).
 > New ARB keys: `colSerial/colQty/colUnit/colUnitPrice/unitPiece`,
@@ -83,9 +79,19 @@
 > - **#9:** real **tap-to-focus** (`tapToFocus: true` on both scanners) plus
 >   pinch-to-zoom / double-tap with a live zoom-% pill.
 >
-> `flutter analyze` clean; **97 tests** pass. **All 11 items now addressed** —
-> pending the owner's on-device confirmation on the red-tin product (invert
-> toggle ON).
+> `flutter analyze` clean; **97 tests** pass. **All 11 items now addressed**, and
+> the red-tin product was **confirmed reading on-device** with the invert toggle.
+>
+> **✅ Follow-up 1 — unit fidelity (schema v13→v14).** `sales_items.saleType`
+> now snapshots the `ProductSaleType` name at sale time. This fixed a real
+> inconsistency found while scoping it: **reprints dropped the unit entirely**
+> (`HistoryBloc` never passed `ReceiptLine.unit`), so the original receipt
+> printed `0.333 كغ × رز` and its reprint printed `0.333 × رز`. Column defaults
+> to `''` (unknown) rather than `'piece'` so legacy rows keep falling back to the
+> old fractional-quantity guess (`InvoiceItem.isMeasured`) instead of being
+> confidently mislabelled. **104 tests** pass (+7); the v13→v14 upgrade is
+> verified on a real device by `integration_test/migration_v14_test.dart` (data
+> survives, legacy rows read `''`, new rows store `'weight'`).
 
 ---
 
