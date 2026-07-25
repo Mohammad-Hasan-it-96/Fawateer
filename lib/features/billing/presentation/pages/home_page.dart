@@ -21,6 +21,7 @@ import '../../../product/domain/entities/price_currency.dart';
 import '../../../../core/currency/exchange_rate_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_snack.dart';
+import '../../../../core/utils/barcode_formats.dart';
 import '../../../../core/utils/format.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -41,7 +42,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   static MobileScannerController _newController() => MobileScannerController(
         detectionSpeed: DetectionSpeed.normal,
         returnImage: false,
+        // Only the symbologies a shop actually uses — fewer wrong reads
+        // (Plan 011 #11).
+        formats: kRetailBarcodeFormats,
+        // Higher preview resolution helps small / dense / curved barcodes decode.
+        cameraResolution: const Size(1920, 1080),
       );
+
+  /// Current camera zoom (0 = none … 1 = max), driven by pinch / double-tap
+  /// (Plan 011 #9). mobile_scanner has no manual tap-to-focus, so zoom is the
+  /// supported way to help read a small or awkward barcode.
+  double _zoom = 0;
+  double _zoomStart = 0;
 
   /// Serializes every camera start/stop.
   ///
@@ -425,20 +437,41 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
   }
 
+  /// Apply a clamped zoom level to the live camera (Plan 011 #9). Fire-and-
+  /// forget: if the camera isn't running the plugin call just rejects, which we
+  /// ignore.
+  void _applyZoom(double z) {
+    final clamped = z.clamp(0.0, 1.0);
+    if (clamped == _zoom) return;
+    setState(() => _zoom = clamped);
+    _scannerController.setZoomScale(clamped).catchError((_) {});
+  }
+
   Widget _buildScannerSection(AppLocalizations l10n) {
     return Container(
       color: Colors.black,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          MobileScanner(
-            // Rebuilds against a replaced controller (see [_recoverCamera]).
-            key: ValueKey(_cameraGeneration),
-            controller: _scannerController,
-            onDetect: _onDetect,
-            // Shown when the camera can't start (permission denied, no camera).
-            errorBuilder: (context, error, child) =>
-                _buildCameraErrorState(l10n),
+          // Pinch to zoom, double-tap to toggle a preset zoom (Plan 011 #9) —
+          // the supported stand-in for tap-to-focus, which mobile_scanner has
+          // no API for. The camera autofocuses on its own.
+          GestureDetector(
+            onScaleStart: (_) => _zoomStart = _zoom,
+            onScaleUpdate: (details) {
+              if (details.scale == 1.0) return;
+              _applyZoom(_zoomStart + (details.scale - 1));
+            },
+            onDoubleTap: () => _applyZoom(_zoom > 0 ? 0 : 0.5),
+            child: MobileScanner(
+              // Rebuilds against a replaced controller (see [_recoverCamera]).
+              key: ValueKey(_cameraGeneration),
+              controller: _scannerController,
+              onDetect: _onDetect,
+              // Shown when the camera can't start (permission denied, no camera).
+              errorBuilder: (context, error, child) =>
+                  _buildCameraErrorState(l10n),
+            ),
           ),
           if (!_isCameraOn) _buildCameraOffState(l10n),
 
@@ -508,6 +541,36 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     ),
                   );
                 },
+              ),
+            ),
+
+          // Live zoom indicator (Plan 011 #9) — only while zoomed in.
+          if (_isCameraOn && _zoom > 0)
+            Positioned(
+              bottom: 12,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.zoom_in, color: Colors.white, size: 16),
+                      const SizedBox(width: 4),
+                      Text('${(_zoom * 100).round()}%',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
               ),
             ),
         ],

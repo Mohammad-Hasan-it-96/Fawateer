@@ -3,6 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
 
+import '../../../../core/utils/barcode_formats.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class ScannerPage extends StatefulWidget {
@@ -16,8 +17,23 @@ class _ScannerPageState extends State<ScannerPage> {
   final MobileScannerController controller = MobileScannerController(
     detectionSpeed: DetectionSpeed.noDuplicates,
     returnImage: false,
+    // Retail/wholesale symbologies only — fewer wrong reads (Plan 011 #11).
+    formats: kRetailBarcodeFormats,
+    // Higher resolution helps small / dense barcodes decode.
+    cameraResolution: const Size(1920, 1080),
   );
   bool _isScanned = false;
+
+  /// Camera zoom (0…1), driven by pinch / double-tap (Plan 011 #9).
+  double _zoom = 0;
+  double _zoomStart = 0;
+
+  void _applyZoom(double z) {
+    final clamped = z.clamp(0.0, 1.0);
+    if (clamped == _zoom) return;
+    setState(() => _zoom = clamped);
+    controller.setZoomScale(clamped).catchError((_) {});
+  }
 
   @override
   void dispose() {
@@ -60,10 +76,19 @@ class _ScannerPageState extends State<ScannerPage> {
                 fontWeight: FontWeight.bold, fontSize: 18))),
       body: Stack(
         children: [
-          MobileScanner(
-            controller: controller,
-            onDetect: _onDetect,
-            // Removed overlay property
+          // Pinch / double-tap to zoom (Plan 011 #9) — helps read a small or
+          // awkward barcode; mobile_scanner has no manual tap-to-focus.
+          GestureDetector(
+            onScaleStart: (_) => _zoomStart = _zoom,
+            onScaleUpdate: (details) {
+              if (details.scale == 1.0) return;
+              _applyZoom(_zoomStart + (details.scale - 1));
+            },
+            onDoubleTap: () => _applyZoom(_zoom > 0 ? 0 : 0.5),
+            child: MobileScanner(
+              controller: controller,
+              onDetect: _onDetect,
+            ),
           ),
           // Simple border overlay manually
           Container(
