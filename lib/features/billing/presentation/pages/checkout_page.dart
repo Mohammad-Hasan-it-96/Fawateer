@@ -161,6 +161,20 @@ class CheckoutPage extends StatelessWidget {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
                                 child: Table(
+                                  // Serial(م) · Item · Qty · Unit · Unit price ·
+                                  // Total — the wholesale-invoice layout the owner
+                                  // asked for (Plan 011 #10). Item takes the flex;
+                                  // the rest size to content.
+                                  columnWidths: const {
+                                    0: IntrinsicColumnWidth(),
+                                    1: FlexColumnWidth(),
+                                    2: IntrinsicColumnWidth(),
+                                    3: IntrinsicColumnWidth(),
+                                    4: IntrinsicColumnWidth(),
+                                    5: IntrinsicColumnWidth(),
+                                  },
+                                  defaultVerticalAlignment:
+                                      TableCellVerticalAlignment.middle,
                                   border: TableBorder(
                                     horizontalInside:
                                         BorderSide(color: borderColor),
@@ -177,32 +191,56 @@ class CheckoutPage extends StatelessWidget {
                                                 color: borderColor)),
                                       ),
                                       children: [
+                                        _headerCell(context, l10n.colSerial,
+                                            TextAlign.center),
                                         _headerCell(context, l10n.colProduct,
                                             TextAlign.start),
-                                        _headerCell(context,
-                                            l10n.colPrice, TextAlign.end),
+                                        _headerCell(context, l10n.colQty,
+                                            TextAlign.center),
+                                        _headerCell(context, l10n.colUnit,
+                                            TextAlign.center),
+                                        _headerCell(context, l10n.colUnitPrice,
+                                            TextAlign.end),
                                         _headerCell(context,
                                             l10n.colTotal, TextAlign.end),
                                       ],
                                     ),
-                                    ...billingState.cartItems.map((item) {
+                                    ...billingState.cartItems
+                                        .asMap()
+                                        .entries
+                                        .map((entry) {
+                                      final item = entry.value;
                                       final measured =
                                           item.product.saleType.isMeasured;
                                       // Resolved SP unit price; USD lines also
                                       // show their original "$X" sticker.
                                       final spPrice =
-                                          '$currency${item.unitPriceSp.toStringAsFixed(2)}${measured ? '/${l10n.unitKg}' : ''}';
+                                          '$currency${item.unitPriceSp.toStringAsFixed(2)}';
                                       final priceStr = item.isForeign
-                                          ? '$spPrice (${item.sellCurrency.label(item.product.price, '')})'
+                                          ? '$spPrice\n(${item.sellCurrency.label(item.product.price, '')})'
                                           : spPrice;
                                       return TableRow(
                                         children: [
                                           _dataCell(
                                             context,
+                                            '${entry.key + 1}',
+                                            TextAlign.center,
+                                            isSubtitle: true,
+                                          ),
+                                          _dataCell(context, item.product.name,
+                                              TextAlign.start),
+                                          _dataCell(
+                                            context,
+                                            formatQty(item.quantity),
+                                            TextAlign.center,
+                                          ),
+                                          _dataCell(
+                                            context,
                                             measured
-                                                ? '${formatQty(item.quantity)} ${l10n.unitKg} × ${item.product.name}'
-                                                : '${formatQty(item.quantity)} x ${item.product.name}',
-                                            TextAlign.start,
+                                                ? l10n.unitKg
+                                                : l10n.unitPiece,
+                                            TextAlign.center,
+                                            isSubtitle: true,
                                           ),
                                           _dataCell(
                                             context,
@@ -548,12 +586,14 @@ class CheckoutPage extends StatelessWidget {
 
   Widget _headerCell(BuildContext context, String text, TextAlign align) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      // Tight horizontal padding: the review table now carries 6 columns
+      // (Plan 011 #10), so cells must stay compact on a phone width.
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
       child: Text(
         text,
         textAlign: align,
         style: TextStyle(
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: FontWeight.bold,
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
@@ -565,12 +605,12 @@ class CheckoutPage extends StatelessWidget {
       {bool isBold = false, bool isSubtitle = false}) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 14),
       child: Text(
         text,
         textAlign: align,
         style: TextStyle(
-          fontSize: isSubtitle ? 12 : 14,
+          fontSize: isSubtitle ? 12 : 13,
           fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
           color: isSubtitle ? scheme.onSurfaceVariant : scheme.onSurface,
         ),

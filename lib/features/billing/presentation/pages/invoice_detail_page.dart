@@ -193,73 +193,104 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
       );
     }
 
-    return Column(
+    final borderColor = Theme.of(context).dividerColor;
+    // Serial(م) · Item · Qty · Unit · Unit price · Total — the wholesale-invoice
+    // layout the owner asked for (Plan 011 #10).
+    return Table(
+      columnWidths: const {
+        0: IntrinsicColumnWidth(),
+        1: FlexColumnWidth(),
+        2: IntrinsicColumnWidth(),
+        3: IntrinsicColumnWidth(),
+        4: IntrinsicColumnWidth(),
+        5: IntrinsicColumnWidth(),
+      },
+      defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+      border: TableBorder(horizontalInside: BorderSide(color: borderColor)),
       children: [
-        // Column headers.
-        Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Row(
-            children: [
-              Expanded(flex: 4, child: _th(l10n.colProduct)),
-              Expanded(flex: 2, child: _th(l10n.unitPrice, end: true)),
-              Expanded(flex: 2, child: _th(l10n.colTotal, end: true)),
-            ],
+        TableRow(
+          decoration: BoxDecoration(
+            border: Border(bottom: BorderSide(color: borderColor)),
           ),
+          children: [
+            _ivHead(l10n.colSerial, TextAlign.center),
+            _ivHead(l10n.colProduct, TextAlign.start),
+            _ivHead(l10n.colQty, TextAlign.center),
+            _ivHead(l10n.colUnit, TextAlign.center),
+            _ivHead(l10n.colUnitPrice, TextAlign.end),
+            _ivHead(l10n.colTotal, TextAlign.end),
+          ],
         ),
-        const Divider(height: 1),
-        for (final item in items)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 10),
-            child: Row(
-              children: [
-                Expanded(
-                  flex: 4,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(item.productName,
+        for (final (i, item) in items.indexed)
+          TableRow(
+            children: [
+              _ivCell('${i + 1}', TextAlign.center, subtitle: true),
+              // Name (+ a small red per-line discount note when present).
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(item.productName,
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w500)),
+                    if (item.discount > 0)
+                      Text(
+                          '${l10n.discountLabel}: - ${_money(currency, item.discount)}',
                           style: const TextStyle(
-                              fontSize: 14, fontWeight: FontWeight.w500)),
-                      Text('× ${formatQty(item.quantity)}',
-                          style: TextStyle(
-                              fontSize: 12,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurfaceVariant)),
-                      if (item.discount > 0)
-                        Text('${l10n.discountLabel}: - ${_money(currency, item.discount)}',
-                            style:
-                                const TextStyle(fontSize: 11, color: Colors.red)),
-                    ],
-                  ),
+                              fontSize: 11, color: Colors.red)),
+                  ],
                 ),
-                Expanded(
-                  flex: 2,
-                  child: Text(_money(currency, item.price),
-                      textAlign: TextAlign.end,
-                      style: const TextStyle(fontSize: 14)),
-                ),
-                Expanded(
-                  flex: 2,
-                  child: Text(_money(currency, item.total),
-                      textAlign: TextAlign.end,
-                      style: const TextStyle(
-                          fontSize: 14, fontWeight: FontWeight.w600)),
-                ),
-              ],
-            ),
+              ),
+              _ivCell(formatQty(item.quantity), TextAlign.center),
+              // Unit isn't snapshotted on a historical line (only qty/price are),
+              // so infer best-effort: a fractional quantity reads as weight (kg),
+              // a whole quantity as pieces. A whole-kg weight sale can mislabel
+              // as "piece" — acceptable for this display-only column; the
+              // faithful fix is to snapshot saleType on sales_items (a migration).
+              _ivCell(
+                item.quantity == item.quantity.roundToDouble()
+                    ? l10n.unitPiece
+                    : l10n.unitKg,
+                TextAlign.center,
+                subtitle: true,
+              ),
+              _ivCell(_money(currency, item.price), TextAlign.end,
+                  subtitle: true),
+              _ivCell(_money(currency, item.total), TextAlign.end, bold: true),
+            ],
           ),
       ],
     );
   }
 
-  Widget _th(String label, {bool end = false}) => Text(
-        label,
-        textAlign: end ? TextAlign.end : TextAlign.start,
-        style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
-            color: Theme.of(context).colorScheme.onSurfaceVariant),
+  Widget _ivHead(String label, TextAlign align) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        child: Text(
+          label,
+          textAlign: align,
+          style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurfaceVariant),
+        ),
+      );
+
+  Widget _ivCell(String text, TextAlign align,
+          {bool bold = false, bool subtitle = false}) =>
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
+        child: Text(
+          text,
+          textAlign: align,
+          style: TextStyle(
+            fontSize: subtitle ? 12 : 13,
+            fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+            color: subtitle
+                ? Theme.of(context).colorScheme.onSurfaceVariant
+                : Theme.of(context).colorScheme.onSurface,
+          ),
+        ),
       );
 
   Widget _footer(BuildContext context, AppLocalizations l10n, String currency,

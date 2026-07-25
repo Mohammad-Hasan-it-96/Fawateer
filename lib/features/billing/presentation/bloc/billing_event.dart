@@ -32,6 +32,12 @@ class ClearMeasuredPromptEvent extends BillingEvent {
   const ClearMeasuredPromptEvent();
 }
 
+/// Dismisses a pending out-of-stock scan notice (see
+/// [BillingState.outOfStockScan]) once the POS page has shown it.
+class ClearOutOfStockScanEvent extends BillingEvent {
+  const ClearOutOfStockScanEvent();
+}
+
 class RemoveProductFromCartEvent extends BillingEvent {
   final String productId;
   const RemoveProductFromCartEvent(this.productId);

@@ -16,9 +16,28 @@
 > added item jumps to the top of the cart (re-scan bumps qty + moves up);
 > products list is newest-first (`rowId desc`, no migration); notification
 > durations halved via a shared `AppSnackDuration` (`core/utils/app_snack.dart`).
-> `flutter analyze` clean; **93 tests** pass (+2 cart-order). Decision taken on
-> #4: a re-scan of an existing line **does** move it to the top. Remaining waves:
-> B (8, 10), C (1, 6), D (11, 9).
+> Decision taken on #4: a re-scan of an existing line **does** move it to the top.
+>
+> **✅ Wave B shipped** (items 8, 10 — which subsumes 2):
+> - **#8 out-of-stock visibility.** `Product.isOutOfStock` (`minStockAlert > 0 &&
+>   quantity <= 0` — setting an alert is the "I track this item" opt-in, so
+>   untracked loose items that sit at 0 forever don't nag). The product list shows
+>   a red "out of stock" chip (supersedes the amber low-stock one); scanning a
+>   finished tracked item still adds it (overselling stays allowed) but fires a
+>   red notice via a transient `BillingState.outOfStockScan` +
+>   `ClearOutOfStockScanEvent`.
+> - **#10 invoice-as-table.** Both the checkout review and the invoice detail page
+>   now render the 6-column layout from the owner's wholesale-invoice photo:
+>   م / الصنف / الكمية / الوحدة / الإفرادي / الإجمالي. **Caveat:** the unit
+>   (kg/piece) is **not** snapshotted on historical `sales_items`, so the detail
+>   page infers it (fractional qty → kg, whole → piece) — a whole-kg weight sale
+>   can mislabel as "piece". The faithful fix is a `saleType` snapshot on
+>   `sales_items` (schema v13→v14, additive) — deferred; flag if reprint fidelity
+>   of the unit column is wanted.
+>
+> `flutter analyze` clean; **95 tests** pass (+2 cart-order, +2 out-of-stock).
+> New ARB keys: `colSerial/colQty/colUnit/colUnitPrice/unitPiece`,
+> `outOfStockBadge`, `outOfStockScanNotice`. Remaining waves: C (1, 6), D (11, 9).
 
 ---
 

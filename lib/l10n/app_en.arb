@@ -31,6 +31,11 @@
   "colProduct": "Product",
   "colPrice": "Price",
   "colTotal": "Total",
+  "colSerial": "No.",
+  "colQty": "Qty",
+  "colUnit": "Unit",
+  "colUnitPrice": "Unit price",
+  "unitPiece": "pc",
   "grandTotal": "GRAND TOTAL",
   "confirmSale": "Confirm Sale",
   "lowStockPrefix": "Low stock: ",
@@ -108,6 +113,15 @@
     }
   },
   "lowStockBadge": "Low stock",
+  "outOfStockBadge": "Out of stock",
+  "outOfStockScanNotice": "Out of stock: {name}",
+  "@outOfStockScanNotice": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "cancel": "Cancel",
   "delete": "Delete",
   "save": "Save",

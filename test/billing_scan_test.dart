@@ -79,6 +79,26 @@ Product _product(String id, String barcode) => Product(
       barcode: barcode,
     );
 
+/// A stock-tracked item (owner set a low-stock alert) that has run out.
+Product _outOfStock(String id, String barcode) => Product(
+      id: id,
+      name: 'Item $id',
+      price: 1000,
+      quantity: 0,
+      minStockAlert: 5,
+      barcode: barcode,
+    );
+
+/// An untracked loose/produce item at zero — no alert set, so it must NOT read
+/// as "out of stock" (it sits at 0 forever).
+Product _untracked(String id, String barcode) => Product(
+      id: id,
+      name: 'Item $id',
+      price: 1000,
+      quantity: 0,
+      barcode: barcode,
+    );
+
 void main() {
   late _FakeProductRepository products;
   late BillingBloc bloc;
@@ -168,5 +188,35 @@ void main() {
     expect(bloc.state.cartItems.map((i) => i.product.id).toList(), ['a', 'b']);
     expect(bloc.state.cartItems.first.quantity, 2,
         reason: 're-add increments the existing line, not a duplicate');
+  });
+
+  // Plan 011 #8: a finished, stock-tracked item must be flagged loudly so the
+  // shopkeeper knows — but still added, since overselling is allowed.
+  test('scanning a tracked out-of-stock product flags it AND still adds to cart',
+      () async {
+    products.byBarcode['Z'] = _outOfStock('z1', 'Z');
+    bloc.add(const ScanBarcodeEvent('Z'));
+    await bloc.stream.firstWhere((s) => s.cartItems.isNotEmpty).timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => throw StateError('item never reached the cart'),
+        );
+
+    expect(bloc.state.cartItems.single.product.id, 'z1',
+        reason: 'overselling is allowed — the item is still added');
+    expect(bloc.state.outOfStockScan?.id, 'z1',
+        reason: 'the finished item must be flagged for the red notice');
+  });
+
+  test('scanning an untracked zero-qty product does not flag out-of-stock',
+      () async {
+    products.byBarcode['L'] = _untracked('l1', 'L');
+    bloc.add(const ScanBarcodeEvent('L'));
+    await bloc.stream.firstWhere((s) => s.cartItems.isNotEmpty).timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => throw StateError('item never reached the cart'),
+        );
+
+    expect(bloc.state.outOfStockScan, isNull,
+        reason: 'untracked loose items sit at 0 forever — no nag');
   });
 }

@@ -242,6 +242,36 @@ abstract class AppLocalizations {
   /// **'Total'**
   String get colTotal;
 
+  /// No description provided for @colSerial.
+  ///
+  /// In en, this message translates to:
+  /// **'No.'**
+  String get colSerial;
+
+  /// No description provided for @colQty.
+  ///
+  /// In en, this message translates to:
+  /// **'Qty'**
+  String get colQty;
+
+  /// No description provided for @colUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit'**
+  String get colUnit;
+
+  /// No description provided for @colUnitPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit price'**
+  String get colUnitPrice;
+
+  /// No description provided for @unitPiece.
+  ///
+  /// In en, this message translates to:
+  /// **'pc'**
+  String get unitPiece;
+
   /// No description provided for @grandTotal.
   ///
   /// In en, this message translates to:
@@ -577,6 +607,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Low stock'**
   String get lowStockBadge;
+
+  /// No description provided for @outOfStockBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of stock'**
+  String get outOfStockBadge;
+
+  /// No description provided for @outOfStockScanNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of stock: {name}'**
+  String outOfStockScanNotice(String name);
 
   /// No description provided for @cancel.
   ///

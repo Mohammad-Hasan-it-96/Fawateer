@@ -24,6 +24,11 @@
   "colProduct": "المنتج",
   "colPrice": "السعر",
   "colTotal": "المجموع",
+  "colSerial": "م",
+  "colQty": "الكمية",
+  "colUnit": "الوحدة",
+  "colUnitPrice": "الإفرادي",
+  "unitPiece": "قطعة",
   "grandTotal": "المجموع الكلي",
   "confirmSale": "تأكيد البيع",
   "lowStockPrefix": "مخزون منخفض: ",
@@ -87,6 +92,15 @@
   "deleteProductConfirm": "هل تريد حذف {name}؟",
   "stockCountLabel": "المتوفر: {qty}",
   "lowStockBadge": "مخزون منخفض",
+  "outOfStockBadge": "منتهي",
+  "outOfStockScanNotice": "انتهت كمية المنتج: {name}",
+  "@outOfStockScanNotice": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "cancel": "إلغاء",
   "delete": "حذف",
   "save": "حفظ",

@@ -350,6 +350,33 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               }
             },
           ),
+          // A stock-tracked product that has run out was scanned (Plan 011 #8).
+          // It's still added to the cart, but flag it loudly with a red notice
+          // so the shopkeeper knows the item is finished.
+          BlocListener<BillingBloc, BillingState>(
+            listenWhen: (prev, curr) =>
+                prev.outOfStockScan != curr.outOfStockScan &&
+                curr.outOfStockScan != null,
+            listener: (context, state) {
+              final name = state.outOfStockScan!.name;
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(SnackBar(
+                  content: Row(
+                    children: [
+                      const Icon(Icons.production_quantity_limits,
+                          color: Colors.white, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(l10n.outOfStockScanNotice(name))),
+                    ],
+                  ),
+                  backgroundColor: Colors.red.shade700,
+                  behavior: SnackBarBehavior.floating,
+                  duration: AppSnackDuration.normal,
+                ));
+              context.read<BillingBloc>().add(const ClearOutOfStockScanEvent());
+            },
+          ),
         ],
         child: Stack(
           children: [

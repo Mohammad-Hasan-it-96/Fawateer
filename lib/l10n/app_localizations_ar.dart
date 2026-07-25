@@ -84,6 +84,21 @@ class AppLocalizationsAr extends AppLocalizations {
   String get colTotal => 'المجموع';
 
   @override
+  String get colSerial => 'م';
+
+  @override
+  String get colQty => 'الكمية';
+
+  @override
+  String get colUnit => 'الوحدة';
+
+  @override
+  String get colUnitPrice => 'الإفرادي';
+
+  @override
+  String get unitPiece => 'قطعة';
+
+  @override
   String get grandTotal => 'المجموع الكلي';
 
   @override
@@ -257,6 +272,14 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get lowStockBadge => 'مخزون منخفض';
+
+  @override
+  String get outOfStockBadge => 'منتهي';
+
+  @override
+  String outOfStockScanNotice(String name) {
+    return 'انتهت كمية المنتج: $name';
+  }
 
   @override
   String get cancel => 'إلغاء';

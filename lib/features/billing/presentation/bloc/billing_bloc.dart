@@ -54,6 +54,8 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     on<UpdateQuantityEvent>(_onUpdateQuantity);
     on<ClearMeasuredPromptEvent>((event, emit) =>
         emit(state.copyWith(clearMeasuredPrompt: true)));
+    on<ClearOutOfStockScanEvent>((event, emit) =>
+        emit(state.copyWith(clearOutOfStockScan: true)));
     on<ClearCartEvent>(_onClearCart);
     on<PrintReceiptEvent>(_onPrintReceipt);
     on<ConfirmSaleEvent>(_onConfirmSale);
@@ -155,6 +157,14 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         if (product.saleType.isMeasured) {
           emit(state.copyWith(measuredPrompt: product, clearError: true));
         } else {
+          // A stock-tracked product that has run out is still added (overselling
+          // is allowed by default), but we flag it so the POS shows a red
+          // "out of stock" notice — the shopkeeper needs to know the item is
+          // finished instead of hunting the shelf (Plan 011 #8). The flag rides
+          // through the AddProductToCartEvent below (which preserves it).
+          if (product.isOutOfStock) {
+            emit(state.copyWith(outOfStockScan: product, clearError: true));
+          }
           add(AddProductToCartEvent(product));
         }
       },

@@ -495,16 +495,21 @@ class _ProductListPageState extends State<ProductListPage> {
     );
   }
 
-  /// On-hand quantity plus a red "low stock" chip when the product has hit its
-  /// alert threshold — so the owner sees what's running low without opening it.
+  /// On-hand quantity plus a red chip when the product is running low — or a
+  /// stronger red "out of stock" chip when a stock-tracked item has hit zero
+  /// (Plan 011 #8) — so the owner sees a finished item at a glance instead of
+  /// hunting the shelf.
   Widget _buildStockRow(
       BuildContext context, Product product, AppLocalizations l10n) {
-    final low = product.isLowStock;
+    final out = product.isOutOfStock;
+    // Out-of-stock supersedes the softer low-stock chip.
+    final low = product.isLowStock && !out;
+    final alert = out || low;
     return Row(
       children: [
-        Icon(Icons.inventory_2_outlined,
+        Icon(out ? Icons.production_quantity_limits : Icons.inventory_2_outlined,
             size: 16,
-            color: low
+            color: alert
                 ? Colors.red
                 : Theme.of(context).colorScheme.onSurfaceVariant),
         const SizedBox(width: 4),
@@ -512,13 +517,13 @@ class _ProductListPageState extends State<ProductListPage> {
           l10n.stockCountLabel(formatQty(product.quantity)),
           style: TextStyle(
             fontSize: 13,
-            fontWeight: low ? FontWeight.bold : FontWeight.w500,
-            color: low
+            fontWeight: alert ? FontWeight.bold : FontWeight.w500,
+            color: alert
                 ? Colors.red
                 : Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
-        if (low) ...[
+        if (alert) ...[
           const SizedBox(width: 8),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -529,10 +534,10 @@ class _ProductListPageState extends State<ProductListPage> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.warning_amber_rounded,
+                Icon(out ? Icons.remove_shopping_cart : Icons.warning_amber_rounded,
                     size: 14, color: Colors.red),
                 const SizedBox(width: 4),
-                Text(l10n.lowStockBadge,
+                Text(out ? l10n.outOfStockBadge : l10n.lowStockBadge,
                     style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,

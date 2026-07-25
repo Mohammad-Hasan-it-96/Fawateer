@@ -85,6 +85,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get colTotal => 'Total';
 
   @override
+  String get colSerial => 'No.';
+
+  @override
+  String get colQty => 'Qty';
+
+  @override
+  String get colUnit => 'Unit';
+
+  @override
+  String get colUnitPrice => 'Unit price';
+
+  @override
+  String get unitPiece => 'pc';
+
+  @override
   String get grandTotal => 'GRAND TOTAL';
 
   @override
@@ -258,6 +273,14 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lowStockBadge => 'Low stock';
+
+  @override
+  String get outOfStockBadge => 'Out of stock';
+
+  @override
+  String outOfStockScanNotice(String name) {
+    return 'Out of stock: $name';
+  }
 
   @override
   String get cancel => 'Cancel';
