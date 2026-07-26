@@ -561,6 +561,8 @@
   "backupRestartTitle": "Restore complete",
   "backupRestartBody": "Your data has been restored. Please reopen the app to finish.",
   "backupRestartAction": "Close app",
+  "backupRestoreFailedTitle": "Restore did not finish",
+  "backupRestoreFailedBody": "Your data has NOT been changed — it is safe exactly as it was. The app still needs to be reopened before it will work again.",
   "backupSuccessBackedUp": "Backup completed successfully",
   "backupSuccessExported": "Copy ready — choose where to share it",
   "backupErrorNetwork": "No internet connection. Connect and try again.",

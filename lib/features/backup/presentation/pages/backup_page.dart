@@ -55,7 +55,13 @@ class _BackupPageState extends State<BackupPage> {
             p.exportedFile != c.exportedFile,
         listener: (context, state) {
           final messenger = ScaffoldMessenger.of(context);
-          if (state.error != null) {
+          if (state.error is RestoreIncompleteFailure) {
+            // Not a snackbar: the DB connection is already closed, so letting
+            // the user dismiss this and keep using the app hands them a POS
+            // where every query throws. Data is safe — the app just has to be
+            // reopened, and that must be unmissable.
+            _showRestartDialog(context, l10n, failed: true);
+          } else if (state.error != null) {
             messenger.showSnackBar(SnackBar(
               content: Text(_errorText(state.error!, l10n)),
               backgroundColor: Colors.red,
@@ -383,14 +389,22 @@ class _BackupPageState extends State<BackupPage> {
     if (ok == true) bloc.add(BackupRestoreRequested(b));
   }
 
+  /// The "reopen the app" prompt. Shown after a restore **succeeds** and also
+  /// after one fails past the point of no return ([failed]) — in both cases the
+  /// database connection is gone and the app is unusable until it restarts. The
+  /// wording differs because the reassurance the user needs is opposite: one
+  /// says "your data was replaced", the other "your data was *not* touched".
   Future<void> _showRestartDialog(
-      BuildContext context, AppLocalizations l10n) async {
+      BuildContext context, AppLocalizations l10n,
+      {bool failed = false}) async {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: Text(l10n.backupRestartTitle),
-        content: Text(l10n.backupRestartBody),
+        title: Text(
+            failed ? l10n.backupRestoreFailedTitle : l10n.backupRestartTitle),
+        content: Text(
+            failed ? l10n.backupRestoreFailedBody : l10n.backupRestartBody),
         actions: [
           FilledButton(
             onPressed: () => SystemNavigator.pop(),

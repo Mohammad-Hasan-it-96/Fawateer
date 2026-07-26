@@ -1293,6 +1293,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupRestartAction => 'Close app';
 
   @override
+  String get backupRestoreFailedTitle => 'Restore did not finish';
+
+  @override
+  String get backupRestoreFailedBody =>
+      'Your data has NOT been changed — it is safe exactly as it was. The app still needs to be reopened before it will work again.';
+
+  @override
   String get backupSuccessBackedUp => 'Backup completed successfully';
 
   @override

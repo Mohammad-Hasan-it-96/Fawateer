@@ -423,6 +423,8 @@
   "backupRestartTitle": "اكتملت الاستعادة",
   "backupRestartBody": "تمت استعادة بياناتك. من فضلك أعد فتح التطبيق للإنهاء.",
   "backupRestartAction": "إغلاق التطبيق",
+  "backupRestoreFailedTitle": "لم تكتمل الاستعادة",
+  "backupRestoreFailedBody": "لم يتم تغيير بياناتك — هي سليمة تماماً كما كانت. لكن يجب إعادة فتح التطبيق ليعمل من جديد.",
   "backupSuccessBackedUp": "تم إنشاء النسخة الاحتياطية بنجاح",
   "backupSuccessExported": "النسخة جاهزة — اختر مكان المشاركة",
   "backupErrorNetwork": "لا يوجد اتصال بالإنترنت. اتصل وحاول مرة أخرى.",

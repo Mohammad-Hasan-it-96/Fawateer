@@ -1281,6 +1281,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get backupRestartAction => 'إغلاق التطبيق';
 
   @override
+  String get backupRestoreFailedTitle => 'لم تكتمل الاستعادة';
+
+  @override
+  String get backupRestoreFailedBody =>
+      'لم يتم تغيير بياناتك — هي سليمة تماماً كما كانت. لكن يجب إعادة فتح التطبيق ليعمل من جديد.';
+
+  @override
   String get backupSuccessBackedUp => 'تم إنشاء النسخة الاحتياطية بنجاح';
 
   @override

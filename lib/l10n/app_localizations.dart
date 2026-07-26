@@ -2511,6 +2511,18 @@ abstract class AppLocalizations {
   /// **'Close app'**
   String get backupRestartAction;
 
+  /// No description provided for @backupRestoreFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore did not finish'**
+  String get backupRestoreFailedTitle;
+
+  /// No description provided for @backupRestoreFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data has NOT been changed — it is safe exactly as it was. The app still needs to be reopened before it will work again.'**
+  String get backupRestoreFailedBody;
+
   /// No description provided for @backupSuccessBackedUp.
   ///
   /// In en, this message translates to:
