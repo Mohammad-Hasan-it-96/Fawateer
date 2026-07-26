@@ -20,11 +20,13 @@ flutter analyze
 # Run tests
 flutter test
 
-# Run a single test file (test/ holds app_smoke_test, num_input_test,
-# cashbox_test, dashboard_test, billing_scan_test, license_guards_test,
-# subscription_plan_test, support_launcher_test, product_attributes_test,
-# product_search_test)
+# Run a single test file (ls test/ for the current set — it grows every wave)
 flutter test test/num_input_test.dart
+
+# Integration tests need a real device (-d <deviceId>): they run against the
+# bundled native SQLite, which host tests can't reach. `flutter test` alone
+# does NOT pick these up — integration_test/ is outside its default scope.
+flutter test integration_test/migration_v14_test.dart -d <deviceId>
 
 # Regenerate Drift database code (*.g.dart files)
 dart run build_runner build --delete-conflicting-outputs
@@ -36,6 +38,8 @@ dart run build_runner watch --delete-conflicting-outputs
 Run `build_runner` whenever you modify Drift table definitions (`lib/core/database/tables/`), DAO files (`lib/core/database/daos/`), or the `AppDatabase` class. Localization Dart code (`lib/l10n/app_localizations*.dart`) is generated from the ARB files automatically by `flutter run`/`flutter gen-l10n` because `generate: true` is set in `pubspec.yaml`.
 
 **Tests drive BLoCs against hand-written fake repositories** — never real Drift, native SQLite, or plugins — so `flutter test` runs on any machine with no device/emulator. Keep it that way: a new test should implement the repository interface as a fake (see `_FakeDashboardRepository` in `dashboard_test.dart`), not spin up an `AppDatabase`. Pure logic (`num_input_test`, `cashbox_test`'s balance derivation) is tested directly with no BLoC at all.
+
+**`integration_test/` is the deliberate exception** — it exists precisely for what fakes can't cover: real-SQLite behavior on a device. `migration_v14_test` drives an actual v13→v14 upgrade (the failure mode that matters is a shop's real database bricking on upgrade, which no fake can reproduce), and `sales_by_field_test` exercises the SQLite JSON1 `json_extract` the attribute report depends on. Keep that bar: a test goes here only when the native engine *is* the thing under test — everything else stays a host test.
 
 ## Architecture
 
@@ -129,7 +133,7 @@ The `products` table carries a `cost` column (purchase cost, default 0) used for
 
 **Print toggle (Plan 011 #6)** — `PrintSettingsService` (`core/settings/`, KV `show_print_button`, default **on**) rides in `BillingState.printEnabled`, loaded by `LoadPrintSettingsEvent` at startup and on toggle (Settings → Hardware → "Print receipts"), exactly like `blockOversell`. When off, `checkout_page` hides the print button (New Sale spans full width) and `_onConfirmSale` returns before the auto-print block — so a printerless shop never sees the "printer not connected" red notice. `ClearCartEvent` preserves it alongside `exchangeRate`/`blockOversell`.
 
-**Invoice line tables (Plan 011 #10)** — both `checkout_page` (live cart) and `invoice_detail_page` (historical) render the owner's 6-column wholesale layout: serial(م)/item/qty/unit/unit-price(الإفرادي)/total. The live checkout table derives the unit from `product.saleType`; the historical detail page **infers** it (fractional qty → kg, whole → piece) because the unit/`saleType` is **not** snapshotted on `sales_items` — a whole-kg weight sale can mislabel as "piece". Faithful unit reprints would need a `saleType` snapshot column (additive migration) — not done.
+**Invoice line tables (Plan 011 #10)** — both `checkout_page` (live cart) and `invoice_detail_page` (historical) render the owner's 6-column wholesale layout: serial(م)/item/qty/unit/unit-price(الإفرادي)/total. The live checkout table derives the unit from `product.saleType`; the historical detail page and the **reprint** path (`HistoryBloc` → `ReceiptLine.unit`) both read the frozen `salesItems.saleType` snapshot via `InvoiceItem.isMeasured`, so a reprint now matches the original receipt exactly. Only pre-v14 rows (snapshot `''`) fall back to the fractional-quantity guess. Pinned by `test/invoice_unit_test.dart`.
 
 ### Sale types (piece vs sell-by-weight)
 
