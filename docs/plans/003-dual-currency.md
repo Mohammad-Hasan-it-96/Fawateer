@@ -1,6 +1,19 @@
 # Plan 003 — Dual Currency Pricing (SP base, USD sticker)
 
-> **Status:** Design plan (no code). Prepared by CTO/Architect review.
+> **Status:** ✅ **SHIPPED** — schema **v9→v10** (additive: `products.priceCurrency`
+> plus the per-line FX snapshot `salesItems.priceCurrency`/`fxRate`/`priceOriginal`;
+> all `addColumn` with defaults, so existing rows decode as SP-native).
+> **As built:** the golden rule below held — the feature stayed confined to the
+> two touch-points and *nothing* downstream (history, ledger, cashbox, reports)
+> needed changing. `PriceCurrency` is persisted **by name** (`fromName` falls
+> back to `sp`). The rate is **not a table**: `ExchangeRateService`
+> (`core/currency/`) keeps SP-per-USD in two `AppSettings` rows, parsing
+> defensively (non-finite or `<= 0` reads as *unset*). `usdToSp` rounds to a
+> whole pound at the conversion boundary and returns `null` when the rate is
+> missing, so callers must guard — `CartItem.isUnpriced` is that guard and it
+> blocks checkout. Historical invoices are immune to later rate edits.
+> **Rule for future work:** never use a raw `product.price` downstream — read
+> the resolved `unitPriceSp` / `salesItems.price`.
 > **Scope decision (locked with the owner):** SP (Syrian Pound) is the single
 > **book** currency. USD is a **pricing label** on individual products only. Every
 > stored amount — invoice, debt, cashbox, report — is in **SP**. USD is resolved

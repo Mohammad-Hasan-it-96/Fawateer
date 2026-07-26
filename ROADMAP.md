@@ -4,7 +4,18 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
 **online-validated subscriptions** and a **customer debt ledger**.
 
 **Branch:** `refactor/architecture-hardening`
-**Last updated:** 2026-07-11 (cashbox / cash drawer, sales audit center, customer duplicate-name guard, Android release-build fix)
+**App version:** `1.0.1+1` · **Drift schema:** **v14**
+**Last updated:** 2026-07-26 (Plan 011 field fixes waves A–D, saleType snapshot v13→v14, scanner overhaul, Android back-button fix)
+
+> **Where the project stands:** the feature backlog is **empty of anything
+> committed-to**. Nine of the eleven numbered plans are shipped; the two that
+> aren't (002 multi-device, 009 smart assistant) were **deliberately deferred to
+> V2**, and 004 was **rejected outright**. Nothing is half-built.
+>
+> **What stands between here and selling is not a feature — it's verification.**
+> See [Before shipping](#before-shipping--verification-debt). Almost nothing has
+> been exercised on real hardware, and the highest-blast-radius code in the app
+> (backup **restore**, which swaps the live DB) has never run on a device.
 
 ---
 
@@ -18,7 +29,30 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
   Fawateer's own server ships — then just change `ApiConfig.defaultBaseUrl`.
 - **Money stays `double`** app-wide (no integer-minor-unit migration); rounded
   at display / at ledger write time.
-- **Build order:** licensing first, ledger second.
+- **Build order:** licensing first, ledger second. *(Both done.)*
+
+### Locked since — conventions every plan has followed
+
+These emerged during the build and are now load-bearing across features. Breaking
+one is a cross-cutting change, not a local one.
+
+- **Snapshot at sale time; history is immutable.** `sales_items` freezes
+  `price`, `cost`, `fxRate`, `priceOriginal`, `discount`, `attributesSnapshot`
+  and `saleType`. A reprint of a 6-month-old invoice must be byte-identical to
+  the original. Plan 004 exists to defend this.
+- **Persist enums by *name*, never by index** (`ProductSaleType`,
+  `PriceCurrency`, `CashTransactionType`, ledger entry types, `AppFontScale`) —
+  so reordering enum cases can't remap existing rows.
+- **Migrations are additive.** Append a new `if (from < N)` block; never edit a
+  shipped one. The v5→v6 `TableMigration` is still the **only** table rebuild in
+  the entire history.
+- **Reach for the `AppSettings` KV table before adding a table.** Several
+  features ship with no migration at all because their state is two key-value rows.
+- **Aggregates are computed in SQL**, not by loading rows into Dart and summing.
+- **No user-facing English in BLoCs** — store a typed error, let the page map it
+  to ARB.
+- **Tests use hand-written fakes**, never real Drift/plugins; `integration_test/`
+  is the narrow exception for when the native engine *is* what's under test.
 
 ### Reference projects
 - Licensing/server arch → `D:\work\Flutter\Smart-Agent` (`smart_agent`).
@@ -49,7 +83,29 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
 | Cash | **Cashbox** / cash drawer (schema **v9**) | ✅ Done |
 | Ledger | Customer duplicate-name guard | ✅ Done |
 | Build | Android release-build fix (`flutter_vibrate` lStar) | ✅ Done |
-| 4+ | Inventory / purchases / expenses / reports / multi-store | ⬜ Future |
+| Build | Release signing with an owned keystore + per-ABI APKs | ✅ Done |
+| Brand | Ribbon-ف adaptive launcher icon, Cairo font bundled offline | ✅ Done |
+| POS | Strict inventory mode (opt-in block-oversell) | ✅ Done |
+| 4+ | Purchases / suppliers / expenses / multi-store | ⬜ Future |
+
+### Numbered plans (`docs/plans/`)
+
+The design docs are the rationale of record — code comments cite them by number.
+Each plan's own header carries its as-built detail.
+
+| Plan | Feature | Status |
+|---|---|---|
+| **001** | Cloud backup & restore (Google Drive) | ✅ Shipped — `drive.file` scope, `VACUUM INTO`, auto-backup |
+| **002** | Multi-device sync | ⏸️ **Deferred to V2** — no code. The hardest item in the roadmap |
+| **003** | Dual currency (SP base + USD sticker) | ✅ Shipped — schema **v10** |
+| **004** | Historical price recalculation | ❌ **Rejected permanently.** Not a backlog item — history is immutable |
+| **005** | Promotions / discounts | ✅ V1 shipped — schema **v12**. Rules engine + standing sale price deferred |
+| **006** | Free trial | ✅ Shipped — one display flag, no new state, no migration |
+| **007** | WhatsApp integration & sharing (PNG cards) | ✅ Shipped — `core/share/`. PDF deferred |
+| **008** | Analytics dashboard | ✅ Lean V1 shipped — zero new tables. V1.5 list deferred |
+| **009** | Smart assistant & intelligent alerts | ⏸️ **Deferred to V2** — no code. 008 already ships the passive version |
+| **010** | Dynamic product attributes | ✅ Bucket A **feature-complete** (V1→V1.4), schema **v13**. Buckets B/C are separate plans |
+| **011** | V1 field-feedback fixes (11 items) | ✅ **All 11 shipped** + 2 follow-ups, schema **v14** |
 
 ---
 
@@ -100,7 +156,12 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
   Android manifest (release builds couldn't reach the license server / open
   WhatsApp).
 
-### ✅ Phase 3 — FCM live-unlock  *(dormant by default)*
+### ✅ Phase 3 — FCM live-unlock  *(now LIVE — see note)*
+
+> **Update (2026-07-26):** no longer dormant. Firebase project `fawateer-4c9bc`
+> is configured, `google-services.json` is in place and the google-services
+> Gradle plugin line is committed (no longer stubbed). ⚠️ That JSON is
+> **gitignored**, so a fresh clone will fail to build until it's restored.
 - `PushNotificationService` (`features/licensing/data/services/`): a data
   message with `data.type` ∈ {`new_plan_activated`, `subscription_activated`,
   `license_updated`} → `onLicenseChanged` → `main.dart` wires it to
@@ -243,29 +304,184 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
 
 ---
 
-## Not started
+### ✅ Plan 001 — Cloud backup & restore  *(Google Drive)*
+- Backs up the **entire live SQLite file** (`VACUUM INTO`), not a row/JSON
+  export — every table captured with no per-feature serialization, but restore
+  is **all-or-nothing**. `drive.file` scope only, chosen so Google requires no
+  app-verification review. No client-side encryption.
+- **Three independent restore guards**: schema-downgrade refusal, SHA-256
+  integrity check *before* the live DB is touched, and a rollback-safe swap
+  (`.pre-restore` copy, `-wal`/`-shm` deleted first). A restore **kills the app**
+  — there's no in-Dart reinit of `AppDatabase`/`sl`.
+- `AutoBackupService` fires on launch/resume, skipping under 24 h (no
+  WorkManager). Drive account is recorded server-side and hinted back on
+  reinstall. No new table.
 
-- ⬜ **Larger modules** — inventory management, purchase invoices, expenses,
-  reports, multi-store. (Architecture was kept scalable for these.)
+### ✅ Plan 003 — Dual currency  *(schema v10)*
+- SP is the **one book currency**; USD is a *pricing label* on a product,
+  resolved to SP at the moment of sale. The rule held: nothing downstream
+  (history, ledger, cashbox, reports) needed changing.
+- Rate lives in two `AppSettings` rows, **not a table**. `usdToSp` rounds to a
+  whole pound and returns `null` when unset, so callers must guard —
+  `CartItem.isUnpriced` blocks checkout. Old invoices are immune to rate edits
+  (`priceCurrency`/`fxRate`/`priceOriginal` snapshotted per line).
+
+### ✅ Plan 005 — Manual discounts  *(schema v12)*
+- Per-line + one whole-cart discount, both stored as **resolved SP amounts**.
+  Percent-vs-amount is a UI affordance only — **no `isPercentage` flag is
+  stored**. Cart discount **stacks on top of** line discounts.
+- Clamping is deliberately redundant in three places; that's load-bearing, since
+  discounts aren't re-validated when quantity changes.
+
+### ✅ Plan 006 — Free trial
+- One plain `isTrial` display flag — **no new endpoint, no new `LicenseStatus`
+  state, no migration**, and **zero trial branching in `LicenseGuards`**. The
+  gate, grace and tamper checks treat trial and paid identically.
+- Anti-abuse is **server-side only**, keyed on device id. A local first-launch
+  date was explicitly rejected (trivially reset by clearing app data).
+- Guards have since moved: offline grace **7 days** (warning banner from day 3),
+  clock-rollback threshold **48 h**. A guard-blocked-but-valid license routes to
+  `/activation/verify`, not the plans page.
+
+### ✅ Plan 007 — Sharing / WhatsApp  *(PNG cards)*
+- One transport (`share_plus`) + pluggable renderers, so WhatsApp / Telegram /
+  email / Drive all work with **no per-channel code**.
+- `captureWidgetToPng` mounts the card off-screen in the app's *real* `Overlay`
+  — deliberate, so it inherits `Directionality`/`Localizations`/`Theme`, which
+  is what makes Arabic/RTL render correctly. **Not the same technique as the
+  thermal receipts** (monochrome 384px `dart:ui` raster); the two don't
+  generalize to each other.
+
+### ✅ Plan 008 — Analytics dashboard  *(zero new tables)*
+- `DashboardDao` is a read-only `@DriftAccessor` over six existing tables; every
+  aggregate is computed **in SQL**, never by summing rows in Dart.
+- Not a route or a tab — it's the default sub-view *inside* the Reports tab.
+- Live via a **change-ticker** (`SELECT 1` with `readsFrom:`), so any
+  sale/cash/debt/stock write re-runs all 10 aggregates.
+- ⚠️ Profit SQL is **duplicated by design** with `SalesDao.watchAuditSummary` —
+  change one, change the other or the two screens disagree.
+
+### ✅ Plan 010 — Dynamic product attributes  *(bucket A complete, schema v13)*
+- Owner-defined custom fields: definitions in `attribute_definitions`, per-product
+  values as a JSON map. **No index table** — search/filter runs in Dart over the
+  in-memory product list (deliberately dropped for simple shops).
+- **V1.1** receipt printing of `showOnReceipt` fields (snapshotted at sale time,
+  reprint-immune). **V1.2** search-by-any-attribute-value + filter chips.
+  **V1.3** "Sales by field" report group-by via `json_extract` in SQL (JSON path
+  is a **bound parameter**). **V1.4** thermal product labels with Code128/QR.
+- **Not built (separate future plans):** bucket B (Size×Color variants) and
+  bucket C (IMEI/serial per-unit tracking). Seams left additive.
+
+### ✅ Plan 011 — V1 field-feedback fixes  *(all 11 items, schema v14)*
+Source: a shopkeeper's notes after real use. Shipped in four waves —
+**A** (empty add-product defaults, scanned item jumps to top, newest-first
+product list, faster snackbars); **B** (out-of-stock visibility, invoice-as-table
+6-column layout); **C** (app-wide font size, print-button toggle); **D** (scanner
+overhaul).
+- **The scanner story is the notable one.** A product that "couldn't be read"
+  turned out to be an **inverted barcode** — white bars on a red tin — which ML
+  Kit cannot decode natively at any angle. The rival app ships ML Kit too, so
+  the engine was never the difference; **frame preprocessing** was. Fixed by
+  upgrading `mobile_scanner` 5.2.3 → 7.4.0 for `invertImage` and shipping a
+  "باركود فاتح" toggle. **Confirmed reading on-device.**
+- Also layered in: a `formats:` whitelist, 1280×720 analysis resolution with a
+  **self-healing fallback** (a hard-pinned 1920×1080 had latched "camera
+  unavailable"), **multi-frame confirmation** (2 consecutive identical decodes)
+  to reject checksum-valid-but-wrong misreads, real tap-to-focus and zoom.
+- **Auto-alternating polarity was investigated and rejected**: `invertImage` is
+  construction-time, so each flip rebinds the camera (~0.3–0.6 s blind). Ships a
+  6-second no-decode hint chip instead — the toggle already worked, but nothing
+  told the cashier *when* to reach for it.
+- **Follow-up:** `sales_items.saleType` snapshot (v13→v14) — found while scoping
+  it that **reprints dropped the unit entirely** (original ≠ reprint of the same
+  invoice). Verified on-device by `integration_test/migration_v14_test.dart`.
+
+### ✅ Navigation — Android back button
+- Back on any tab root used to bubble to the system and **kill the app
+  instantly** (a shop reported one stray thumb tap closing the till mid-sale).
+  `AppShell` now holds a `PopScope(canPop: false)`: from a non-POS tab it goes
+  home, on POS it needs a confirming second press.
+- Safe because Flutter asks the **innermost navigator first** — a pushed page
+  still pops on its own branch navigator and never reaches the shell.
+
+---
+
+## Deferred by decision — *not* a backlog
+
+These are closed decisions, not unfinished work. Re-opening any of them should
+start from the plan doc, which records why.
+
+- ⏸️ **Plan 002 — multi-device sync** (V2). Genuine distributed-systems
+  territory; the plan is phased to ship the conflict-free half first.
+- ⏸️ **Plan 009 — smart assistant / alerts** (V2). Plan 008 already ships the
+  *passive* version of the top-3 alerts (low-stock list, top-debtors list, KPI
+  delta arrows); 009 converts pull → push, which is polish on something that
+  exists rather than a missing capability.
+- ❌ **Plan 004 — historical price recalculation. Rejected permanently.** A
+  completed sale is a finished fact. Do not build this.
+- 🔒 **Plan 005** — standing per-product sale price (V1.5) and the automatic
+  rules engine (V2).
+- 🔒 **Plan 007** — PDF renderer (the `pdf` dep is still deliberately unadded).
+- 🔒 **Plan 008 V1.5+** — hourly sales, inventory turnover, slow-moving products,
+  customer top-buyers, dashboard-as-image share.
+- 🔒 **Plan 010** — bucket B (Size×Color variants), bucket C (IMEI/serial).
+- ⬜ **Larger modules** — purchase invoices, suppliers, expenses, multi-store.
+  Architecture was kept scalable for these; `CashTransactionType` already
+  reserves `purchasePayment`/`supplierPayment` so they can post to the cashbox
+  with no migration.
 
 ---
 
 ## Before shipping — verification debt
 
-Everything so far is validated by **`flutter analyze` only**:
-- `flutter test` can't run in this environment (test-listener **websocket 503**
-  at load — affects untouched tests too).
-- Nothing has been exercised on a **real device** — especially the printer /
-  Arabic-raster path, the licensing HTTP calls, and the FCM flow (which also
-  needs a live Firebase project + server-side push).
-- **Newly untested on-device flows:** the **v8→v9 migration** (cashbox table)
-  over a real pre-existing DB; the **cashbox** auto-post + reversal (cash sale,
-  debt repayment, and deleting either source) and the derived-balance math; the
-  **sales audit center** filters/summary/pagination over real data; the
-  duplicate-name guard; and — still pending from before — the **sell-by-weight**
-  entry, **editable account** sync, and **in-app update** dialog.
+**This is the real next step, and it has grown rather than shrunk.**
 
-**Recommended:** a device smoke-test pass before further feature work.
+`flutter test` **now runs fine** (the old websocket-503 blocker is gone) —
+**108 tests pass**, `flutter analyze` clean. But those tests drive BLoCs against
+**hand-written fakes** by design: they never touch Drift, native SQLite, the
+printer, the camera, or the network. That's the right test architecture, and it
+structurally cannot tell you whether the app works on a phone.
+
+**Confirmed on real hardware — the complete list:**
+- the **v13→v14 migration** (`integration_test/migration_v14_test.dart`)
+- **Sales-by-field** group-by SQL (`integration_test/sales_by_field_test.dart`)
+- the **inverted-barcode** fix, on the actual failing red-tin product
+
+**Never exercised on a device:**
+- 🔴 **Backup *restore*** — three guards and a rollback swap, none of which has
+  ever run against a real Drive snapshot. Highest blast radius in the app: it
+  deletes and swaps the live database, and its failure mode is a shop losing
+  their books. **Verify this first.**
+- 🔴 **Migrations over a real shop's pre-existing DB** — v8→v9 (cashbox) and
+  v10→v14. Only v13→v14 has a device test.
+- 🟠 The **printer / Arabic-raster** path (receipts, statements, product labels).
+- 🟠 **Cashbox** auto-post + reversal and the derived-balance math.
+- 🟠 The **licensing HTTP calls** and the **FCM live-unlock** end-to-end.
+- 🟡 Sell-by-weight entry, editable-account sync, the in-app update dialog, the
+  sales audit centre over real data, and the **Android back-button fix**
+  (shipped 2026-07-26, still unverified).
+
+**Recommendation: a device smoke-test pass before any further feature work**,
+starting with restore and the migrations.
+
+### Operational items that gate selling, not building
+
+- **The backend is still Smart-Agent's** (`harrypotter.foodsalebot.com/api`,
+  keyed `app_name: 'Fawateer'`). Always a placeholder; subscriptions currently
+  run on another app's server. Swapping it is a one-line
+  `ApiConfig.defaultBaseUrl` change *plus* a server-side migration.
+- **The remote-config JSON is hosted on Google Drive**, which Plan 001's own
+  author flagged as fragile and recommended moving to the server that already
+  serves the APKs. That file controls the API base URL and the update prompt —
+  if Drive changes its download-URL scheme, you lose the ability to repoint the
+  server without shipping a build.
+- ✅ **FCM is no longer dormant** — `google-services.json` is in place (project
+  `fawateer-4c9bc`) and the Gradle plugin line is committed, so live-unlock is
+  real. Note the file is gitignored: a fresh clone **will fail to build** until
+  it's restored. See `android/README-fcm.md`.
+- 🔑 **Losing the release keystore is unrecoverable** — Android refuses updates
+  signed with a different key. It lives outside the repo, pointed at by the
+  gitignored `android/key.properties`. See `docs/android-release-signing.md`.
 
 ---
 
@@ -294,3 +510,27 @@ Everything so far is validated by **`flutter analyze` only**:
 | `b9e41b8` | Customer duplicate-name validation + localization |
 | `3e1e961` | Sales history & audit center |
 | `f6b5e82` | Android release-build fix (`flutter_vibrate` lStar / compileSdk 34) |
+
+### Since 2026-07-11 (grouped — 50 commits)
+
+| Commits | What |
+|--------|------|
+| `933300f`, `a3bea68`, `34dbe87` | **Plan 001** — Drive backup/restore, account hint on reinstall, auto-backup toggle |
+| `6571bac` | Plan 002 architecture revision (design only, still V2) |
+| `66d74d5`, `e788adf`, `1f06a4b` | **Plan 003** — dual currency, `ل.س` default, exchange-rate modal |
+| `166cb1b` | **Plan 005** — manual line + whole-cart discounts |
+| `895a6c4`, `7b69b35`, `ac33f7d`, `f337daf` | **Plan 006** — free trial, expiry notices, verification screen + offline banner |
+| `169ad46` | **Plan 007** — styled PNG share cards |
+| `15debe0` | **Plan 008** — analytics dashboard |
+| `8f4b4dd` | Plan 009 deferred to V2 with rationale |
+| `92ddd57`, `a20c1ef`, `a9fcb5c`, `4ad8e3a`, `86af86b`, `1b4c289` | **Plan 010** — dynamic attributes V1 → V1.4 (fields, receipt print, search/filter, report group-by, labels) |
+| `159496b`, `b19d83c`, `a006531`, `481df9c`, `7523f5d`, `fcb5380` | **Plan 011** — waves A–D |
+| `f03e8cf`, `e210349`, `5256c79`, `b8c31f6`, `41068db` | Scanner hardening — resolution fallback, multi-frame confirmation, mobile_scanner 7.4.0 + invert toggle, hint chip |
+| `854ccb7` | `sales_items.saleType` snapshot (**schema v13→v14**) |
+| `48c6fb2` | Android back button no longer closes the app from a tab root |
+| `ebc1fbe` | Strict inventory mode (opt-in block-oversell) |
+| `84d1992` | Release signing with an owned keystore + per-ABI APKs |
+| `069e49a`, `9c0c325`, `00e4966` | Branding — Cairo bundled offline, themed button roles, ribbon-ف adaptive icon |
+| `1d9c14c`, `9aafc22`, `487991a`, `b3c7e15`, `0305b19` | FCM foreground handling, update check + prompt hardening, per-ABI download URLs, API config |
+| `ca7c2ad`, `606a171`, `4c86dd2`, `60f2332`, `f808cf9` | Product uniqueness + barcode-not-found search, snackbar dismissal, settings/support polish |
+| `dc388fd`, `1778abc` | Housekeeping — stray tracked files, CLAUDE.md drift corrections |

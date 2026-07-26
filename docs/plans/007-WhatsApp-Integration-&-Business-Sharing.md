@@ -1,6 +1,25 @@
 # Plan 007 — WhatsApp Integration & Business Sharing
 
-> **Status:** Design plan (no code). Prepared by CTO / Product Architect / UX review.
+> **Status:** ✅ **SHIPPED** — `core/share/` (widget→PNG capture, `ShareService`,
+> and the cards in `core/share/cards/`), used for invoices, cashbox summaries
+> and sales summaries. No schema change.
+> **As built:** the one-transport decision paid off exactly as argued —
+> WhatsApp/Telegram/email/Drive all work with **no per-channel code**.
+> `captureWidgetToPng` mounts the card in an **off-screen `OverlayEntry`**
+> (`left: -logicalWidth * 3`) inside the app's *real* `Overlay` — deliberate, so
+> it inherits `Directionality`/`Localizations`/`Theme`, which is what makes
+> Arabic/RTL render correctly. It waits two `endOfFrame`s (layout + paint)
+> before `toImage(pixelRatio: 3.0)`. No screenshot package is involved.
+> **⚠️ Do not conflate this with the thermal receipts.** The warning at line 68
+> was right and remains load-bearing: `ReceiptImage.buildTextEscPosBytes` paints
+> via low-level `dart:ui` `Canvas`/`ParagraphBuilder` into **monochrome 384px**
+> raster bytes for a printer; share cards capture a **full-color Material
+> widget** into a PNG. The two techniques do not generalize to each other — they
+> share only the underlying reason (Flutter's text engine shapes Arabic, so both
+> ship pixels rather than text bytes).
+> **Still deferred (as decided):** PDF renderer (the `pdf` dep is still not
+> added) and the best-selling-products card — though Plan 008's dashboard has
+> since delivered top-products in the Reports tab, so that item is largely moot.
 > **Decision (locked with the owner):** **One transport — `share_plus` native
 > share sheet — with pluggable content renderers.** Default artifact = a **styled
 > PNG** (receipt / summary card); **plain text** for quick reminders. PDF, QR,
