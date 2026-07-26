@@ -1565,7 +1565,7 @@ abstract class AppLocalizations {
   /// No description provided for @unitsTitle.
   ///
   /// In en, this message translates to:
-  /// **'Units — {product}'**
+  /// **'Pieces — {product}'**
   String unitsTitle(String product);
 
   /// No description provided for @unitsSummary.
@@ -1577,13 +1577,13 @@ abstract class AppLocalizations {
   /// No description provided for @unitsAdd.
   ///
   /// In en, this message translates to:
-  /// **'Add unit'**
+  /// **'Add item'**
   String get unitsAdd;
 
   /// No description provided for @unitsSerialLabel.
   ///
   /// In en, this message translates to:
-  /// **'IMEI / Serial number'**
+  /// **'Serial number'**
   String get unitsSerialLabel;
 
   /// No description provided for @unitsSerialHint.
@@ -1595,20 +1595,26 @@ abstract class AppLocalizations {
   /// No description provided for @unitsSearchHint.
   ///
   /// In en, this message translates to:
-  /// **'Search by IMEI / serial'**
+  /// **'Search by serial number'**
   String get unitsSearchHint;
 
   /// No description provided for @unitsEmpty.
   ///
   /// In en, this message translates to:
-  /// **'No units yet.\nAdd one for each physical item you have in stock.'**
+  /// **'No items yet.\nAdd one for each piece you have in stock.'**
   String get unitsEmpty;
 
   /// No description provided for @unitsNoMatch.
   ///
   /// In en, this message translates to:
-  /// **'No unit matches that number.'**
+  /// **'No item matches that number.'**
   String get unitsNoMatch;
+
+  /// No description provided for @serialLabelShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Serial'**
+  String get serialLabelShort;
 
   /// No description provided for @unitsNoSerial.
   ///
@@ -1673,7 +1679,7 @@ abstract class AppLocalizations {
   /// No description provided for @unitsAdded.
   ///
   /// In en, this message translates to:
-  /// **'Unit added'**
+  /// **'Item added'**
   String get unitsAdded;
 
   /// No description provided for @unitsSaved.
@@ -1685,13 +1691,13 @@ abstract class AppLocalizations {
   /// No description provided for @unitsDeleted.
   ///
   /// In en, this message translates to:
-  /// **'Unit deleted'**
+  /// **'Item deleted'**
   String get unitsDeleted;
 
   /// No description provided for @unitsLoadFailed.
   ///
   /// In en, this message translates to:
-  /// **'Could not load units.'**
+  /// **'Could not load the list.'**
   String get unitsLoadFailed;
 
   /// No description provided for @unitsSaveFailed.
@@ -1703,43 +1709,43 @@ abstract class AppLocalizations {
   /// No description provided for @unitsDuplicateSerial.
   ///
   /// In en, this message translates to:
-  /// **'This number is already registered to another unit.'**
+  /// **'This number is already registered. Check whether you scanned the same piece twice.'**
   String get unitsDuplicateSerial;
 
   /// No description provided for @unitsDeleteBlockedSold.
   ///
   /// In en, this message translates to:
-  /// **'This unit has been sold and cannot be deleted — its record links the serial to its invoice.'**
+  /// **'This piece has been sold and cannot be deleted — its record links the serial number to its invoice.'**
   String get unitsDeleteBlockedSold;
 
   /// No description provided for @unitsDeleteTitle.
   ///
   /// In en, this message translates to:
-  /// **'Delete this unit?'**
+  /// **'Delete this piece?'**
   String get unitsDeleteTitle;
 
   /// No description provided for @unitsDeleteBody.
   ///
   /// In en, this message translates to:
-  /// **'The unit will be removed from stock. This cannot be undone.'**
+  /// **'It will be removed from stock. This cannot be undone.'**
   String get unitsDeleteBody;
 
   /// No description provided for @productSerialized.
   ///
   /// In en, this message translates to:
-  /// **'Track individual units (IMEI / serial)'**
+  /// **'Each piece has its own serial number'**
   String get productSerialized;
 
   /// No description provided for @productSerializedHint.
   ///
   /// In en, this message translates to:
-  /// **'For phones and devices where each item has its own number. Stock is then counted from the units you add.'**
+  /// **'Turn on for goods tracked one by one — phones, appliances, tools, gold. Stock is then counted from the pieces you add.'**
   String get productSerializedHint;
 
   /// No description provided for @productUnitsAction.
   ///
   /// In en, this message translates to:
-  /// **'Units'**
+  /// **'Pieces'**
   String get productUnitsAction;
 
   /// No description provided for @stockFromUnitsHint.
@@ -1751,7 +1757,7 @@ abstract class AppLocalizations {
   /// No description provided for @unitNotAvailableError.
   ///
   /// In en, this message translates to:
-  /// **'This item ({serial}) is no longer in stock — it has already been sold.'**
+  /// **'This piece (serial {serial}) is no longer in stock — it has already been sold.'**
   String unitNotAvailableError(String serial);
 
   /// No description provided for @unknownBarcodeTitle.

@@ -286,7 +286,7 @@
       }
     }
   },
-  "unitsTitle": "Units — {product}",
+  "unitsTitle": "Pieces — {product}",
   "@unitsTitle": {
     "placeholders": { "product": { "type": "String" } }
   },
@@ -297,12 +297,13 @@
       "total": { "type": "int" }
     }
   },
-  "unitsAdd": "Add unit",
-  "unitsSerialLabel": "IMEI / Serial number",
+  "unitsAdd": "Add item",
+  "unitsSerialLabel": "Serial number",
   "unitsSerialHint": "Scan or type the number",
-  "unitsSearchHint": "Search by IMEI / serial",
-  "unitsEmpty": "No units yet.\nAdd one for each physical item you have in stock.",
-  "unitsNoMatch": "No unit matches that number.",
+  "unitsSearchHint": "Search by serial number",
+  "unitsEmpty": "No items yet.\nAdd one for each piece you have in stock.",
+  "unitsNoMatch": "No item matches that number.",
+  "serialLabelShort": "Serial",
   "unitsNoSerial": "(no serial)",
   "unitsSetWarranty": "Set warranty date",
   "unitsMarkDefective": "Mark as defective",
@@ -319,20 +320,20 @@
   "unitStatusSold": "Sold",
   "unitStatusReturned": "Returned",
   "unitStatusDefective": "Defective",
-  "unitsAdded": "Unit added",
+  "unitsAdded": "Item added",
   "unitsSaved": "Saved",
-  "unitsDeleted": "Unit deleted",
-  "unitsLoadFailed": "Could not load units.",
+  "unitsDeleted": "Item deleted",
+  "unitsLoadFailed": "Could not load the list.",
   "unitsSaveFailed": "Could not save. Please try again.",
-  "unitsDuplicateSerial": "This number is already registered to another unit.",
-  "unitsDeleteBlockedSold": "This unit has been sold and cannot be deleted — its record links the serial to its invoice.",
-  "unitsDeleteTitle": "Delete this unit?",
-  "unitsDeleteBody": "The unit will be removed from stock. This cannot be undone.",
-  "productSerialized": "Track individual units (IMEI / serial)",
-  "productSerializedHint": "For phones and devices where each item has its own number. Stock is then counted from the units you add.",
-  "productUnitsAction": "Units",
+  "unitsDuplicateSerial": "This number is already registered. Check whether you scanned the same piece twice.",
+  "unitsDeleteBlockedSold": "This piece has been sold and cannot be deleted — its record links the serial number to its invoice.",
+  "unitsDeleteTitle": "Delete this piece?",
+  "unitsDeleteBody": "It will be removed from stock. This cannot be undone.",
+  "productSerialized": "Each piece has its own serial number",
+  "productSerializedHint": "Turn on for goods tracked one by one — phones, appliances, tools, gold. Stock is then counted from the pieces you add.",
+  "productUnitsAction": "Pieces",
   "stockFromUnitsHint": "Counted from the units you add — open Units to change it.",
-  "unitNotAvailableError": "This item ({serial}) is no longer in stock — it has already been sold.",
+  "unitNotAvailableError": "This piece (serial {serial}) is no longer in stock — it has already been sold.",
   "@unitNotAvailableError": {
     "placeholders": {
       "serial": {

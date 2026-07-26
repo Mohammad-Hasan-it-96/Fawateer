@@ -766,7 +766,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String unitsTitle(String product) {
-    return 'Units — $product';
+    return 'Pieces — $product';
   }
 
   @override
@@ -775,23 +775,26 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String get unitsAdd => 'Add unit';
+  String get unitsAdd => 'Add item';
 
   @override
-  String get unitsSerialLabel => 'IMEI / Serial number';
+  String get unitsSerialLabel => 'Serial number';
 
   @override
   String get unitsSerialHint => 'Scan or type the number';
 
   @override
-  String get unitsSearchHint => 'Search by IMEI / serial';
+  String get unitsSearchHint => 'Search by serial number';
 
   @override
   String get unitsEmpty =>
-      'No units yet.\nAdd one for each physical item you have in stock.';
+      'No items yet.\nAdd one for each piece you have in stock.';
 
   @override
-  String get unitsNoMatch => 'No unit matches that number.';
+  String get unitsNoMatch => 'No item matches that number.';
+
+  @override
+  String get serialLabelShort => 'Serial';
 
   @override
   String get unitsNoSerial => '(no serial)';
@@ -828,44 +831,44 @@ class AppLocalizationsEn extends AppLocalizations {
   String get unitStatusDefective => 'Defective';
 
   @override
-  String get unitsAdded => 'Unit added';
+  String get unitsAdded => 'Item added';
 
   @override
   String get unitsSaved => 'Saved';
 
   @override
-  String get unitsDeleted => 'Unit deleted';
+  String get unitsDeleted => 'Item deleted';
 
   @override
-  String get unitsLoadFailed => 'Could not load units.';
+  String get unitsLoadFailed => 'Could not load the list.';
 
   @override
   String get unitsSaveFailed => 'Could not save. Please try again.';
 
   @override
   String get unitsDuplicateSerial =>
-      'This number is already registered to another unit.';
+      'This number is already registered. Check whether you scanned the same piece twice.';
 
   @override
   String get unitsDeleteBlockedSold =>
-      'This unit has been sold and cannot be deleted — its record links the serial to its invoice.';
+      'This piece has been sold and cannot be deleted — its record links the serial number to its invoice.';
 
   @override
-  String get unitsDeleteTitle => 'Delete this unit?';
+  String get unitsDeleteTitle => 'Delete this piece?';
 
   @override
   String get unitsDeleteBody =>
-      'The unit will be removed from stock. This cannot be undone.';
+      'It will be removed from stock. This cannot be undone.';
 
   @override
-  String get productSerialized => 'Track individual units (IMEI / serial)';
+  String get productSerialized => 'Each piece has its own serial number';
 
   @override
   String get productSerializedHint =>
-      'For phones and devices where each item has its own number. Stock is then counted from the units you add.';
+      'Turn on for goods tracked one by one — phones, appliances, tools, gold. Stock is then counted from the pieces you add.';
 
   @override
-  String get productUnitsAction => 'Units';
+  String get productUnitsAction => 'Pieces';
 
   @override
   String get stockFromUnitsHint =>
@@ -873,7 +876,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String unitNotAvailableError(String serial) {
-    return 'This item ($serial) is no longer in stock — it has already been sold.';
+    return 'This piece (serial $serial) is no longer in stock — it has already been sold.';
   }
 
   @override

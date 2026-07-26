@@ -239,7 +239,7 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
                     // handset?" from unanswerable into one lookup.
                     if (item.serialSnapshot.isNotEmpty)
                       Text(
-                        'IMEI/SN: ${item.serialSnapshot}',
+                        '${l10n.serialLabelShort}: ${item.serialSnapshot}',
                         style: TextStyle(
                           fontSize: 11,
                           fontFamily: 'monospace',

@@ -774,20 +774,23 @@ class AppLocalizationsAr extends AppLocalizations {
   String get unitsAdd => 'إضافة قطعة';
 
   @override
-  String get unitsSerialLabel => 'رقم IMEI / التسلسلي';
+  String get unitsSerialLabel => 'الرقم التسلسلي';
 
   @override
   String get unitsSerialHint => 'امسح الرقم أو اكتبه';
 
   @override
-  String get unitsSearchHint => 'بحث برقم IMEI / التسلسلي';
+  String get unitsSearchHint => 'بحث بالرقم التسلسلي';
 
   @override
   String get unitsEmpty =>
-      'لا توجد قطع بعد.\nأضف قطعة لكل جهاز موجود لديك في المخزون.';
+      'لا توجد قطع بعد.\nأضف قطعة لكل وحدة موجودة لديك في المخزون.';
 
   @override
   String get unitsNoMatch => 'لا توجد قطعة بهذا الرقم.';
+
+  @override
+  String get serialLabelShort => 'الرقم التسلسلي';
 
   @override
   String get unitsNoSerial => '(بدون رقم)';
@@ -833,13 +836,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get unitsDeleted => 'تم حذف القطعة';
 
   @override
-  String get unitsLoadFailed => 'تعذّر تحميل القطع.';
+  String get unitsLoadFailed => 'تعذّر تحميل القائمة.';
 
   @override
   String get unitsSaveFailed => 'تعذّر الحفظ. حاول مرة أخرى.';
 
   @override
-  String get unitsDuplicateSerial => 'هذا الرقم مسجّل مسبقاً لقطعة أخرى.';
+  String get unitsDuplicateSerial =>
+      'هذا الرقم مسجّل مسبقاً. تأكّد أنك لم تمسح القطعة نفسها مرتين.';
 
   @override
   String get unitsDeleteBlockedSold =>
@@ -853,11 +857,11 @@ class AppLocalizationsAr extends AppLocalizations {
       'سيتم حذف القطعة من المخزون. لا يمكن التراجع عن هذا الإجراء.';
 
   @override
-  String get productSerialized => 'تتبّع القطع فردياً (IMEI / رقم تسلسلي)';
+  String get productSerialized => 'لكل قطعة رقم تسلسلي خاص';
 
   @override
   String get productSerializedHint =>
-      'للهواتف والأجهزة التي لكل قطعة منها رقم خاص. عندها يُحتسب المخزون من القطع التي تضيفها.';
+      'فعّلها للبضائع التي تُتابَع قطعة قطعة — الهواتف، الأجهزة، العدّة، الذهب. عندها يُحتسب المخزون من القطع التي تضيفها.';
 
   @override
   String get productUnitsAction => 'القطع';
@@ -868,7 +872,7 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String unitNotAvailableError(String serial) {
-    return 'هذه القطعة ($serial) لم تعد في المخزون — تم بيعها مسبقاً.';
+    return 'هذه القطعة (الرقم التسلسلي $serial) لم تعد في المخزون — تم بيعها مسبقاً.';
   }
 
   @override

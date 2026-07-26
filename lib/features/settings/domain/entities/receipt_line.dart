@@ -1,3 +1,15 @@
+/// Label prefixing a serialized item's number on a printed receipt (Plan 012).
+///
+/// Deliberately the **generic** Arabic term, not "IMEI": Fawateer is a general
+/// POS, and the same feature serves hardware, appliance and jewellery shops for
+/// whom "IMEI" is meaningless jargon. Phones are one case, not the framing.
+///
+/// Hardcoded rather than localized for the same reason `'كغ'` is — receipts are
+/// rendered as an Arabic bitmap regardless of the app's UI locale, and both the
+/// sale and the reprint must produce byte-identical text. Defined once here so
+/// the two paths can't drift apart.
+const String kSerialReceiptLabel = 'الرقم التسلسلي';
+
 /// A single printable line on a receipt. Keeps the printer repository free of
 /// any cart/invoice types — callers map their data into these.
 class ReceiptLine {

@@ -414,7 +414,8 @@ void main() {
           .firstWhere((s) => s.reprintStatus == ReprintStatus.idle)
           .timeout(const Duration(seconds: 2));
 
-      expect(printer.lines.single.attributes, contains('IMEI/SN: IMEI-1'));
+      expect(printer.lines.single.attributes,
+          contains('$kSerialReceiptLabel: IMEI-1'));
       await history.close();
     });
 

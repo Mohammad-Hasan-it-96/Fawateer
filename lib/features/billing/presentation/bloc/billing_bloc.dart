@@ -510,7 +510,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
               // Same sub-line treatment as the reprint path, so the original
               // receipt and its reprint are identical (Plan 012).
               if (i.unit != null && i.unit!.serial.isNotEmpty)
-                'IMEI/SN: ${i.unit!.serial}',
+                '$kSerialReceiptLabel: ${i.unit!.serial}',
               ..._printableAttrStrings(i.product),
             ],
           ))

@@ -146,6 +146,37 @@ not one line with quantity 2. That falls out of the model, keeps the serial
 snapshot one-to-one with the line, and matches how the cashier physically scans:
 one IMEI at a time.
 
+### D7. The UI never says "IMEI" — it says "serial number" / "قطعة"
+
+**Corrected after owner review of the first cut, which was littered with
+"IMEI".** Fawateer is a *general* POS for small shops. Phones motivated this
+plan, but the feature is generic — track each piece by its own number — and
+serves hardware, appliance, tool and jewellery shops equally. A grocer or
+hardware-shop owner opening a screen captioned "IMEI / Serial number" has no
+idea what it means, and the jargon makes a simple feature look like it isn't
+for them.
+
+So: user-facing strings use **الرقم التسلسلي / "serial number"** and **قطعة /
+"piece"**; phones appear only as one example among several in the toggle's hint.
+The printed receipt label is the const `kSerialReceiptLabel` (defined once in
+`receipt_line.dart`, so the sale and reprint paths can't drift). Code
+identifiers and developer comments still cite IMEI as the motivating example —
+that is fine, developers benefit from the concrete case.
+
+### D8. The unique serial index guards *data entry*, not physics
+
+No two devices share a serial in reality — that is exactly why the index is
+correct, and it is worth being precise about what it catches. A duplicate in
+this database never means "two real items collided"; it always means an **input
+mistake**: the same piece scanned twice, a typo, or re-adding something already
+on file. The error message therefore points at that ("check whether you scanned
+the same piece twice") rather than implying the shop owns two identical items.
+
+The one legitimate re-add case — a piece sold, then returned and put back on the
+shelf — is handled by the `returned` → `inStock` status flow, **not** by adding
+a second row. That keeps the original sale's serial → invoice link intact, which
+is what a later warranty claim reads.
+
 ### D6. The scan fallback order is barcode → serial
 
 Barcode first, because it is the overwhelmingly common case and already indexed.

@@ -164,13 +164,14 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
                 // Replay the show-on-receipt custom fields snapshotted at sale
                 // time (Plan 010), so a reprint matches the original receipt.
                 attributes: [
-                  // The serial leads the sub-lines (Plan 012): on a phone
-                  // receipt it is the line the customer and any warranty claim
-                  // actually care about. Replayed from the snapshot, so it
-                  // survives the unit row being deleted. Label kept as the
-                  // Latin "IMEI/SN" — that is how these numbers are printed on
-                  // real receipts, and it reads the same in both locales.
-                  if (i.serialSnapshot.isNotEmpty) 'IMEI/SN: ${i.serialSnapshot}',
+                  // The serial leads the sub-lines (Plan 012): it is the line a
+                  // customer and any warranty claim actually care about.
+                  // Replayed from the snapshot, so it survives the unit row
+                  // being deleted. Labelled generically — this is a general POS,
+                  // and "IMEI" would be meaningless to a hardware or jewellery
+                  // shop using the same feature.
+                  if (i.serialSnapshot.isNotEmpty)
+                    '$kSerialReceiptLabel: ${i.serialSnapshot}',
                   ..._decodeAttributeSnapshot(i.attributesSnapshot),
                 ],
                 // Same rule for the unit (Plan 011 #10): without this a reprint
