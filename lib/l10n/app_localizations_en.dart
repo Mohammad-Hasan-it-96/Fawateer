@@ -765,6 +765,11 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String unitNotAvailableError(String serial) {
+    return 'This item ($serial) is no longer in stock — it has already been sold.';
+  }
+
+  @override
   String get unknownBarcodeTitle => 'Barcode not registered';
 
   @override

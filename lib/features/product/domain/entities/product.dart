@@ -17,6 +17,12 @@ class Product extends Equatable {
   final PriceCurrency priceCurrency; // currency of price/cost (SP base, or USD)
   final ProductAttributes attributes; // owner-defined custom fields (Plan 010)
 
+  /// Opt-in per-unit identity (Plan 012): this SKU's stock is tracked as
+  /// individual units carrying an IMEI/serial each, so [quantity] becomes a
+  /// maintained cache of how many are on the shelf rather than a number the
+  /// owner types. Off for every product that never opts in.
+  final bool isSerialized;
+
   const Product({
     required this.id,
     required this.name,
@@ -28,6 +34,7 @@ class Product extends Equatable {
     this.saleType = ProductSaleType.piece,
     this.priceCurrency = PriceCurrency.sp,
     this.attributes = ProductAttributes.empty,
+    this.isSerialized = false,
   });
 
   /// True when a low-stock alert is set and on-hand has reached it.
@@ -49,6 +56,7 @@ class Product extends Equatable {
     ProductSaleType? saleType,
     PriceCurrency? priceCurrency,
     ProductAttributes? attributes,
+    bool? isSerialized,
   }) {
     return Product(
       id: id ?? this.id,
@@ -61,6 +69,7 @@ class Product extends Equatable {
       saleType: saleType ?? this.saleType,
       priceCurrency: priceCurrency ?? this.priceCurrency,
       attributes: attributes ?? this.attributes,
+      isSerialized: isSerialized ?? this.isSerialized,
     );
   }
 
@@ -76,5 +85,6 @@ class Product extends Equatable {
         saleType,
         priceCurrency,
         attributes,
+        isSerialized,
       ];
 }

@@ -41,5 +41,13 @@ class SalesItems extends Table {
   // sale. '' instead means "fall back to the quantity heuristic", so old rows
   // are no worse than before while new ones are exact.
   TextColumn get saleType => text().withDefault(const Constant(''))();
+  // The IMEI/serial of the physical unit this line sold, frozen at sale time
+  // (Plan 012). '' for a non-serialized product — the overwhelming majority.
+  //
+  // Not redundant with `product_units.soldInvoiceId`: that is the lookup
+  // direction (serial → invoice) and lives on a row the shop can delete, while
+  // this is the reprint direction and must outlive it. Same reprint-eternal
+  // rule as price/cost/fxRate/discount/saleType above.
+  TextColumn get serialSnapshot => text().withDefault(const Constant(''))();
 }
 

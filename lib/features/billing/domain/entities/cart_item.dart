@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:billing_app/features/product/domain/entities/price_currency.dart';
 import 'package:billing_app/features/product/domain/entities/product.dart';
+import 'package:billing_app/features/product/domain/entities/product_unit.dart';
 
 class CartItem extends Equatable {
   final Product product;
@@ -28,6 +29,11 @@ class CartItem extends Equatable {
   /// [effectiveDiscount] so a stored value can't exceed the line or go negative.
   final double discount;
 
+  /// The specific physical unit this line sells (Plan 012); null for the normal
+  /// non-serialized case. When set, [quantity] is always 1 — one line per
+  /// handset — because the serial has to stay one-to-one with the sale line.
+  final ProductUnit? unit;
+
   const CartItem({
     required this.product,
     this.quantity = 1,
@@ -35,6 +41,7 @@ class CartItem extends Equatable {
     this.unitCostSp = 0,
     this.fxRate = 0,
     this.discount = 0,
+    this.unit,
   });
 
   /// Line subtotal (SP) before the discount.
@@ -63,6 +70,7 @@ class CartItem extends Equatable {
     double? unitCostSp,
     double? fxRate,
     double? discount,
+    ProductUnit? unit,
   }) {
     return CartItem(
       product: product ?? this.product,
@@ -71,10 +79,11 @@ class CartItem extends Equatable {
       unitCostSp: unitCostSp ?? this.unitCostSp,
       fxRate: fxRate ?? this.fxRate,
       discount: discount ?? this.discount,
+      unit: unit ?? this.unit,
     );
   }
 
   @override
-  List<Object> get props =>
-      [product, quantity, unitPriceSp, unitCostSp, fxRate, discount];
+  List<Object?> get props =>
+      [product, quantity, unitPriceSp, unitCostSp, fxRate, discount, unit];
 }

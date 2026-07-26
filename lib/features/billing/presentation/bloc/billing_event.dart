@@ -3,7 +3,7 @@ part of 'billing_bloc.dart';
 abstract class BillingEvent extends Equatable {
   const BillingEvent();
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 class ScanBarcodeEvent extends BillingEvent {
@@ -21,9 +21,15 @@ class AddProductToCartEvent extends BillingEvent {
   /// **set** to this absolute quantity (add-or-replace), never incremented.
   final double? quantity;
 
-  const AddProductToCartEvent(this.product, {this.quantity});
+  /// The specific physical unit being sold (Plan 012), when the product is
+  /// serialized. Each unit becomes its **own** cart line at quantity 1 — lines
+  /// are not merged by product — because the serial must stay one-to-one with
+  /// the line it is snapshotted onto.
+  final ProductUnit? unit;
+
+  const AddProductToCartEvent(this.product, {this.quantity, this.unit});
   @override
-  List<Object> get props => [product, quantity ?? -1];
+  List<Object?> get props => [product, quantity ?? -1, unit];
 }
 
 /// Dismisses a pending measured-entry prompt (see [BillingState.measuredPrompt])

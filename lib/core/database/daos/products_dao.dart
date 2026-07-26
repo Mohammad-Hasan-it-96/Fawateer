@@ -20,6 +20,10 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
       (select(products)..orderBy([(p) => OrderingTerm.desc(p.rowId)])).watch();
 
   /// Find a single product by barcode (or null if not found).
+  /// Single product by primary key — the SKU behind a scanned serial (Plan 012).
+  Future<ProductRow?> getById(String id) =>
+      (select(products)..where((p) => p.id.equals(id))).getSingleOrNull();
+
   Future<ProductRow?> getByBarcode(String barcode) =>
       (select(products)..where((p) => p.barcode.equals(barcode)))
           .getSingleOrNull();

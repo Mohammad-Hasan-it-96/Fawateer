@@ -27,6 +27,12 @@ class InvoiceItem extends Equatable {
   /// the snapshot existed; callers fall back to [inferredIsMeasured] for those.
   final String saleType;
 
+  /// The IMEI/serial of the physical unit this line sold (Plan 012), frozen at
+  /// sale time; `''` for a non-serialized product. Kept on the line — not just
+  /// on the unit row — so a reprint still shows the serial even if the unit is
+  /// later deleted, the same reprint-eternal rule as the fields above.
+  final String serialSnapshot;
+
   const InvoiceItem({
     this.id,
     required this.invoiceId,
@@ -41,6 +47,7 @@ class InvoiceItem extends Equatable {
     this.discount = 0,
     this.attributesSnapshot = '',
     this.saleType = '',
+    this.serialSnapshot = '',
   });
 
   /// Whether this line was sold by measure (weight), for unit display on the
@@ -76,5 +83,6 @@ class InvoiceItem extends Equatable {
         discount,
         attributesSnapshot,
         saleType,
+        serialSnapshot,
       ];
 }

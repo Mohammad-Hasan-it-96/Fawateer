@@ -14,7 +14,9 @@ import 'package:billing_app/core/settings/inventory_settings_service.dart';
 import 'package:billing_app/core/settings/print_settings_service.dart';
 import 'package:billing_app/features/product/domain/entities/price_currency.dart';
 import 'package:billing_app/features/product/domain/entities/product.dart';
+import 'package:billing_app/features/product/domain/entities/product_unit.dart';
 import 'package:billing_app/features/product/domain/repositories/product_repository.dart';
+import 'package:billing_app/features/product/domain/repositories/product_unit_repository.dart';
 import 'package:billing_app/features/settings/domain/entities/receipt_line.dart';
 import 'package:billing_app/features/settings/domain/repositories/printer_repository.dart';
 
@@ -29,6 +31,11 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
   final InventorySettingsService inventorySettingsService;
   final PrintSettingsService printSettingsService;
   final AttributeDefinitionRepository attributeRepository;
+
+  /// Serialized inventory (Plan 012). Used only for the second scan path — a
+  /// barcode miss falls through to a serial lookup — so a POS with no
+  /// serialized products never touches it.
+  final ProductUnitRepository productUnitRepository;
 
   /// Active custom fields flagged *show on receipt* (Plan 010), kept fresh via a
   /// subscription so a field the owner adds/edits mid-session prints without a
@@ -45,6 +52,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     required this.inventorySettingsService,
     required this.printSettingsService,
     required this.attributeRepository,
+    required this.productUnitRepository,
   }) : super(const BillingState()) {
     _receiptDefsSub = attributeRepository.watchDefinitions().listen((defs) {
       _receiptDefs = defs
@@ -108,7 +116,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
   /// Build a cart line, resolving a USD-priced product to whole SP at the
   /// current rate. SP products pass through unchanged. A USD product with no
   /// valid rate is left *unpriced* (fxRate 0) so the checkout guard blocks it.
-  CartItem _priceLine(Product p, double qty) {
+  CartItem _priceLine(Product p, double qty, {ProductUnit? unit}) {
     if (p.priceCurrency == PriceCurrency.usd) {
       final rate = state.exchangeRate;
       final sp = usdToSp(p.price, rate);
@@ -119,13 +127,23 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
           unitPriceSp: sp,
           unitCostSp: usdToSp(p.cost, rate) ?? 0,
           fxRate: rate!,
+          unit: unit,
         );
       }
       return CartItem(
-          product: p, quantity: qty, unitPriceSp: 0, unitCostSp: 0, fxRate: 0);
+          product: p,
+          quantity: qty,
+          unitPriceSp: 0,
+          unitCostSp: 0,
+          fxRate: 0,
+          unit: unit);
     }
     return CartItem(
-        product: p, quantity: qty, unitPriceSp: p.price, unitCostSp: p.cost);
+        product: p,
+        quantity: qty,
+        unitPriceSp: p.price,
+        unitCostSp: p.cost,
+        unit: unit);
   }
 
   /// Load the current exchange rate and re-price any foreign lines already in
@@ -152,6 +170,13 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
   Future<void> _onScanBarcode(
       ScanBarcodeEvent event, Emitter<BillingState> emit) async {
     final result = await productRepository.getProductByBarcode(event.barcode);
+    if (result.isLeft()) {
+      // Second scan path (Plan 012 D6): barcode first — overwhelmingly the
+      // common case and already indexed — then fall through to a serial lookup,
+      // so scanning the IMEI on a handset's label picks that exact unit.
+      final handled = await _tryScanAsSerial(event.barcode, emit);
+      if (handled) return;
+    }
     result.fold(
       (failure) {
         // Bloc drops an emit equal to the current state, so scanning the same
@@ -185,6 +210,40 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     );
   }
 
+  /// Try [code] as an IMEI/serial (Plan 012). Returns true when it matched a
+  /// unit and the scan was fully handled — including the "known but not
+  /// sellable" case, which is deliberately *not* reported as `productNotFound`:
+  /// the serial IS on file, so sending the cashier to hunt the shelf for a
+  /// handset that sold last week would be actively misleading.
+  Future<bool> _tryScanAsSerial(String code, Emitter<BillingState> emit) async {
+    final found = await productUnitRepository.findBySerial(code);
+    final unit = found.fold<ProductUnit?>((_) => null, (u) => u);
+    if (unit == null) return false;
+
+    if (!unit.isAvailable) {
+      // Re-emit cleanly so a repeated scan of the same sold handset still
+      // registers as a transition (same reasoning as the not-found path).
+      if (state.error == BillingError.unitNotAvailable &&
+          state.errorBarcode == code) {
+        emit(state.copyWith(clearError: true));
+      }
+      emit(state.copyWith(
+          error: BillingError.unitNotAvailable, errorBarcode: code));
+      return true;
+    }
+
+    final productResult = await productRepository.getProductById(unit.productId);
+    return productResult.match(
+      // The unit points at a SKU that no longer exists. Fall through to the
+      // normal not-found path rather than inventing a line with no product.
+      (_) => false,
+      (product) {
+        add(AddProductToCartEvent(product, unit: unit));
+        return true;
+      },
+    );
+  }
+
   void _onAddProductToCart(
       AddProductToCartEvent event, Emitter<BillingState> emit) {
     // Adding an item starts a fresh sale: clear any error, the sticky "sale
@@ -195,8 +254,16 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         clearSale: true,
         clearMeasuredPrompt: true);
 
-    final existingIndex = cleanState.cartItems
-        .indexWhere((item) => item.product.id == event.product.id);
+    // Serialized lines are matched by **unit**, not by product (Plan 012 D5):
+    // two identical handsets are two lines carrying two IMEIs, never one line
+    // at quantity 2, because the serial is snapshotted per line. Re-scanning the
+    // same handset therefore finds its own line and leaves the quantity at 1
+    // rather than inventing a second phone.
+    final unit = event.unit;
+    final existingIndex = unit != null
+        ? cleanState.cartItems.indexWhere((item) => item.unit?.id == unit.id)
+        : cleanState.cartItems
+            .indexWhere((item) => item.unit == null && item.product.id == event.product.id);
 
     // The just-touched line goes to the TOP of the cart (Plan 011 #4) so it
     // stays visible for price confirmation on a long cart, instead of scrolling
@@ -206,8 +273,10 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
     if (existingIndex >= 0) {
       final existingItem = cleanState.cartItems[existingIndex];
       // A measured entry (event.quantity set) sets the line absolutely; a piece
-      // add increments by 1.
-      final newQuantity = event.quantity ?? existingItem.quantity + 1;
+      // add increments by 1. A serialized line stays at 1 — there is exactly one
+      // of that handset, so re-scanning it must not claim we're selling two.
+      final newQuantity =
+          unit != null ? 1.0 : (event.quantity ?? existingItem.quantity + 1);
       updatedItems = [
         existingItem.copyWith(quantity: newQuantity),
         for (var i = 0; i < cleanState.cartItems.length; i++)
@@ -215,7 +284,9 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       ];
     } else {
       updatedItems = [
-        _priceLine(event.product, event.quantity ?? 1),
+        // A serialized line is always one handset, whatever quantity was passed.
+        _priceLine(event.product, unit != null ? 1 : (event.quantity ?? 1),
+            unit: unit),
         ...cleanState.cartItems,
       ];
     }
@@ -328,14 +399,24 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
               // Freeze how it was sold (Plan 011 #10) so the unit survives on
               // reprints and the invoice table never has to guess kg-vs-piece.
               saleType: cartItem.product.saleType.name,
+              // Freeze the IMEI/serial (Plan 012) so the line still names the
+              // exact handset it sold even if the unit row is later deleted.
+              serialSnapshot: cartItem.unit?.serial ?? '',
             ))
+        .toList();
+
+    // The physical units this cart consumed. Marked sold inside the sale's own
+    // transaction, so a unit is never burned by an invoice that failed to save.
+    final soldUnitIds = state.cartItems
+        .map((c) => c.unit?.id)
+        .whereType<String>()
         .toList();
 
     // Persist invoice, line items, and stock deduction in one transaction.
     // Stock is decremented relatively inside the DB, so a failed save leaves
     // inventory untouched and a concurrent product edit is never clobbered.
     final saveResult = await invoiceRepository.saveInvoice(invoice, items,
-        customerId: event.customerId);
+        customerId: event.customerId, soldUnitIds: soldUnitIds);
     if (saveResult.isLeft()) {
       emit(state.copyWith(isSaving: false, error: BillingError.saveFailed));
       return;

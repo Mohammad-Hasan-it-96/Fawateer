@@ -9,6 +9,10 @@ abstract class ProductRepository {
   /// changes from a sale).
   Stream<List<Product>> watchProducts();
   Future<Either<Failure, Product>> getProductByBarcode(String barcode);
+
+  /// Single product by id — used to resolve the SKU behind a scanned serial
+  /// (Plan 012). Returns [NotFoundFailure] when the id is unknown.
+  Future<Either<Failure, Product>> getProductById(String id);
   Future<Either<Failure, void>> addProduct(Product product);
   Future<Either<Failure, void>> updateProduct(Product product);
   Future<Either<Failure, void>> deleteProduct(String id);

@@ -26,6 +26,11 @@ class Products extends Table {
   // the source of truth; the hot path (name/price/qty/barcode) never reads it.
   // Additive: every existing product decodes as empty.
   TextColumn get attributes => text().withDefault(const Constant(''))();
+  // Opt-in per-unit identity (Plan 012, bucket C): when true this SKU's stock is
+  // tracked as individual `product_units` rows carrying an IMEI/serial each.
+  // Off for every existing product, and off by default — a shop that never turns
+  // it on sees exactly today's behavior.
+  BoolColumn get isSerialized => boolean().withDefault(const Constant(false))();
 
   @override
   Set<Column> get primaryKey => {id};

@@ -10,6 +10,7 @@ import 'tables/customers_table.dart';
 import 'tables/ledger_entries_table.dart';
 import 'tables/cashbox_transactions_table.dart';
 import 'tables/attribute_definitions_table.dart';
+import 'tables/product_units_table.dart';
 
 import 'daos/products_dao.dart';
 import 'daos/shop_dao.dart';
@@ -20,6 +21,7 @@ import 'daos/ledger_dao.dart';
 import 'daos/cashbox_dao.dart';
 import 'daos/dashboard_dao.dart';
 import 'daos/attributes_dao.dart';
+import 'daos/product_units_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -34,6 +36,7 @@ part 'app_database.g.dart';
     LedgerEntries,
     CashboxTransactions,
     AttributeDefinitions,
+    ProductUnits,
   ],
   daos: [
     ProductsDao,
@@ -45,6 +48,7 @@ part 'app_database.g.dart';
     CashboxDao,
     DashboardDao,
     AttributesDao,
+    ProductUnitsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -57,7 +61,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 14;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -66,6 +70,7 @@ class AppDatabase extends _$AppDatabase {
       await _createIndexes();
       await _createLedgerIndexes();
       await _createCashboxIndexes();
+      await _createProductUnitIndexes();
     },
     beforeOpen: (details) async {
       // Enforce foreign keys for every connection. Set here (after migrations
@@ -174,6 +179,20 @@ class AppDatabase extends _$AppDatabase {
         // (unknown) and keep using the old heuristic.
         await migrator.addColumn(salesItems, salesItems.saleType);
       }
+      if (from < 15) {
+        // Serialized units (Plan 012, bucket C of Plan 010): per-physical-item
+        // identity, so a phone shop holding five identical handsets holds one
+        // product row and five unit rows — and can answer "which invoice sold
+        // THIS IMEI, and is it still under warranty?".
+        //
+        // Purely additive (addColumn ×2 + createTable): every existing product
+        // decodes as non-serialized and every existing sale line as having no
+        // serial, so nothing changes for a shop that never opts in.
+        await migrator.addColumn(products, products.isSerialized);
+        await migrator.addColumn(salesItems, salesItems.serialSnapshot);
+        await migrator.createTable(productUnits);
+        await _createProductUnitIndexes();
+      }
     },
   );
 
@@ -220,6 +239,26 @@ class AppDatabase extends _$AppDatabase {
         'CREATE INDEX IF NOT EXISTS idx_cashbox_occurred_at ON cashbox_transactions (occurred_at)');
     await customStatement(
         'CREATE INDEX IF NOT EXISTS idx_cashbox_related_id ON cashbox_transactions (related_id)');
+  }
+
+  /// Idempotent indexes for serialized units (Plan 012), called from [onCreate]
+  /// and the v14→v15 upgrade.
+  ///
+  /// The serial index is **partial-unique over non-empty values**, mirroring
+  /// `idx_products_barcode`: an IMEI identifies one handset on earth, so the
+  /// shop must not be able to enter it twice and sell one phone twice — but a
+  /// blank serial (a unit logged before its label was read) stays allowed.
+  ///
+  /// No de-dup pass is needed here, unlike `_createIndexes()`: this table is
+  /// created by the very migration that adds the index, so it cannot already
+  /// hold conflicting rows.
+  Future<void> _createProductUnitIndexes() async {
+    await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_product_units_product_id ON product_units (product_id)');
+    await customStatement(
+        "CREATE UNIQUE INDEX IF NOT EXISTS idx_product_units_serial ON product_units (serial) WHERE serial != ''");
+    await customStatement(
+        'CREATE INDEX IF NOT EXISTS idx_product_units_invoice ON product_units (sold_invoice_id)');
   }
 }
 

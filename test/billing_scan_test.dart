@@ -5,7 +5,9 @@ import 'package:billing_app/core/error/failure.dart';
 import 'package:billing_app/features/billing/domain/repositories/invoice_repository.dart';
 import 'package:billing_app/features/billing/presentation/bloc/billing_bloc.dart';
 import 'package:billing_app/features/product/domain/entities/product.dart';
+import 'package:billing_app/features/product/domain/entities/product_unit.dart';
 import 'package:billing_app/features/product/domain/repositories/product_repository.dart';
+import 'package:billing_app/features/product/domain/repositories/product_unit_repository.dart';
 import 'package:billing_app/features/attributes/domain/entities/attribute_definition.dart';
 import 'package:billing_app/features/attributes/domain/repositories/attribute_definition_repository.dart';
 import 'package:billing_app/features/settings/domain/repositories/printer_repository.dart';
@@ -25,6 +27,19 @@ class _FakeProductRepository implements ProductRepository {
     }
     return Right(product);
   }
+
+  @override
+  noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} not used by this test');
+}
+
+/// Serialized inventory fake (Plan 012). Holds no units by default, so the
+/// second scan path finds nothing and these barcode tests keep their original
+/// behavior.
+class _FakeProductUnitRepository implements ProductUnitRepository {
+  @override
+  Future<Either<Failure, ProductUnit>> findBySerial(String serial) async =>
+      const Left(NotFoundFailure('serial_not_found'));
 
   @override
   noSuchMethod(Invocation invocation) =>
@@ -123,6 +138,7 @@ void main() {
       inventorySettingsService: _FakeInventorySettingsService(),
       printSettingsService: _FakePrintSettingsService(),
       attributeRepository: _FakeAttributeDefinitionRepository(),
+      productUnitRepository: _FakeProductUnitRepository(),
     );
   });
 

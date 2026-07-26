@@ -11,6 +11,7 @@ import 'database/daos/ledger_dao.dart';
 import 'database/daos/cashbox_dao.dart';
 import 'database/daos/dashboard_dao.dart';
 import 'database/daos/attributes_dao.dart';
+import 'database/daos/product_units_dao.dart';
 
 // Core — Network
 import 'network/api_client.dart';
@@ -24,6 +25,8 @@ import 'theme/theme_controller.dart';
 // Features — Attributes (dynamic product fields, Plan 010)
 import '../features/attributes/data/repositories/attribute_definition_repository_drift_impl.dart';
 import '../features/attributes/domain/repositories/attribute_definition_repository.dart';
+import '../features/product/data/repositories/product_unit_repository_drift_impl.dart';
+import '../features/product/domain/repositories/product_unit_repository.dart';
 import '../features/attributes/presentation/bloc/attribute_definition_bloc.dart';
 
 // Features — Ledger (customers & debts)
@@ -102,6 +105,7 @@ Future<void> init() async {
   sl.registerLazySingleton<CashboxDao>(() => CashboxDao(sl()));
   sl.registerLazySingleton<DashboardDao>(() => DashboardDao(sl()));
   sl.registerLazySingleton<AttributesDao>(() => AttributesDao(sl()));
+  sl.registerLazySingleton<ProductUnitsDao>(() => ProductUnitsDao(sl()));
 
   // ── Services ─────────────────────────────────────────────────────────────
   sl.registerLazySingleton<ExchangeRateService>(
@@ -136,6 +140,8 @@ Future<void> init() async {
       () => DashboardRepositoryDriftImpl(sl<DashboardDao>()));
   sl.registerLazySingleton<AttributeDefinitionRepository>(
       () => AttributeDefinitionRepositoryDriftImpl(sl<AttributesDao>()));
+  sl.registerLazySingleton<ProductUnitRepository>(
+      () => ProductUnitRepositoryDriftImpl(sl<ProductUnitsDao>()));
 
   // ── Backup (Drift snapshot + Google Drive target) ────────────────────────
   sl.registerLazySingleton<BackupEngine>(() => BackupEngine(sl(), sl()));
@@ -185,6 +191,7 @@ Future<void> init() async {
         inventorySettingsService: sl(),
         printSettingsService: sl(),
         attributeRepository: sl(),
+        productUnitRepository: sl(),
       ));
 
   sl.registerFactory(() => CustomerBloc(repository: sl()));

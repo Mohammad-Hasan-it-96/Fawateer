@@ -761,6 +761,11 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String unitNotAvailableError(String serial) {
+    return 'هذه القطعة ($serial) لم تعد في المخزون — تم بيعها مسبقاً.';
+  }
+
+  @override
   String get unknownBarcodeTitle => 'باركود غير مسجّل';
 
   @override

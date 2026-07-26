@@ -1562,6 +1562,12 @@ abstract class AppLocalizations {
   /// **'Product not found: {barcode}'**
   String productNotFound(String barcode);
 
+  /// No description provided for @unitNotAvailableError.
+  ///
+  /// In en, this message translates to:
+  /// **'This item ({serial}) is no longer in stock — it has already been sold.'**
+  String unitNotAvailableError(String serial);
+
   /// No description provided for @unknownBarcodeTitle.
   ///
   /// In en, this message translates to:

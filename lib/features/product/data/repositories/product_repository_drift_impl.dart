@@ -27,6 +27,7 @@ class ProductRepositoryDriftImpl implements ProductRepository {
         saleType: ProductSaleType.fromName(row.saleType),
         priceCurrency: PriceCurrency.fromName(row.priceCurrency),
         attributes: ProductAttributes.fromJson(row.attributes),
+        isSerialized: row.isSerialized,
       );
 
   static ProductsCompanion _toCompanion(Product p) => ProductsCompanion(
@@ -40,6 +41,7 @@ class ProductRepositoryDriftImpl implements ProductRepository {
         saleType: Value(p.saleType.name),
         priceCurrency: Value(p.priceCurrency.name),
         attributes: Value(p.attributes.toJson()),
+        isSerialized: Value(p.isSerialized),
       );
 
   // ── repository interface ──────────────────────────────────────────────────
@@ -57,6 +59,19 @@ class ProductRepositoryDriftImpl implements ProductRepository {
   @override
   Stream<List<Product>> watchProducts() =>
       _dao.watchAllProducts().map((rows) => rows.map(_toEntity).toList());
+
+  @override
+  Future<Either<Failure, Product>> getProductById(String id) async {
+    try {
+      final row = await _dao.getById(id);
+      if (row == null) {
+        return Left(NotFoundFailure('No product for id: $id'));
+      }
+      return Right(_toEntity(row));
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
 
   @override
   Future<Either<Failure, Product>> getProductByBarcode(String barcode) async {

@@ -20,5 +20,9 @@ String billingErrorText(
       return l10n.exchangeRateMissingError;
     case BillingError.insufficientStock:
       return l10n.insufficientStockError;
+    case BillingError.unitNotAvailable:
+      // Names the serial back: the cashier scanned a real handset, and the
+      // useful answer is "this exact one is already gone", not "unknown item".
+      return l10n.unitNotAvailableError(barcode ?? '');
   }
 }

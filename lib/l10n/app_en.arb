@@ -286,6 +286,14 @@
       }
     }
   },
+  "unitNotAvailableError": "This item ({serial}) is no longer in stock — it has already been sold.",
+  "@unitNotAvailableError": {
+    "placeholders": {
+      "serial": {
+        "type": "String"
+      }
+    }
+  },
   "unknownBarcodeTitle": "Barcode not registered",
   "unknownBarcodeMessage": "This barcode does not exist: {barcode}\nDo you want to add it as a new product?",
   "@unknownBarcodeMessage": {

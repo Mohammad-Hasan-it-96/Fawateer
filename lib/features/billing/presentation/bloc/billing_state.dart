@@ -13,6 +13,13 @@ enum BillingError {
   /// Strict inventory is on and the cart sells a tracked item past its on-hand
   /// count. Only reachable when the owner enabled the toggle.
   insufficientStock,
+
+  /// A scanned IMEI/serial matched a unit that is no longer sellable — already
+  /// sold, returned or defective (Plan 012). Distinct from [productNotFound]
+  /// because the answer is completely different: the serial IS known, so
+  /// "product not found" would send the cashier hunting a shelf for a phone
+  /// that was sold last week.
+  unitNotAvailable,
 }
 
 /// Sentinel so [BillingState.copyWith] can distinguish "leave the nullable rate
