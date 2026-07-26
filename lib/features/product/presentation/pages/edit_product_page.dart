@@ -37,6 +37,7 @@ class _EditProductPageState extends State<EditProductPage> {
   late double _price;
   late double _cost;
   late double _quantity;
+  late bool _isSerialized;
   late double _minStockAlert;
   late ProductSaleType _saleType;
   late PriceCurrency _priceCurrency;
@@ -49,6 +50,7 @@ class _EditProductPageState extends State<EditProductPage> {
     _price = widget.product.price;
     _cost = widget.product.cost;
     _quantity = widget.product.quantity;
+    _isSerialized = widget.product.isSerialized;
     _minStockAlert = widget.product.minStockAlert;
     _saleType = widget.product.saleType;
     _priceCurrency = widget.product.priceCurrency;
@@ -81,6 +83,7 @@ class _EditProductPageState extends State<EditProductPage> {
         price: _price,
         cost: _cost,
         quantity: _quantity,
+        isSerialized: _isSerialized,
         minStockAlert: _minStockAlert,
         saleType: _saleType,
         priceCurrency: _priceCurrency,
@@ -91,6 +94,17 @@ class _EditProductPageState extends State<EditProductPage> {
       context.pop();
     }
   }
+
+  /// Opt-in per-unit identity (Plan 012). Deliberately a switch on the normal
+  /// product form rather than a separate mode: for a phone shop this is one
+  /// setting on the product they were already creating.
+  Widget _serializedToggle(AppLocalizations l10n) => SwitchListTile(
+        contentPadding: EdgeInsets.zero,
+        value: _isSerialized,
+        onChanged: (v) => setState(() => _isSerialized = v),
+        title: Text(l10n.productSerialized),
+        subtitle: Text(l10n.productSerializedHint),
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -210,20 +224,34 @@ class _EditProductPageState extends State<EditProductPage> {
 
                   InputLabel(text: l10n.stockEditLabel),
                   TextFormField(
+                    // Read-only once the SKU is serialized (Plan 012 D1): stock
+                    // is then a cache of the unit count, and letting this field
+                    // save over it would silently break the invariant the whole
+                    // feature rests on. The number still shows, so the owner
+                    // can see it — they just change it by adding units.
+                    key: ValueKey('qty-$_isSerialized'),
                     initialValue: _formatQty(_quantity),
+                    readOnly: _isSerialized,
                     keyboardType:
                         const TextInputType.numberWithOptions(decimal: true),
                     inputFormatters: NumInput.decimalFormatters,
                     decoration: InputDecoration(
-                      helperText: l10n.stockEditHint,
+                      helperText: _isSerialized
+                          ? l10n.stockFromUnitsHint
+                          : l10n.stockEditHint,
                     ),
                     validator: AppValidators.optionalNonNegative(
                       invalidMsg: l10n.invalidNumber,
                       negativeMsg: l10n.negativeNotAllowed,
                     ),
-                    onSaved: (value) =>
-                        _quantity = NumInput.parseFlexibleNumber(value) ?? 0,
+                    onSaved: (value) {
+                      if (_isSerialized) return; // units are the source of truth
+                      _quantity = NumInput.parseFlexibleNumber(value) ?? 0;
+                    },
                   ),
+                  const SizedBox(height: 24),
+
+                  _serializedToggle(l10n),
                   const SizedBox(height: 24),
 
                   InputLabel(text: l10n.lowStockAlertLabel),

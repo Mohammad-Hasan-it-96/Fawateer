@@ -286,6 +286,52 @@
       }
     }
   },
+  "unitsTitle": "Units — {product}",
+  "@unitsTitle": {
+    "placeholders": { "product": { "type": "String" } }
+  },
+  "unitsSummary": "{available} of {total} still in stock",
+  "@unitsSummary": {
+    "placeholders": {
+      "available": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "unitsAdd": "Add unit",
+  "unitsSerialLabel": "IMEI / Serial number",
+  "unitsSerialHint": "Scan or type the number",
+  "unitsSearchHint": "Search by IMEI / serial",
+  "unitsEmpty": "No units yet.\nAdd one for each physical item you have in stock.",
+  "unitsNoMatch": "No unit matches that number.",
+  "unitsNoSerial": "(no serial)",
+  "unitsSetWarranty": "Set warranty date",
+  "unitsMarkDefective": "Mark as defective",
+  "unitsRestock": "Return to stock",
+  "unitsWarrantyUntil": "Warranty until {date}",
+  "@unitsWarrantyUntil": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "unitsSoldOn": "Sold on {date}",
+  "@unitsSoldOn": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "unitStatusInStock": "In stock",
+  "unitStatusSold": "Sold",
+  "unitStatusReturned": "Returned",
+  "unitStatusDefective": "Defective",
+  "unitsAdded": "Unit added",
+  "unitsSaved": "Saved",
+  "unitsDeleted": "Unit deleted",
+  "unitsLoadFailed": "Could not load units.",
+  "unitsSaveFailed": "Could not save. Please try again.",
+  "unitsDuplicateSerial": "This number is already registered to another unit.",
+  "unitsDeleteBlockedSold": "This unit has been sold and cannot be deleted — its record links the serial to its invoice.",
+  "unitsDeleteTitle": "Delete this unit?",
+  "unitsDeleteBody": "The unit will be removed from stock. This cannot be undone.",
+  "productSerialized": "Track individual units (IMEI / serial)",
+  "productSerializedHint": "For phones and devices where each item has its own number. Stock is then counted from the units you add.",
+  "productUnitsAction": "Units",
+  "stockFromUnitsHint": "Counted from the units you add — open Units to change it.",
   "unitNotAvailableError": "This item ({serial}) is no longer in stock — it has already been sold.",
   "@unitNotAvailableError": {
     "placeholders": {

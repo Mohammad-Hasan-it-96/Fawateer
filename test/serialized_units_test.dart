@@ -19,6 +19,8 @@ import 'package:billing_app/features/billing/domain/entities/invoice.dart';
 import 'package:billing_app/features/billing/domain/entities/invoice_item.dart';
 import 'package:billing_app/features/billing/domain/repositories/invoice_repository.dart';
 import 'package:billing_app/features/billing/presentation/bloc/billing_bloc.dart';
+import 'package:billing_app/features/billing/presentation/bloc/history_bloc.dart';
+import 'package:billing_app/features/settings/domain/entities/receipt_line.dart';
 import 'package:billing_app/features/product/domain/entities/product.dart';
 import 'package:billing_app/features/product/domain/entities/product_unit.dart';
 import 'package:billing_app/features/product/domain/entities/unit_status.dart';
@@ -88,6 +90,45 @@ class _FakeInvoiceRepository implements InvoiceRepository {
 }
 
 class _FakePrinterRepository implements PrinterRepository {
+  @override
+  noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} not used by this test');
+}
+
+/// Captures the [ReceiptLine]s a reprint actually sends to the printer.
+class _RecordingPrinterRepository implements PrinterRepository {
+  List<ReceiptLine> lines = const [];
+
+  @override
+  Future<bool> printReceipt({
+    required String shopName,
+    required String address1,
+    required String address2,
+    required String phone,
+    required String footer,
+    required double total,
+    required List<ReceiptLine> items,
+    String currency = '',
+  }) async {
+    lines = items;
+    return true;
+  }
+
+  @override
+  noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} not used by this test');
+}
+
+/// Serves stored line items to the reprint path.
+class _ReprintInvoiceRepository implements InvoiceRepository {
+  final List<InvoiceItem> items;
+  const _ReprintInvoiceRepository(this.items);
+
+  @override
+  Future<Either<Failure, List<InvoiceItem>>> getInvoiceItems(
+          String invoiceId) async =>
+      Right(items);
+
   @override
   noSuchMethod(Invocation invocation) =>
       throw UnimplementedError('${invocation.memberName} not used by this test');
@@ -336,6 +377,45 @@ void main() {
       // own transaction.
       expect(invoices.savedUnitIds, ['u1']);
       await bloc.close();
+    });
+
+    test('a reprint replays the serial from the snapshot', () async {
+      // The reprint-eternal rule. Plan 011 found the same class of bug for the
+      // kg unit — the original receipt printed it and the reprint dropped it,
+      // so two copies of one invoice disagreed. A serial that vanishes on
+      // reprint would be worse: it is the customer's warranty proof.
+      final printer = _RecordingPrinterRepository();
+      final history = HistoryBloc(
+        repository: const _ReprintInvoiceRepository([
+          InvoiceItem(
+            invoiceId: 'inv1',
+            productId: 'sku-iphone',
+            productName: 'iPhone 15 128GB',
+            price: 5000000,
+            quantity: 1,
+            saleType: 'piece',
+            serialSnapshot: 'IMEI-1',
+          ),
+        ]),
+        printerRepository: printer,
+      );
+
+      history.add(const ReprintInvoiceEvent(
+        invoiceId: 'inv1',
+        shopName: 'Shop',
+        address1: '',
+        address2: '',
+        phone: '',
+        footer: '',
+        total: 5000000,
+        currency: '',
+      ));
+      await history.stream
+          .firstWhere((s) => s.reprintStatus == ReprintStatus.idle)
+          .timeout(const Duration(seconds: 2));
+
+      expect(printer.lines.single.attributes, contains('IMEI/SN: IMEI-1'));
+      await history.close();
     });
 
     test('a normal non-serialized sale carries no serial and no units',

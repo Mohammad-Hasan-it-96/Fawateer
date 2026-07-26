@@ -761,6 +761,112 @@ class AppLocalizationsAr extends AppLocalizations {
   }
 
   @override
+  String unitsTitle(String product) {
+    return 'القطع — $product';
+  }
+
+  @override
+  String unitsSummary(int available, int total) {
+    return '$available من $total ما زالت في المخزون';
+  }
+
+  @override
+  String get unitsAdd => 'إضافة قطعة';
+
+  @override
+  String get unitsSerialLabel => 'رقم IMEI / التسلسلي';
+
+  @override
+  String get unitsSerialHint => 'امسح الرقم أو اكتبه';
+
+  @override
+  String get unitsSearchHint => 'بحث برقم IMEI / التسلسلي';
+
+  @override
+  String get unitsEmpty =>
+      'لا توجد قطع بعد.\nأضف قطعة لكل جهاز موجود لديك في المخزون.';
+
+  @override
+  String get unitsNoMatch => 'لا توجد قطعة بهذا الرقم.';
+
+  @override
+  String get unitsNoSerial => '(بدون رقم)';
+
+  @override
+  String get unitsSetWarranty => 'تحديد تاريخ الكفالة';
+
+  @override
+  String get unitsMarkDefective => 'تعليم كمعطّلة';
+
+  @override
+  String get unitsRestock => 'إعادة إلى المخزون';
+
+  @override
+  String unitsWarrantyUntil(String date) {
+    return 'الكفالة حتى $date';
+  }
+
+  @override
+  String unitsSoldOn(String date) {
+    return 'بيعت بتاريخ $date';
+  }
+
+  @override
+  String get unitStatusInStock => 'في المخزون';
+
+  @override
+  String get unitStatusSold => 'مباعة';
+
+  @override
+  String get unitStatusReturned => 'مرتجعة';
+
+  @override
+  String get unitStatusDefective => 'معطّلة';
+
+  @override
+  String get unitsAdded => 'تمت إضافة القطعة';
+
+  @override
+  String get unitsSaved => 'تم الحفظ';
+
+  @override
+  String get unitsDeleted => 'تم حذف القطعة';
+
+  @override
+  String get unitsLoadFailed => 'تعذّر تحميل القطع.';
+
+  @override
+  String get unitsSaveFailed => 'تعذّر الحفظ. حاول مرة أخرى.';
+
+  @override
+  String get unitsDuplicateSerial => 'هذا الرقم مسجّل مسبقاً لقطعة أخرى.';
+
+  @override
+  String get unitsDeleteBlockedSold =>
+      'هذه القطعة مباعة ولا يمكن حذفها — سجلّها يربط الرقم التسلسلي بفاتورته.';
+
+  @override
+  String get unitsDeleteTitle => 'حذف هذه القطعة؟';
+
+  @override
+  String get unitsDeleteBody =>
+      'سيتم حذف القطعة من المخزون. لا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get productSerialized => 'تتبّع القطع فردياً (IMEI / رقم تسلسلي)';
+
+  @override
+  String get productSerializedHint =>
+      'للهواتف والأجهزة التي لكل قطعة منها رقم خاص. عندها يُحتسب المخزون من القطع التي تضيفها.';
+
+  @override
+  String get productUnitsAction => 'القطع';
+
+  @override
+  String get stockFromUnitsHint =>
+      'يُحتسب من القطع التي تضيفها — افتح «القطع» لتعديله.';
+
+  @override
   String unitNotAvailableError(String serial) {
     return 'هذه القطعة ($serial) لم تعد في المخزون — تم بيعها مسبقاً.';
   }

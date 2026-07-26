@@ -63,6 +63,7 @@ import '../features/licensing/presentation/bloc/license_bloc.dart';
 import '../features/product/data/repositories/product_repository_drift_impl.dart';
 import '../features/product/domain/repositories/product_repository.dart';
 import '../features/product/presentation/bloc/product_bloc.dart';
+import '../features/product/presentation/bloc/product_unit_bloc.dart';
 
 // Features — Shop
 import '../features/shop/data/repositories/shop_repository_drift_impl.dart';
@@ -179,6 +180,9 @@ Future<void> init() async {
   sl.registerFactory(() => ShopBloc(repository: sl()));
 
   sl.registerFactory(() => PrinterBloc(repository: sl()));
+
+  // Route-scoped to /products/units/:id (one SKU's handsets at a time).
+  sl.registerFactory(() => ProductUnitBloc(repository: sl()));
 
   sl.registerFactory(
       () => HistoryBloc(repository: sl(), printerRepository: sl()));

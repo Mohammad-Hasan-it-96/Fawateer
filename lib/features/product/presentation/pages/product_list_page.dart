@@ -425,6 +425,29 @@ class _ProductListPageState extends State<ProductListPage> {
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // Only for serialized SKUs (Plan 012) — the vast
+                              // majority of shops never opt in, and an always-on
+                              // button would just crowd the row.
+                              if (product.isSerialized) ...[
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryColor
+                                        .withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.qr_code_2_rounded,
+                                        color: AppTheme.primaryColor, size: 22),
+                                    tooltip: l10n.productUnitsAction,
+                                    constraints: const BoxConstraints(
+                                        minWidth: 48, minHeight: 48),
+                                    onPressed: () => context.push(
+                                        '/products/units/${product.id}',
+                                        extra: product),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                              ],
                               Container(
                                 decoration: BoxDecoration(
                                   color: AppTheme.primaryColor

@@ -27,6 +27,8 @@ import '../../features/product/domain/entities/product.dart';
 import '../../features/product/presentation/pages/add_product_page.dart';
 import '../../features/product/presentation/pages/edit_product_page.dart';
 import '../../features/product/presentation/pages/product_list_page.dart';
+import '../../features/product/presentation/pages/product_units_page.dart';
+import '../../features/product/presentation/bloc/product_unit_bloc.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/shop/presentation/pages/shop_details_page.dart';
 import '../../features/attributes/presentation/pages/attribute_fields_page.dart';
@@ -196,6 +198,20 @@ final router = GoRouter(
                     final product = state.extra as Product?;
                     if (product == null) return const ProductListPage();
                     return EditProductPage(product: product);
+                  },
+                ),
+                GoRoute(
+                  path: 'units/:id',
+                  builder: (context, state) {
+                    final product = state.extra as Product?;
+                    if (product == null) return const ProductListPage();
+                    // ProductUnitBloc is per-SKU, so scope it to this route —
+                    // same precedent as LedgerBloc on the customer detail page.
+                    return BlocProvider(
+                      create: (_) =>
+                          sl<ProductUnitBloc>()..add(LoadUnits(product.id)),
+                      child: ProductUnitsPage(product: product),
+                    );
                   },
                 ),
               ],

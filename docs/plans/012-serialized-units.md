@@ -1,7 +1,23 @@
 # Plan 012 — Serialized Units (IMEI / Serial Number)
 
-> **Status:** 🔨 **IN BUILD — lean V1.** Picked up as the next unfinished plan
-> after Plan 011 closed out.
+> **Status:** ✅ **V1 SHIPPED** — schema **v14→v15**, purely additive. Picked up
+> as the next unfinished plan after Plan 011 closed out.
+> **As built:** everything in the "In" scope below. `products.isSerialized` +
+> `sales_items.serialSnapshot` + the `product_units` table with a partial-unique
+> serial index; `UnitStatus` enum persisted by name; `ProductUnitsDao` (owns the
+> quantity↔unit-count invariant), repository, route-scoped `ProductUnitBloc`,
+> and a units page (add/scan, status chips, warranty date, serial search) at
+> `/products/units/:id`. The POS's second scan path is live, a sold handset
+> reports `unitNotAvailable` rather than `productNotFound`, deleting an invoice
+> releases its units, and the serial prints on receipts **and reprints** plus
+> the invoice detail page.
+> **⚠️ The v14→v15 migration test is written but has NOT been run** — no device
+> was attached. It is the one thing standing between this and "verified"; see
+> `integration_test/migration_v15_test.dart`.
+> **Verification:** `flutter analyze` clean; **127 tests** pass (+16 for this
+> plan), covering the status enum's by-name fallback, the warranty boundary, the
+> scan-order and sold-handset cases, the one-line-per-handset rule, and the
+> reprint replaying the serial.
 > **Origin:** carved out of Plan 010 as **bucket C**. That plan drew a hard line
 > — *"refusing to model IMEI and Size as attributes"* was called its single most
 > important decision — and deliberately left the seams additive for this one.

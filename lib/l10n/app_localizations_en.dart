@@ -765,6 +765,113 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String unitsTitle(String product) {
+    return 'Units — $product';
+  }
+
+  @override
+  String unitsSummary(int available, int total) {
+    return '$available of $total still in stock';
+  }
+
+  @override
+  String get unitsAdd => 'Add unit';
+
+  @override
+  String get unitsSerialLabel => 'IMEI / Serial number';
+
+  @override
+  String get unitsSerialHint => 'Scan or type the number';
+
+  @override
+  String get unitsSearchHint => 'Search by IMEI / serial';
+
+  @override
+  String get unitsEmpty =>
+      'No units yet.\nAdd one for each physical item you have in stock.';
+
+  @override
+  String get unitsNoMatch => 'No unit matches that number.';
+
+  @override
+  String get unitsNoSerial => '(no serial)';
+
+  @override
+  String get unitsSetWarranty => 'Set warranty date';
+
+  @override
+  String get unitsMarkDefective => 'Mark as defective';
+
+  @override
+  String get unitsRestock => 'Return to stock';
+
+  @override
+  String unitsWarrantyUntil(String date) {
+    return 'Warranty until $date';
+  }
+
+  @override
+  String unitsSoldOn(String date) {
+    return 'Sold on $date';
+  }
+
+  @override
+  String get unitStatusInStock => 'In stock';
+
+  @override
+  String get unitStatusSold => 'Sold';
+
+  @override
+  String get unitStatusReturned => 'Returned';
+
+  @override
+  String get unitStatusDefective => 'Defective';
+
+  @override
+  String get unitsAdded => 'Unit added';
+
+  @override
+  String get unitsSaved => 'Saved';
+
+  @override
+  String get unitsDeleted => 'Unit deleted';
+
+  @override
+  String get unitsLoadFailed => 'Could not load units.';
+
+  @override
+  String get unitsSaveFailed => 'Could not save. Please try again.';
+
+  @override
+  String get unitsDuplicateSerial =>
+      'This number is already registered to another unit.';
+
+  @override
+  String get unitsDeleteBlockedSold =>
+      'This unit has been sold and cannot be deleted — its record links the serial to its invoice.';
+
+  @override
+  String get unitsDeleteTitle => 'Delete this unit?';
+
+  @override
+  String get unitsDeleteBody =>
+      'The unit will be removed from stock. This cannot be undone.';
+
+  @override
+  String get productSerialized => 'Track individual units (IMEI / serial)';
+
+  @override
+  String get productSerializedHint =>
+      'For phones and devices where each item has its own number. Stock is then counted from the units you add.';
+
+  @override
+  String get productUnitsAction => 'Units';
+
+  @override
+  String get stockFromUnitsHint =>
+      'Counted from the units you add — open Units to change it.';
+
+  @override
   String unitNotAvailableError(String serial) {
     return 'This item ($serial) is no longer in stock — it has already been sold.';
   }

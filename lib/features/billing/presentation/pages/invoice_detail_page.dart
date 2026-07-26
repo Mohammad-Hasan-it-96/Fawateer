@@ -234,6 +234,18 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
                     Text(item.productName,
                         style: const TextStyle(
                             fontSize: 13, fontWeight: FontWeight.w500)),
+                    // The IMEI/serial this line sold (Plan 012), replayed from
+                    // the snapshot. This is what turns "which invoice sold this
+                    // handset?" from unanswerable into one lookup.
+                    if (item.serialSnapshot.isNotEmpty)
+                      Text(
+                        'IMEI/SN: ${item.serialSnapshot}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontFamily: 'monospace',
+                          color: Theme.of(context).colorScheme.outline,
+                        ),
+                      ),
                     if (item.discount > 0)
                       Text(
                           '${l10n.discountLabel}: - ${_money(currency, item.discount)}',

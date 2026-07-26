@@ -40,6 +40,7 @@ class _AddProductPageState extends State<AddProductPage> {
   double _cost = 0.0;
   double _quantity = 0.0;
   double _minStockAlert = 0.0;
+  bool _isSerialized = false;
   ProductSaleType _saleType = ProductSaleType.piece;
   PriceCurrency _priceCurrency = PriceCurrency.sp;
   Map<String, String> _attributes = {};
@@ -102,6 +103,7 @@ class _AddProductPageState extends State<AddProductPage> {
         price: _price,
         cost: _cost,
         quantity: _quantity,
+        isSerialized: _isSerialized,
         minStockAlert: _minStockAlert,
         saleType: _saleType,
         priceCurrency: _priceCurrency,
@@ -245,8 +247,21 @@ class _AddProductPageState extends State<AddProductPage> {
                       invalidMsg: l10n.invalidNumber,
                       negativeMsg: l10n.negativeNotAllowed,
                     ),
-                    onSaved: (value) =>
-                        _quantity = NumInput.parseFlexibleNumber(value) ?? 0,
+                    onSaved: (value) {
+                      // A serialized SKU starts at 0 and counts up as units are
+                      // added (Plan 012 D1) — typing a quantity here would be
+                      // immediately overwritten, so ignore it.
+                      if (_isSerialized) return;
+                      _quantity = NumInput.parseFlexibleNumber(value) ?? 0;
+                    },
+                  ),
+                  const SizedBox(height: 24),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: _isSerialized,
+                    onChanged: (v) => setState(() => _isSerialized = v),
+                    title: Text(l10n.productSerialized),
+                    subtitle: Text(l10n.productSerializedHint),
                   ),
                   const SizedBox(height: 24),
                   InputLabel(text: l10n.lowStockAlertLabel),

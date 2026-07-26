@@ -1562,6 +1562,192 @@ abstract class AppLocalizations {
   /// **'Product not found: {barcode}'**
   String productNotFound(String barcode);
 
+  /// No description provided for @unitsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Units — {product}'**
+  String unitsTitle(String product);
+
+  /// No description provided for @unitsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{available} of {total} still in stock'**
+  String unitsSummary(int available, int total);
+
+  /// No description provided for @unitsAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add unit'**
+  String get unitsAdd;
+
+  /// No description provided for @unitsSerialLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'IMEI / Serial number'**
+  String get unitsSerialLabel;
+
+  /// No description provided for @unitsSerialHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan or type the number'**
+  String get unitsSerialHint;
+
+  /// No description provided for @unitsSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by IMEI / serial'**
+  String get unitsSearchHint;
+
+  /// No description provided for @unitsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No units yet.\nAdd one for each physical item you have in stock.'**
+  String get unitsEmpty;
+
+  /// No description provided for @unitsNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No unit matches that number.'**
+  String get unitsNoMatch;
+
+  /// No description provided for @unitsNoSerial.
+  ///
+  /// In en, this message translates to:
+  /// **'(no serial)'**
+  String get unitsNoSerial;
+
+  /// No description provided for @unitsSetWarranty.
+  ///
+  /// In en, this message translates to:
+  /// **'Set warranty date'**
+  String get unitsSetWarranty;
+
+  /// No description provided for @unitsMarkDefective.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as defective'**
+  String get unitsMarkDefective;
+
+  /// No description provided for @unitsRestock.
+  ///
+  /// In en, this message translates to:
+  /// **'Return to stock'**
+  String get unitsRestock;
+
+  /// No description provided for @unitsWarrantyUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Warranty until {date}'**
+  String unitsWarrantyUntil(String date);
+
+  /// No description provided for @unitsSoldOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sold on {date}'**
+  String unitsSoldOn(String date);
+
+  /// No description provided for @unitStatusInStock.
+  ///
+  /// In en, this message translates to:
+  /// **'In stock'**
+  String get unitStatusInStock;
+
+  /// No description provided for @unitStatusSold.
+  ///
+  /// In en, this message translates to:
+  /// **'Sold'**
+  String get unitStatusSold;
+
+  /// No description provided for @unitStatusReturned.
+  ///
+  /// In en, this message translates to:
+  /// **'Returned'**
+  String get unitStatusReturned;
+
+  /// No description provided for @unitStatusDefective.
+  ///
+  /// In en, this message translates to:
+  /// **'Defective'**
+  String get unitStatusDefective;
+
+  /// No description provided for @unitsAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit added'**
+  String get unitsAdded;
+
+  /// No description provided for @unitsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get unitsSaved;
+
+  /// No description provided for @unitsDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit deleted'**
+  String get unitsDeleted;
+
+  /// No description provided for @unitsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load units.'**
+  String get unitsLoadFailed;
+
+  /// No description provided for @unitsSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save. Please try again.'**
+  String get unitsSaveFailed;
+
+  /// No description provided for @unitsDuplicateSerial.
+  ///
+  /// In en, this message translates to:
+  /// **'This number is already registered to another unit.'**
+  String get unitsDuplicateSerial;
+
+  /// No description provided for @unitsDeleteBlockedSold.
+  ///
+  /// In en, this message translates to:
+  /// **'This unit has been sold and cannot be deleted — its record links the serial to its invoice.'**
+  String get unitsDeleteBlockedSold;
+
+  /// No description provided for @unitsDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this unit?'**
+  String get unitsDeleteTitle;
+
+  /// No description provided for @unitsDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'The unit will be removed from stock. This cannot be undone.'**
+  String get unitsDeleteBody;
+
+  /// No description provided for @productSerialized.
+  ///
+  /// In en, this message translates to:
+  /// **'Track individual units (IMEI / serial)'**
+  String get productSerialized;
+
+  /// No description provided for @productSerializedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'For phones and devices where each item has its own number. Stock is then counted from the units you add.'**
+  String get productSerializedHint;
+
+  /// No description provided for @productUnitsAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Units'**
+  String get productUnitsAction;
+
+  /// No description provided for @stockFromUnitsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Counted from the units you add — open Units to change it.'**
+  String get stockFromUnitsHint;
+
   /// No description provided for @unitNotAvailableError.
   ///
   /// In en, this message translates to:

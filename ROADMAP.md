@@ -106,6 +106,7 @@ Each plan's own header carries its as-built detail.
 | **009** | Smart assistant & intelligent alerts | ⏸️ **Deferred to V2** — no code. 008 already ships the passive version |
 | **010** | Dynamic product attributes | ✅ Bucket A **feature-complete** (V1→V1.4), schema **v13**. Buckets B/C are separate plans |
 | **011** | V1 field-feedback fixes (11 items) | ✅ **All 11 shipped** + 2 follow-ups, schema **v14** |
+| **012** | Serialized units (IMEI / serial) | ✅ V1 shipped — schema **v15**. Bucket C of Plan 010; migration not yet device-verified |
 
 ---
 
@@ -396,6 +397,22 @@ overhaul).
   it that **reprints dropped the unit entirely** (original ≠ reprint of the same
   invoice). Verified on-device by `integration_test/migration_v14_test.dart`.
 
+### ✅ Plan 012 — Serialized units  *(IMEI/serial, schema v15)*
+- A `Product` is a SKU; a `ProductUnit` is one physical object. Five identical
+  handsets = **one product row, five unit rows** — the model Plan 010 protected
+  by refusing to let IMEI be a per-SKU attribute.
+- Opt-in per product (`isSerialized`), so a shop that never turns it on sees
+  today's behavior exactly.
+- **Second scan path**: barcode first, then serial — scanning an IMEI picks that
+  exact handset. A sold one reports **unitNotAvailable**, deliberately not
+  "product not found", which would send the cashier hunting a shelf for a phone
+  sold last week.
+- One line per handset, never quantity 2 — the serial is snapshotted per line,
+  so merging would lose an IMEI outright.
+- `sales_items.serialSnapshot` follows the reprint-eternal rule; the serial
+  shows on the receipt, the **reprint**, and the invoice detail page.
+- ⚠️ **Migration not device-verified** — the v14→v15 test is written but unrun.
+
 ### ✅ Navigation — Android back button
 - Back on any tab root used to bubble to the system and **kill the app
   instantly** (a shop reported one stray thumb tap closing the till mid-sale).
@@ -424,7 +441,7 @@ start from the plan doc, which records why.
 - 🔒 **Plan 007** — PDF renderer (the `pdf` dep is still deliberately unadded).
 - 🔒 **Plan 008 V1.5+** — hourly sales, inventory turnover, slow-moving products,
   customer top-buyers, dashboard-as-image share.
-- 🔒 **Plan 010** — bucket B (Size×Color variants), bucket C (IMEI/serial).
+- 🔒 **Plan 010** — bucket B (Size×Color variants). *(Bucket C shipped as Plan 012.)*
 - ⬜ **Larger modules** — purchase invoices, suppliers, expenses, multi-store.
   Architecture was kept scalable for these; `CashTransactionType` already
   reserves `purchasePayment`/`supplierPayment` so they can post to the cashbox
