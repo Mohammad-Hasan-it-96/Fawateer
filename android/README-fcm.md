@@ -80,23 +80,34 @@ Accounts → Generate new private key** → give that JSON to the backend, keyed
 
 Status of each backend:
 
-- **`evotech-core`** (the target) — `Modules\DeviceSubscriptions`'s
-  `FirebasePushNotifier` is a **scaffold**: it logs `"FCM send (not yet
-  implemented)"` and returns. Activation already calls it, so the whole path
-  exists bar the send itself. Its config also holds only **one** Firebase project
-  and must be keyed by `app_name` per the above.
+- **`evotech-core`** (live) — `Modules\DeviceSubscriptions`'s
+  `FirebasePushNotifier` is **fully implemented and device-verified**: FCM HTTP
+  v1 `messages:send`, OAuth2 via `ServiceAccountCredentials`, a bearer token
+  cached 55 minutes, and **per-app Firebase projects** resolved by `app_name`
+  (`fawateer-4c9bc` vs `smart-agent-5b153` — tokens are not interchangeable
+  between projects). Sends `android.priority=high`; send failures are logged and
+  swallowed, never thrown. **Operator activation unlocks a running app live.**
 - **`harrypotter.foodsalebot.com`** (the legacy Smart-Agent backend) — **no
   longer in the picture.** Fawateer now points at `api.evotech-sys.com/api/fawateer`.
   It sent real v1 pushes but from `smart-agent-5b153`, so it could never have
   reached a Fawateer device anyway. Kept here only as history.
 
-> ⚠️ **Open question (2026-07-27):** push delivery to the app is confirmed
-> working on a real device against `fawateer-4c9bc`. What is *not* confirmed is
-> whether `evotech-core`'s `FirebasePushNotifier` has been implemented since the
-> note above was written. If it is still the logging scaffold, **operator
-> activation will not unlock a running app live** — it falls back to the
-> re-check on next launch, which works but is slower and looks broken to a
-> waiting shopkeeper. Verify server-side before relying on live unlock.
+> **Correction (2026-07-27).** This file previously said the sender was a
+> scaffold that logged `"FCM send (not yet implemented)"` and returned. That
+> describes `NullPushNotifier` — the deliberately inert default bound whenever
+> `DEVICE_PUSH_NOTIFIER != 'firebase'` — not the Firebase implementation. Live
+> unlock has been working; the doc was wrong, and the mistake is recorded here
+> because "is push actually wired?" is a question that keeps being re-asked.
+
+> ⚠️ **Two things to know before reusing this channel for sync** (Plan 002 D3),
+> confirmed by the evotech-core side:
+> 1. `send()` **always emits a `notification` block**, so every message raises a
+>    tray banner. A sync doorbell must be **data-only** and silent — otherwise
+>    each change pops a notification at the shopkeeper. A data-only variant is
+>    additive server-side work, not a client change.
+> 2. **Dead-token pruning is still a follow-up** (an `UNREGISTERED` response is
+>    only logged today). Harmless for licensing, which sends a few times a day;
+>    it becomes a real requirement once a doorbell fires on every change.
 
 The payload below is already v1-shaped and matches what both backends build.
 

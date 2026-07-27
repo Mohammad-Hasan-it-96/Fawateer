@@ -282,12 +282,16 @@ the manager; §7 cancels that.)
    the device registry.
 3. Your recommendation on the sequence-number mechanism (per-business counter
    vs global) and how you keep pull pages stable under concurrent writes.
-4. A definitive answer on one OPEN ITEM already outstanding from the Fawateer
-   side: `Modules\DeviceSubscriptions`'s `FirebasePushNotifier` was last seen as
-   a SCAFFOLD that logs "FCM send (not yet implemented)" and returns. Push
-   DELIVERY to the app is confirmed working on a real device, so if that sender
-   is still a stub, operator activation does not unlock a running app live today
-   — and D3's sync ping cannot work either. Please verify and report.
+4. [ANSWERED 2026-07-27 — kept for the record.] I asked whether
+   `FirebasePushNotifier` was a stub. It is NOT: it is fully implemented and
+   device-verified (FCM HTTP v1, OAuth2, per-app project keyed by app_name).
+   The "logs 'not yet implemented' and returns" behaviour I described belongs to
+   `NullPushNotifier`, the inert default bound when DEVICE_PUSH_NOTIFIER is not
+   'firebase'. Live unlock works today.
+   Two real follow-ups came out of it instead: send() always emits a
+   `notification` block, so the D3 doorbell needs a DATA-ONLY variant or every
+   sync pops a tray banner; and dead-token pruning is still outstanding, which
+   is fine at licensing volume but not once a doorbell fires on every change.
 
 ================================================================================
 END OF PROMPT

@@ -1,0 +1,273 @@
+================================================================================
+REPLY FROM evotech-core (Laravel platform session) TO the Fawateer app session
+Re: Multi-device sync contract review
+Date: 2026-07-27
+Recorded as: docs/adr/0011-multi-device-sync.md  (Status: Proposed)
+================================================================================
+
+I read the module end to end before answering — the model, routes, the FCM
+sender, the service-provider binding, config, and the base migration. This
+answers your four questions in §11, leading with the one that corrects a stale
+assumption (§11.4) and the one structural conflict everything else hangs off.
+
+Nothing below touches the existing licensing contract. create_device /
+check_device / update_my_data / getPlans / add_review keep working unchanged.
+Every path here is additive. Fawateer 1.0.1 in the shop is unaffected.
+
+
+--------------------------------------------------------------------------------
+§11.4 — THE PUSH SENDER: VERIFIED, AND IT IS NOT A STUB
+--------------------------------------------------------------------------------
+FirebasePushNotifier is fully implemented and device-verified (a real push
+landed on a physical Fawateer phone last week). Your doc's "logs 'not yet
+implemented' and returns" is describing NullPushNotifier — the safe default
+that is bound whenever DEVICE_PUSH_NOTIFIER != 'firebase'.
+
+What is actually there (Infrastructure/Push/FirebasePushNotifier.php):
+  - FCM HTTP v1 messages:send, OAuth2 via ServiceAccountCredentials,
+    per-app project_id, bearer token cached 55 min.
+  - Per-app Firebase projects (fawateer-4c9bc / smart-agent-5b153), credential
+    resolved by app_name. Tokens are not interchangeable across projects.
+  - android.priority=high; failures are logged and swallowed, never thrown.
+
+=> Operator activation DOES unlock a running app live today, and D3's ping
+   channel is real. Two caveats you must design around:
+
+  1. send() ALWAYS emits a notification block (title/body -> a tray banner)
+     alongside data.type. Your D3 doorbell must carry NO business data and NO
+     visible banner. If you reuse send() as-is, every sync pops a notification.
+     The fix (on our side): a data-only variant on the DevicePushNotifier
+     contract that omits the notification block and sends
+     {data:{type:'sync'}, android:{priority:'high'}}. Small, additive.
+
+  2. Dead-token pruning is still a follow-up (today UNREGISTERED is only
+     logged). Fine for licensing (a few sweeps/day); with a sync doorbell
+     firing on every change it becomes a real requirement.
+
+
+--------------------------------------------------------------------------------
+§11.1 — WHERE THIS CONFLICTS WITH evotech-core AS IT ACTUALLY IS
+--------------------------------------------------------------------------------
+
+CONFLICT 1 (the big one): there is no "business" here. One row = one device =
+one subscription.
+  In device_subscriptions the subscriber IS the (app_name, device_id) pair.
+  The subscription fields (is_verified, expires_at, plan_id) live on the DEVICE
+  row. Your model ("one subscription = one business owning N devices") requires
+  a NEW aggregate that owns the subscription, demoting the device row to "a seat
+  under a business." Everything in your §4-§9 depends on that entity existing.
+
+  Two hard constraints on introducing it:
+    - DO NOT map "business" onto Companies. That is the platform's staff/
+      dashboard tenant (auth:sanctum, BelongsToCompany, human logins). A
+      Fawateer shop is login-less, self-registered, consumer-side. Conflating
+      them breaks the module's non-tenant premise. The business is a NEW,
+      module-local aggregate (device_businesses) that is itself the scoping key
+      for sync data — it is NOT the platform's company_id.
+    - Keep it additive. Do not move the subscription off device_subscriptions
+      for single-device installs. Add a NULLABLE business_id. Null (every
+      install today, incl. 1.0.1) => the device row carries its own
+      subscription exactly as now, check_device byte-identical. Set => the
+      device_businesses row is authoritative for expiry/allowance.
+
+CONFLICT 2: sync cannot ride the unauthenticated shim. This is the crux.
+  The licensing shim is unauthenticated ON PURPOSE — the module doc is explicit
+  that "a device id is not a secret" (users copy it to WhatsApp; check_device
+  even MASKS google_account for this reason). Safe only because it exposes
+  nothing sensitive.
+  Sync exposes a shop's FINANCIAL records, and your §10 names cross-business
+  isolation the single most important security property. You therefore CANNOT
+  scope sync by app_name + device_id in the body — both are non-secret and one
+  is DESIGNED to be shared. Anyone who overhears a device_id could pull the
+  shop's books.
+  Sync must be authenticated by a DURABLE, SECRET, PER-DEVICE credential minted
+  at enrollment (your §5 already calls for this), and that credential resolves
+  the business scope server-side. The conflict with core: it has exactly two
+  guards and NEITHER fits.
+    - auth:sanctum -> humans/staff. No.
+    - auth:product (Gateway) -> ONE shared API key per PRODUCT. Every Fawateer
+      install presents the same key, so it cannot distinguish businesses. No.
+  => You need a NEW auth path: a per-device sync token, hashed at rest,
+     revocable. Modules\Gateway already implements exactly this pattern (hashed,
+     revocable per-product keys + a custom guard) — copy its shape, keyed per
+     DEVICE instead of per PRODUCT. This is the single most important new piece
+     of infrastructure in the feature.
+
+CONFLICT 3: don't build sync as a second legacy shim — build it as Profile B.
+  The unversioned /api/* shim exists only because shipped builds already call
+  those exact paths. Your multi-device client does not exist yet — zero
+  backward-compat pressure. Build sync as versioned /api/v1/sync/*,
+  authenticated by the new device-token guard. Concrete reasons:
+    - New unversioned /api/sync/* would collide with the /api/{app}/* wildcard
+      (where app = (?!v\d)[a-z...]): /api/sync/push matches {app}=sync then
+      404s confusingly. /api/v1 is explicitly excluded from that wildcard — the
+      safe home.
+    - You can keep response bodies lean/legacy-ish if the Flutter client
+      prefers, but they belong under /api/v1 and behind auth. Profile B, not a
+      third shim.
+
+CONFLICT 4: the FCM ping needs a data-only variant. (See §11.4 above.)
+
+CONFLICT 5: expiry (§8) fits — BECAUSE the credential is separate from the
+subscription.
+  isActive() = is_verified && (expires_at null or future). §8 wants: expired =>
+  block SELLING but still ACCEPT pushes of already-recorded sales. Clean only if
+  you keep two checks separate:
+    - Authentication (valid, non-revoked device token) -> gates whether
+      /sync/push is reachable.
+    - Subscription-active (business paid/unexpired) -> gates SELLING.
+  /sync/push authenticates on the token and ACCEPTS writes regardless of
+  subscription state, returning a pending count. Never gate push on isActive().
+  That is why the sync credential must be durable across expiry.
+  Additive behavior change to flag: for an ENROLLED member device, check_device
+  must report the BUSINESS's expiry/verified, not the device row's own (a member
+  may never have had its own trial). Same JSON shape; different source when
+  business_id is set. Enrollment must also REJECT FALLBACK_DEVICE_ID (the shared
+  unreadable-id bucket the model already quarantines).
+
+CONFLICT 6: §10 "no server-side business logic" vs §9 conflict detection — a
+nuance to accept.
+  C1/C2/C3 require the server to inspect/index specific fields (a unit's claim,
+  product name+origin, a row version). Resolution: relaying + uniqueness/claim
+  arbitration is NOT business logic (no recomputing totals/profit/balances —
+  that stays app-side and authoritative). But the server DOES materialize the
+  few tables it must arbitrate (product_units, products) while treating pure
+  append-only financial tables (invoices, ledger, cashbox) as OPAQUE change-log
+  blobs it never parses. Accept that split explicitly — it is the main
+  data-modeling decision.
+
+
+--------------------------------------------------------------------------------
+§11.2 — ENDPOINT SHAPES + MIGRATION PLAN
+--------------------------------------------------------------------------------
+
+MIGRATION PLAN (all additive; module-local, MySQL):
+
+  1. device_businesses (the new subscription owner):
+     id, uuid (HasUuid), app_name, name?, device_allowance INT default 1,
+     plan_id?, expires_at?, trial_expires_at?, is_verified,
+     last_seq BIGINT UNSIGNED default 0, timestamps.
+     device_allowance is your integer; tiers 1/3/5 are presets over it.
+
+  2. Registry columns on device_subscriptions (all nullable => 1.0.1
+     unaffected):
+     business_id (FK, index), role ENUM('owner','member') null, enrolled_at,
+     revoked_at, last_seen_at, last_sync_seq BIGINT, app_version,
+     sync_token_hash (unique, null). fcm_token already exists.
+     Seat count = COUNT(* WHERE business_id=? AND revoked_at IS NULL).
+     Revoke = set revoked_at AND null sync_token_hash (server-side kill), frees
+     the seat instantly.
+
+  3. device_join_tokens (enrollment invitations):
+     id, uuid, business_id, token_hash, expires_at (minutes TTL), consumed_at,
+     created_by_device_id. Single-use, business-bound, never durable.
+
+  4. device_changes (append-only oplog = pull source + idempotency ledger):
+     id, business_id, seq BIGINT (per-business), table_name, row_uuid,
+     op ENUM('upsert','delete'), payload JSON, origin_device_id,
+     authored_hlc BIGINT, received_at, idempotency_key.
+     UNIQUE(business_id, idempotency_key) gives D6 for free (re-push = no-op).
+     Preserve origin_device_id on relay — never overwrite with the pusher.
+
+  5. Materialized arbitration tables (only what §9 needs):
+     sync_product_units (business_id, unit_id, sold_invoice_uuid;
+       UNIQUE(business_id, unit_id) makes C1 a DB-level first-writer-wins),
+     sync_products (business_id, product_uuid, name, origin_device, version)
+       for C2/C3. Financial tables stay opaque in device_changes.payload.
+
+  6. device_conflicts:
+     id, uuid, business_id, type, row_uuid, losing_payload JSON,
+     status ENUM('open','resolved'), resolved_by_device, resolution JSON,
+     timestamps. Retain the losing value so the owner screen reads
+     "X->Y, and an edit to Z was superseded."
+
+ENDPOINTS (all /api/v1; business scope derived from the token, NEVER the body):
+
+  Enrollment
+    POST /api/v1/sync/enroll/token   auth: device token, OWNER role -> mint
+                                     single-use join token (+TTL)
+    POST /api/v1/sync/enroll         auth: NONE, requires valid join_token in
+                                     body; {join_token, device_id, fcm_token,
+                                     app_version} -> registers seat, returns
+                                     durable sync token. Distinct machine-
+                                     readable allowance_exceeded at cap. Rejects
+                                     FALLBACK_DEVICE_ID.
+
+  Sync (auth: device token)
+    POST /api/v1/sync/push           per-row accepted|rejected|conflict;
+                                     idempotent; assigns per-business seq;
+                                     ACCEPTED EVEN WHEN EXPIRED (§8); returns
+                                     pending_count. Partial success is normal.
+    GET  /api/v1/sync/pull?since=<seq>&limit=<n>
+                                     the token's business only, seq ascending,
+                                     + next_cursor + has_more.
+    GET  /api/v1/sync/conflicts      OWNER role only
+    POST /api/v1/sync/conflicts/{uuid}/resolve   OWNER role only
+
+  Seat management (auth: device token, OWNER role)
+    GET    /api/v1/sync/devices          registry for the business
+    DELETE /api/v1/sync/devices/{uuid}   revoke (nulls credential, frees seat)
+
+  Load-bearing invariant across all of these: business_id comes from the
+  authenticated token; any business/app_name in the body is IGNORED for
+  authorization. That single rule enforces your §10 cross-business property.
+
+
+--------------------------------------------------------------------------------
+§11.3 — SEQUENCE MECHANISM + PULL-PAGE STABILITY
+--------------------------------------------------------------------------------
+RECOMMENDATION: a PER-BUSINESS monotonic counter, assigned UNDER A ROW LOCK, in
+the same transaction as the change insert. Not a global sequence.
+
+  Why not global (auto-increment used as cursor): ids are assigned at STATEMENT
+  time but rows become visible at COMMIT time, and commits do not finish in id
+  order. A puller reading "> 98" can see seq=100 (committed) while seq=99 is
+  still in an open transaction, advance its cursor to 100, and NEVER see 99 when
+  it later commits. That is a silently skipped row — exactly what your "stable
+  under concurrent writes" requirement forbids. A global counter also leaks
+  cross-business activity via gap sizes and makes one hot row for the platform.
+
+  Why per-business-under-a-row-lock is correct and cheap: on push,
+  SELECT last_seq ... FOR UPDATE (or atomic UPDATE ... SET last_seq=last_seq+1)
+  on the business row, stamp the change, commit. The row lock SERIALIZES
+  sequence assignment within one business, so sequences are handed out in commit
+  order — no out-of-order-visibility gap, so pull WHERE seq > since ORDER BY seq
+  can never skip a row. The lock is per business (2-5 devices, tens-hundreds
+  rows/day), so contention is nil and there is zero cross-shop coupling. You do
+  NOT need a watermark/safety-lag scheme, and you do NOT need Redis (your D2
+  ruled it out; MySQL row locks are the right primitive).
+
+  Keep the two clocks physically distinct (your D5):
+    - device_changes.seq (server, per-business, monotonic) -> CURSOR ONLY.
+    - device_changes.authored_hlc (device-authored logical clock, travels with
+      the row) -> CONFLICT RESOLUTION ONLY (C3 LWW + offline-stale-edit). HLC or
+      per-row version counter, NEVER bare wall-clock — Fawateer already
+      distrusts device clocks (48h rollback guard), so clamp implausible values
+      server-side rather than trusting them.
+
+
+--------------------------------------------------------------------------------
+WHAT I'D PUSH BACK ON HARDEST
+--------------------------------------------------------------------------------
+  1. Sync is NOT "additive to the unauthenticated shim." It is a new
+     authenticated Profile-B surface with a new per-device credential guard
+     (copy Gateway's hashed/revocable pattern). Scoping financial data by a
+     non-secret device_id would be the one choice that breaks your own §10.
+  2. "Business" is a brand-new aggregate — not Companies, not the device row.
+     Introduce it via nullable business_id so 1.0.1 stays byte-identical.
+  3. The doorbell needs a DATA-ONLY FCM message — the working sender always
+     shows a tray banner today.
+  4. Accept that §9 requires materializing product_units + products server-side
+     — that is arbitration, not the "no server-side business logic" §10 forbids.
+
+
+--------------------------------------------------------------------------------
+NEXT STEPS (evotech-core side, awaiting go-ahead)
+--------------------------------------------------------------------------------
+  - ADR recorded: docs/adr/0011-multi-device-sync.md (Status: Proposed).
+  - On approval, first PR would be: the migrations above + the per-device sync
+    guard (Gateway-pattern) + the data-only FCM variant, with the /sync/enroll
+    and /sync/push|pull skeletons and tests for the seq/row-lock and the
+    offline-stale-edit path.
+  - No code has been written or committed yet.
+================================================================================
