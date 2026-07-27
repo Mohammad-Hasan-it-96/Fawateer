@@ -3,6 +3,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
 
+import '../../../../core/utils/barcode_formats.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class ScannerPage extends StatefulWidget {
@@ -13,11 +14,55 @@ class ScannerPage extends StatefulWidget {
 }
 
 class _ScannerPageState extends State<ScannerPage> {
-  final MobileScannerController controller = MobileScannerController(
-    detectionSpeed: DetectionSpeed.noDuplicates,
-    returnImage: false,
-  );
+  MobileScannerController controller = _newController(invert: false);
+
+  /// Inverted-barcode mode — reads white-on-color codes ML Kit can't decode
+  /// natively (Plan 011 #11). Construction-time option, so toggling swaps the
+  /// controller.
+  bool _invertScan = false;
+  int _generation = 0;
+
+  static MobileScannerController _newController({required bool invert}) =>
+      MobileScannerController(
+        // `normal` (not `noDuplicates`) so the same value re-fires across
+        // frames — required for the multi-frame confirmation below (#11).
+        detectionSpeed: DetectionSpeed.normal,
+        returnImage: false,
+        // Retail/wholesale symbologies only — fewer wrong reads (#11).
+        formats: kRetailBarcodeFormats,
+        invertImage: invert,
+        autoZoom: true,
+      );
+
+  void _toggleInvertScan() async {
+    final old = controller;
+    setState(() {
+      _invertScan = !_invertScan;
+      controller = _newController(invert: _invertScan);
+      _generation++;
+    });
+    await old.dispose();
+  }
+
   bool _isScanned = false;
+
+  // Multi-frame confirmation: a value must decode identically on this many
+  // consecutive frames before we accept it, so a one-off misread off a
+  // curved/glary surface is rejected. See the note in home_page's scanner.
+  String? _pendingScan;
+  int _pendingScanCount = 0;
+  static const int _kScanConfirmations = 2;
+
+  /// Camera zoom (0…1), driven by pinch / double-tap (Plan 011 #9).
+  double _zoom = 0;
+  double _zoomStart = 0;
+
+  void _applyZoom(double z) {
+    final clamped = z.clamp(0.0, 1.0);
+    if (clamped == _zoom) return;
+    setState(() => _zoom = clamped);
+    controller.setZoomScale(clamped).catchError((_) {});
+  }
 
   @override
   void dispose() {
@@ -30,7 +75,17 @@ class _ScannerPageState extends State<ScannerPage> {
     final List<Barcode> barcodes = capture.barcodes;
 
     for (final barcode in barcodes) {
-      if (barcode.rawValue != null) {
+      final rawValue = barcode.rawValue;
+      if (rawValue != null) {
+        // Require the same value on consecutive frames before accepting it.
+        if (rawValue == _pendingScan) {
+          _pendingScanCount++;
+        } else {
+          _pendingScan = rawValue;
+          _pendingScanCount = 1;
+        }
+        if (_pendingScanCount < _kScanConfirmations) break;
+
         _isScanned = true;
         // Vibrate
         final canVibrate = await Vibrate.canVibrate;
@@ -39,7 +94,7 @@ class _ScannerPageState extends State<ScannerPage> {
         }
 
         if (mounted) {
-          context.pop(barcode.rawValue);
+          context.pop(rawValue);
         }
         break; // Only take first one
       }
@@ -57,13 +112,34 @@ class _ScannerPageState extends State<ScannerPage> {
         ),
         title: Text(AppLocalizations.of(context)!.scanBarcodeTitle,
             style: const TextStyle(
-                fontWeight: FontWeight.bold, fontSize: 18))),
+                fontWeight: FontWeight.bold, fontSize: 18)),
+        actions: [
+          // Inverted-barcode mode (white bars on a colored background).
+          IconButton(
+            icon: Icon(
+                _invertScan ? Icons.invert_colors : Icons.invert_colors_off),
+            tooltip: AppLocalizations.of(context)!.invertScanLabel,
+            onPressed: _toggleInvertScan,
+          ),
+        ]),
       body: Stack(
         children: [
-          MobileScanner(
-            controller: controller,
-            onDetect: _onDetect,
-            // Removed overlay property
+          // Pinch / double-tap to zoom (Plan 011 #9) — helps read a small or
+          // awkward barcode; mobile_scanner has no manual tap-to-focus.
+          GestureDetector(
+            onScaleStart: (_) => _zoomStart = _zoom,
+            onScaleUpdate: (details) {
+              if (details.scale == 1.0) return;
+              _applyZoom(_zoomStart + (details.scale - 1));
+            },
+            onDoubleTap: () => _applyZoom(_zoom > 0 ? 0 : 0.5),
+            child: MobileScanner(
+              key: ValueKey(_generation),
+              controller: controller,
+              onDetect: _onDetect,
+              // Real tap-to-focus (Plan 011 #9).
+              tapToFocus: true,
+            ),
           ),
           // Simple border overlay manually
           Container(

@@ -176,6 +176,12 @@ class BackupRepositoryImpl implements BackupRepository {
 
   // ── Error mapping ────────────────────────────────────────────────────────
   Failure _map(Object e) {
+    // Checked first: this one is about the state the *app* is left in, not the
+    // kind of I/O that failed, so it must not be swallowed by the generic
+    // SocketException / CacheFailure arms below.
+    if (e is RestoreRestartRequiredException) {
+      return RestoreIncompleteFailure(e.cause.toString());
+    }
     if (e is NotSignedInException) {
       return const PermissionFailure('not_signed_in');
     }

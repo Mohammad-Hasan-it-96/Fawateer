@@ -206,6 +206,24 @@ abstract class AppLocalizations {
   /// **'Flash'**
   String get flash;
 
+  /// No description provided for @invertScanLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Light code'**
+  String get invertScanLabel;
+
+  /// No description provided for @invertScanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Not scanning? Try light-barcode mode'**
+  String get invertScanHint;
+
+  /// No description provided for @pressBackAgainToExit.
+  ///
+  /// In en, this message translates to:
+  /// **'Press back again to exit'**
+  String get pressBackAgainToExit;
+
   /// No description provided for @camera.
   ///
   /// In en, this message translates to:
@@ -241,6 +259,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Total'**
   String get colTotal;
+
+  /// No description provided for @colSerial.
+  ///
+  /// In en, this message translates to:
+  /// **'No.'**
+  String get colSerial;
+
+  /// No description provided for @colQty.
+  ///
+  /// In en, this message translates to:
+  /// **'Qty'**
+  String get colQty;
+
+  /// No description provided for @colUnit.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit'**
+  String get colUnit;
+
+  /// No description provided for @colUnitPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Unit price'**
+  String get colUnitPrice;
+
+  /// No description provided for @unitPiece.
+  ///
+  /// In en, this message translates to:
+  /// **'pc'**
+  String get unitPiece;
 
   /// No description provided for @grandTotal.
   ///
@@ -578,6 +626,18 @@ abstract class AppLocalizations {
   /// **'Low stock'**
   String get lowStockBadge;
 
+  /// No description provided for @outOfStockBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of stock'**
+  String get outOfStockBadge;
+
+  /// No description provided for @outOfStockScanNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Out of stock: {name}'**
+  String outOfStockScanNotice(String name);
+
   /// No description provided for @cancel.
   ///
   /// In en, this message translates to:
@@ -817,6 +877,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Don\'t allow selling more than what\'s on hand'**
   String get inventoryStrictSubtitle;
+
+  /// No description provided for @showPrintButtonTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Print receipts'**
+  String get showPrintButtonTitle;
+
+  /// No description provided for @showPrintButtonSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Show the print button and auto-print on a sale. Turn off if you have no printer.'**
+  String get showPrintButtonSubtitle;
 
   /// No description provided for @shopDetailsItem.
   ///
@@ -1268,6 +1340,36 @@ abstract class AppLocalizations {
   /// **'Follow system'**
   String get themeSystem;
 
+  /// No description provided for @fontSizeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Font size'**
+  String get fontSizeTitle;
+
+  /// No description provided for @fontSizeSmall.
+  ///
+  /// In en, this message translates to:
+  /// **'Small'**
+  String get fontSizeSmall;
+
+  /// No description provided for @fontSizeNormal.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal'**
+  String get fontSizeNormal;
+
+  /// No description provided for @fontSizeLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Large'**
+  String get fontSizeLarge;
+
+  /// No description provided for @fontSizeExtraLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Extra large'**
+  String get fontSizeExtraLarge;
+
   /// No description provided for @printDeviceItem.
   ///
   /// In en, this message translates to:
@@ -1459,6 +1561,204 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Product not found: {barcode}'**
   String productNotFound(String barcode);
+
+  /// No description provided for @unitsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Pieces — {product}'**
+  String unitsTitle(String product);
+
+  /// No description provided for @unitsSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'{available} of {total} still in stock'**
+  String unitsSummary(int available, int total);
+
+  /// No description provided for @unitsAdd.
+  ///
+  /// In en, this message translates to:
+  /// **'Add item'**
+  String get unitsAdd;
+
+  /// No description provided for @unitsSerialLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Serial number'**
+  String get unitsSerialLabel;
+
+  /// No description provided for @unitsSerialHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan or type the number'**
+  String get unitsSerialHint;
+
+  /// No description provided for @unitsSearchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by serial number'**
+  String get unitsSearchHint;
+
+  /// No description provided for @unitsEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No items yet.\nAdd one for each piece you have in stock.'**
+  String get unitsEmpty;
+
+  /// No description provided for @unitsNoMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No item matches that number.'**
+  String get unitsNoMatch;
+
+  /// No description provided for @serialLabelShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Serial'**
+  String get serialLabelShort;
+
+  /// No description provided for @unitsNoSerial.
+  ///
+  /// In en, this message translates to:
+  /// **'(no serial)'**
+  String get unitsNoSerial;
+
+  /// No description provided for @unitsSetWarranty.
+  ///
+  /// In en, this message translates to:
+  /// **'Set warranty date'**
+  String get unitsSetWarranty;
+
+  /// No description provided for @unitsMarkDefective.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as defective'**
+  String get unitsMarkDefective;
+
+  /// No description provided for @unitsRestock.
+  ///
+  /// In en, this message translates to:
+  /// **'Return to stock'**
+  String get unitsRestock;
+
+  /// No description provided for @unitsWarrantyUntil.
+  ///
+  /// In en, this message translates to:
+  /// **'Warranty until {date}'**
+  String unitsWarrantyUntil(String date);
+
+  /// No description provided for @unitsSoldOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sold on {date}'**
+  String unitsSoldOn(String date);
+
+  /// No description provided for @unitStatusInStock.
+  ///
+  /// In en, this message translates to:
+  /// **'In stock'**
+  String get unitStatusInStock;
+
+  /// No description provided for @unitStatusSold.
+  ///
+  /// In en, this message translates to:
+  /// **'Sold'**
+  String get unitStatusSold;
+
+  /// No description provided for @unitStatusReturned.
+  ///
+  /// In en, this message translates to:
+  /// **'Returned'**
+  String get unitStatusReturned;
+
+  /// No description provided for @unitStatusDefective.
+  ///
+  /// In en, this message translates to:
+  /// **'Defective'**
+  String get unitStatusDefective;
+
+  /// No description provided for @unitsAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Item added'**
+  String get unitsAdded;
+
+  /// No description provided for @unitsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get unitsSaved;
+
+  /// No description provided for @unitsDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Item deleted'**
+  String get unitsDeleted;
+
+  /// No description provided for @unitsLoadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not load the list.'**
+  String get unitsLoadFailed;
+
+  /// No description provided for @unitsSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save. Please try again.'**
+  String get unitsSaveFailed;
+
+  /// No description provided for @unitsDuplicateSerial.
+  ///
+  /// In en, this message translates to:
+  /// **'This number is already registered. Check whether you scanned the same piece twice.'**
+  String get unitsDuplicateSerial;
+
+  /// No description provided for @unitsDeleteBlockedSold.
+  ///
+  /// In en, this message translates to:
+  /// **'This piece has been sold and cannot be deleted — its record links the serial number to its invoice.'**
+  String get unitsDeleteBlockedSold;
+
+  /// No description provided for @unitsDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this piece?'**
+  String get unitsDeleteTitle;
+
+  /// No description provided for @unitsDeleteBody.
+  ///
+  /// In en, this message translates to:
+  /// **'It will be removed from stock. This cannot be undone.'**
+  String get unitsDeleteBody;
+
+  /// No description provided for @productSerialized.
+  ///
+  /// In en, this message translates to:
+  /// **'Each piece has its own serial number'**
+  String get productSerialized;
+
+  /// No description provided for @productSerializedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on for goods tracked one by one — phones, appliances, tools, gold. Stock is then counted from the pieces you add.'**
+  String get productSerializedHint;
+
+  /// No description provided for @productUnitsAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Pieces'**
+  String get productUnitsAction;
+
+  /// No description provided for @stockFromUnitsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Counted from the units you add — open Units to change it.'**
+  String get stockFromUnitsHint;
+
+  /// No description provided for @unitNotAvailableError.
+  ///
+  /// In en, this message translates to:
+  /// **'This piece (serial {serial}) is no longer in stock — it has already been sold.'**
+  String unitNotAvailableError(String serial);
 
   /// No description provided for @unknownBarcodeTitle.
   ///
@@ -1693,6 +1993,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Later'**
   String get updateLater;
+
+  /// No description provided for @verifyRequiredTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subscription verification required'**
+  String get verifyRequiredTitle;
+
+  /// No description provided for @verifyOfflineMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The app hasn\'t been able to reach the server for a while. Please connect to the internet, then tap Retry to continue.'**
+  String get verifyOfflineMessage;
+
+  /// No description provided for @verifyTamperMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'A change in the device\'s date and time was detected. Please correct the date and time, connect to the internet, then tap Retry.'**
+  String get verifyTamperMessage;
+
+  /// No description provided for @verifyDataSafe.
+  ///
+  /// In en, this message translates to:
+  /// **'All your data is safe on this device.'**
+  String get verifyDataSafe;
+
+  /// No description provided for @verifyChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking…'**
+  String get verifyChecking;
+
+  /// No description provided for @offlineWarnBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'No server connection for {days} days — connect to the internet to verify'**
+  String offlineWarnBanner(int days);
+
+  /// No description provided for @trialExpiredNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Your free trial has ended. Choose a plan to activate a subscription and continue — all your data is safe.'**
+  String get trialExpiredNotice;
+
+  /// No description provided for @subscriptionExpiredNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Your subscription has ended. Choose a plan to renew and continue — all your data is safe.'**
+  String get subscriptionExpiredNotice;
+
+  /// No description provided for @checkForUpdatesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap to check for updates'**
+  String get checkForUpdatesHint;
+
+  /// No description provided for @updateUpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'re on the latest version'**
+  String get updateUpToDate;
+
+  /// No description provided for @updateCheckFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t check for updates. Check your internet connection.'**
+  String get updateCheckFailed;
 
   /// No description provided for @contactMessage.
   ///
@@ -2181,6 +2547,18 @@ abstract class AppLocalizations {
   /// **'Your subscription has been activated'**
   String get subscriptionActivatedBanner;
 
+  /// No description provided for @trialBannerNoDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Free trial'**
+  String get trialBannerNoDate;
+
+  /// No description provided for @trialBannerWithDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Free trial — {days} days left (until {date})'**
+  String trialBannerWithDate(int days, String date);
+
   /// No description provided for @trialBanner.
   ///
   /// In en, this message translates to:
@@ -2330,6 +2708,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close app'**
   String get backupRestartAction;
+
+  /// No description provided for @backupRestoreFailedTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore did not finish'**
+  String get backupRestoreFailedTitle;
+
+  /// No description provided for @backupRestoreFailedBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Your data has NOT been changed — it is safe exactly as it was. The app still needs to be reopened before it will work again.'**
+  String get backupRestoreFailedBody;
 
   /// No description provided for @backupSuccessBackedUp.
   ///

@@ -140,8 +140,10 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
   }
 
   /// Reprint a stored invoice. Loads its line items, maps them to
-  /// [ReceiptLine]s (no `unit` — `InvoiceItem` doesn't snapshot sale type, so a
-  /// weighed line reprints without the "كغ" tag), and prints via the same
+  /// [ReceiptLine]s replayed **entirely from sale-time snapshots** — printed
+  /// attributes (Plan 010), the kg/piece unit (Plan 011 #10) and the IMEI/serial
+  /// (Plan 012) — so a reprint is identical to the original however much the
+  /// product has changed since. Prints via the same
   /// [PrinterRepository.printReceipt] the checkout uses. Best-effort: a printer
   /// that's unavailable surfaces [ReprintStatus.failed], never throws.
   Future<void> _onReprint(
@@ -161,7 +163,21 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
                 total: i.total,
                 // Replay the show-on-receipt custom fields snapshotted at sale
                 // time (Plan 010), so a reprint matches the original receipt.
-                attributes: _decodeAttributeSnapshot(i.attributesSnapshot),
+                attributes: [
+                  // The serial leads the sub-lines (Plan 012): it is the line a
+                  // customer and any warranty claim actually care about.
+                  // Replayed from the snapshot, so it survives the unit row
+                  // being deleted. Labelled generically — this is a general POS,
+                  // and "IMEI" would be meaningless to a hardware or jewellery
+                  // shop using the same feature.
+                  if (i.serialSnapshot.isNotEmpty)
+                    '$kSerialReceiptLabel: ${i.serialSnapshot}',
+                  ..._decodeAttributeSnapshot(i.attributesSnapshot),
+                ],
+                // Same rule for the unit (Plan 011 #10): without this a reprint
+                // dropped the "كغ" the original receipt printed, so the two
+                // copies of one invoice didn't match.
+                unit: i.isMeasured ? 'كغ' : '',
               ))
           .toList(),
     );

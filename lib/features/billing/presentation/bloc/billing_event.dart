@@ -3,7 +3,7 @@ part of 'billing_bloc.dart';
 abstract class BillingEvent extends Equatable {
   const BillingEvent();
   @override
-  List<Object> get props => [];
+  List<Object?> get props => [];
 }
 
 class ScanBarcodeEvent extends BillingEvent {
@@ -21,15 +21,27 @@ class AddProductToCartEvent extends BillingEvent {
   /// **set** to this absolute quantity (add-or-replace), never incremented.
   final double? quantity;
 
-  const AddProductToCartEvent(this.product, {this.quantity});
+  /// The specific physical unit being sold (Plan 012), when the product is
+  /// serialized. Each unit becomes its **own** cart line at quantity 1 — lines
+  /// are not merged by product — because the serial must stay one-to-one with
+  /// the line it is snapshotted onto.
+  final ProductUnit? unit;
+
+  const AddProductToCartEvent(this.product, {this.quantity, this.unit});
   @override
-  List<Object> get props => [product, quantity ?? -1];
+  List<Object?> get props => [product, quantity ?? -1, unit];
 }
 
 /// Dismisses a pending measured-entry prompt (see [BillingState.measuredPrompt])
 /// when the cashier cancels the weight/amount dialog without adding.
 class ClearMeasuredPromptEvent extends BillingEvent {
   const ClearMeasuredPromptEvent();
+}
+
+/// Dismisses a pending out-of-stock scan notice (see
+/// [BillingState.outOfStockScan]) once the POS page has shown it.
+class ClearOutOfStockScanEvent extends BillingEvent {
+  const ClearOutOfStockScanEvent();
 }
 
 class RemoveProductFromCartEvent extends BillingEvent {
@@ -78,6 +90,12 @@ class LoadExchangeRateEvent extends BillingEvent {
 /// startup and after the toggle is flipped in Settings → Inventory.
 class LoadInventorySettingsEvent extends BillingEvent {
   const LoadInventorySettingsEvent();
+}
+
+/// Load (or reload) the show-print-button / auto-print flag into the bloc.
+/// Dispatched at startup and after the toggle is flipped in Settings → Hardware.
+class LoadPrintSettingsEvent extends BillingEvent {
+  const LoadPrintSettingsEvent();
 }
 
 class PrintReceiptEvent extends BillingEvent {

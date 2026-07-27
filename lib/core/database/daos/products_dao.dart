@@ -12,10 +12,18 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
   /// Fetch all products once.
   Future<List<ProductRow>> getAllProducts() => select(products).get();
 
-  /// Reactive stream of all products.
-  Stream<List<ProductRow>> watchAllProducts() => select(products).watch();
+  /// Reactive stream of all products, newest-added first (Plan 011 #5).
+  /// Ordered by descending rowid — monotonic with insertion order here, so a
+  /// just-added product surfaces at the top of the list with no createdAt
+  /// column / migration.
+  Stream<List<ProductRow>> watchAllProducts() =>
+      (select(products)..orderBy([(p) => OrderingTerm.desc(p.rowId)])).watch();
 
   /// Find a single product by barcode (or null if not found).
+  /// Single product by primary key — the SKU behind a scanned serial (Plan 012).
+  Future<ProductRow?> getById(String id) =>
+      (select(products)..where((p) => p.id.equals(id))).getSingleOrNull();
+
   Future<ProductRow?> getByBarcode(String barcode) =>
       (select(products)..where((p) => p.barcode.equals(barcode)))
           .getSingleOrNull();

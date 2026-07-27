@@ -67,6 +67,15 @@ class AppLocalizationsEn extends AppLocalizations {
   String get flash => 'Flash';
 
   @override
+  String get invertScanLabel => 'Light code';
+
+  @override
+  String get invertScanHint => 'Not scanning? Try light-barcode mode';
+
+  @override
+  String get pressBackAgainToExit => 'Press back again to exit';
+
+  @override
   String get camera => 'Camera';
 
   @override
@@ -83,6 +92,21 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get colTotal => 'Total';
+
+  @override
+  String get colSerial => 'No.';
+
+  @override
+  String get colQty => 'Qty';
+
+  @override
+  String get colUnit => 'Unit';
+
+  @override
+  String get colUnitPrice => 'Unit price';
+
+  @override
+  String get unitPiece => 'pc';
 
   @override
   String get grandTotal => 'GRAND TOTAL';
@@ -260,6 +284,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lowStockBadge => 'Low stock';
 
   @override
+  String get outOfStockBadge => 'Out of stock';
+
+  @override
+  String outOfStockScanNotice(String name) {
+    return 'Out of stock: $name';
+  }
+
+  @override
   String get cancel => 'Cancel';
 
   @override
@@ -381,6 +413,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get inventoryStrictSubtitle =>
       'Don\'t allow selling more than what\'s on hand';
+
+  @override
+  String get showPrintButtonTitle => 'Print receipts';
+
+  @override
+  String get showPrintButtonSubtitle =>
+      'Show the print button and auto-print on a sale. Turn off if you have no printer.';
 
   @override
   String get shopDetailsItem => 'Shop Details';
@@ -612,6 +651,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get themeSystem => 'Follow system';
 
   @override
+  String get fontSizeTitle => 'Font size';
+
+  @override
+  String get fontSizeSmall => 'Small';
+
+  @override
+  String get fontSizeNormal => 'Normal';
+
+  @override
+  String get fontSizeLarge => 'Large';
+
+  @override
+  String get fontSizeExtraLarge => 'Extra large';
+
+  @override
   String get printDeviceItem => 'Print Device';
 
   @override
@@ -708,6 +762,121 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String productNotFound(String barcode) {
     return 'Product not found: $barcode';
+  }
+
+  @override
+  String unitsTitle(String product) {
+    return 'Pieces — $product';
+  }
+
+  @override
+  String unitsSummary(int available, int total) {
+    return '$available of $total still in stock';
+  }
+
+  @override
+  String get unitsAdd => 'Add item';
+
+  @override
+  String get unitsSerialLabel => 'Serial number';
+
+  @override
+  String get unitsSerialHint => 'Scan or type the number';
+
+  @override
+  String get unitsSearchHint => 'Search by serial number';
+
+  @override
+  String get unitsEmpty =>
+      'No items yet.\nAdd one for each piece you have in stock.';
+
+  @override
+  String get unitsNoMatch => 'No item matches that number.';
+
+  @override
+  String get serialLabelShort => 'Serial';
+
+  @override
+  String get unitsNoSerial => '(no serial)';
+
+  @override
+  String get unitsSetWarranty => 'Set warranty date';
+
+  @override
+  String get unitsMarkDefective => 'Mark as defective';
+
+  @override
+  String get unitsRestock => 'Return to stock';
+
+  @override
+  String unitsWarrantyUntil(String date) {
+    return 'Warranty until $date';
+  }
+
+  @override
+  String unitsSoldOn(String date) {
+    return 'Sold on $date';
+  }
+
+  @override
+  String get unitStatusInStock => 'In stock';
+
+  @override
+  String get unitStatusSold => 'Sold';
+
+  @override
+  String get unitStatusReturned => 'Returned';
+
+  @override
+  String get unitStatusDefective => 'Defective';
+
+  @override
+  String get unitsAdded => 'Item added';
+
+  @override
+  String get unitsSaved => 'Saved';
+
+  @override
+  String get unitsDeleted => 'Item deleted';
+
+  @override
+  String get unitsLoadFailed => 'Could not load the list.';
+
+  @override
+  String get unitsSaveFailed => 'Could not save. Please try again.';
+
+  @override
+  String get unitsDuplicateSerial =>
+      'This number is already registered. Check whether you scanned the same piece twice.';
+
+  @override
+  String get unitsDeleteBlockedSold =>
+      'This piece has been sold and cannot be deleted — its record links the serial number to its invoice.';
+
+  @override
+  String get unitsDeleteTitle => 'Delete this piece?';
+
+  @override
+  String get unitsDeleteBody =>
+      'It will be removed from stock. This cannot be undone.';
+
+  @override
+  String get productSerialized => 'Each piece has its own serial number';
+
+  @override
+  String get productSerializedHint =>
+      'Turn on for goods tracked one by one — phones, appliances, tools, gold. Stock is then counted from the pieces you add.';
+
+  @override
+  String get productUnitsAction => 'Pieces';
+
+  @override
+  String get stockFromUnitsHint =>
+      'Counted from the units you add — open Units to change it.';
+
+  @override
+  String unitNotAvailableError(String serial) {
+    return 'This piece (serial $serial) is no longer in stock — it has already been sold.';
   }
 
   @override
@@ -839,6 +1008,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get updateLater => 'Later';
+
+  @override
+  String get verifyRequiredTitle => 'Subscription verification required';
+
+  @override
+  String get verifyOfflineMessage =>
+      'The app hasn\'t been able to reach the server for a while. Please connect to the internet, then tap Retry to continue.';
+
+  @override
+  String get verifyTamperMessage =>
+      'A change in the device\'s date and time was detected. Please correct the date and time, connect to the internet, then tap Retry.';
+
+  @override
+  String get verifyDataSafe => 'All your data is safe on this device.';
+
+  @override
+  String get verifyChecking => 'Checking…';
+
+  @override
+  String offlineWarnBanner(int days) {
+    return 'No server connection for $days days — connect to the internet to verify';
+  }
+
+  @override
+  String get trialExpiredNotice =>
+      'Your free trial has ended. Choose a plan to activate a subscription and continue — all your data is safe.';
+
+  @override
+  String get subscriptionExpiredNotice =>
+      'Your subscription has ended. Choose a plan to renew and continue — all your data is safe.';
+
+  @override
+  String get checkForUpdatesHint => 'Tap to check for updates';
+
+  @override
+  String get updateUpToDate => 'You\'re on the latest version';
+
+  @override
+  String get updateCheckFailed =>
+      'Couldn\'t check for updates. Check your internet connection.';
 
   @override
   String contactMessage(
@@ -1108,6 +1317,14 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your subscription has been activated';
 
   @override
+  String get trialBannerNoDate => 'Free trial';
+
+  @override
+  String trialBannerWithDate(int days, String date) {
+    return 'Free trial — $days days left (until $date)';
+  }
+
+  @override
   String trialBanner(int days) {
     return 'Free trial — $days days left';
   }
@@ -1189,6 +1406,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get backupRestartAction => 'Close app';
+
+  @override
+  String get backupRestoreFailedTitle => 'Restore did not finish';
+
+  @override
+  String get backupRestoreFailedBody =>
+      'Your data has NOT been changed — it is safe exactly as it was. The app still needs to be reopened before it will work again.';
 
   @override
   String get backupSuccessBackedUp => 'Backup completed successfully';

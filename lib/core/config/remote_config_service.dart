@@ -50,6 +50,12 @@ class RemoteConfigService {
   /// True when [current] advertises a newer version than the installed build.
   bool updateAvailable = false;
 
+  /// True once a config has been fetched **from the network** this process
+  /// (not served from the SharedPreferences cache — a cached copy may predate
+  /// the newest release). The update-checker retries after startup until this
+  /// flips, so opening the app offline doesn't permanently miss a new version.
+  bool networkResolved = false;
+
   /// The APK URL matching this device's ABI (or the first available), when an
   /// update is available.
   String? downloadUrl;
@@ -62,14 +68,20 @@ class RemoteConfigService {
   Future<void> ensureLoaded() => _ready ??= refresh();
 
   /// Fetch → parse → apply → compute update status. Never throws.
-  Future<void> refresh() async {
+  ///
+  /// Returns whether a config was resolved (network or cache) — the manual
+  /// "check for updates" in Settings uses this to distinguish "you're up to
+  /// date" from "couldn't check at all" (offline with an empty cache).
+  Future<bool> refresh() async {
     RemoteConfig? config = await _fetch();
+    if (config != null) networkResolved = true;
     config ??= await _loadCached();
-    if (config == null) return; // keep baked-in defaults
+    if (config == null) return false; // keep baked-in defaults
 
     current = config;
     _apply(config);
     await _computeUpdate(config);
+    return true;
   }
 
   // ── networking ─────────────────────────────────────────────────────────────

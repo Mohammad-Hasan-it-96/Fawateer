@@ -6,6 +6,7 @@ import '../tables/ledger_entries_table.dart';
 import '../tables/cashbox_transactions_table.dart';
 import '../tables/customers_table.dart';
 import '../tables/products_table.dart';
+import '../tables/product_units_table.dart';
 
 part 'sales_dao.g.dart';
 
@@ -18,6 +19,9 @@ part 'sales_dao.g.dart';
   // Not selected from here — declared so the stock deduction below can name it
   // as an updated table, which is what re-runs `watchAllProducts`.
   Products,
+  // Serialized units consumed by a sale are marked sold in the sale's own
+  // transaction (Plan 012).
+  ProductUnits,
 ])
 class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   SalesDao(super.db);
@@ -176,11 +180,17 @@ $whereSql''';
   /// transaction so the cash-on-hand balance can't drift from the sale.
   /// [creditCharge] and [cashReceipt] are mutually exclusive by construction
   /// (cash → cashbox, credit → ledger, never both).
+  /// For a **serialized sale** (Plan 012), pass [soldUnitIds] — the physical
+  /// units the cart lines consumed. They are marked sold and linked to this
+  /// invoice inside the *same* transaction, so a unit can never be marked sold
+  /// by an invoice that failed to save, nor an invoice reference a unit that was
+  /// never consumed.
   Future<void> insertInvoiceWithItems({
     required SalesInvoicesCompanion invoice,
     required List<SalesItemsCompanion> items,
     LedgerEntriesCompanion? creditCharge,
     CashboxTransactionsCompanion? cashReceipt,
+    List<String> soldUnitIds = const [],
   }) =>
       transaction(() async {
         await into(salesInvoices).insert(invoice);
@@ -211,6 +221,21 @@ $whereSql''';
         if (cashReceipt != null) {
           await into(cashboxTransactions).insert(cashReceipt);
         }
+        if (soldUnitIds.isNotEmpty) {
+          // Serialized units (Plan 012). Note the quantity is NOT re-synced from
+          // the unit count here: the loop above already decremented
+          // `products.quantity` for every line, serialized or not, so doing both
+          // would double-count the same sale.
+          final soldAt = invoice.createdAt.value;
+          for (final unitId in soldUnitIds) {
+            await (update(productUnits)..where((u) => u.id.equals(unitId)))
+                .write(ProductUnitsCompanion(
+              status: const Value('sold'),
+              soldInvoiceId: invoice.id,
+              soldAt: Value(soldAt),
+            ));
+          }
+        }
       });
 
   /// Delete an invoice together with its line items in one transaction, so no
@@ -232,6 +257,34 @@ $whereSql''';
         await (delete(cashboxTransactions)
               ..where((c) => c.relatedId.equals(id)))
             .go();
+        // Release any serialized units this invoice consumed back to stock
+        // (Plan 012) — the same "reverse what the source posted" rule the
+        // cashbox line above follows. Their SKUs' cached quantities are then
+        // rebuilt from the authoritative unit count.
+        final freed = await (select(productUnits)
+              ..where((u) => u.soldInvoiceId.equals(id)))
+            .get();
+        if (freed.isNotEmpty) {
+          await (update(productUnits)..where((u) => u.soldInvoiceId.equals(id)))
+              .write(const ProductUnitsCompanion(
+            status: Value('inStock'),
+            soldInvoiceId: Value(''),
+            soldAt: Value(0),
+          ));
+          for (final productId in freed.map((r) => r.productId).toSet()) {
+            await customUpdate(
+              'UPDATE products SET quantity = ('
+              '  SELECT COUNT(*) FROM product_units'
+              "  WHERE product_id = ? AND status = 'inStock'"
+              ') WHERE id = ? AND is_serialized = 1',
+              variables: [
+                Variable<String>(productId),
+                Variable<String>(productId),
+              ],
+              updates: {products},
+            );
+          }
+        }
       });
 }
 

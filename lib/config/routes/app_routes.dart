@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
@@ -22,10 +22,13 @@ import '../../features/licensing/presentation/pages/activation_page.dart';
 import '../../features/licensing/presentation/pages/splash_page.dart';
 import '../../features/licensing/presentation/pages/subscription_plans_page.dart';
 import '../../features/licensing/presentation/pages/subscription_status_page.dart';
+import '../../features/licensing/presentation/pages/verification_required_page.dart';
 import '../../features/product/domain/entities/product.dart';
 import '../../features/product/presentation/pages/add_product_page.dart';
 import '../../features/product/presentation/pages/edit_product_page.dart';
 import '../../features/product/presentation/pages/product_list_page.dart';
+import '../../features/product/presentation/pages/product_units_page.dart';
+import '../../features/product/presentation/bloc/product_unit_bloc.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/shop/presentation/pages/shop_details_page.dart';
 import '../../features/attributes/presentation/pages/attribute_fields_page.dart';
@@ -38,11 +41,20 @@ import 'app_shell.dart';
 /// The single shared LicenseBloc instance the gate reacts to.
 final _licenseBloc = sl<LicenseBloc>();
 
+/// Root navigator key. Exists for code that lives *above* the router's
+/// Navigator — the update checker wraps `MaterialApp.router` via `builder:`,
+/// so its own context has no Navigator ancestor and `showDialog` from it
+/// throws (silently, inside a post-frame future). Dialogs opened from up
+/// there must use `rootNavigatorKey.currentContext` instead.
+final rootNavigatorKey = GlobalKey<NavigatorState>();
+
 /// The activation-flow screens (reachable while unlicensed).
 const _activationForm = '/activation'; // name/phone → create_device
 const _activationPlans = '/activation/plans'; // pick a plan → contact support
+const _activationVerify = '/activation/verify'; // offline/tamper → reconnect
 
 final router = GoRouter(
+  navigatorKey: rootNavigatorKey,
   initialLocation: '/pos',
   // Re-run [redirect] whenever the license state changes.
   refreshListenable: _LicenseGateListenable(_licenseBloc.stream),
@@ -61,7 +73,19 @@ final router = GoRouter(
       return null;
     }
 
-    // 3. No valid subscription. Pick the right gate screen:
+    // 3. Blocked by a guard, not by the subscription itself: still verified and
+    //    not expired, but too long offline or the clock was rolled back. This
+    //    is fixed by reconnecting (a successful check clears both), so send the
+    //    user to the "reconnect to verify" screen — NOT the plans page, which
+    //    would read as a payment demand for something they already paid.
+    final lic = license.license;
+    if (lic.isVerified &&
+        !lic.isExpired &&
+        (lic.offlineLimitExceeded || lic.timeTampered)) {
+      return loc == _activationVerify ? null : _activationVerify;
+    }
+
+    // 4. No valid subscription. Pick the right gate screen:
     //    - not yet registered (no name/phone) → the activation form, which
     //      collects the details and calls `create_device`.
     //    - registered but unverified → the plan catalogue, where the user picks
@@ -70,7 +94,9 @@ final router = GoRouter(
 
     // Let the activation flow's own screens stay put, but move a registered user
     // off the bare name form onto plan selection (unless a request is in flight,
-    // so the form's busy overlay isn't yanked away mid-activation).
+    // so the form's busy overlay isn't yanked away mid-activation). A user
+    // sitting on the verify screen whose block turned into a real
+    // expiry/unverified state falls through to [target] above it.
     if (loc == _activationForm || loc == _activationPlans) {
       if (license.registered && loc == _activationForm && !license.isBusy) {
         return _activationPlans;
@@ -92,6 +118,10 @@ final router = GoRouter(
         GoRoute(
           path: 'plans',
           builder: (context, state) => const SubscriptionPlansPage(),
+        ),
+        GoRoute(
+          path: 'verify',
+          builder: (context, state) => const VerificationRequiredPage(),
         ),
       ],
     ),
@@ -168,6 +198,20 @@ final router = GoRouter(
                     final product = state.extra as Product?;
                     if (product == null) return const ProductListPage();
                     return EditProductPage(product: product);
+                  },
+                ),
+                GoRoute(
+                  path: 'units/:id',
+                  builder: (context, state) {
+                    final product = state.extra as Product?;
+                    if (product == null) return const ProductListPage();
+                    // ProductUnitBloc is per-SKU, so scope it to this route —
+                    // same precedent as LedgerBloc on the customer detail page.
+                    return BlocProvider(
+                      create: (_) =>
+                          sl<ProductUnitBloc>()..add(LoadUnits(product.id)),
+                      child: ProductUnitsPage(product: product),
+                    );
                   },
                 ),
               ],

@@ -8,6 +8,25 @@ import '../../../../core/database/app_database.dart';
 import '../../licensing/data/services/device_identity_service.dart';
 import '../domain/entities/backup_manifest.dart';
 
+/// Thrown when a restore fails *after* [BackupEngine.restoreSnapshot] has
+/// already closed the live database connection.
+///
+/// The distinction matters: a restore that fails *before* the close (bad
+/// download, checksum mismatch, schema too new) leaves a perfectly healthy app,
+/// while one that fails after it leaves an app that cannot reach SQLite at all.
+/// Both used to surface as the same generic error, so the second case showed a
+/// dismissable "something went wrong" snackbar and then let the shopkeeper carry
+/// on into a POS whose every query throws — looking, from behind the counter,
+/// exactly like the restore had destroyed their shop's data.
+class RestoreRestartRequiredException implements Exception {
+  /// The underlying failure that broke the swap.
+  final Object cause;
+  const RestoreRestartRequiredException(this.cause);
+
+  @override
+  String toString() => 'RestoreRestartRequiredException: $cause';
+}
+
 /// The provider-agnostic core of the backup feature: turns the live Drift
 /// database into a consistent, self-contained snapshot file, and swaps a
 /// snapshot back in on restore. Knows nothing about Google Drive.
@@ -84,6 +103,8 @@ class BackupEngine {
     final live = File(livePath);
     final preRestore = File('$livePath.pre-restore');
 
+    // ⚠️ Past this line the app can no longer query SQLite, so EVERY failure
+    // below is restart-required — see [RestoreRestartRequiredException].
     await _db.close();
 
     try {
@@ -98,11 +119,18 @@ class BackupEngine {
       }
       await snapshot.copy(livePath);
     } catch (e) {
-      // Roll back to the pre-restore copy if we got far enough to touch it.
-      if (await preRestore.exists()) {
-        await preRestore.copy(livePath);
-      }
-      rethrow;
+      // Roll back to the pre-restore copy if we got far enough to touch it. A
+      // failure *in the rollback* is swallowed deliberately rather than allowed
+      // to replace `e`: it is usually the same full disk that broke the swap,
+      // and reporting it would hide the real cause. The `.pre-restore` copy is
+      // left on disk either way — that file, not this catch block, is what
+      // actually makes the data recoverable.
+      try {
+        if (await preRestore.exists()) {
+          await preRestore.copy(livePath);
+        }
+      } catch (_) {/* keep the original cause */}
+      throw RestoreRestartRequiredException(e);
     }
   }
 

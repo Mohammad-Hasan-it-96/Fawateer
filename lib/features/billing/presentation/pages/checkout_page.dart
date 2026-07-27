@@ -8,6 +8,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/share/cards/invoice_share_card.dart';
 import '../../../../core/share/share_card_action.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/app_snack.dart';
 import '../../../../core/utils/format.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../ledger/domain/entities/customer.dart';
@@ -70,12 +71,14 @@ class CheckoutPage extends StatelessWidget {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   content: Text(
                       billingErrorText(state.error!, state.errorBarcode, l10n)),
-                  backgroundColor: Colors.red));
+                  backgroundColor: Colors.red,
+                  duration: AppSnackDuration.brief));
             }
             if (state.printSuccess) {
               ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   content: Text(l10n.printedSuccessfully),
-                  backgroundColor: Colors.green));
+                  backgroundColor: Colors.green,
+                  duration: AppSnackDuration.brief));
             }
             // History (incl. today's totals) auto-refreshes via the invoice
             // stream — no manual reload needed here.
@@ -158,6 +161,20 @@ class CheckoutPage extends StatelessWidget {
                               child: ClipRRect(
                                 borderRadius: BorderRadius.circular(12),
                                 child: Table(
+                                  // Serial(م) · Item · Qty · Unit · Unit price ·
+                                  // Total — the wholesale-invoice layout the owner
+                                  // asked for (Plan 011 #10). Item takes the flex;
+                                  // the rest size to content.
+                                  columnWidths: const {
+                                    0: IntrinsicColumnWidth(),
+                                    1: FlexColumnWidth(),
+                                    2: IntrinsicColumnWidth(),
+                                    3: IntrinsicColumnWidth(),
+                                    4: IntrinsicColumnWidth(),
+                                    5: IntrinsicColumnWidth(),
+                                  },
+                                  defaultVerticalAlignment:
+                                      TableCellVerticalAlignment.middle,
                                   border: TableBorder(
                                     horizontalInside:
                                         BorderSide(color: borderColor),
@@ -174,32 +191,56 @@ class CheckoutPage extends StatelessWidget {
                                                 color: borderColor)),
                                       ),
                                       children: [
+                                        _headerCell(context, l10n.colSerial,
+                                            TextAlign.center),
                                         _headerCell(context, l10n.colProduct,
                                             TextAlign.start),
-                                        _headerCell(context,
-                                            l10n.colPrice, TextAlign.end),
+                                        _headerCell(context, l10n.colQty,
+                                            TextAlign.center),
+                                        _headerCell(context, l10n.colUnit,
+                                            TextAlign.center),
+                                        _headerCell(context, l10n.colUnitPrice,
+                                            TextAlign.end),
                                         _headerCell(context,
                                             l10n.colTotal, TextAlign.end),
                                       ],
                                     ),
-                                    ...billingState.cartItems.map((item) {
+                                    ...billingState.cartItems
+                                        .asMap()
+                                        .entries
+                                        .map((entry) {
+                                      final item = entry.value;
                                       final measured =
                                           item.product.saleType.isMeasured;
                                       // Resolved SP unit price; USD lines also
                                       // show their original "$X" sticker.
                                       final spPrice =
-                                          '$currency${item.unitPriceSp.toStringAsFixed(2)}${measured ? '/${l10n.unitKg}' : ''}';
+                                          '$currency${item.unitPriceSp.toStringAsFixed(2)}';
                                       final priceStr = item.isForeign
-                                          ? '$spPrice (${item.sellCurrency.label(item.product.price, '')})'
+                                          ? '$spPrice\n(${item.sellCurrency.label(item.product.price, '')})'
                                           : spPrice;
                                       return TableRow(
                                         children: [
                                           _dataCell(
                                             context,
+                                            '${entry.key + 1}',
+                                            TextAlign.center,
+                                            isSubtitle: true,
+                                          ),
+                                          _dataCell(context, item.product.name,
+                                              TextAlign.start),
+                                          _dataCell(
+                                            context,
+                                            formatQty(item.quantity),
+                                            TextAlign.center,
+                                          ),
+                                          _dataCell(
+                                            context,
                                             measured
-                                                ? '${formatQty(item.quantity)} ${l10n.unitKg} × ${item.product.name}'
-                                                : '${formatQty(item.quantity)} x ${item.product.name}',
-                                            TextAlign.start,
+                                                ? l10n.unitKg
+                                                : l10n.unitPiece,
+                                            TextAlign.center,
+                                            isSubtitle: true,
                                           ),
                                           _dataCell(
                                             context,
@@ -321,42 +362,47 @@ class CheckoutPage extends StatelessWidget {
             ),
             Row(
               children: [
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
-                    child: OutlinedButton.icon(
-                      onPressed: billingState.isPrinting
-                          ? null
-                          : () {
-                              if (shop != null) {
-                                context.read<BillingBloc>().add(
-                                    PrintReceiptEvent(
-                                        shopName: shop.name,
-                                        address1: shop.addressLine1,
-                                        address2: shop.addressLine2,
-                                        phone: shop.phoneNumber,
-                                        footer: shop.footerText,
-                                        currencySymbol: currency));
-                              }
-                            },
-                      icon: billingState.isPrinting
-                          ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2))
-                          : const Icon(Icons.print_outlined),
-                      label: Text(l10n.printReceipt),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
+                // Print button hidden when printing is turned off in Settings
+                // (Plan 011 #6) — "New Sale" then spans the full width.
+                if (billingState.printEnabled)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 8, 0),
+                      child: OutlinedButton.icon(
+                        onPressed: billingState.isPrinting
+                            ? null
+                            : () {
+                                if (shop != null) {
+                                  context.read<BillingBloc>().add(
+                                      PrintReceiptEvent(
+                                          shopName: shop.name,
+                                          address1: shop.addressLine1,
+                                          address2: shop.addressLine2,
+                                          phone: shop.phoneNumber,
+                                          footer: shop.footerText,
+                                          currencySymbol: currency));
+                                }
+                              },
+                        icon: billingState.isPrinting
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2))
+                            : const Icon(Icons.print_outlined),
+                        label: Text(l10n.printReceipt),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
+                        ),
                       ),
                     ),
                   ),
-                ),
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(8, 0, 20, 0),
+                    padding: EdgeInsets.fromLTRB(
+                        billingState.printEnabled ? 8 : 20, 0, 20, 0),
                     child: PrimaryButton(
                       onPressed: () {
                         context.read<BillingBloc>().add(ClearCartEvent());
@@ -545,12 +591,14 @@ class CheckoutPage extends StatelessWidget {
 
   Widget _headerCell(BuildContext context, String text, TextAlign align) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      // Tight horizontal padding: the review table now carries 6 columns
+      // (Plan 011 #10), so cells must stay compact on a phone width.
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
       child: Text(
         text,
         textAlign: align,
         style: TextStyle(
-          fontSize: 13,
+          fontSize: 12,
           fontWeight: FontWeight.bold,
           color: Theme.of(context).colorScheme.onSurfaceVariant,
         ),
@@ -562,12 +610,12 @@ class CheckoutPage extends StatelessWidget {
       {bool isBold = false, bool isSubtitle = false}) {
     final scheme = Theme.of(context).colorScheme;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 14),
       child: Text(
         text,
         textAlign: align,
         style: TextStyle(
-          fontSize: isSubtitle ? 12 : 14,
+          fontSize: isSubtitle ? 12 : 13,
           fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
           color: isSubtitle ? scheme.onSurfaceVariant : scheme.onSurface,
         ),

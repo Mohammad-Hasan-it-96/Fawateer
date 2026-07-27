@@ -14,6 +14,11 @@ abstract class InvoiceRepository {
     Invoice invoice,
     List<InvoiceItem> items, {
     String? customerId,
+
+    /// Serialized units (Plan 012) consumed by this sale. Marked sold and linked
+    /// to the invoice inside the same transaction, so a unit can never be marked
+    /// sold by an invoice that failed to save.
+    List<String> soldUnitIds,
   });
   Future<Either<Failure, List<Invoice>>> getAllInvoices();
 

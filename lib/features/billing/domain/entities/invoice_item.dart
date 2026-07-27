@@ -22,6 +22,17 @@ class InvoiceItem extends Equatable {
   /// product or its field definitions later change.
   final String attributesSnapshot;
 
+  /// How this line was sold — a [ProductSaleType] **name** ('piece'/'weight'),
+  /// frozen at sale time (Plan 011 #10). `''` means a legacy row saved before
+  /// the snapshot existed; callers fall back to [inferredIsMeasured] for those.
+  final String saleType;
+
+  /// The IMEI/serial of the physical unit this line sold (Plan 012), frozen at
+  /// sale time; `''` for a non-serialized product. Kept on the line — not just
+  /// on the unit row — so a reprint still shows the serial even if the unit is
+  /// later deleted, the same reprint-eternal rule as the fields above.
+  final String serialSnapshot;
+
   const InvoiceItem({
     this.id,
     required this.invoiceId,
@@ -35,7 +46,21 @@ class InvoiceItem extends Equatable {
     this.priceOriginal = 0,
     this.discount = 0,
     this.attributesSnapshot = '',
+    this.saleType = '',
+    this.serialSnapshot = '',
   });
+
+  /// Whether this line was sold by measure (weight), for unit display on the
+  /// invoice table and reprinted receipts.
+  ///
+  /// Prefers the [saleType] snapshot. Falls back — only for legacy rows saved
+  /// before that column existed — to the old heuristic: a fractional quantity
+  /// means a weighed sale. That guess mislabels a whole-number weight sale
+  /// (2.0 kg reads as pieces), which is exactly why the snapshot was added; it
+  /// stays only so old invoices are no worse than they were.
+  bool get isMeasured => saleType.isEmpty
+      ? quantity != quantity.roundToDouble()
+      : saleType == 'weight';
 
   /// Line subtotal before the discount.
   double get gross => price * quantity;
@@ -57,5 +82,7 @@ class InvoiceItem extends Equatable {
         priceOriginal,
         discount,
         attributesSnapshot,
+        saleType,
+        serialSnapshot,
       ];
 }

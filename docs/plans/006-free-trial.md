@@ -1,6 +1,24 @@
 # Plan 006 — Free Trial Subscription
 
-> **Status:** Design plan (no code). Prepared by CTO/Architect review.
+> **Status:** ✅ **SHIPPED** — and it stayed as small as the key idea promised:
+> **no new endpoint, no new `LicenseStatus` state, no migration.**
+> **As built:** `LicenseStatus` gained one plain `final bool isTrial` (default
+> `false`), cached as `lic_is_trial`. Crucially **`isTrial` is not a term in
+> `isActive`** (still `isVerified && !isExpired && !timeTampered &&
+> !offlineLimitExceeded`) — the server sets `status:'trial'` + a trial expiry on
+> the existing `create_device`, and `check_device` returns `is_trial` alongside
+> `expires_at` exactly as for a paid device. **`LicenseGuards` has zero trial
+> branching — keep it that way.** `isTrial` exists only for UI: `TrialBanner`
+> (renders when `isTrial && isActive`, turns red in the last 3 days) and the
+> status chip.
+> **⚠️ Correction to the "Related" note below:** the guards have since moved —
+> the offline grace is **7 days** (soft warning banner from day 3), and the
+> clock-rollback threshold is **48 hours**, not 5 minutes (the Smart-Agent
+> reference's 5-min window false-positives on flat batteries and manual clock
+> fixes). See `LicenseGuards` for the live values.
+> **Anti-abuse is server-side only**, keyed on the device id. **Do not add a
+> local first-launch date** — a client-tracked trial is trivially reset by
+> clearing app data, and was explicitly rejected here.
 > **Decision (locked with the owner):** **Server-granted, device-keyed 30-day
 > trial that reuses the existing licensing stack.** A trial is just a
 > subscription whose `expiresAt` the **server** sets automatically (30 days)

@@ -1,6 +1,25 @@
 # Plan 001 — Cloud Backup System
 
-> **Status:** Design plan (no code). Prepared by CTO/Architect review.
+> **Status:** ✅ **SHIPPED** (design below built as specified). Lives in
+> `features/backup/`, reached at Settings → `/settings/backup`.
+> **As built:** `BackupEngine.createSnapshot` uses `VACUUM INTO ?` — the whole
+> live SQLite file, not a row/JSON export, so every table is captured with no
+> per-feature serialization (and restore is **all-or-nothing**).
+> `GoogleDriveBackupTarget` holds the `drive.file` scope exactly as decided, so
+> no Google verification review is triggered. Restore has **three independent
+> guards**, all load-bearing: a schema-downgrade refusal, a SHA-256 integrity
+> check *before* the live DB is touched, and a rollback-safe swap
+> (`.pre-restore` copy + `-wal`/`-shm` deletion); both rejections surface as
+> `IncompatibleFailure`. A restore **kills the app** (`SystemNavigator.pop()`)
+> — there is no in-Dart reinit of `AppDatabase`/`sl`. `AutoBackupService` fires
+> on launch/resume, skipping if the last backup is under 24 h old (no
+> WorkManager, foreground-triggered by design). `BackupExportRequested` is the
+> Phase-0 fallback, still present. No new table — `SettingsDao` holds
+> `backup_last_at` / `backup_account_email` / `backup_auto_enabled`.
+> **Not built (deliberate):** client-side encryption — the `.sqlite` goes up
+> as-is, protected only by the user's Drive account.
+> **⚠️ Never device-verified:** the restore path (guards + rollback swap) has
+> never run against a real Drive snapshot on hardware. See `docs/google-drive-api-setup.md`.
 > **DECISION (locked):** Primary engine = **Google Drive** via a **free Google
 > *Cloud* Console** project (`drive.file` scope). This is NOT the paid Google
 > *Play* Console — see the callout below. Local export + share is the Phase-0

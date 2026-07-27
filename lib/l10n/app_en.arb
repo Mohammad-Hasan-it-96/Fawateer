@@ -25,12 +25,20 @@
   "cartEmpty": "Cart is empty",
   "cartEmptyHint": "Scanned items will appear here.",
   "flash": "Flash",
+  "invertScanLabel": "Light code",
+  "invertScanHint": "Not scanning? Try light-barcode mode",
+  "pressBackAgainToExit": "Press back again to exit",
   "camera": "Camera",
   "addItem": "Add Item",
   "checkoutTitle": "Checkout",
   "colProduct": "Product",
   "colPrice": "Price",
   "colTotal": "Total",
+  "colSerial": "No.",
+  "colQty": "Qty",
+  "colUnit": "Unit",
+  "colUnitPrice": "Unit price",
+  "unitPiece": "pc",
   "grandTotal": "GRAND TOTAL",
   "confirmSale": "Confirm Sale",
   "lowStockPrefix": "Low stock: ",
@@ -108,6 +116,15 @@
     }
   },
   "lowStockBadge": "Low stock",
+  "outOfStockBadge": "Out of stock",
+  "outOfStockScanNotice": "Out of stock: {name}",
+  "@outOfStockScanNotice": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "cancel": "Cancel",
   "delete": "Delete",
   "save": "Save",
@@ -148,6 +165,8 @@
   "inventorySection": "Inventory",
   "inventoryStrictTitle": "Block selling out of stock",
   "inventoryStrictSubtitle": "Don't allow selling more than what's on hand",
+  "showPrintButtonTitle": "Print receipts",
+  "showPrintButtonSubtitle": "Show the print button and auto-print on a sale. Turn off if you have no printer.",
   "shopDetailsItem": "Shop Details",
   "shopDetailsSubtitle": "Edit business info & address",
   "cashboxItem": "Cashbox",
@@ -223,6 +242,11 @@
   "themeLight": "Light",
   "themeDark": "Dark",
   "themeSystem": "Follow system",
+  "fontSizeTitle": "Font size",
+  "fontSizeSmall": "Small",
+  "fontSizeNormal": "Normal",
+  "fontSizeLarge": "Large",
+  "fontSizeExtraLarge": "Extra large",
   "printDeviceItem": "Print Device",
   "printerConnected": "Printer connected",
   "noPrinterConnected": "No printer connected",
@@ -258,6 +282,61 @@
   "@productNotFound": {
     "placeholders": {
       "barcode": {
+        "type": "String"
+      }
+    }
+  },
+  "unitsTitle": "Pieces — {product}",
+  "@unitsTitle": {
+    "placeholders": { "product": { "type": "String" } }
+  },
+  "unitsSummary": "{available} of {total} still in stock",
+  "@unitsSummary": {
+    "placeholders": {
+      "available": { "type": "int" },
+      "total": { "type": "int" }
+    }
+  },
+  "unitsAdd": "Add item",
+  "unitsSerialLabel": "Serial number",
+  "unitsSerialHint": "Scan or type the number",
+  "unitsSearchHint": "Search by serial number",
+  "unitsEmpty": "No items yet.\nAdd one for each piece you have in stock.",
+  "unitsNoMatch": "No item matches that number.",
+  "serialLabelShort": "Serial",
+  "unitsNoSerial": "(no serial)",
+  "unitsSetWarranty": "Set warranty date",
+  "unitsMarkDefective": "Mark as defective",
+  "unitsRestock": "Return to stock",
+  "unitsWarrantyUntil": "Warranty until {date}",
+  "@unitsWarrantyUntil": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "unitsSoldOn": "Sold on {date}",
+  "@unitsSoldOn": {
+    "placeholders": { "date": { "type": "String" } }
+  },
+  "unitStatusInStock": "In stock",
+  "unitStatusSold": "Sold",
+  "unitStatusReturned": "Returned",
+  "unitStatusDefective": "Defective",
+  "unitsAdded": "Item added",
+  "unitsSaved": "Saved",
+  "unitsDeleted": "Item deleted",
+  "unitsLoadFailed": "Could not load the list.",
+  "unitsSaveFailed": "Could not save. Please try again.",
+  "unitsDuplicateSerial": "This number is already registered. Check whether you scanned the same piece twice.",
+  "unitsDeleteBlockedSold": "This piece has been sold and cannot be deleted — its record links the serial number to its invoice.",
+  "unitsDeleteTitle": "Delete this piece?",
+  "unitsDeleteBody": "It will be removed from stock. This cannot be undone.",
+  "productSerialized": "Each piece has its own serial number",
+  "productSerializedHint": "Turn on for goods tracked one by one — phones, appliances, tools, gold. Stock is then counted from the pieces you add.",
+  "productUnitsAction": "Pieces",
+  "stockFromUnitsHint": "Counted from the units you add — open Units to change it.",
+  "unitNotAvailableError": "This piece (serial {serial}) is no longer in stock — it has already been sold.",
+  "@unitNotAvailableError": {
+    "placeholders": {
+      "serial": {
         "type": "String"
       }
     }
@@ -322,6 +401,24 @@
   "updateDownload": "Download update",
   "updateAvailableGeneric": "A new version of the app is available.",
   "updateLater": "Later",
+  "verifyRequiredTitle": "Subscription verification required",
+  "verifyOfflineMessage": "The app hasn't been able to reach the server for a while. Please connect to the internet, then tap Retry to continue.",
+  "verifyTamperMessage": "A change in the device's date and time was detected. Please correct the date and time, connect to the internet, then tap Retry.",
+  "verifyDataSafe": "All your data is safe on this device.",
+  "verifyChecking": "Checking…",
+  "offlineWarnBanner": "No server connection for {days} days — connect to the internet to verify",
+  "@offlineWarnBanner": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "trialExpiredNotice": "Your free trial has ended. Choose a plan to activate a subscription and continue — all your data is safe.",
+  "subscriptionExpiredNotice": "Your subscription has ended. Choose a plan to renew and continue — all your data is safe.",
+  "checkForUpdatesHint": "Tap to check for updates",
+  "updateUpToDate": "You're on the latest version",
+  "updateCheckFailed": "Couldn't check for updates. Check your internet connection.",
   "contactMessage": "Hello,\nI'd like to subscribe to Fawateer.\nPlan: {plan}\nName: {name}\nPhone: {phone}\nDevice ID: {deviceId}",
   "@contactMessage": {
     "placeholders": {
@@ -468,6 +565,18 @@
   "copy": "Copy",
   "copied": "Copied",
   "subscriptionActivatedBanner": "Your subscription has been activated",
+  "trialBannerNoDate": "Free trial",
+  "trialBannerWithDate": "Free trial — {days} days left (until {date})",
+  "@trialBannerWithDate": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      },
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "trialBanner": "Free trial — {days} days left",
   "@trialBanner": {
     "placeholders": {
@@ -507,6 +616,8 @@
   "backupRestartTitle": "Restore complete",
   "backupRestartBody": "Your data has been restored. Please reopen the app to finish.",
   "backupRestartAction": "Close app",
+  "backupRestoreFailedTitle": "Restore did not finish",
+  "backupRestoreFailedBody": "Your data has NOT been changed — it is safe exactly as it was. The app still needs to be reopened before it will work again.",
   "backupSuccessBackedUp": "Backup completed successfully",
   "backupSuccessExported": "Copy ready — choose where to share it",
   "backupErrorNetwork": "No internet connection. Connect and try again.",

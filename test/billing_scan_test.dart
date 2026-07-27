@@ -1,10 +1,13 @@
 import 'package:billing_app/core/currency/exchange_rate_service.dart';
 import 'package:billing_app/core/settings/inventory_settings_service.dart';
+import 'package:billing_app/core/settings/print_settings_service.dart';
 import 'package:billing_app/core/error/failure.dart';
 import 'package:billing_app/features/billing/domain/repositories/invoice_repository.dart';
 import 'package:billing_app/features/billing/presentation/bloc/billing_bloc.dart';
 import 'package:billing_app/features/product/domain/entities/product.dart';
+import 'package:billing_app/features/product/domain/entities/product_unit.dart';
 import 'package:billing_app/features/product/domain/repositories/product_repository.dart';
+import 'package:billing_app/features/product/domain/repositories/product_unit_repository.dart';
 import 'package:billing_app/features/attributes/domain/entities/attribute_definition.dart';
 import 'package:billing_app/features/attributes/domain/repositories/attribute_definition_repository.dart';
 import 'package:billing_app/features/settings/domain/repositories/printer_repository.dart';
@@ -24,6 +27,19 @@ class _FakeProductRepository implements ProductRepository {
     }
     return Right(product);
   }
+
+  @override
+  noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} not used by this test');
+}
+
+/// Serialized inventory fake (Plan 012). Holds no units by default, so the
+/// second scan path finds nothing and these barcode tests keep their original
+/// behavior.
+class _FakeProductUnitRepository implements ProductUnitRepository {
+  @override
+  Future<Either<Failure, ProductUnit>> findBySerial(String serial) async =>
+      const Left(NotFoundFailure('serial_not_found'));
 
   @override
   noSuchMethod(Invocation invocation) =>
@@ -71,11 +87,40 @@ class _FakeInventorySettingsService implements InventorySettingsService {
       throw UnimplementedError('${invocation.memberName} not used by this test');
 }
 
+class _FakePrintSettingsService implements PrintSettingsService {
+  @override
+  Future<bool> isPrintButtonEnabled() async => true;
+
+  @override
+  noSuchMethod(Invocation invocation) =>
+      throw UnimplementedError('${invocation.memberName} not used by this test');
+}
+
 Product _product(String id, String barcode) => Product(
       id: id,
       name: 'Item $id',
       price: 1000,
       quantity: 10,
+      barcode: barcode,
+    );
+
+/// A stock-tracked item (owner set a low-stock alert) that has run out.
+Product _outOfStock(String id, String barcode) => Product(
+      id: id,
+      name: 'Item $id',
+      price: 1000,
+      quantity: 0,
+      minStockAlert: 5,
+      barcode: barcode,
+    );
+
+/// A zero-qty item with no low-stock alert — still counts as out of stock (the
+/// shop wants to know whenever quantity is zero, tracked or not).
+Product _zeroNoAlert(String id, String barcode) => Product(
+      id: id,
+      name: 'Item $id',
+      price: 1000,
+      quantity: 0,
       barcode: barcode,
     );
 
@@ -91,7 +136,9 @@ void main() {
       invoiceRepository: _FakeInvoiceRepository(),
       exchangeRateService: _FakeExchangeRateService(),
       inventorySettingsService: _FakeInventorySettingsService(),
+      printSettingsService: _FakePrintSettingsService(),
       attributeRepository: _FakeAttributeDefinitionRepository(),
+      productUnitRepository: _FakeProductUnitRepository(),
     );
   });
 
@@ -140,5 +187,74 @@ void main() {
 
     expect(bloc.state.cartItems.single.product.id, 'p1');
     expect(bloc.state.error, isNull);
+  });
+
+  // Plan 011 #4: the just-touched line must sit at the TOP of the cart so it
+  // stays visible for price confirmation on a long cart.
+  test('a newly added product is prepended to the top of the cart', () async {
+    bloc.add(AddProductToCartEvent(_product('a', 'A')));
+    await bloc.stream.firstWhere((s) => s.cartItems.length == 1);
+    bloc.add(AddProductToCartEvent(_product('b', 'B')));
+    await bloc.stream.firstWhere((s) => s.cartItems.length == 2);
+
+    expect(bloc.state.cartItems.map((i) => i.product.id).toList(), ['b', 'a'],
+        reason: 'newest add belongs on top');
+  });
+
+  test('re-adding an existing line moves it to the top and bumps its quantity',
+      () async {
+    bloc.add(AddProductToCartEvent(_product('a', 'A')));
+    await bloc.stream.firstWhere((s) => s.cartItems.length == 1);
+    bloc.add(AddProductToCartEvent(_product('b', 'B')));
+    await bloc.stream.firstWhere((s) => s.cartItems.length == 2);
+    // Re-add 'a' (currently at the bottom) — it should jump to the top.
+    bloc.add(AddProductToCartEvent(_product('a', 'A')));
+    await bloc.stream
+        .firstWhere((s) => s.cartItems.first.product.id == 'a');
+
+    expect(bloc.state.cartItems.map((i) => i.product.id).toList(), ['a', 'b']);
+    expect(bloc.state.cartItems.first.quantity, 2,
+        reason: 're-add increments the existing line, not a duplicate');
+  });
+
+  // Plan 011 #8: a finished, stock-tracked item must be flagged loudly so the
+  // shopkeeper knows — but still added, since overselling is allowed.
+  test('scanning a tracked out-of-stock product flags it AND still adds to cart',
+      () async {
+    products.byBarcode['Z'] = _outOfStock('z1', 'Z');
+    bloc.add(const ScanBarcodeEvent('Z'));
+    await bloc.stream.firstWhere((s) => s.cartItems.isNotEmpty).timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => throw StateError('item never reached the cart'),
+        );
+
+    expect(bloc.state.cartItems.single.product.id, 'z1',
+        reason: 'overselling is allowed — the item is still added');
+    expect(bloc.state.outOfStockScan?.id, 'z1',
+        reason: 'the finished item must be flagged for the red notice');
+  });
+
+  test('scanning any zero-qty product flags out-of-stock, even with no alert',
+      () async {
+    products.byBarcode['L'] = _zeroNoAlert('l1', 'L');
+    bloc.add(const ScanBarcodeEvent('L'));
+    await bloc.stream.firstWhere((s) => s.cartItems.isNotEmpty).timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => throw StateError('item never reached the cart'),
+        );
+
+    expect(bloc.state.outOfStockScan?.id, 'l1',
+        reason: 'zero quantity is out of stock regardless of a low-stock alert');
+  });
+
+  test('scanning an in-stock product does not flag out-of-stock', () async {
+    products.byBarcode['S'] = _product('s1', 'S'); // quantity 10
+    bloc.add(const ScanBarcodeEvent('S'));
+    await bloc.stream.firstWhere((s) => s.cartItems.isNotEmpty).timeout(
+          const Duration(seconds: 2),
+          onTimeout: () => throw StateError('item never reached the cart'),
+        );
+
+    expect(bloc.state.outOfStockScan, isNull);
   });
 }

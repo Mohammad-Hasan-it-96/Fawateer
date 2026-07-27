@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
@@ -20,6 +22,8 @@ import '../../../product/domain/entities/product.dart';
 import '../../../product/domain/entities/price_currency.dart';
 import '../../../../core/currency/exchange_rate_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/app_snack.dart';
+import '../../../../core/utils/barcode_formats.dart';
 import '../../../../core/utils/format.dart';
 import '../../../../core/widgets/primary_button.dart';
 import '../../../../l10n/app_localizations.dart';
@@ -35,12 +39,49 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   /// Not `final`: a controller that has latched an error can only be replaced,
   /// never revived — see [_recoverCamera].
-  MobileScannerController _scannerController = _newController();
+  MobileScannerController _scannerController =
+      _newController(highRes: true, invert: false);
 
-  static MobileScannerController _newController() => MobileScannerController(
+  /// Whether the live controller requested the higher analysis resolution.
+  /// Starts high, and [_onScannerState] drops it to false on the first camera
+  /// error — so a device that can't do 1280×720 analysis degrades gracefully to
+  /// the default resolution instead of latching "camera unavailable".
+  bool _highRes = true;
+
+  /// Inverted-barcode mode (Plan 011 #11): some products print **light bars on
+  /// a dark/colored background** (the red tin with a white-on-red EAN-13),
+  /// which ML Kit cannot decode natively. `invertImage` flips every analyzed
+  /// frame, which reads those — but breaks normal dark-on-light codes, so it's
+  /// a cashier-facing toggle (the "باركود فاتح" overlay button), not a default.
+  bool _invertScan = false;
+
+  /// A hard-pinned `cameraResolution` (e.g. 1920×1080) made `start()` fail on
+  /// some devices and stranded the preview on the error card. But the default
+  /// analysis resolution is often too low to decode a **small / curved** barcode
+  /// (the on-device misread of 6213295315252) — ML Kit, which mobile_scanner and
+  /// the reference SuperCodeReader both use, just needs more pixels on the bars.
+  /// 1280×720 is a widely-supported middle ground; if it still fails, the
+  /// [_onScannerState] fallback recreates the controller at the default size.
+  static MobileScannerController _newController(
+          {required bool highRes, required bool invert}) =>
+      MobileScannerController(
         detectionSpeed: DetectionSpeed.normal,
         returnImage: false,
+        // Only the symbologies a shop actually uses — fewer wrong reads
+        // (Plan 011 #11).
+        formats: kRetailBarcodeFormats,
+        cameraResolution: highRes ? const Size(1280, 720) : null,
+        // Reads white-on-color barcodes; see [_invertScan]. Android-only.
+        invertImage: invert,
+        // Auto-zoom onto a barcode that's too far/small in frame (Android).
+        autoZoom: true,
       );
+
+  /// Current camera zoom (0 = none … 1 = max), driven by pinch / double-tap
+  /// (Plan 011 #9). mobile_scanner has no manual tap-to-focus, so zoom is the
+  /// supported way to help read a small or awkward barcode.
+  double _zoom = 0;
+  double _zoomStart = 0;
 
   /// Serializes every camera start/stop.
   ///
@@ -99,6 +140,36 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   final Map<String, DateTime> _lastScanTimes = {};
 
+  // Multi-frame confirmation (Plan 011 #11). A barcode must decode to the SAME
+  // value on [_kScanConfirmations] consecutive frames before we accept it. A
+  // curved / glary surface can make MLKit return a checksum-valid but WRONG
+  // EAN-13 on a single bad frame (observed on-device: 6213295315252 misread as
+  // 1108009445972 — both valid EAN-13, so neither format nor checksum can catch
+  // it). A transient misread won't repeat identically, so requiring agreement
+  // across frames rejects it while the true code confirms within ~2 frames.
+  String? _pendingScan;
+  int _pendingScanCount = 0;
+  static const int _kScanConfirmations = 2;
+
+  // "Try inverted mode" hint (Plan 011 #11 follow-up).
+  //
+  // Polarity can't be alternated automatically: `invertImage` is a
+  // construction-time option, so flipping it tears down and rebinds the camera
+  // (~0.3–0.6 s of black preview, decoding nothing). Cycling that on a timer
+  // would spend a third of the time blind and look broken. The toggle already
+  // works — what was missing is knowing *when* to reach for it.
+  //
+  // So instead of flipping blindly, detect the failure condition. mobile_scanner
+  // only reports *successful* decodes (it never says "I see bars I can't read"),
+  // so the one available signal is: actively scanning and nothing decoded for a
+  // while. A normal scan lands in ~0.3–1.5 s and a cashier fighting glare takes
+  // ~3–4 s, so 6 s is past aiming but before frustration. Shown once per scanning
+  // stretch — a repeating nag would be worse than the problem.
+  Timer? _invertHintTimer;
+  bool _showInvertHint = false;
+  bool _invertHintUsed = false;
+  static const Duration _kInvertHintDelay = Duration(seconds: 6);
+
   @override
   void initState() {
     super.initState();
@@ -127,6 +198,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _invertHintTimer?.cancel();
     _scannerController.removeListener(_onScannerState);
     _scannerController.dispose();
     super.dispose();
@@ -151,10 +223,32 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         if (!mounted) return;
         if (_shouldScan) {
           await _scannerController.start();
+          _armInvertHint();
         } else {
           await _scannerController.stop();
+          _cancelInvertHint();
         }
       });
+
+  /// Start (or restart) the countdown to the "try inverted mode" hint. Called
+  /// whenever scanning becomes active and after every successful decode, so the
+  /// hint only appears during a *sustained* failure to read anything.
+  void _armInvertHint() {
+    _invertHintTimer?.cancel();
+    // Nothing to suggest once the cashier is already in inverted mode, or once
+    // they've used the toggle this session.
+    if (_invertScan || _invertHintUsed) return;
+    _invertHintTimer = Timer(_kInvertHintDelay, () {
+      if (!mounted || !_shouldScan || _invertScan) return;
+      setState(() => _showInvertHint = true);
+    });
+  }
+
+  void _cancelInvertHint() {
+    _invertHintTimer?.cancel();
+    _invertHintTimer = null;
+    if (_showInvertHint && mounted) setState(() => _showInvertHint = false);
+  }
 
   /// Run [body] with the scanner treated as covered, restoring it afterwards
   /// even if [body] throws — a sheet that closed on an error used to leave the
@@ -183,6 +277,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     // else is a native camera we still hold but can no longer drive.
     if (error.errorCode == MobileScannerErrorCode.permissionDenied) return;
     if (!mounted || !_isCameraOn) return;
+    // First response to any camera error: if we asked for the higher analysis
+    // resolution, drop it and rebuild at the default. An unsupported analysis
+    // size is a prime suspect for a failed start, and this makes the high-res
+    // request self-healing rather than a device-specific brick. Doesn't consume
+    // a recovery attempt — it's a config downgrade, not a retry.
+    if (_highRes) {
+      _highRes = false;
+      _recoverCamera();
+      return;
+    }
     if (_recoveryAttempts >= _maxRecoveryAttempts) return;
     _recoveryAttempts++;
     _recoverCamera();
@@ -201,7 +305,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         await old.dispose();
         return;
       }
-      final fresh = _newController();
+      final fresh = _newController(highRes: _highRes, invert: _invertScan);
       setState(() {
         _scannerController = fresh;
         _cameraGeneration++;
@@ -231,11 +335,31 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     for (final barcode in capture.barcodes) {
       if (barcode.rawValue != null) {
         final rawValue = barcode.rawValue!;
+
+        // Multi-frame confirmation: only accept a value seen on
+        // [_kScanConfirmations] consecutive frames. A one-off misread off a
+        // curved/glary surface won't repeat, so it never confirms.
+        if (rawValue == _pendingScan) {
+          _pendingScanCount++;
+        } else {
+          _pendingScan = rawValue;
+          _pendingScanCount = 1;
+        }
+        if (_pendingScanCount < _kScanConfirmations) {
+          break; // wait for the next frame to agree (or disagree)
+        }
+
         final lastScan = _lastScanTimes[rawValue];
         if (lastScan != null && now.difference(lastScan).inSeconds < 2) {
-          continue;
+          break;
         }
         _lastScanTimes[rawValue] = now;
+        _pendingScan = null;
+        _pendingScanCount = 0;
+        // Reading anything proves the current polarity works — hide the hint
+        // and restart its countdown.
+        if (_showInvertHint) setState(() => _showInvertHint = false);
+        _armInvertHint();
 
         // Beep first, then buzz: the sound is the primary confirmation for a
         // cashier whose eyes are on the goods, and awaiting `canVibrate` first
@@ -314,7 +438,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     ),
                     backgroundColor: Colors.red.shade700,
                     behavior: SnackBarBehavior.floating,
-                    duration: const Duration(seconds: 6),
+                    duration: AppSnackDuration.normal,
                     action: SnackBarAction(
                       label: l10n.unknownBarcodeAdd,
                       textColor: Colors.white,
@@ -347,6 +471,33 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               } else {
                 bloc.add(const ClearMeasuredPromptEvent());
               }
+            },
+          ),
+          // A stock-tracked product that has run out was scanned (Plan 011 #8).
+          // It's still added to the cart, but flag it loudly with a red notice
+          // so the shopkeeper knows the item is finished.
+          BlocListener<BillingBloc, BillingState>(
+            listenWhen: (prev, curr) =>
+                prev.outOfStockScan != curr.outOfStockScan &&
+                curr.outOfStockScan != null,
+            listener: (context, state) {
+              final name = state.outOfStockScan!.name;
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(SnackBar(
+                  content: Row(
+                    children: [
+                      const Icon(Icons.production_quantity_limits,
+                          color: Colors.white, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(child: Text(l10n.outOfStockScanNotice(name))),
+                    ],
+                  ),
+                  backgroundColor: Colors.red.shade700,
+                  behavior: SnackBarBehavior.floating,
+                  duration: AppSnackDuration.normal,
+                ));
+              context.read<BillingBloc>().add(const ClearOutOfStockScanEvent());
             },
           ),
         ],
@@ -397,20 +548,57 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     );
   }
 
+  /// Flip inverted-barcode mode and rebuild the camera with the new polarity.
+  /// `invertImage` is a construction-time option, so this reuses the same
+  /// controller-swap machinery as error recovery.
+  void _toggleInvertScan() {
+    setState(() {
+      _invertScan = !_invertScan;
+      // The cashier knows about the toggle now — don't keep hinting at it.
+      _invertHintUsed = true;
+      _showInvertHint = false;
+    });
+    _cancelInvertHint();
+    _recoveryAttempts = 0;
+    _recoverCamera();
+  }
+
+  /// Apply a clamped zoom level to the live camera (Plan 011 #9). Fire-and-
+  /// forget: if the camera isn't running the plugin call just rejects, which we
+  /// ignore.
+  void _applyZoom(double z) {
+    final clamped = z.clamp(0.0, 1.0);
+    if (clamped == _zoom) return;
+    setState(() => _zoom = clamped);
+    _scannerController.setZoomScale(clamped).catchError((_) {});
+  }
+
   Widget _buildScannerSection(AppLocalizations l10n) {
     return Container(
       color: Colors.black,
       child: Stack(
         fit: StackFit.expand,
         children: [
-          MobileScanner(
-            // Rebuilds against a replaced controller (see [_recoverCamera]).
-            key: ValueKey(_cameraGeneration),
-            controller: _scannerController,
-            onDetect: _onDetect,
-            // Shown when the camera can't start (permission denied, no camera).
-            errorBuilder: (context, error, child) =>
-                _buildCameraErrorState(l10n),
+          // Pinch to zoom, double-tap to toggle a preset zoom (Plan 011 #9) —
+          // the supported stand-in for tap-to-focus, which mobile_scanner has
+          // no API for. The camera autofocuses on its own.
+          GestureDetector(
+            onScaleStart: (_) => _zoomStart = _zoom,
+            onScaleUpdate: (details) {
+              if (details.scale == 1.0) return;
+              _applyZoom(_zoomStart + (details.scale - 1));
+            },
+            onDoubleTap: () => _applyZoom(_zoom > 0 ? 0 : 0.5),
+            child: MobileScanner(
+              // Rebuilds against a replaced controller (see [_recoverCamera]).
+              key: ValueKey(_cameraGeneration),
+              controller: _scannerController,
+              onDetect: _onDetect,
+              // Real tap-to-focus (Plan 011 #9) — like the stock camera app.
+              tapToFocus: true,
+              // Shown when the camera can't start (permission denied, no camera).
+              errorBuilder: (context, error) => _buildCameraErrorState(l10n),
+            ),
           ),
           if (!_isCameraOn) _buildCameraOffState(l10n),
 
@@ -428,6 +616,18 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             right: 12,
             child: Row(
               children: [
+                // Inverted-barcode mode (white bars on a colored background —
+                // e.g. white-on-red tins). ML Kit can't read those natively;
+                // this rebuilds the camera with invertImage (Plan 011 #11).
+                if (_isCameraOn)
+                  _buildOverlayButton(
+                    icon: _invertScan
+                        ? Icons.invert_colors
+                        : Icons.invert_colors_off,
+                    label: l10n.invertScanLabel,
+                    onPressed: _toggleInvertScan,
+                  ),
+                if (_isCameraOn) const SizedBox(width: 8),
                 if (_isCameraOn) _buildOverlayButton(
                   icon: _isFlashOn ? Icons.flashlight_off : Icons.flashlight_on,
                   label: l10n.flash,
@@ -449,22 +649,110 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             ),
           ),
 
-          // Scan target corners
+          // Scan target corners. IgnorePointer is load-bearing: a Container
+          // with a BoxDecoration hit-tests as solid inside its rounded rect
+          // even with no fill, so without it this box swallows every tap in
+          // the center of the screen — exactly where the error state's
+          // Retry / Open-Settings buttons live (the cashier was left unable
+          // to tap the one button that fixes a denied camera permission).
+          // It also hides itself while the camera is errored, so scan corners
+          // don't float over the "camera unavailable" card.
           if (_isCameraOn)
-            Center(
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.white24, width: 2),
-                  borderRadius: BorderRadius.circular(16),
+            IgnorePointer(
+              child: ValueListenableBuilder<MobileScannerState>(
+                valueListenable: _scannerController,
+                builder: (context, value, _) {
+                  if (value.error != null) return const SizedBox.shrink();
+                  return Center(
+                    child: Container(
+                      width: 220,
+                      height: 220,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.white24, width: 2),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Stack(children: [
+                        _buildCorner(Alignment.topLeft),
+                        _buildCorner(Alignment.topRight),
+                        _buildCorner(Alignment.bottomLeft),
+                        _buildCorner(Alignment.bottomRight),
+                      ]),
+                    ),
+                  );
+                },
+              ),
+            ),
+
+          // "Nothing scanning? try light-barcode mode" — appears after a
+          // sustained failure to decode; tapping it flips polarity directly.
+          if (_isCameraOn && _showInvertHint)
+            Positioned(
+              bottom: 48,
+              left: 12,
+              right: 12,
+              child: Center(
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _toggleInvertScan,
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.amber.shade700,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.invert_colors,
+                              color: Colors.white, size: 18),
+                          const SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              l10n.invertScanHint,
+                              style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-                child: Stack(children: [
-                  _buildCorner(Alignment.topLeft),
-                  _buildCorner(Alignment.topRight),
-                  _buildCorner(Alignment.bottomLeft),
-                  _buildCorner(Alignment.bottomRight),
-                ]),
+              ),
+            ),
+
+          // Live zoom indicator (Plan 011 #9) — only while zoomed in.
+          if (_isCameraOn && _zoom > 0)
+            Positioned(
+              bottom: 12,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.zoom_in, color: Colors.white, size: 16),
+                      const SizedBox(width: 4),
+                      Text('${(_zoom * 100).round()}%',
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
               ),
             ),
         ],
@@ -862,6 +1150,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   Widget _buildCartItemCard(BuildContext context, CartItem item) {
     final l10n = AppLocalizations.of(context)!;
     final measured = item.product.saleType.isMeasured;
+    final out = item.product.isOutOfStock;
     final shopState = context.watch<ShopBloc>().state;
     final currency =
         shopState is ShopLoaded ? shopState.shop.currencySymbol : '';
@@ -870,7 +1159,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Theme.of(context).dividerColor),
+        // Red border flags a finished (out-of-stock) line (Plan 011 #8).
+        border: Border.all(
+            color: out ? Colors.red : Theme.of(context).dividerColor,
+            width: out ? 1.5 : 1),
         boxShadow: [
           BoxShadow(
               color: Colors.black.withValues(alpha: 0.08),
@@ -891,6 +1183,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                         fontWeight: FontWeight.w600, fontSize: 14),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis),
+                if (out) ...[
+                  const SizedBox(height: 4),
+                  _outOfStockBadge(l10n),
+                ],
                 const SizedBox(height: 4),
                 Text(
                   measured
@@ -1307,6 +1603,28 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
 
 }
 
+/// Small red "out of stock" chip (Plan 011 #8), reused by the cart line and the
+/// product-picker tile so a finished item reads the same everywhere.
+Widget _outOfStockBadge(AppLocalizations l10n) {
+  return Container(
+    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    decoration: BoxDecoration(
+      color: Colors.red.withValues(alpha: 0.1),
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.remove_shopping_cart, size: 13, color: Colors.red),
+        const SizedBox(width: 4),
+        Text(l10n.outOfStockBadge,
+            style: const TextStyle(
+                fontSize: 11, fontWeight: FontWeight.bold, color: Colors.red)),
+      ],
+    ),
+  );
+}
+
 /// A single tappable product tile with add feedback. On tap it fires [onAdd]
 /// and plays a brief scale "pop" + green check flash, and it shows a live badge
 /// with how many of this product are already in the cart — so the cashier can
@@ -1340,6 +1658,7 @@ class _ProductTileState extends State<_ProductTile> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     // Live quantity of this product already in the cart.
     double inCart = 0;
     for (final c in context.watch<BillingBloc>().state.cartItems) {
@@ -1349,6 +1668,7 @@ class _ProductTileState extends State<_ProductTile> {
       }
     }
     final highlighted = _justAdded || inCart > 0;
+    final out = widget.product.isOutOfStock;
 
     return GestureDetector(
       onTap: _handleTap,
@@ -1366,11 +1686,14 @@ class _ProductTileState extends State<_ProductTile> {
                     ? AppTheme.primaryColor.withValues(alpha: 0.06)
                     : Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
+                // Red border flags a finished (out-of-stock) product (Plan 011 #8).
                 border: Border.all(
-                  color: highlighted
-                      ? AppTheme.primaryColor
-                      : Theme.of(context).dividerColor,
-                  width: highlighted ? 1.5 : 1,
+                  color: out
+                      ? Colors.red
+                      : (highlighted
+                          ? AppTheme.primaryColor
+                          : Theme.of(context).dividerColor),
+                  width: out || highlighted ? 1.5 : 1,
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -1427,6 +1750,14 @@ class _ProductTileState extends State<_ProductTile> {
                           fontSize: 12,
                           fontWeight: FontWeight.bold)),
                 ),
+              ),
+
+            // Red "out of stock" chip (top-end corner) for a finished product.
+            if (out)
+              PositionedDirectional(
+                top: 6,
+                end: 6,
+                child: _outOfStockBadge(l10n),
               ),
 
             // Brief green check flash centered on the tile right after a tap.

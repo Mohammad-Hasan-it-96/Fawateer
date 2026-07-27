@@ -51,7 +51,7 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
   @override
   Future<Either<Failure, void>> saveInvoice(
       Invoice invoice, List<InvoiceItem> items,
-      {String? customerId}) async {
+      {String? customerId, List<String> soldUnitIds = const []}) async {
     try {
       final amount = (invoice.totalAmount * 100).roundToDouble() / 100;
       // On a credit sale, the customer's debt is booked atomically with the
@@ -101,10 +101,13 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
                   priceOriginal: Value(i.priceOriginal),
                   discount: Value(i.discount),
                   attributesSnapshot: Value(i.attributesSnapshot),
+                  saleType: Value(i.saleType),
+                  serialSnapshot: Value(i.serialSnapshot),
                 ))
             .toList(),
         creditCharge: creditCharge,
         cashReceipt: cashReceipt,
+        soldUnitIds: soldUnitIds,
       );
       return const Right(null);
     } catch (e) {
@@ -191,6 +194,8 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
                 priceOriginal: r.priceOriginal,
                 discount: r.discount,
                 attributesSnapshot: r.attributesSnapshot,
+                saleType: r.saleType,
+                serialSnapshot: r.serialSnapshot,
               ))
           .toList());
     } catch (e) {

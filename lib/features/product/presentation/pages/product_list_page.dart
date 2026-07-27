@@ -414,17 +414,40 @@ class _ProductListPageState extends State<ProductListPage> {
                                     ),
                                   );
                                 }),
-                                if (product.minStockAlert > 0 ||
-                                    product.quantity > 0) ...[
-                                  const SizedBox(height: 8),
-                                  _buildStockRow(context, product, l10n),
-                                ],
+                                // Always shown: the shop wants on-hand visible
+                                // for every product, incl. a zero "out of stock"
+                                // (Plan 011 #8).
+                                const SizedBox(height: 8),
+                                _buildStockRow(context, product, l10n),
                               ],
                             ),
                           ),
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // Only for serialized SKUs (Plan 012) — the vast
+                              // majority of shops never opt in, and an always-on
+                              // button would just crowd the row.
+                              if (product.isSerialized) ...[
+                                Container(
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryColor
+                                        .withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: IconButton(
+                                    icon: const Icon(Icons.qr_code_2_rounded,
+                                        color: AppTheme.primaryColor, size: 22),
+                                    tooltip: l10n.productUnitsAction,
+                                    constraints: const BoxConstraints(
+                                        minWidth: 48, minHeight: 48),
+                                    onPressed: () => context.push(
+                                        '/products/units/${product.id}',
+                                        extra: product),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                              ],
                               Container(
                                 decoration: BoxDecoration(
                                   color: AppTheme.primaryColor
@@ -495,31 +518,45 @@ class _ProductListPageState extends State<ProductListPage> {
     );
   }
 
-  /// On-hand quantity plus a red "low stock" chip when the product has hit its
-  /// alert threshold — so the owner sees what's running low without opening it.
+  /// On-hand quantity plus a red chip when the product is running low — or a
+  /// stronger red "out of stock" chip when a stock-tracked item has hit zero
+  /// (Plan 011 #8) — so the owner sees a finished item at a glance instead of
+  /// hunting the shelf.
   Widget _buildStockRow(
       BuildContext context, Product product, AppLocalizations l10n) {
-    final low = product.isLowStock;
-    return Row(
+    final out = product.isOutOfStock;
+    // Out-of-stock supersedes the softer low-stock chip.
+    final low = product.isLowStock && !out;
+    final alert = out || low;
+    final onVariant = Theme.of(context).colorScheme.onSurfaceVariant;
+    // A Wrap (not a Row): on a narrow card the badge drops to a second line
+    // instead of overflowing — this row shares width with the action buttons.
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        Icon(Icons.inventory_2_outlined,
-            size: 16,
-            color: low
-                ? Colors.red
-                : Theme.of(context).colorScheme.onSurfaceVariant),
-        const SizedBox(width: 4),
-        Text(
-          l10n.stockCountLabel(formatQty(product.quantity)),
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: low ? FontWeight.bold : FontWeight.w500,
-            color: low
-                ? Colors.red
-                : Theme.of(context).colorScheme.onSurfaceVariant,
-          ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+                out
+                    ? Icons.production_quantity_limits
+                    : Icons.inventory_2_outlined,
+                size: 16,
+                color: alert ? Colors.red : onVariant),
+            const SizedBox(width: 4),
+            Text(
+              l10n.stockCountLabel(formatQty(product.quantity)),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: alert ? FontWeight.bold : FontWeight.w500,
+                color: alert ? Colors.red : onVariant,
+              ),
+            ),
+          ],
         ),
-        if (low) ...[
-          const SizedBox(width: 8),
+        if (alert)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
             decoration: BoxDecoration(
@@ -529,10 +566,14 @@ class _ProductListPageState extends State<ProductListPage> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.warning_amber_rounded,
-                    size: 14, color: Colors.red),
+                Icon(
+                    out
+                        ? Icons.remove_shopping_cart
+                        : Icons.warning_amber_rounded,
+                    size: 14,
+                    color: Colors.red),
                 const SizedBox(width: 4),
-                Text(l10n.lowStockBadge,
+                Text(out ? l10n.outOfStockBadge : l10n.lowStockBadge,
                     style: const TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
@@ -540,7 +581,6 @@ class _ProductListPageState extends State<ProductListPage> {
               ],
             ),
           ),
-        ],
       ],
     );
   }

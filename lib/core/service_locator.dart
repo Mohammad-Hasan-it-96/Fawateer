@@ -11,17 +11,22 @@ import 'database/daos/ledger_dao.dart';
 import 'database/daos/cashbox_dao.dart';
 import 'database/daos/dashboard_dao.dart';
 import 'database/daos/attributes_dao.dart';
+import 'database/daos/product_units_dao.dart';
 
 // Core — Network
 import 'network/api_client.dart';
 import 'config/remote_config_service.dart';
 import 'currency/exchange_rate_service.dart';
 import 'settings/inventory_settings_service.dart';
+import 'settings/print_settings_service.dart';
+import 'theme/font_scale_controller.dart';
 import 'theme/theme_controller.dart';
 
 // Features — Attributes (dynamic product fields, Plan 010)
 import '../features/attributes/data/repositories/attribute_definition_repository_drift_impl.dart';
 import '../features/attributes/domain/repositories/attribute_definition_repository.dart';
+import '../features/product/data/repositories/product_unit_repository_drift_impl.dart';
+import '../features/product/domain/repositories/product_unit_repository.dart';
 import '../features/attributes/presentation/bloc/attribute_definition_bloc.dart';
 
 // Features — Ledger (customers & debts)
@@ -58,6 +63,7 @@ import '../features/licensing/presentation/bloc/license_bloc.dart';
 import '../features/product/data/repositories/product_repository_drift_impl.dart';
 import '../features/product/domain/repositories/product_repository.dart';
 import '../features/product/presentation/bloc/product_bloc.dart';
+import '../features/product/presentation/bloc/product_unit_bloc.dart';
 
 // Features — Shop
 import '../features/shop/data/repositories/shop_repository_drift_impl.dart';
@@ -100,16 +106,21 @@ Future<void> init() async {
   sl.registerLazySingleton<CashboxDao>(() => CashboxDao(sl()));
   sl.registerLazySingleton<DashboardDao>(() => DashboardDao(sl()));
   sl.registerLazySingleton<AttributesDao>(() => AttributesDao(sl()));
+  sl.registerLazySingleton<ProductUnitsDao>(() => ProductUnitsDao(sl()));
 
   // ── Services ─────────────────────────────────────────────────────────────
   sl.registerLazySingleton<ExchangeRateService>(
       () => ExchangeRateService(sl<SettingsDao>()));
   sl.registerLazySingleton<InventorySettingsService>(
       () => InventorySettingsService(sl<SettingsDao>()));
+  sl.registerLazySingleton<PrintSettingsService>(
+      () => PrintSettingsService(sl<SettingsDao>()));
   // Singleton, not a factory: `MyApp` listens to this instance and the settings
   // page writes to it — two copies would leave the UI out of sync.
   sl.registerLazySingleton<ThemeController>(
       () => ThemeController(sl<SettingsDao>()));
+  sl.registerLazySingleton<FontScaleController>(
+      () => FontScaleController(sl<SettingsDao>()));
 
   // ── Repositories ─────────────────────────────────────────────────────────
   sl.registerLazySingleton<ProductRepository>(
@@ -130,6 +141,8 @@ Future<void> init() async {
       () => DashboardRepositoryDriftImpl(sl<DashboardDao>()));
   sl.registerLazySingleton<AttributeDefinitionRepository>(
       () => AttributeDefinitionRepositoryDriftImpl(sl<AttributesDao>()));
+  sl.registerLazySingleton<ProductUnitRepository>(
+      () => ProductUnitRepositoryDriftImpl(sl<ProductUnitsDao>()));
 
   // ── Backup (Drift snapshot + Google Drive target) ────────────────────────
   sl.registerLazySingleton<BackupEngine>(() => BackupEngine(sl(), sl()));
@@ -168,6 +181,9 @@ Future<void> init() async {
 
   sl.registerFactory(() => PrinterBloc(repository: sl()));
 
+  // Route-scoped to /products/units/:id (one SKU's handsets at a time).
+  sl.registerFactory(() => ProductUnitBloc(repository: sl()));
+
   sl.registerFactory(
       () => HistoryBloc(repository: sl(), printerRepository: sl()));
 
@@ -177,7 +193,9 @@ Future<void> init() async {
         invoiceRepository: sl(),
         exchangeRateService: sl(),
         inventorySettingsService: sl(),
+        printSettingsService: sl(),
         attributeRepository: sl(),
+        productUnitRepository: sl(),
       ));
 
   sl.registerFactory(() => CustomerBloc(repository: sl()));

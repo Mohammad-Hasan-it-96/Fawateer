@@ -66,6 +66,15 @@ class AppLocalizationsAr extends AppLocalizations {
   String get flash => 'فلاش';
 
   @override
+  String get invertScanLabel => 'باركود فاتح';
+
+  @override
+  String get invertScanHint => 'لا يُقرأ الباركود؟ جرّب وضع «باركود فاتح»';
+
+  @override
+  String get pressBackAgainToExit => 'اضغط رجوع مرة أخرى للخروج';
+
+  @override
   String get camera => 'كاميرا';
 
   @override
@@ -82,6 +91,21 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get colTotal => 'المجموع';
+
+  @override
+  String get colSerial => 'م';
+
+  @override
+  String get colQty => 'الكمية';
+
+  @override
+  String get colUnit => 'الوحدة';
+
+  @override
+  String get colUnitPrice => 'الإفرادي';
+
+  @override
+  String get unitPiece => 'قطعة';
 
   @override
   String get grandTotal => 'المجموع الكلي';
@@ -259,6 +283,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get lowStockBadge => 'مخزون منخفض';
 
   @override
+  String get outOfStockBadge => 'منتهي';
+
+  @override
+  String outOfStockScanNotice(String name) {
+    return 'انتهت كمية المنتج: $name';
+  }
+
+  @override
   String get cancel => 'إلغاء';
 
   @override
@@ -378,6 +410,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get inventoryStrictSubtitle => 'لا تسمح ببيع كمية أكبر من المتوفرة';
+
+  @override
+  String get showPrintButtonTitle => 'طباعة الفواتير';
+
+  @override
+  String get showPrintButtonSubtitle =>
+      'إظهار زر الطباعة والطباعة التلقائية عند البيع. أوقفه إذا لم تكن لديك طابعة.';
 
   @override
   String get shopDetailsItem => 'تفاصيل المحل';
@@ -608,6 +647,21 @@ class AppLocalizationsAr extends AppLocalizations {
   String get themeSystem => 'حسب النظام';
 
   @override
+  String get fontSizeTitle => 'حجم الخط';
+
+  @override
+  String get fontSizeSmall => 'صغير';
+
+  @override
+  String get fontSizeNormal => 'عادي';
+
+  @override
+  String get fontSizeLarge => 'كبير';
+
+  @override
+  String get fontSizeExtraLarge => 'كبير جداً';
+
+  @override
   String get printDeviceItem => 'جهاز الطباعة';
 
   @override
@@ -704,6 +758,121 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String productNotFound(String barcode) {
     return 'المنتج غير موجود: $barcode';
+  }
+
+  @override
+  String unitsTitle(String product) {
+    return 'القطع — $product';
+  }
+
+  @override
+  String unitsSummary(int available, int total) {
+    return '$available من $total ما زالت في المخزون';
+  }
+
+  @override
+  String get unitsAdd => 'إضافة قطعة';
+
+  @override
+  String get unitsSerialLabel => 'الرقم التسلسلي';
+
+  @override
+  String get unitsSerialHint => 'امسح الرقم أو اكتبه';
+
+  @override
+  String get unitsSearchHint => 'بحث بالرقم التسلسلي';
+
+  @override
+  String get unitsEmpty =>
+      'لا توجد قطع بعد.\nأضف قطعة لكل وحدة موجودة لديك في المخزون.';
+
+  @override
+  String get unitsNoMatch => 'لا توجد قطعة بهذا الرقم.';
+
+  @override
+  String get serialLabelShort => 'الرقم التسلسلي';
+
+  @override
+  String get unitsNoSerial => '(بدون رقم)';
+
+  @override
+  String get unitsSetWarranty => 'تحديد تاريخ الكفالة';
+
+  @override
+  String get unitsMarkDefective => 'تعليم كمعطّلة';
+
+  @override
+  String get unitsRestock => 'إعادة إلى المخزون';
+
+  @override
+  String unitsWarrantyUntil(String date) {
+    return 'الكفالة حتى $date';
+  }
+
+  @override
+  String unitsSoldOn(String date) {
+    return 'بيعت بتاريخ $date';
+  }
+
+  @override
+  String get unitStatusInStock => 'في المخزون';
+
+  @override
+  String get unitStatusSold => 'مباعة';
+
+  @override
+  String get unitStatusReturned => 'مرتجعة';
+
+  @override
+  String get unitStatusDefective => 'معطّلة';
+
+  @override
+  String get unitsAdded => 'تمت إضافة القطعة';
+
+  @override
+  String get unitsSaved => 'تم الحفظ';
+
+  @override
+  String get unitsDeleted => 'تم حذف القطعة';
+
+  @override
+  String get unitsLoadFailed => 'تعذّر تحميل القائمة.';
+
+  @override
+  String get unitsSaveFailed => 'تعذّر الحفظ. حاول مرة أخرى.';
+
+  @override
+  String get unitsDuplicateSerial =>
+      'هذا الرقم مسجّل مسبقاً. تأكّد أنك لم تمسح القطعة نفسها مرتين.';
+
+  @override
+  String get unitsDeleteBlockedSold =>
+      'هذه القطعة مباعة ولا يمكن حذفها — سجلّها يربط الرقم التسلسلي بفاتورته.';
+
+  @override
+  String get unitsDeleteTitle => 'حذف هذه القطعة؟';
+
+  @override
+  String get unitsDeleteBody =>
+      'سيتم حذف القطعة من المخزون. لا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get productSerialized => 'لكل قطعة رقم تسلسلي خاص';
+
+  @override
+  String get productSerializedHint =>
+      'فعّلها للبضائع التي تُتابَع قطعة قطعة — الهواتف، الأجهزة، العدّة، الذهب. عندها يُحتسب المخزون من القطع التي تضيفها.';
+
+  @override
+  String get productUnitsAction => 'القطع';
+
+  @override
+  String get stockFromUnitsHint =>
+      'يُحتسب من القطع التي تضيفها — افتح «القطع» لتعديله.';
+
+  @override
+  String unitNotAvailableError(String serial) {
+    return 'هذه القطعة (الرقم التسلسلي $serial) لم تعد في المخزون — تم بيعها مسبقاً.';
   }
 
   @override
@@ -832,6 +1001,46 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get updateLater => 'لاحقاً';
+
+  @override
+  String get verifyRequiredTitle => 'مطلوب التحقق من الاشتراك';
+
+  @override
+  String get verifyOfflineMessage =>
+      'لم يتمكن التطبيق من الاتصال بالخادم منذ فترة. يرجى الاتصال بالإنترنت ثم الضغط على إعادة المحاولة للمتابعة.';
+
+  @override
+  String get verifyTamperMessage =>
+      'تم اكتشاف تغيير في تاريخ ووقت الجهاز. يرجى تصحيح التاريخ والوقت والاتصال بالإنترنت ثم الضغط على إعادة المحاولة.';
+
+  @override
+  String get verifyDataSafe => 'جميع بياناتك محفوظة على هذا الجهاز.';
+
+  @override
+  String get verifyChecking => 'جارٍ التحقق…';
+
+  @override
+  String offlineWarnBanner(int days) {
+    return 'لا يوجد اتصال بالخادم منذ $days يوم — اتصل بالإنترنت للتحقق';
+  }
+
+  @override
+  String get trialExpiredNotice =>
+      'انتهت الفترة التجريبية. اختر باقة لتفعيل الاشتراك والمتابعة — جميع بياناتك محفوظة.';
+
+  @override
+  String get subscriptionExpiredNotice =>
+      'انتهى اشتراكك. اختر باقة للتجديد والمتابعة — جميع بياناتك محفوظة.';
+
+  @override
+  String get checkForUpdatesHint => 'اضغط للتحقق من وجود تحديثات';
+
+  @override
+  String get updateUpToDate => 'أنت على أحدث إصدار';
+
+  @override
+  String get updateCheckFailed =>
+      'تعذّر التحقق من التحديثات. تحقق من اتصالك بالإنترنت.';
 
   @override
   String contactMessage(
@@ -1096,6 +1305,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get subscriptionActivatedBanner => 'تم تفعيل اشتراكك';
 
   @override
+  String get trialBannerNoDate => 'نسخة تجريبية';
+
+  @override
+  String trialBannerWithDate(int days, String date) {
+    return 'نسخة تجريبية — باقٍ $days يوم (حتى $date)';
+  }
+
+  @override
   String trialBanner(int days) {
     return 'نسخة تجريبية — باقٍ $days يوم';
   }
@@ -1177,6 +1394,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get backupRestartAction => 'إغلاق التطبيق';
+
+  @override
+  String get backupRestoreFailedTitle => 'لم تكتمل الاستعادة';
+
+  @override
+  String get backupRestoreFailedBody =>
+      'لم يتم تغيير بياناتك — هي سليمة تماماً كما كانت. لكن يجب إعادة فتح التطبيق ليعمل من جديد.';
 
   @override
   String get backupSuccessBackedUp => 'تم إنشاء النسخة الاحتياطية بنجاح';

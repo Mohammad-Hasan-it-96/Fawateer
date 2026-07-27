@@ -52,5 +52,18 @@ class IncompatibleFailure extends Failure {
   const IncompatibleFailure(super.message);
 }
 
+/// A restore failed *after* the live database connection had already been
+/// closed. The data on disk is intact (the swap is rolled back, and the
+/// `.pre-restore` copy is kept either way) — but the **running app** can no
+/// longer reach SQLite, so every subsequent query throws until it is restarted.
+///
+/// This is deliberately a distinct type rather than a [CacheFailure]: the two
+/// need opposite UI. An ordinary failure is a snackbar the user shrugs off; this
+/// one must tell them to reopen the app, or they are left tapping around a shell
+/// that looks corrupted while their data is actually fine.
+class RestoreIncompleteFailure extends Failure {
+  const RestoreIncompleteFailure(super.message);
+}
+
 // Note: `message` carries developer/debug detail — it is NOT shown to users.
 // Presentation maps the failure *type* to a localized string.

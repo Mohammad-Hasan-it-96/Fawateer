@@ -13,6 +13,13 @@ enum BillingError {
   /// Strict inventory is on and the cart sells a tracked item past its on-hand
   /// count. Only reachable when the owner enabled the toggle.
   insufficientStock,
+
+  /// A scanned IMEI/serial matched a unit that is no longer sellable — already
+  /// sold, returned or defective (Plan 012). Distinct from [productNotFound]
+  /// because the answer is completely different: the serial IS known, so
+  /// "product not found" would send the cashier hunting a shelf for a phone
+  /// that was sold last week.
+  unitNotAvailable,
 }
 
 /// Sentinel so [BillingState.copyWith] can distinguish "leave the nullable rate
@@ -38,6 +45,13 @@ class BillingState extends Equatable {
   /// for this, opens the entry dialog, then clears it. Null otherwise.
   final Product? measuredPrompt;
 
+  /// Set for one transition when a *stock-tracked* product that has run out is
+  /// scanned (Plan 011 #8). The item is still added to the cart (overselling is
+  /// allowed by default), but the POS shows a red "out of stock" notice so the
+  /// shopkeeper knows the item is finished instead of hunting the shelf. The
+  /// POS page consumes it and clears it. Null otherwise.
+  final Product? outOfStockScan;
+
   /// Current USD→SP rate (SP per 1 USD), or null if the owner hasn't set one.
   /// Used to price USD products into SP as they enter the cart.
   final double? exchangeRate;
@@ -54,6 +68,11 @@ class BillingState extends Equatable {
   /// overselling stays allowed unless the owner opts in.
   final bool blockOversell;
 
+  /// When true (the default), the checkout shows its print button and auto-prints
+  /// a confirmed sale; when false the shop has no printer, so both are skipped
+  /// (Plan 011 #6). Loaded by [LoadPrintSettingsEvent] at startup and on toggle.
+  final bool printEnabled;
+
   const BillingState({
     this.cartItems = const [],
     this.error,
@@ -65,10 +84,12 @@ class BillingState extends Equatable {
     this.savedInvoiceId,
     this.lowStockWarnings = const [],
     this.measuredPrompt,
+    this.outOfStockScan,
     this.exchangeRate,
     this.rateUpdatedAt,
     this.invoiceDiscount = 0,
     this.blockOversell = false,
+    this.printEnabled = true,
   });
 
   /// Sum of the (line-discounted) line totals, before the whole-cart discount.
@@ -125,10 +146,13 @@ class BillingState extends Equatable {
     List<String>? lowStockWarnings,
     Product? measuredPrompt,
     bool clearMeasuredPrompt = false,
+    Product? outOfStockScan,
+    bool clearOutOfStockScan = false,
     Object? exchangeRate = _unset,
     Object? rateUpdatedAt = _unset,
     double? invoiceDiscount,
     bool? blockOversell,
+    bool? printEnabled,
   }) {
     return BillingState(
       cartItems: cartItems ?? this.cartItems,
@@ -143,6 +167,9 @@ class BillingState extends Equatable {
       lowStockWarnings: lowStockWarnings ?? this.lowStockWarnings,
       measuredPrompt:
           clearMeasuredPrompt ? null : (measuredPrompt ?? this.measuredPrompt),
+      outOfStockScan: clearOutOfStockScan
+          ? null
+          : (outOfStockScan ?? this.outOfStockScan),
       exchangeRate: identical(exchangeRate, _unset)
           ? this.exchangeRate
           : exchangeRate as double?,
@@ -151,6 +178,7 @@ class BillingState extends Equatable {
           : rateUpdatedAt as DateTime?,
       invoiceDiscount: invoiceDiscount ?? this.invoiceDiscount,
       blockOversell: blockOversell ?? this.blockOversell,
+      printEnabled: printEnabled ?? this.printEnabled,
     );
   }
 
@@ -166,9 +194,11 @@ class BillingState extends Equatable {
         savedInvoiceId,
         lowStockWarnings,
         measuredPrompt,
+        outOfStockScan,
         exchangeRate,
         rateUpdatedAt,
         invoiceDiscount,
         blockOversell,
+        printEnabled,
       ];
 }

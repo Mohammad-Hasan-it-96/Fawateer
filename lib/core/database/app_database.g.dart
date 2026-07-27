@@ -79,6 +79,16 @@ class $ProductsTable extends Products
       type: DriftSqlType.string,
       requiredDuringInsert: false,
       defaultValue: const Constant(''));
+  static const VerificationMeta _isSerializedMeta =
+      const VerificationMeta('isSerialized');
+  @override
+  late final GeneratedColumn<bool> isSerialized = GeneratedColumn<bool>(
+      'is_serialized', aliasedName, false,
+      type: DriftSqlType.bool,
+      requiredDuringInsert: false,
+      defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("is_serialized" IN (0, 1))'),
+      defaultValue: const Constant(false));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -90,7 +100,8 @@ class $ProductsTable extends Products
         minStockAlert,
         saleType,
         priceCurrency,
-        attributes
+        attributes,
+        isSerialized
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -153,6 +164,12 @@ class $ProductsTable extends Products
           attributes.isAcceptableOrUnknown(
               data['attributes']!, _attributesMeta));
     }
+    if (data.containsKey('is_serialized')) {
+      context.handle(
+          _isSerializedMeta,
+          isSerialized.isAcceptableOrUnknown(
+              data['is_serialized']!, _isSerializedMeta));
+    }
     return context;
   }
 
@@ -182,6 +199,8 @@ class $ProductsTable extends Products
           .read(DriftSqlType.string, data['${effectivePrefix}price_currency'])!,
       attributes: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}attributes'])!,
+      isSerialized: attachedDatabase.typeMapping
+          .read(DriftSqlType.bool, data['${effectivePrefix}is_serialized'])!,
     );
   }
 
@@ -202,6 +221,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
   final String saleType;
   final String priceCurrency;
   final String attributes;
+  final bool isSerialized;
   const ProductRow(
       {required this.id,
       required this.name,
@@ -212,7 +232,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       required this.minStockAlert,
       required this.saleType,
       required this.priceCurrency,
-      required this.attributes});
+      required this.attributes,
+      required this.isSerialized});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -226,6 +247,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     map['sale_type'] = Variable<String>(saleType);
     map['price_currency'] = Variable<String>(priceCurrency);
     map['attributes'] = Variable<String>(attributes);
+    map['is_serialized'] = Variable<bool>(isSerialized);
     return map;
   }
 
@@ -241,6 +263,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       saleType: Value(saleType),
       priceCurrency: Value(priceCurrency),
       attributes: Value(attributes),
+      isSerialized: Value(isSerialized),
     );
   }
 
@@ -258,6 +281,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       saleType: serializer.fromJson<String>(json['saleType']),
       priceCurrency: serializer.fromJson<String>(json['priceCurrency']),
       attributes: serializer.fromJson<String>(json['attributes']),
+      isSerialized: serializer.fromJson<bool>(json['isSerialized']),
     );
   }
   @override
@@ -274,6 +298,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       'saleType': serializer.toJson<String>(saleType),
       'priceCurrency': serializer.toJson<String>(priceCurrency),
       'attributes': serializer.toJson<String>(attributes),
+      'isSerialized': serializer.toJson<bool>(isSerialized),
     };
   }
 
@@ -287,7 +312,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           double? minStockAlert,
           String? saleType,
           String? priceCurrency,
-          String? attributes}) =>
+          String? attributes,
+          bool? isSerialized}) =>
       ProductRow(
         id: id ?? this.id,
         name: name ?? this.name,
@@ -299,6 +325,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
         saleType: saleType ?? this.saleType,
         priceCurrency: priceCurrency ?? this.priceCurrency,
         attributes: attributes ?? this.attributes,
+        isSerialized: isSerialized ?? this.isSerialized,
       );
   ProductRow copyWithCompanion(ProductsCompanion data) {
     return ProductRow(
@@ -317,6 +344,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           : this.priceCurrency,
       attributes:
           data.attributes.present ? data.attributes.value : this.attributes,
+      isSerialized: data.isSerialized.present
+          ? data.isSerialized.value
+          : this.isSerialized,
     );
   }
 
@@ -332,14 +362,15 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ..write('minStockAlert: $minStockAlert, ')
           ..write('saleType: $saleType, ')
           ..write('priceCurrency: $priceCurrency, ')
-          ..write('attributes: $attributes')
+          ..write('attributes: $attributes, ')
+          ..write('isSerialized: $isSerialized')
           ..write(')'))
         .toString();
   }
 
   @override
   int get hashCode => Object.hash(id, name, barcode, price, cost, quantity,
-      minStockAlert, saleType, priceCurrency, attributes);
+      minStockAlert, saleType, priceCurrency, attributes, isSerialized);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -353,7 +384,8 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           other.minStockAlert == this.minStockAlert &&
           other.saleType == this.saleType &&
           other.priceCurrency == this.priceCurrency &&
-          other.attributes == this.attributes);
+          other.attributes == this.attributes &&
+          other.isSerialized == this.isSerialized);
 }
 
 class ProductsCompanion extends UpdateCompanion<ProductRow> {
@@ -367,6 +399,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
   final Value<String> saleType;
   final Value<String> priceCurrency;
   final Value<String> attributes;
+  final Value<bool> isSerialized;
   final Value<int> rowid;
   const ProductsCompanion({
     this.id = const Value.absent(),
@@ -379,6 +412,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.saleType = const Value.absent(),
     this.priceCurrency = const Value.absent(),
     this.attributes = const Value.absent(),
+    this.isSerialized = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProductsCompanion.insert({
@@ -392,6 +426,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.saleType = const Value.absent(),
     this.priceCurrency = const Value.absent(),
     this.attributes = const Value.absent(),
+    this.isSerialized = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         name = Value(name),
@@ -407,6 +442,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     Expression<String>? saleType,
     Expression<String>? priceCurrency,
     Expression<String>? attributes,
+    Expression<bool>? isSerialized,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -420,6 +456,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       if (saleType != null) 'sale_type': saleType,
       if (priceCurrency != null) 'price_currency': priceCurrency,
       if (attributes != null) 'attributes': attributes,
+      if (isSerialized != null) 'is_serialized': isSerialized,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -435,6 +472,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       Value<String>? saleType,
       Value<String>? priceCurrency,
       Value<String>? attributes,
+      Value<bool>? isSerialized,
       Value<int>? rowid}) {
     return ProductsCompanion(
       id: id ?? this.id,
@@ -447,6 +485,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       saleType: saleType ?? this.saleType,
       priceCurrency: priceCurrency ?? this.priceCurrency,
       attributes: attributes ?? this.attributes,
+      isSerialized: isSerialized ?? this.isSerialized,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -484,6 +523,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     if (attributes.present) {
       map['attributes'] = Variable<String>(attributes.value);
     }
+    if (isSerialized.present) {
+      map['is_serialized'] = Variable<bool>(isSerialized.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -503,6 +545,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
           ..write('saleType: $saleType, ')
           ..write('priceCurrency: $priceCurrency, ')
           ..write('attributes: $attributes, ')
+          ..write('isSerialized: $isSerialized, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -1471,6 +1514,22 @@ class $SalesItemsTable extends SalesItems
           type: DriftSqlType.string,
           requiredDuringInsert: false,
           defaultValue: const Constant(''));
+  static const VerificationMeta _saleTypeMeta =
+      const VerificationMeta('saleType');
+  @override
+  late final GeneratedColumn<String> saleType = GeneratedColumn<String>(
+      'sale_type', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _serialSnapshotMeta =
+      const VerificationMeta('serialSnapshot');
+  @override
+  late final GeneratedColumn<String> serialSnapshot = GeneratedColumn<String>(
+      'serial_snapshot', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -1484,7 +1543,9 @@ class $SalesItemsTable extends SalesItems
         fxRate,
         priceOriginal,
         discount,
-        attributesSnapshot
+        attributesSnapshot,
+        saleType,
+        serialSnapshot
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -1561,6 +1622,16 @@ class $SalesItemsTable extends SalesItems
           attributesSnapshot.isAcceptableOrUnknown(
               data['attributes_snapshot']!, _attributesSnapshotMeta));
     }
+    if (data.containsKey('sale_type')) {
+      context.handle(_saleTypeMeta,
+          saleType.isAcceptableOrUnknown(data['sale_type']!, _saleTypeMeta));
+    }
+    if (data.containsKey('serial_snapshot')) {
+      context.handle(
+          _serialSnapshotMeta,
+          serialSnapshot.isAcceptableOrUnknown(
+              data['serial_snapshot']!, _serialSnapshotMeta));
+    }
     return context;
   }
 
@@ -1594,6 +1665,10 @@ class $SalesItemsTable extends SalesItems
           .read(DriftSqlType.double, data['${effectivePrefix}discount'])!,
       attributesSnapshot: attachedDatabase.typeMapping.read(
           DriftSqlType.string, data['${effectivePrefix}attributes_snapshot'])!,
+      saleType: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}sale_type'])!,
+      serialSnapshot: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}serial_snapshot'])!,
     );
   }
 
@@ -1616,6 +1691,8 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
   final double priceOriginal;
   final double discount;
   final String attributesSnapshot;
+  final String saleType;
+  final String serialSnapshot;
   const SalesItemRow(
       {required this.id,
       required this.invoiceId,
@@ -1628,7 +1705,9 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       required this.fxRate,
       required this.priceOriginal,
       required this.discount,
-      required this.attributesSnapshot});
+      required this.attributesSnapshot,
+      required this.saleType,
+      required this.serialSnapshot});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -1644,6 +1723,8 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
     map['price_original'] = Variable<double>(priceOriginal);
     map['discount'] = Variable<double>(discount);
     map['attributes_snapshot'] = Variable<String>(attributesSnapshot);
+    map['sale_type'] = Variable<String>(saleType);
+    map['serial_snapshot'] = Variable<String>(serialSnapshot);
     return map;
   }
 
@@ -1661,6 +1742,8 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       priceOriginal: Value(priceOriginal),
       discount: Value(discount),
       attributesSnapshot: Value(attributesSnapshot),
+      saleType: Value(saleType),
+      serialSnapshot: Value(serialSnapshot),
     );
   }
 
@@ -1681,6 +1764,8 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       discount: serializer.fromJson<double>(json['discount']),
       attributesSnapshot:
           serializer.fromJson<String>(json['attributesSnapshot']),
+      saleType: serializer.fromJson<String>(json['saleType']),
+      serialSnapshot: serializer.fromJson<String>(json['serialSnapshot']),
     );
   }
   @override
@@ -1699,6 +1784,8 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       'priceOriginal': serializer.toJson<double>(priceOriginal),
       'discount': serializer.toJson<double>(discount),
       'attributesSnapshot': serializer.toJson<String>(attributesSnapshot),
+      'saleType': serializer.toJson<String>(saleType),
+      'serialSnapshot': serializer.toJson<String>(serialSnapshot),
     };
   }
 
@@ -1714,7 +1801,9 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
           double? fxRate,
           double? priceOriginal,
           double? discount,
-          String? attributesSnapshot}) =>
+          String? attributesSnapshot,
+          String? saleType,
+          String? serialSnapshot}) =>
       SalesItemRow(
         id: id ?? this.id,
         invoiceId: invoiceId ?? this.invoiceId,
@@ -1728,6 +1817,8 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
         priceOriginal: priceOriginal ?? this.priceOriginal,
         discount: discount ?? this.discount,
         attributesSnapshot: attributesSnapshot ?? this.attributesSnapshot,
+        saleType: saleType ?? this.saleType,
+        serialSnapshot: serialSnapshot ?? this.serialSnapshot,
       );
   SalesItemRow copyWithCompanion(SalesItemsCompanion data) {
     return SalesItemRow(
@@ -1750,6 +1841,10 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       attributesSnapshot: data.attributesSnapshot.present
           ? data.attributesSnapshot.value
           : this.attributesSnapshot,
+      saleType: data.saleType.present ? data.saleType.value : this.saleType,
+      serialSnapshot: data.serialSnapshot.present
+          ? data.serialSnapshot.value
+          : this.serialSnapshot,
     );
   }
 
@@ -1767,7 +1862,9 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
           ..write('fxRate: $fxRate, ')
           ..write('priceOriginal: $priceOriginal, ')
           ..write('discount: $discount, ')
-          ..write('attributesSnapshot: $attributesSnapshot')
+          ..write('attributesSnapshot: $attributesSnapshot, ')
+          ..write('saleType: $saleType, ')
+          ..write('serialSnapshot: $serialSnapshot')
           ..write(')'))
         .toString();
   }
@@ -1785,7 +1882,9 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       fxRate,
       priceOriginal,
       discount,
-      attributesSnapshot);
+      attributesSnapshot,
+      saleType,
+      serialSnapshot);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -1801,7 +1900,9 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
           other.fxRate == this.fxRate &&
           other.priceOriginal == this.priceOriginal &&
           other.discount == this.discount &&
-          other.attributesSnapshot == this.attributesSnapshot);
+          other.attributesSnapshot == this.attributesSnapshot &&
+          other.saleType == this.saleType &&
+          other.serialSnapshot == this.serialSnapshot);
 }
 
 class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
@@ -1817,6 +1918,8 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
   final Value<double> priceOriginal;
   final Value<double> discount;
   final Value<String> attributesSnapshot;
+  final Value<String> saleType;
+  final Value<String> serialSnapshot;
   const SalesItemsCompanion({
     this.id = const Value.absent(),
     this.invoiceId = const Value.absent(),
@@ -1830,6 +1933,8 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
     this.priceOriginal = const Value.absent(),
     this.discount = const Value.absent(),
     this.attributesSnapshot = const Value.absent(),
+    this.saleType = const Value.absent(),
+    this.serialSnapshot = const Value.absent(),
   });
   SalesItemsCompanion.insert({
     this.id = const Value.absent(),
@@ -1844,6 +1949,8 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
     this.priceOriginal = const Value.absent(),
     this.discount = const Value.absent(),
     this.attributesSnapshot = const Value.absent(),
+    this.saleType = const Value.absent(),
+    this.serialSnapshot = const Value.absent(),
   })  : invoiceId = Value(invoiceId),
         productId = Value(productId),
         productName = Value(productName),
@@ -1862,6 +1969,8 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
     Expression<double>? priceOriginal,
     Expression<double>? discount,
     Expression<String>? attributesSnapshot,
+    Expression<String>? saleType,
+    Expression<String>? serialSnapshot,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
@@ -1876,6 +1985,8 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
       if (priceOriginal != null) 'price_original': priceOriginal,
       if (discount != null) 'discount': discount,
       if (attributesSnapshot != null) 'attributes_snapshot': attributesSnapshot,
+      if (saleType != null) 'sale_type': saleType,
+      if (serialSnapshot != null) 'serial_snapshot': serialSnapshot,
     });
   }
 
@@ -1891,7 +2002,9 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
       Value<double>? fxRate,
       Value<double>? priceOriginal,
       Value<double>? discount,
-      Value<String>? attributesSnapshot}) {
+      Value<String>? attributesSnapshot,
+      Value<String>? saleType,
+      Value<String>? serialSnapshot}) {
     return SalesItemsCompanion(
       id: id ?? this.id,
       invoiceId: invoiceId ?? this.invoiceId,
@@ -1905,6 +2018,8 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
       priceOriginal: priceOriginal ?? this.priceOriginal,
       discount: discount ?? this.discount,
       attributesSnapshot: attributesSnapshot ?? this.attributesSnapshot,
+      saleType: saleType ?? this.saleType,
+      serialSnapshot: serialSnapshot ?? this.serialSnapshot,
     );
   }
 
@@ -1947,6 +2062,12 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
     if (attributesSnapshot.present) {
       map['attributes_snapshot'] = Variable<String>(attributesSnapshot.value);
     }
+    if (saleType.present) {
+      map['sale_type'] = Variable<String>(saleType.value);
+    }
+    if (serialSnapshot.present) {
+      map['serial_snapshot'] = Variable<String>(serialSnapshot.value);
+    }
     return map;
   }
 
@@ -1964,7 +2085,9 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
           ..write('fxRate: $fxRate, ')
           ..write('priceOriginal: $priceOriginal, ')
           ..write('discount: $discount, ')
-          ..write('attributesSnapshot: $attributesSnapshot')
+          ..write('attributesSnapshot: $attributesSnapshot, ')
+          ..write('saleType: $saleType, ')
+          ..write('serialSnapshot: $serialSnapshot')
           ..write(')'))
         .toString();
   }
@@ -3632,6 +3755,493 @@ class AttributeDefinitionsCompanion
   }
 }
 
+class $ProductUnitsTable extends ProductUnits
+    with TableInfo<$ProductUnitsTable, ProductUnitRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ProductUnitsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _productIdMeta =
+      const VerificationMeta('productId');
+  @override
+  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
+      'product_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _serialMeta = const VerificationMeta('serial');
+  @override
+  late final GeneratedColumn<String> serial = GeneratedColumn<String>(
+      'serial', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _statusMeta = const VerificationMeta('status');
+  @override
+  late final GeneratedColumn<String> status = GeneratedColumn<String>(
+      'status', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('inStock'));
+  static const VerificationMeta _soldInvoiceIdMeta =
+      const VerificationMeta('soldInvoiceId');
+  @override
+  late final GeneratedColumn<String> soldInvoiceId = GeneratedColumn<String>(
+      'sold_invoice_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _soldAtMeta = const VerificationMeta('soldAt');
+  @override
+  late final GeneratedColumn<int> soldAt = GeneratedColumn<int>(
+      'sold_at', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _warrantyUntilMeta =
+      const VerificationMeta('warrantyUntil');
+  @override
+  late final GeneratedColumn<int> warrantyUntil = GeneratedColumn<int>(
+      'warranty_until', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+      'note', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        id,
+        productId,
+        serial,
+        status,
+        soldInvoiceId,
+        soldAt,
+        warrantyUntil,
+        note,
+        createdAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'product_units';
+  @override
+  VerificationContext validateIntegrity(Insertable<ProductUnitRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(_productIdMeta,
+          productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta));
+    } else if (isInserting) {
+      context.missing(_productIdMeta);
+    }
+    if (data.containsKey('serial')) {
+      context.handle(_serialMeta,
+          serial.isAcceptableOrUnknown(data['serial']!, _serialMeta));
+    } else if (isInserting) {
+      context.missing(_serialMeta);
+    }
+    if (data.containsKey('status')) {
+      context.handle(_statusMeta,
+          status.isAcceptableOrUnknown(data['status']!, _statusMeta));
+    }
+    if (data.containsKey('sold_invoice_id')) {
+      context.handle(
+          _soldInvoiceIdMeta,
+          soldInvoiceId.isAcceptableOrUnknown(
+              data['sold_invoice_id']!, _soldInvoiceIdMeta));
+    }
+    if (data.containsKey('sold_at')) {
+      context.handle(_soldAtMeta,
+          soldAt.isAcceptableOrUnknown(data['sold_at']!, _soldAtMeta));
+    }
+    if (data.containsKey('warranty_until')) {
+      context.handle(
+          _warrantyUntilMeta,
+          warrantyUntil.isAcceptableOrUnknown(
+              data['warranty_until']!, _warrantyUntilMeta));
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ProductUnitRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ProductUnitRow(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      productId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}product_id'])!,
+      serial: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}serial'])!,
+      status: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}status'])!,
+      soldInvoiceId: attachedDatabase.typeMapping.read(
+          DriftSqlType.string, data['${effectivePrefix}sold_invoice_id'])!,
+      soldAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}sold_at'])!,
+      warrantyUntil: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}warranty_until'])!,
+      note: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $ProductUnitsTable createAlias(String alias) {
+    return $ProductUnitsTable(attachedDatabase, alias);
+  }
+}
+
+class ProductUnitRow extends DataClass implements Insertable<ProductUnitRow> {
+  final String id;
+
+  /// The SKU this unit is one instance of.
+  final String productId;
+
+  /// The IMEI / serial number. Globally unique among non-empty values, enforced
+  /// by a partial-unique index — an IMEI identifies one handset on earth, so a
+  /// shop must not be able to enter it twice and sell one phone twice.
+  final String serial;
+
+  /// [UnitStatus] name ('inStock' | 'sold' | 'returned' | 'defective'). Stored
+  /// by name, never index — the same rule as ProductSaleType/PriceCurrency, so
+  /// reordering enum cases can't remap existing rows. Unknown values decode
+  /// back to 'inStock'.
+  final String status;
+
+  /// The invoice that sold this unit; '' while unsold. This is the *lookup*
+  /// direction (serial → invoice). It is not redundant with the
+  /// `sales_items.serialSnapshot` written at sale time: the snapshot survives
+  /// this row being deleted, and this link survives line edits.
+  final String soldInvoiceId;
+
+  /// Sale time, ms since epoch; 0 while unsold.
+  final int soldAt;
+
+  /// Warranty expiry, ms since epoch; 0 = no warranty recorded. Answers the
+  /// question a phone shop is actually asked across the counter.
+  final int warrantyUntil;
+  final String note;
+  final int createdAt;
+  const ProductUnitRow(
+      {required this.id,
+      required this.productId,
+      required this.serial,
+      required this.status,
+      required this.soldInvoiceId,
+      required this.soldAt,
+      required this.warrantyUntil,
+      required this.note,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['product_id'] = Variable<String>(productId);
+    map['serial'] = Variable<String>(serial);
+    map['status'] = Variable<String>(status);
+    map['sold_invoice_id'] = Variable<String>(soldInvoiceId);
+    map['sold_at'] = Variable<int>(soldAt);
+    map['warranty_until'] = Variable<int>(warrantyUntil);
+    map['note'] = Variable<String>(note);
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  ProductUnitsCompanion toCompanion(bool nullToAbsent) {
+    return ProductUnitsCompanion(
+      id: Value(id),
+      productId: Value(productId),
+      serial: Value(serial),
+      status: Value(status),
+      soldInvoiceId: Value(soldInvoiceId),
+      soldAt: Value(soldAt),
+      warrantyUntil: Value(warrantyUntil),
+      note: Value(note),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ProductUnitRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ProductUnitRow(
+      id: serializer.fromJson<String>(json['id']),
+      productId: serializer.fromJson<String>(json['productId']),
+      serial: serializer.fromJson<String>(json['serial']),
+      status: serializer.fromJson<String>(json['status']),
+      soldInvoiceId: serializer.fromJson<String>(json['soldInvoiceId']),
+      soldAt: serializer.fromJson<int>(json['soldAt']),
+      warrantyUntil: serializer.fromJson<int>(json['warrantyUntil']),
+      note: serializer.fromJson<String>(json['note']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'productId': serializer.toJson<String>(productId),
+      'serial': serializer.toJson<String>(serial),
+      'status': serializer.toJson<String>(status),
+      'soldInvoiceId': serializer.toJson<String>(soldInvoiceId),
+      'soldAt': serializer.toJson<int>(soldAt),
+      'warrantyUntil': serializer.toJson<int>(warrantyUntil),
+      'note': serializer.toJson<String>(note),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  ProductUnitRow copyWith(
+          {String? id,
+          String? productId,
+          String? serial,
+          String? status,
+          String? soldInvoiceId,
+          int? soldAt,
+          int? warrantyUntil,
+          String? note,
+          int? createdAt}) =>
+      ProductUnitRow(
+        id: id ?? this.id,
+        productId: productId ?? this.productId,
+        serial: serial ?? this.serial,
+        status: status ?? this.status,
+        soldInvoiceId: soldInvoiceId ?? this.soldInvoiceId,
+        soldAt: soldAt ?? this.soldAt,
+        warrantyUntil: warrantyUntil ?? this.warrantyUntil,
+        note: note ?? this.note,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  ProductUnitRow copyWithCompanion(ProductUnitsCompanion data) {
+    return ProductUnitRow(
+      id: data.id.present ? data.id.value : this.id,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      serial: data.serial.present ? data.serial.value : this.serial,
+      status: data.status.present ? data.status.value : this.status,
+      soldInvoiceId: data.soldInvoiceId.present
+          ? data.soldInvoiceId.value
+          : this.soldInvoiceId,
+      soldAt: data.soldAt.present ? data.soldAt.value : this.soldAt,
+      warrantyUntil: data.warrantyUntil.present
+          ? data.warrantyUntil.value
+          : this.warrantyUntil,
+      note: data.note.present ? data.note.value : this.note,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductUnitRow(')
+          ..write('id: $id, ')
+          ..write('productId: $productId, ')
+          ..write('serial: $serial, ')
+          ..write('status: $status, ')
+          ..write('soldInvoiceId: $soldInvoiceId, ')
+          ..write('soldAt: $soldAt, ')
+          ..write('warrantyUntil: $warrantyUntil, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, productId, serial, status, soldInvoiceId,
+      soldAt, warrantyUntil, note, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ProductUnitRow &&
+          other.id == this.id &&
+          other.productId == this.productId &&
+          other.serial == this.serial &&
+          other.status == this.status &&
+          other.soldInvoiceId == this.soldInvoiceId &&
+          other.soldAt == this.soldAt &&
+          other.warrantyUntil == this.warrantyUntil &&
+          other.note == this.note &&
+          other.createdAt == this.createdAt);
+}
+
+class ProductUnitsCompanion extends UpdateCompanion<ProductUnitRow> {
+  final Value<String> id;
+  final Value<String> productId;
+  final Value<String> serial;
+  final Value<String> status;
+  final Value<String> soldInvoiceId;
+  final Value<int> soldAt;
+  final Value<int> warrantyUntil;
+  final Value<String> note;
+  final Value<int> createdAt;
+  final Value<int> rowid;
+  const ProductUnitsCompanion({
+    this.id = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.serial = const Value.absent(),
+    this.status = const Value.absent(),
+    this.soldInvoiceId = const Value.absent(),
+    this.soldAt = const Value.absent(),
+    this.warrantyUntil = const Value.absent(),
+    this.note = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ProductUnitsCompanion.insert({
+    required String id,
+    required String productId,
+    required String serial,
+    this.status = const Value.absent(),
+    this.soldInvoiceId = const Value.absent(),
+    this.soldAt = const Value.absent(),
+    this.warrantyUntil = const Value.absent(),
+    this.note = const Value.absent(),
+    required int createdAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        productId = Value(productId),
+        serial = Value(serial),
+        createdAt = Value(createdAt);
+  static Insertable<ProductUnitRow> custom({
+    Expression<String>? id,
+    Expression<String>? productId,
+    Expression<String>? serial,
+    Expression<String>? status,
+    Expression<String>? soldInvoiceId,
+    Expression<int>? soldAt,
+    Expression<int>? warrantyUntil,
+    Expression<String>? note,
+    Expression<int>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (productId != null) 'product_id': productId,
+      if (serial != null) 'serial': serial,
+      if (status != null) 'status': status,
+      if (soldInvoiceId != null) 'sold_invoice_id': soldInvoiceId,
+      if (soldAt != null) 'sold_at': soldAt,
+      if (warrantyUntil != null) 'warranty_until': warrantyUntil,
+      if (note != null) 'note': note,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ProductUnitsCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? productId,
+      Value<String>? serial,
+      Value<String>? status,
+      Value<String>? soldInvoiceId,
+      Value<int>? soldAt,
+      Value<int>? warrantyUntil,
+      Value<String>? note,
+      Value<int>? createdAt,
+      Value<int>? rowid}) {
+    return ProductUnitsCompanion(
+      id: id ?? this.id,
+      productId: productId ?? this.productId,
+      serial: serial ?? this.serial,
+      status: status ?? this.status,
+      soldInvoiceId: soldInvoiceId ?? this.soldInvoiceId,
+      soldAt: soldAt ?? this.soldAt,
+      warrantyUntil: warrantyUntil ?? this.warrantyUntil,
+      note: note ?? this.note,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<String>(productId.value);
+    }
+    if (serial.present) {
+      map['serial'] = Variable<String>(serial.value);
+    }
+    if (status.present) {
+      map['status'] = Variable<String>(status.value);
+    }
+    if (soldInvoiceId.present) {
+      map['sold_invoice_id'] = Variable<String>(soldInvoiceId.value);
+    }
+    if (soldAt.present) {
+      map['sold_at'] = Variable<int>(soldAt.value);
+    }
+    if (warrantyUntil.present) {
+      map['warranty_until'] = Variable<int>(warrantyUntil.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ProductUnitsCompanion(')
+          ..write('id: $id, ')
+          ..write('productId: $productId, ')
+          ..write('serial: $serial, ')
+          ..write('status: $status, ')
+          ..write('soldInvoiceId: $soldInvoiceId, ')
+          ..write('soldAt: $soldAt, ')
+          ..write('warrantyUntil: $warrantyUntil, ')
+          ..write('note: $note, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -3646,6 +4256,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $CashboxTransactionsTable(this);
   late final $AttributeDefinitionsTable attributeDefinitions =
       $AttributeDefinitionsTable(this);
+  late final $ProductUnitsTable productUnits = $ProductUnitsTable(this);
   late final ProductsDao productsDao = ProductsDao(this as AppDatabase);
   late final ShopDao shopDao = ShopDao(this as AppDatabase);
   late final SettingsDao settingsDao = SettingsDao(this as AppDatabase);
@@ -3655,6 +4266,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final CashboxDao cashboxDao = CashboxDao(this as AppDatabase);
   late final DashboardDao dashboardDao = DashboardDao(this as AppDatabase);
   late final AttributesDao attributesDao = AttributesDao(this as AppDatabase);
+  late final ProductUnitsDao productUnitsDao =
+      ProductUnitsDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -3668,7 +4281,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         customers,
         ledgerEntries,
         cashboxTransactions,
-        attributeDefinitions
+        attributeDefinitions,
+        productUnits
       ];
 }
 
@@ -3683,6 +4297,7 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   Value<String> saleType,
   Value<String> priceCurrency,
   Value<String> attributes,
+  Value<bool> isSerialized,
   Value<int> rowid,
 });
 typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
@@ -3696,6 +4311,7 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<String> saleType,
   Value<String> priceCurrency,
   Value<String> attributes,
+  Value<bool> isSerialized,
   Value<int> rowid,
 });
 
@@ -3737,6 +4353,9 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<String> get attributes => $composableBuilder(
       column: $table.attributes, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<bool> get isSerialized => $composableBuilder(
+      column: $table.isSerialized, builder: (column) => ColumnFilters(column));
 }
 
 class $$ProductsTableOrderingComposer
@@ -3779,6 +4398,10 @@ class $$ProductsTableOrderingComposer
 
   ColumnOrderings<String> get attributes => $composableBuilder(
       column: $table.attributes, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<bool> get isSerialized => $composableBuilder(
+      column: $table.isSerialized,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$ProductsTableAnnotationComposer
@@ -3819,6 +4442,9 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<String> get attributes => $composableBuilder(
       column: $table.attributes, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSerialized => $composableBuilder(
+      column: $table.isSerialized, builder: (column) => column);
 }
 
 class $$ProductsTableTableManager extends RootTableManager<
@@ -3854,6 +4480,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String> saleType = const Value.absent(),
             Value<String> priceCurrency = const Value.absent(),
             Value<String> attributes = const Value.absent(),
+            Value<bool> isSerialized = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               ProductsCompanion(
@@ -3867,6 +4494,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             saleType: saleType,
             priceCurrency: priceCurrency,
             attributes: attributes,
+            isSerialized: isSerialized,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -3880,6 +4508,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String> saleType = const Value.absent(),
             Value<String> priceCurrency = const Value.absent(),
             Value<String> attributes = const Value.absent(),
+            Value<bool> isSerialized = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               ProductsCompanion.insert(
@@ -3893,6 +4522,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             saleType: saleType,
             priceCurrency: priceCurrency,
             attributes: attributes,
+            isSerialized: isSerialized,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -4410,6 +5040,8 @@ typedef $$SalesItemsTableCreateCompanionBuilder = SalesItemsCompanion Function({
   Value<double> priceOriginal,
   Value<double> discount,
   Value<String> attributesSnapshot,
+  Value<String> saleType,
+  Value<String> serialSnapshot,
 });
 typedef $$SalesItemsTableUpdateCompanionBuilder = SalesItemsCompanion Function({
   Value<int> id,
@@ -4424,6 +5056,8 @@ typedef $$SalesItemsTableUpdateCompanionBuilder = SalesItemsCompanion Function({
   Value<double> priceOriginal,
   Value<double> discount,
   Value<String> attributesSnapshot,
+  Value<String> saleType,
+  Value<String> serialSnapshot,
 });
 
 class $$SalesItemsTableFilterComposer
@@ -4470,6 +5104,13 @@ class $$SalesItemsTableFilterComposer
 
   ColumnFilters<String> get attributesSnapshot => $composableBuilder(
       column: $table.attributesSnapshot,
+      builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get saleType => $composableBuilder(
+      column: $table.saleType, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get serialSnapshot => $composableBuilder(
+      column: $table.serialSnapshot,
       builder: (column) => ColumnFilters(column));
 }
 
@@ -4520,6 +5161,13 @@ class $$SalesItemsTableOrderingComposer
   ColumnOrderings<String> get attributesSnapshot => $composableBuilder(
       column: $table.attributesSnapshot,
       builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get saleType => $composableBuilder(
+      column: $table.saleType, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get serialSnapshot => $composableBuilder(
+      column: $table.serialSnapshot,
+      builder: (column) => ColumnOrderings(column));
 }
 
 class $$SalesItemsTableAnnotationComposer
@@ -4566,6 +5214,12 @@ class $$SalesItemsTableAnnotationComposer
 
   GeneratedColumn<String> get attributesSnapshot => $composableBuilder(
       column: $table.attributesSnapshot, builder: (column) => column);
+
+  GeneratedColumn<String> get saleType =>
+      $composableBuilder(column: $table.saleType, builder: (column) => column);
+
+  GeneratedColumn<String> get serialSnapshot => $composableBuilder(
+      column: $table.serialSnapshot, builder: (column) => column);
 }
 
 class $$SalesItemsTableTableManager extends RootTableManager<
@@ -4606,6 +5260,8 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             Value<double> priceOriginal = const Value.absent(),
             Value<double> discount = const Value.absent(),
             Value<String> attributesSnapshot = const Value.absent(),
+            Value<String> saleType = const Value.absent(),
+            Value<String> serialSnapshot = const Value.absent(),
           }) =>
               SalesItemsCompanion(
             id: id,
@@ -4620,6 +5276,8 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             priceOriginal: priceOriginal,
             discount: discount,
             attributesSnapshot: attributesSnapshot,
+            saleType: saleType,
+            serialSnapshot: serialSnapshot,
           ),
           createCompanionCallback: ({
             Value<int> id = const Value.absent(),
@@ -4634,6 +5292,8 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             Value<double> priceOriginal = const Value.absent(),
             Value<double> discount = const Value.absent(),
             Value<String> attributesSnapshot = const Value.absent(),
+            Value<String> saleType = const Value.absent(),
+            Value<String> serialSnapshot = const Value.absent(),
           }) =>
               SalesItemsCompanion.insert(
             id: id,
@@ -4648,6 +5308,8 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             priceOriginal: priceOriginal,
             discount: discount,
             attributesSnapshot: attributesSnapshot,
+            saleType: saleType,
+            serialSnapshot: serialSnapshot,
           ),
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
@@ -5517,6 +6179,241 @@ typedef $$AttributeDefinitionsTableProcessedTableManager
         ),
         AttributeDefinitionRow,
         PrefetchHooks Function()>;
+typedef $$ProductUnitsTableCreateCompanionBuilder = ProductUnitsCompanion
+    Function({
+  required String id,
+  required String productId,
+  required String serial,
+  Value<String> status,
+  Value<String> soldInvoiceId,
+  Value<int> soldAt,
+  Value<int> warrantyUntil,
+  Value<String> note,
+  required int createdAt,
+  Value<int> rowid,
+});
+typedef $$ProductUnitsTableUpdateCompanionBuilder = ProductUnitsCompanion
+    Function({
+  Value<String> id,
+  Value<String> productId,
+  Value<String> serial,
+  Value<String> status,
+  Value<String> soldInvoiceId,
+  Value<int> soldAt,
+  Value<int> warrantyUntil,
+  Value<String> note,
+  Value<int> createdAt,
+  Value<int> rowid,
+});
+
+class $$ProductUnitsTableFilterComposer
+    extends Composer<_$AppDatabase, $ProductUnitsTable> {
+  $$ProductUnitsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get productId => $composableBuilder(
+      column: $table.productId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get serial => $composableBuilder(
+      column: $table.serial, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get soldInvoiceId => $composableBuilder(
+      column: $table.soldInvoiceId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get soldAt => $composableBuilder(
+      column: $table.soldAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get warrantyUntil => $composableBuilder(
+      column: $table.warrantyUntil, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$ProductUnitsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ProductUnitsTable> {
+  $$ProductUnitsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get productId => $composableBuilder(
+      column: $table.productId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get serial => $composableBuilder(
+      column: $table.serial, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get status => $composableBuilder(
+      column: $table.status, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get soldInvoiceId => $composableBuilder(
+      column: $table.soldInvoiceId,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get soldAt => $composableBuilder(
+      column: $table.soldAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get warrantyUntil => $composableBuilder(
+      column: $table.warrantyUntil,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$ProductUnitsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ProductUnitsTable> {
+  $$ProductUnitsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get productId =>
+      $composableBuilder(column: $table.productId, builder: (column) => column);
+
+  GeneratedColumn<String> get serial =>
+      $composableBuilder(column: $table.serial, builder: (column) => column);
+
+  GeneratedColumn<String> get status =>
+      $composableBuilder(column: $table.status, builder: (column) => column);
+
+  GeneratedColumn<String> get soldInvoiceId => $composableBuilder(
+      column: $table.soldInvoiceId, builder: (column) => column);
+
+  GeneratedColumn<int> get soldAt =>
+      $composableBuilder(column: $table.soldAt, builder: (column) => column);
+
+  GeneratedColumn<int> get warrantyUntil => $composableBuilder(
+      column: $table.warrantyUntil, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$ProductUnitsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ProductUnitsTable,
+    ProductUnitRow,
+    $$ProductUnitsTableFilterComposer,
+    $$ProductUnitsTableOrderingComposer,
+    $$ProductUnitsTableAnnotationComposer,
+    $$ProductUnitsTableCreateCompanionBuilder,
+    $$ProductUnitsTableUpdateCompanionBuilder,
+    (
+      ProductUnitRow,
+      BaseReferences<_$AppDatabase, $ProductUnitsTable, ProductUnitRow>
+    ),
+    ProductUnitRow,
+    PrefetchHooks Function()> {
+  $$ProductUnitsTableTableManager(_$AppDatabase db, $ProductUnitsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ProductUnitsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ProductUnitsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ProductUnitsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> productId = const Value.absent(),
+            Value<String> serial = const Value.absent(),
+            Value<String> status = const Value.absent(),
+            Value<String> soldInvoiceId = const Value.absent(),
+            Value<int> soldAt = const Value.absent(),
+            Value<int> warrantyUntil = const Value.absent(),
+            Value<String> note = const Value.absent(),
+            Value<int> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ProductUnitsCompanion(
+            id: id,
+            productId: productId,
+            serial: serial,
+            status: status,
+            soldInvoiceId: soldInvoiceId,
+            soldAt: soldAt,
+            warrantyUntil: warrantyUntil,
+            note: note,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String productId,
+            required String serial,
+            Value<String> status = const Value.absent(),
+            Value<String> soldInvoiceId = const Value.absent(),
+            Value<int> soldAt = const Value.absent(),
+            Value<int> warrantyUntil = const Value.absent(),
+            Value<String> note = const Value.absent(),
+            required int createdAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ProductUnitsCompanion.insert(
+            id: id,
+            productId: productId,
+            serial: serial,
+            status: status,
+            soldInvoiceId: soldInvoiceId,
+            soldAt: soldAt,
+            warrantyUntil: warrantyUntil,
+            note: note,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$ProductUnitsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $ProductUnitsTable,
+    ProductUnitRow,
+    $$ProductUnitsTableFilterComposer,
+    $$ProductUnitsTableOrderingComposer,
+    $$ProductUnitsTableAnnotationComposer,
+    $$ProductUnitsTableCreateCompanionBuilder,
+    $$ProductUnitsTableUpdateCompanionBuilder,
+    (
+      ProductUnitRow,
+      BaseReferences<_$AppDatabase, $ProductUnitsTable, ProductUnitRow>
+    ),
+    ProductUnitRow,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -5539,4 +6436,6 @@ class $AppDatabaseManager {
       $$CashboxTransactionsTableTableManager(_db, _db.cashboxTransactions);
   $$AttributeDefinitionsTableTableManager get attributeDefinitions =>
       $$AttributeDefinitionsTableTableManager(_db, _db.attributeDefinitions);
+  $$ProductUnitsTableTableManager get productUnits =>
+      $$ProductUnitsTableTableManager(_db, _db.productUnits);
 }

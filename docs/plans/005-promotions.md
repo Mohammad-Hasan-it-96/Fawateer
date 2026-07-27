@@ -1,6 +1,23 @@
 # Plan 005 — Promotions / Discounts
 
-> **Status:** Design plan (no code). Prepared by CTO/Architect + accounting review.
+> **Status:** ✅ **V1 SHIPPED** — schema **v11→v12** (additive: `salesItems.discount`
+> per line, `salesInvoices.invoiceDiscount` whole-cart; every existing row
+> decodes as "no discount").
+> **As built:** both columns store **resolved SP amounts**. The percent-vs-amount
+> choice (`_Mode` in `discount_dialog.dart`) is a *UI affordance only*, resolved
+> to a flat SP number before it reaches domain or DB code — there is **no
+> `isPercentage` flag stored**, so "this was 10% off" is not reconstructable
+> from the data. Don't build a report that assumes it is. The cart discount
+> **stacks on top of** line discounts (`subtotal = Σ CartItem.total` already
+> line-discounted, then minus the invoice discount) rather than applying to the
+> raw subtotal. Clamping is **deliberately redundant in three places**
+> (`_resolved`, `CartItem.effectiveDiscount`, `BillingState.effectiveInvoiceDiscount`)
+> — load-bearing, not duplication: discounts aren't re-validated when quantity
+> changes, so `effectiveDiscount` re-clamps against the shrunk gross on every
+> read. Don't "simplify" it to one clamp.
+> **Still deferred (as decided):** standing per-product sale price (V1.5) and
+> the automatic rules engine — BXGY / free gift / scheduled / category (V2).
+> Neither has any code or schema.
 > **Decision (locked with the owner):** **V1 = manual line discounts + one
 > whole-cart (invoice) discount only.** No automatic promotion rules (no auto Buy
 > X Get Y, no auto free gift, no scheduled/category promos). No standing

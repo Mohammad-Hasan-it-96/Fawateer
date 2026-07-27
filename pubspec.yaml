@@ -1,7 +1,7 @@
 name: billing_app
 description: A new Flutter project.
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+1
 
 environment:
   sdk: '>=3.1.0 <4.0.0'
@@ -36,7 +36,9 @@ dependencies:
   
   # Scanner & Printer
   print_bluetooth_thermal: ^1.1.2
-  mobile_scanner: ^5.1.0
+  # 7.x is required for invertImage (white-on-red barcodes — ML Kit can't read
+  # inverted codes natively), built-in tapToFocus, and autoZoom. 5.x had none.
+  mobile_scanner: ^7.4.0
   # Pure-Dart 1D/2D code generation for printed product labels (Plan 010).
   barcode: ^2.2.0
   bloc: ^8.1.4
@@ -72,6 +74,10 @@ dependencies:
   firebase_core: ^4.11.0
   firebase_messaging: ^16.4.1
   audioplayers: ^6.7.1
+  # Renders notification-type FCM messages while the app is foregrounded — the
+  # OS only auto-displays those in the background. Needs core-library
+  # desugaring (enabled in android/app/build.gradle.kts).
+  flutter_local_notifications: ^22.1.0
 
 dev_dependencies:
   flutter_test:
@@ -83,6 +89,18 @@ dev_dependencies:
   # Code Generation
   build_runner: ^2.4.8
   drift_dev: ^2.31.0
+  flutter_launcher_icons: ^0.14.4
+
+# Launcher icon generation (run: dart run flutter_launcher_icons).
+# Source art in assets/logo: the ribbon-ف mark (icon_mark), the adaptive
+# foreground (mark at ~62% with mask-safe margins), the gradient background,
+# and the composed full-bleed square used for legacy (pre-8.0) launchers.
+flutter_launcher_icons:
+  android: true
+  ios: false
+  image_path: "assets/logo/icon_full.png"
+  adaptive_icon_background: "assets/logo/icon_bg.png"
+  adaptive_icon_foreground: "assets/logo/icon_fg_adaptive.png"
 
 flutter:
   generate: true
