@@ -117,7 +117,8 @@ business owning N devices.
   on every phone swap. Not per user — there are no user accounts.
 - Device registry per business, each row roughly:
     device_id (the app's existing SHA-256 hash — reuse it, do not mint a new
-      identity scheme), role, enrolled_at, revoked_at, last_seen_at,
+      identity scheme), role (owner|member — see §7), enrolled_at,
+      revoked_at, last_seen_at,
       last_sync_seq, fcm_token, app_version
 - Replacing a phone must NOT consume an extra seat. Revoking a device frees its
   slot immediately. This is a frequent, legitimate, free action — if it reads as
@@ -161,20 +162,46 @@ Scale reality check: a shop does tens to low hundreds of rows per day. This does
 not need to be clever. It needs to be correct, debuggable, and idempotent.
 
 
-## 7. Roles and server-side authorisation
+## 7. Roles — DELIBERATELY FLAT IN V1
 
-Two roles: MANAGER and CASHIER. Enforce at the server, not only in the app — a
-tampered client must not be able to exceed its role.
+>> This section was rewritten after the product owner's decision. Earlier drafts
+>> of Plan 002 proposed a Manager/Cashier split restricting prices and edits.
+>> THAT IS CANCELLED. Do not implement it.
 
-CASHIER may: create sales, take payments, add customers, record debt
-repayments, create products (confirmed by the owner), post stock movements.
-CASHIER may NOT: change product PRICES, delete invoices or products, edit shop
-settings, or manage devices.
+In these shops the staff are partners and relatives, not employees under
+supervision. A permission system modelled on distrust would be socially wrong
+for the customer and would generate support tickets ("why can't I change this
+price?") for a problem these shops do not have.
 
->> OPEN QUESTION FOR THE OWNER, flag it rather than guessing: a cashier may
->> CREATE a product (which necessarily sets an initial price) but may not EDIT
->> a price afterwards. That is implementable but subtle — confirm it is what is
->> wanted before enforcing it.
+V1 RULE: every enrolled device is an EQUAL PEER for business data. Any device
+may create and edit products including prices, sell, take payments, add
+customers, and post stock movements. The server does NOT gate business writes
+by role.
+
+The ONLY asymmetry is OWNERSHIP OF THE SUBSCRIPTION, which is structural rather
+than a permission:
+  - the owner device issues and revokes join tokens (§5)
+  - the owner device sees the conflict screen (§9)
+  - the owner device manages the plan/allowance
+Everything else is symmetric.
+
+ACCOUNTABILITY REPLACES PERMISSION. Because sync already stamps `origin_device`
+on every row (§3 D5, §6), "who changed this price and when" is essentially free.
+That is the correct answer for a trust-based shop: make actions VISIBLE rather
+than forbidden. Please preserve `origin_device` faithfully through push and
+pull — do not overwrite it with the pushing device when relaying a row that
+originated elsewhere. It is the audit trail, not routing metadata.
+
+STAY PERMISSION-READY, BUILD NO PERMISSIONS. Keep a `role` column on the device
+registry (values: owner | member) and keep a single authorisation hook on the
+write path that currently permits everything. If a larger shop ever asks for
+restrictions, it becomes a policy change at one seam instead of a re-architecture.
+Do NOT build a capability matrix, a roles UI, or per-table rules now.
+
+CONSEQUENCE TO PLAN FOR: with every device free to edit prices, CONCURRENT EDITS
+TO THE SAME PRODUCT ARE NOW LIKELY RATHER THAN RARE. The last-write-wins path of
+§9 C3 is no longer an edge case — it is a normal operating path and deserves
+real tests, especially the offline-device-pushes-stale-edit case from §3 D5.
 
 
 ## 8. Subscription expiry — the exception that prevents data loss
@@ -194,7 +221,7 @@ must never be able to destroy a shop's books.
 ## 9. Conflict detection the server must own
 
 Most data cannot conflict (append-only union). Three cases can, and all three
-surface on a single MANAGER-ONLY screen in the app — cashiers are never
+surface on a single screen on the OWNER DEVICE in the app — no other device is
 interrupted mid-sale:
 
 C1. SERIALIZED UNIT DOUBLE-SALE. Fawateer tracks individual items by serial /
@@ -208,21 +235,32 @@ C1. SERIALIZED UNIT DOUBLE-SALE. Fawateer tracks individual items by serial /
     be in two hands at once. A lease would break offline selling for an entire
     product class to prevent something reality already prevents.
 
-C2. DUPLICATE PRODUCT NAME. Cashiers may create products, so two offline devices
-    can both create "Coca Cola". Each device's local uniqueness check passes;
-    they collide only at merge. The server must detect same-name products from
-    different origin devices and raise a conflict for the manager to merge or
+C2. DUPLICATE PRODUCT NAME. Any device may create products (§7), so two offline
+    devices can both create "Coca Cola". Each device's local uniqueness check
+    passes; they collide only at merge — local validation cannot prevent this,
+    and should not be expected to. The server must detect same-name products
+    from different origin devices and raise a conflict for the owner to merge or
     rename. Do NOT auto-merge — the two rows may have different prices, costs
-    or barcodes, and silently picking one loses a real edit.
+    or barcodes, and silently picking one loses a real edit. Note both rows may
+    already have SALES ATTACHED by the time they merge, so any eventual merge
+    must re-point `sales_items.productId`, never delete a row with history.
 
 C3. CONCURRENT EDIT of the same mutable row (product/customer/settings).
     Resolve by last-write-wins on the authorship clock (D5b). Only raise a
     conflict when the losing write is not a strict subset — do not spam the
-    manager with routine edits.
+    owner with routine edits.
+    Since §7 makes every device able to edit prices, THIS IS A HOT PATH, not an
+    edge case. Prefer FIELD-LEVEL merge over whole-row LWW where cheap: two
+    devices editing a product's price and its stock-alert threshold are not
+    actually in conflict, and whole-row LWW would silently discard one of them.
+    Always retain the losing value in the conflict record — "the price was
+    changed from X to Y, and an edit setting it to Z was superseded" is what
+    makes the owner screen useful rather than alarming.
 
 Note `shop_settings` is a SINGLE ROW with id='default', so it exists on every
-device with an identical key. It is the one row guaranteed to collide. Prefer
-FIELD-LEVEL last-write-wins there, or restrict writes to the manager.
+device with an identical key. It is the one row guaranteed to collide. Use
+FIELD-LEVEL last-write-wins there. (An earlier draft suggested restricting it to
+the manager; §7 cancels that.)
 
 
 ## 10. Explicit NON-GOALS for v1
