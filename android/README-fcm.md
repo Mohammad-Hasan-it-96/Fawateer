@@ -85,10 +85,18 @@ Status of each backend:
   implemented)"` and returns. Activation already calls it, so the whole path
   exists bar the send itself. Its config also holds only **one** Firebase project
   and must be keyed by `app_name` per the above.
-- **`harrypotter.foodsalebot.com`** (the legacy backend Fawateer points at today)
-  — already sends real v1 pushes, including `new_plan_activated` on activation,
-  but from `smart-agent-5b153`, so it can never reach a Fawateer device. It is
-  being replaced, not fixed.
+- **`harrypotter.foodsalebot.com`** (the legacy Smart-Agent backend) — **no
+  longer in the picture.** Fawateer now points at `api.evotech-sys.com/api/fawateer`.
+  It sent real v1 pushes but from `smart-agent-5b153`, so it could never have
+  reached a Fawateer device anyway. Kept here only as history.
+
+> ⚠️ **Open question (2026-07-27):** push delivery to the app is confirmed
+> working on a real device against `fawateer-4c9bc`. What is *not* confirmed is
+> whether `evotech-core`'s `FirebasePushNotifier` has been implemented since the
+> note above was written. If it is still the logging scaffold, **operator
+> activation will not unlock a running app live** — it falls back to the
+> re-check on next launch, which works but is slower and looks broken to a
+> waiting shopkeeper. Verify server-side before relying on live unlock.
 
 The payload below is already v1-shaped and matches what both backends build.
 

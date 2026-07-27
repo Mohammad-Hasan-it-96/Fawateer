@@ -4,18 +4,24 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
 **online-validated subscriptions** and a **customer debt ledger**.
 
 **Branch:** `refactor/architecture-hardening`
-**App version:** `1.0.1+1` · **Drift schema:** **v14**
-**Last updated:** 2026-07-26 (Plan 011 field fixes waves A–D, saleType snapshot v13→v14, scanner overhaul, Android back-button fix)
+**App version:** `1.0.1+1` · **Drift schema:** **v15**
+**Last updated:** 2026-07-27 (field verification pass, own backend live at `evotech-sys.com`)
+**العربية:** [`ROADMAP.ar.md`](ROADMAP.ar.md) — translation; this file stays the source of truth.
 
-> **Where the project stands:** the feature backlog is **empty of anything
-> committed-to**. Nine of the eleven numbered plans are shipped; the two that
-> aren't (002 multi-device, 009 smart assistant) were **deliberately deferred to
-> V2**, and 004 was **rejected outright**. Nothing is half-built.
+> **Where the project stands: Fawateer is in real production use.** It runs a
+> friend's shop day to day, and the owner has verified each feature on his own
+> phone as it shipped — reporting defects back immediately, which is how most of
+> Plan 011 came to exist. This is no longer pre-release software.
 >
-> **What stands between here and selling is not a feature — it's verification.**
-> See [Before shipping](#before-shipping--verification-debt). Almost nothing has
-> been exercised on real hardware, and the highest-blast-radius code in the app
-> (backup **restore**, which swaps the live DB) has never run on a device.
+> The feature backlog is **empty of anything committed-to**. Ten of the twelve
+> numbered plans are shipped; the two that aren't (002 multi-device, 009 smart
+> assistant) were **deliberately deferred to V2**, and 004 was **rejected
+> outright**. Nothing is half-built.
+>
+> **The app now runs on its own backend** (`api.evotech-sys.com`) — the
+> Smart-Agent placeholder is retired, and so is the fragile Google-Drive config
+> hosting. See [Field verification](#field-verification--what-runs-in-a-real-shop)
+> for what is confirmed on hardware and the one thing that isn't.
 
 ---
 
@@ -24,9 +30,15 @@ Turning **Fawateer** from a plain offline POS into a commercial product with
 - **Activation = operator-driven.** The app files a `status:'pending'` request,
   hands the user to WhatsApp/Telegram, and a human activates the device
   server-side (no in-app automated payments).
-- **Backend = reuse Smart-Agent's server** for now
-  (`app_name: 'Fawateer'`, base URL `harrypotter.foodsalebot.com/api`) until
-  Fawateer's own server ships — then just change `ApiConfig.defaultBaseUrl`.
+- ~~**Backend = reuse Smart-Agent's server**~~ → **superseded. Fawateer runs on
+  the owned EVOTECH platform** (`evotech-core`), base URL
+  `https://api.evotech-sys.com/api/fawateer`, still keyed `app_name: 'Fawateer'`.
+  The platform was built to match the existing payloads exactly
+  (`create_device`/`check_device`/`update_my_data`/`getPlans`/`add_review`), so
+  **nothing in the licensing feature had to change** — the placeholder decision
+  paid off as designed. The `/api/fawateer` **namespace** (not a bare `/api`) is
+  load-bearing: `getPlans` carries no `app_name`, so the URL is the only thing
+  telling the platform which price catalog to return.
 - **Money stays `double`** app-wide (no integer-minor-unit migration); rounded
   at display / at ledger write time.
 - **Build order:** licensing first, ledger second. *(Both done.)*
@@ -71,10 +83,10 @@ one is a cross-cutting change, not a local one.
 | 2 | Debt ledger (customers + credit sales) | ✅ Done |
 | 2 | Ledger bottom-nav tab | ✅ Done |
 | 2 | Account statement — thermal print | ✅ Done |
-| 3 | FCM live-unlock | ✅ Done (dormant until Firebase configured) |
+| 3 | FCM live-unlock | ✅ Done — **verified on device** |
 | 3 | iOS device-id | ✅ Done |
 | 3 | Foreground push banner | ✅ Done |
-| 3.5 | Remote config (base URL + support) + in-app update check | ✅ Done |
+| 3.5 | Remote config (base URL + support) + in-app update check | ✅ Done — self-hosted |
 | 3.5 | Runtime API base URL + splash-freeze fix | ✅ Done |
 | 3.5 | Editable account (name/phone) in Settings | ✅ Done |
 | POS | Product picker — live list + tap-add feedback | ✅ Done |
@@ -95,7 +107,7 @@ Each plan's own header carries its as-built detail.
 
 | Plan | Feature | Status |
 |---|---|---|
-| **001** | Cloud backup & restore (Google Drive) | ✅ Shipped — `drive.file` scope, `VACUUM INTO`, auto-backup |
+| **001** | Cloud backup & restore (Google Drive) | ✅ Shipped — `drive.file` scope, `VACUUM INTO`, auto-backup. **Restore verified on device** |
 | **002** | Multi-device sync | ⏸️ **Deferred to V2** — no code. The hardest item in the roadmap |
 | **003** | Dual currency (SP base + USD sticker) | ✅ Shipped — schema **v10** |
 | **004** | Historical price recalculation | ❌ **Rejected permanently.** Not a backlog item — history is immutable |
@@ -159,10 +171,11 @@ Each plan's own header carries its as-built detail.
 
 ### ✅ Phase 3 — FCM live-unlock  *(now LIVE — see note)*
 
-> **Update (2026-07-26):** no longer dormant. Firebase project `fawateer-4c9bc`
-> is configured, `google-services.json` is in place and the google-services
-> Gradle plugin line is committed (no longer stubbed). ⚠️ That JSON is
-> **gitignored**, so a fresh clone will fail to build until it's restored.
+> **Update (2026-07-27):** live and **verified on device** — notifications
+> confirmed delivering against the real Firebase project `fawateer-4c9bc`.
+> `google-services.json` is in place and the google-services Gradle plugin line
+> is committed (no longer stubbed). ⚠️ That JSON is **gitignored**, so a fresh
+> clone will fail to build until it's restored.
 - `PushNotificationService` (`features/licensing/data/services/`): a data
   message with `data.type` ∈ {`new_plan_activated`, `subscription_activated`,
   `license_updated`} → `onLicenseChanged` → `main.dart` wires it to
@@ -190,25 +203,32 @@ Each plan's own header carries its as-built detail.
   background deliveries; only foreground fires `onForegroundLicenseChange`,
   which `main.dart` routes through a top-level `rootMessengerKey`. Background /
   terminated deliveries already surface as an OS tray notification, so they
-  don't double up. No new dependency (uses the built-in `ScaffoldMessenger`);
-  stays dormant with the rest of FCM until Firebase is configured.
+  don't double up. No new dependency (uses the built-in `ScaffoldMessenger`).
 
 ### ✅ Phase 3.5 — Remote config + in-app update check
 - `core/config/` (`RemoteConfig`, `RemoteConfigService`): fetches a hosted
-  `fawateer_version.json` at startup (Google-Drive `uc?export=download`, 10s
-  time-boxed → SharedPreferences cache → baked-in defaults), and applies it.
+  config at startup (time-boxed → SharedPreferences cache → baked-in defaults),
+  and applies it. **Now self-hosted** at
+  `https://evotech-sys.com/config/fawateer.json` — the Google-Drive
+  `uc?export=download` hosting this plan flagged as fragile is retired. The file
+  is version-controlled in [`deploy/fawateer.json`](deploy/fawateer.json) and
+  published from there; see [`deploy/README.md`](deploy/README.md).
 - **Runtime API base URL + support contacts**: `ApiConfig.baseUrl` / WhatsApp /
   Telegram / email are now mutable and read per-request by `ApiClient`, so the
   server or contact channels can move **without shipping a build** — the config's
-  `api.base_url` + `support` block overwrite them at boot. Baked-in default is
-  still `harrypotter.foodsalebot.com/api`.
+  `api.base_url` + `support` block overwrite them at boot. The baked-in default
+  is `https://api.evotech-sys.com/api/fawateer` — and it being *correct* is the
+  point, since it's what a failed config fetch falls back to. While it still
+  named the old backend, a fetch failure silently routed users to the wrong
+  server and looked like success.
 - **In-app update prompt**: compares the config's `latest_version` to the
   installed build (`package_info_plus`) and, if newer, shows a one-time Arabic
   dialog with `update_notes` + a **Download** button opening the ABI-matched APK
   URL (`device_info_plus` `supportedAbis`). Wrapped app-wide via `_UpdateChecker`
   so it fires regardless of the licensing-gate screen.
-- Deps: `package_info_plus`. Note: Drive hosting is fragile — moving the JSON to
-  the same server that serves the APKs is recommended.
+- Deps: `package_info_plus`. The APKs are served from the same platform
+  (`api.evotech-sys.com/api/v1/downloads/latest/invoices/android/<abi>`), so the
+  config and the binaries it points at now share one host.
 
 ### ✅ Phase 3.5 — Splash-freeze fix + gate hardening
 - **Root-cause fix for the "checking subscription…" forever-freeze**: the only
@@ -411,7 +431,10 @@ overhaul).
   so merging would lose an IMEI outright.
 - `sales_items.serialSnapshot` follows the reprint-eternal rule; the serial
   shows on the receipt, the **reprint**, and the invoice detail page.
-- ⚠️ **Migration not device-verified** — the v14→v15 test is written but unrun.
+- ⚠️ **The one feature not yet field-verified** — it shipped after the device
+  pass that cleared everything else. The v14→v15 migration test is written but
+  unrun. Bounded risk: the migration is purely additive and the feature is
+  opt-in per product.
 
 ### ✅ Navigation — Android back button
 - Back on any tab root used to bubble to the system and **kill the app
@@ -449,56 +472,72 @@ start from the plan doc, which records why.
 
 ---
 
-## Before shipping — verification debt
+## Field verification — what runs in a real shop
 
-**This is the real next step, and it has grown rather than shrunk.**
+**This section used to be the blocker. It no longer is.** Fawateer is in daily
+production use in a shop, and the owner has verified each feature on his own
+phone as it shipped — reporting defects straight back, which is where Plan 011
+came from.
 
-`flutter test` **now runs fine** (the old websocket-503 blocker is gone) —
-**108 tests pass**, `flutter analyze` clean. But those tests drive BLoCs against
-**hand-written fakes** by design: they never touch Drift, native SQLite, the
-printer, the camera, or the network. That's the right test architecture, and it
-structurally cannot tell you whether the app works on a phone.
+The relationship between the two test layers is worth stating plainly, because
+neither substitutes for the other: `flutter test` runs **127 tests** against
+**hand-written fakes** (`flutter analyze` clean) and never touches Drift, native
+SQLite, the printer, the camera or the network — by design. It proves the logic;
+the device pass proves the app.
 
-**Confirmed on real hardware — the complete list:**
-- the **v13→v14 migration** (`integration_test/migration_v14_test.dart`)
-- **Sales-by-field** group-by SQL (`integration_test/sales_by_field_test.dart`)
-- the **inverted-barcode** fix, on the actual failing red-tin product
+**Confirmed on real hardware:**
+- 🟢 **Backup *restore* from Google Drive** — end-to-end, against a real
+  snapshot. This was the single highest-risk path in the app (it deletes and
+  swaps the live database) and the last one still untested.
+- 🟢 **Cashbox** — auto-posting, reversal, and the derived-balance math.
+- 🟢 **FCM notifications** — live delivery against the real Firebase project.
+- 🟢 **Sell-by-weight** products — the dual-field entry and the `كغ` receipt unit.
+- 🟢 **Android back button** — the `PopScope` fix (`48c6fb2`) confirmed not
+  killing the app from a tab root.
+- 🟢 **Daily shop operation** — the POS, sales history, printed receipts and the
+  licensing gate, exercised continuously by a real business rather than by a
+  scripted pass.
+- 🟢 The **v13→v14 migration** (`integration_test/migration_v14_test.dart`),
+  **sales-by-field** group-by SQL (`integration_test/sales_by_field_test.dart`),
+  and the **inverted-barcode** fix on the actual failing red-tin product.
 
-**Never exercised on a device:**
-- 🔴 **Backup *restore*** — three guards and a rollback swap, none of which has
-  ever run against a real Drive snapshot. Highest blast radius in the app: it
-  deletes and swaps the live database, and its failure mode is a shop losing
-  their books. **Verify this first.**
-- 🔴 **Migrations over a real shop's pre-existing DB** — v8→v9 (cashbox) and
-  v10→v14. Only v13→v14 has a device test.
-- 🟠 The **printer / Arabic-raster** path (receipts, statements, product labels).
-- 🟠 **Cashbox** auto-post + reversal and the derived-balance math.
-- 🟠 The **licensing HTTP calls** and the **FCM live-unlock** end-to-end.
-- 🟡 Sell-by-weight entry, editable-account sync, the in-app update dialog, the
-  sales audit centre over real data, and the **Android back-button fix**
-  (shipped 2026-07-26, still unverified).
+**The one outstanding gap:**
+- 🟠 **Plan 012 — serialized units** (schema **v14→v15**). Shipped after the
+  verification pass above, so neither the feature nor its migration has run on a
+  device. `integration_test/migration_v15_test.dart` is written and ready; it
+  needs one run on an attached device. The blast radius is real but bounded —
+  the migration is purely additive (`addColumn` × 2 + `createTable`), and the
+  feature is opt-in per product, so a shop that never enables it is unaffected
+  either way.
 
-**Recommendation: a device smoke-test pass before any further feature work**,
-starting with restore and the migrations.
+**Recommendation:** run the v15 migration test on a device before Plan 012 is
+switched on in a live shop. Everything else is field-proven.
 
-### Operational items that gate selling, not building
+### Operational items — resolved
 
-- **The backend is still Smart-Agent's** (`harrypotter.foodsalebot.com/api`,
-  keyed `app_name: 'Fawateer'`). Always a placeholder; subscriptions currently
-  run on another app's server. Swapping it is a one-line
-  `ApiConfig.defaultBaseUrl` change *plus* a server-side migration.
-- **The remote-config JSON is hosted on Google Drive**, which Plan 001's own
-  author flagged as fragile and recommended moving to the server that already
-  serves the APKs. That file controls the API base URL and the update prompt —
-  if Drive changes its download-URL scheme, you lose the ability to repoint the
-  server without shipping a build.
-- ✅ **FCM is no longer dormant** — `google-services.json` is in place (project
-  `fawateer-4c9bc`) and the Gradle plugin line is committed, so live-unlock is
-  real. Note the file is gitignored: a fresh clone **will fail to build** until
-  it's restored. See `android/README-fcm.md`.
-- 🔑 **Losing the release keystore is unrecoverable** — Android refuses updates
+- ✅ **Fawateer runs on its own backend.** `api.evotech-sys.com/api/fawateer`
+  (the EVOTECH platform, `evotech-core`), replacing the Smart-Agent placeholder.
+  Because the platform was built to the existing payload contract, the app-side
+  change was the base URL and nothing else.
+- ✅ **Remote config is self-hosted** at `evotech-sys.com/config/fawateer.json`,
+  off Google Drive. The fragility Plan 001 flagged — Drive changing its
+  download-URL scheme and costing you the ability to repoint the server without
+  a release — is gone. Source of truth is `deploy/fawateer.json` in this repo.
+- ✅ **The APK downloads are served from the same platform**, so the update
+  prompt and the binaries it links share one host.
+
+### Operational items still live
+
+- 🔴 **Losing the release keystore is unrecoverable** — Android refuses updates
   signed with a different key. It lives outside the repo, pointed at by the
-  gitignored `android/key.properties`. See `docs/android-release-signing.md`.
+  gitignored `android/key.properties`. **With the app now in a real shop, this
+  is the highest-consequence operational risk left:** losing it means that shop
+  can never be updated again, only reinstalled from scratch. Confirm it is
+  backed up somewhere you do not control alone.
+  See `docs/android-release-signing.md`.
+- 🟠 **`google-services.json` is gitignored**, so a fresh clone **fails the
+  Android build** until it's restored (the Gradle plugin is applied
+  unconditionally). See `android/README-fcm.md`.
 
 ---
 
