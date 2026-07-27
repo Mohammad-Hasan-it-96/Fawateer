@@ -1,12 +1,14 @@
 import 'package:drift/drift.dart';
 
+import 'sync_meta.dart';
+
 /// Owner-defined custom product fields (Plan 010, bucket A) — the *metadata*
 /// that drives the dynamic product form, list subtitle, and receipt printing.
 /// The per-product values live in `products.attributes` (JSON), keyed by [id].
 ///
 /// Purely additive table (schema v12→v13); no existing table is touched.
 @DataClassName('AttributeDefinitionRow')
-class AttributeDefinitions extends Table {
+class AttributeDefinitions extends Table with SyncMeta {
   TextColumn get id => text()();
   // The owner-typed label (user data, Arabic) — editable without orphaning
   // stored values, which are keyed by id, not label.

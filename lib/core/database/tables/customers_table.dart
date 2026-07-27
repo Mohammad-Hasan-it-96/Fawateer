@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart';
 
+import 'sync_meta.dart';
+
 @DataClassName('CustomerRow')
-class Customers extends Table {
+class Customers extends Table with SyncMeta {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get phone => text().withDefault(const Constant(''))();

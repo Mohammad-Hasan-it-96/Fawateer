@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import 'sync_meta.dart';
+
 /// One **physical object**, as opposed to [Products] which is a SKU (Plan 012,
 /// bucket C of Plan 010).
 ///
@@ -10,7 +12,7 @@ import 'package:drift/drift.dart';
 ///
 /// Purely additive table (schema v14→v15); no existing table is touched.
 @DataClassName('ProductUnitRow')
-class ProductUnits extends Table {
+class ProductUnits extends Table with SyncMeta {
   TextColumn get id => text()();
 
   /// The SKU this unit is one instance of.

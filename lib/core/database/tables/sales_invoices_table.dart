@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart';
 
+import 'sync_meta.dart';
+
 @DataClassName('SalesInvoiceRow')
-class SalesInvoices extends Table {
+class SalesInvoices extends Table with SyncMeta {
   TextColumn get id => text()();
   /// Stored as milliseconds since epoch.
   IntColumn get createdAt => integer()();

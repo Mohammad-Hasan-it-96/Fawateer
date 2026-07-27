@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 
+import 'sync_meta.dart';
+
 /// A single signed cash movement (single-entry cashbox). The current cash
 /// balance is always DERIVED by summing [amount] over all rows — never stored,
 /// never hand-edited — so it can't drift out of sync.
@@ -8,7 +10,7 @@ import 'package:drift/drift.dart';
 /// table existed pre-v3 and was dropped in the v2→v3 migration; a distinct name
 /// avoids any collision.
 @DataClassName('CashboxTransactionRow')
-class CashboxTransactions extends Table {
+class CashboxTransactions extends Table with SyncMeta {
   TextColumn get id => text()();
 
   /// `CashTransactionType.name` — persisted by name string, never index.

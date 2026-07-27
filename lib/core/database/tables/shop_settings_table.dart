@@ -1,8 +1,10 @@
 import 'package:drift/drift.dart';
 
+import 'sync_meta.dart';
+
 /// Single-row table: always store/read with id = 'default'.
 @DataClassName('ShopRow')
-class ShopSettings extends Table {
+class ShopSettings extends Table with SyncMeta {
   TextColumn get id => text().withDefault(const Constant('default'))();
   TextColumn get name => text().withDefault(const Constant(''))();
   TextColumn get addressLine1 => text().withDefault(const Constant(''))();

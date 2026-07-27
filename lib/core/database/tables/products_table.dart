@@ -1,7 +1,9 @@
 import 'package:drift/drift.dart';
 
+import 'sync_meta.dart';
+
 @DataClassName('ProductRow')
-class Products extends Table {
+class Products extends Table with SyncMeta {
   TextColumn get id => text()();
   TextColumn get name => text()();
   TextColumn get barcode => text().withDefault(const Constant(''))();
@@ -31,6 +33,14 @@ class Products extends Table {
   // Off for every existing product, and off by default — a shop that never turns
   // it on sees exactly today's behavior.
   BoolColumn get isSerialized => boolean().withDefault(const Constant(false))();
+  // When the product was added, ms since epoch. Added for multi-device
+  // (Plan 002): the newest-first product list (Plan 011 #5) previously ordered
+  // by `rowId desc`, which is a purely *local* insertion order — under sync two
+  // devices would disagree about which product is newest, and a row pulled from
+  // another device would land wherever its local rowid happened to fall.
+  // Backfilled to 0 for existing rows, which keeps them grouped at the end
+  // (oldest) rather than claiming a false creation time.
+  IntColumn get createdAt => integer().withDefault(const Constant(0))();
 
   @override
   Set<Column> get primaryKey => {id};

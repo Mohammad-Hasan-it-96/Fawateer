@@ -9,6 +9,30 @@ class $ProductsTable extends Products
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $ProductsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<String> deletedAt = GeneratedColumn<String>(
+      'deleted_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _originDeviceMeta =
+      const VerificationMeta('originDevice');
+  @override
+  late final GeneratedColumn<String> originDevice = GeneratedColumn<String>(
+      'origin_device', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -89,8 +113,19 @@ class $ProductsTable extends Products
       defaultConstraints: GeneratedColumn.constraintIsAlways(
           'CHECK ("is_serialized" IN (0, 1))'),
       defaultValue: const Constant(false));
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.int,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(0));
   @override
   List<GeneratedColumn> get $columns => [
+        updatedAt,
+        deletedAt,
+        originDevice,
         id,
         name,
         barcode,
@@ -101,7 +136,8 @@ class $ProductsTable extends Products
         saleType,
         priceCurrency,
         attributes,
-        isSerialized
+        isSerialized,
+        createdAt
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -113,6 +149,20 @@ class $ProductsTable extends Products
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('origin_device')) {
+      context.handle(
+          _originDeviceMeta,
+          originDevice.isAcceptableOrUnknown(
+              data['origin_device']!, _originDeviceMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
@@ -170,6 +220,10 @@ class $ProductsTable extends Products
           isSerialized.isAcceptableOrUnknown(
               data['is_serialized']!, _isSerializedMeta));
     }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
     return context;
   }
 
@@ -179,6 +233,12 @@ class $ProductsTable extends Products
   ProductRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return ProductRow(
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}deleted_at'])!,
+      originDevice: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}origin_device'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       name: attachedDatabase.typeMapping
@@ -201,6 +261,8 @@ class $ProductsTable extends Products
           .read(DriftSqlType.string, data['${effectivePrefix}attributes'])!,
       isSerialized: attachedDatabase.typeMapping
           .read(DriftSqlType.bool, data['${effectivePrefix}is_serialized'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
     );
   }
 
@@ -211,6 +273,37 @@ class $ProductsTable extends Products
 }
 
 class ProductRow extends DataClass implements Insertable<ProductRow> {
+  /// Packed [Hlc] of the last change to this row — the **authorship** clock,
+  /// used to resolve last-write-wins.
+  ///
+  /// Deliberately *not* the sync cursor: the server stamps its own monotonic
+  /// sequence on arrival, and ordering conflicts by arrival would let a device
+  /// that was offline for three days overwrite fresher edits. Text because the
+  /// packed form sorts lexicographically in clock order, so plain SQL
+  /// comparison works.
+  ///
+  /// `''` means "predates sync" — treated as older than any real stamp, so a
+  /// legacy row never beats a real edit.
+  final String updatedAt;
+
+  /// Tombstone: packed [Hlc] of the deletion, `''` while the row is live.
+  ///
+  /// Synced rows are **never physically deleted**. Without a tombstone, "absent
+  /// here, present there" is ambiguous — never-synced or deliberately deleted? —
+  /// and the merge would resurrect the row from the other device on the next
+  /// pull. A shopkeeper deleting a product and watching it reappear is the
+  /// single most corrosive sync bug, because it makes the whole feature look
+  /// untrustworthy.
+  final String deletedAt;
+
+  /// Device that authored the row's current state.
+  ///
+  /// Doubles as the audit trail. Because the shops running two devices are
+  /// staffed by partners and relatives, the product decision was to make
+  /// changes *visible* rather than forbidden — no permission system, but the
+  /// owner can always see which device changed a price. Relaying a row must
+  /// preserve this value, never overwrite it with the forwarding device.
+  final String originDevice;
   final String id;
   final String name;
   final String barcode;
@@ -222,8 +315,12 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
   final String priceCurrency;
   final String attributes;
   final bool isSerialized;
+  final int createdAt;
   const ProductRow(
-      {required this.id,
+      {required this.updatedAt,
+      required this.deletedAt,
+      required this.originDevice,
+      required this.id,
       required this.name,
       required this.barcode,
       required this.price,
@@ -233,10 +330,14 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       required this.saleType,
       required this.priceCurrency,
       required this.attributes,
-      required this.isSerialized});
+      required this.isSerialized,
+      required this.createdAt});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['updated_at'] = Variable<String>(updatedAt);
+    map['deleted_at'] = Variable<String>(deletedAt);
+    map['origin_device'] = Variable<String>(originDevice);
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     map['barcode'] = Variable<String>(barcode);
@@ -248,11 +349,15 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
     map['price_currency'] = Variable<String>(priceCurrency);
     map['attributes'] = Variable<String>(attributes);
     map['is_serialized'] = Variable<bool>(isSerialized);
+    map['created_at'] = Variable<int>(createdAt);
     return map;
   }
 
   ProductsCompanion toCompanion(bool nullToAbsent) {
     return ProductsCompanion(
+      updatedAt: Value(updatedAt),
+      deletedAt: Value(deletedAt),
+      originDevice: Value(originDevice),
       id: Value(id),
       name: Value(name),
       barcode: Value(barcode),
@@ -264,6 +369,7 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       priceCurrency: Value(priceCurrency),
       attributes: Value(attributes),
       isSerialized: Value(isSerialized),
+      createdAt: Value(createdAt),
     );
   }
 
@@ -271,6 +377,9 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ProductRow(
+      updatedAt: serializer.fromJson<String>(json['updatedAt']),
+      deletedAt: serializer.fromJson<String>(json['deletedAt']),
+      originDevice: serializer.fromJson<String>(json['originDevice']),
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       barcode: serializer.fromJson<String>(json['barcode']),
@@ -282,12 +391,16 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       priceCurrency: serializer.fromJson<String>(json['priceCurrency']),
       attributes: serializer.fromJson<String>(json['attributes']),
       isSerialized: serializer.fromJson<bool>(json['isSerialized']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
     );
   }
   @override
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'updatedAt': serializer.toJson<String>(updatedAt),
+      'deletedAt': serializer.toJson<String>(deletedAt),
+      'originDevice': serializer.toJson<String>(originDevice),
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'barcode': serializer.toJson<String>(barcode),
@@ -299,11 +412,15 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       'priceCurrency': serializer.toJson<String>(priceCurrency),
       'attributes': serializer.toJson<String>(attributes),
       'isSerialized': serializer.toJson<bool>(isSerialized),
+      'createdAt': serializer.toJson<int>(createdAt),
     };
   }
 
   ProductRow copyWith(
-          {String? id,
+          {String? updatedAt,
+          String? deletedAt,
+          String? originDevice,
+          String? id,
           String? name,
           String? barcode,
           double? price,
@@ -313,8 +430,12 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           String? saleType,
           String? priceCurrency,
           String? attributes,
-          bool? isSerialized}) =>
+          bool? isSerialized,
+          int? createdAt}) =>
       ProductRow(
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt ?? this.deletedAt,
+        originDevice: originDevice ?? this.originDevice,
         id: id ?? this.id,
         name: name ?? this.name,
         barcode: barcode ?? this.barcode,
@@ -326,9 +447,15 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
         priceCurrency: priceCurrency ?? this.priceCurrency,
         attributes: attributes ?? this.attributes,
         isSerialized: isSerialized ?? this.isSerialized,
+        createdAt: createdAt ?? this.createdAt,
       );
   ProductRow copyWithCompanion(ProductsCompanion data) {
     return ProductRow(
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      originDevice: data.originDevice.present
+          ? data.originDevice.value
+          : this.originDevice,
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       barcode: data.barcode.present ? data.barcode.value : this.barcode,
@@ -347,12 +474,16 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
       isSerialized: data.isSerialized.present
           ? data.isSerialized.value
           : this.isSerialized,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
 
   @override
   String toString() {
     return (StringBuffer('ProductRow(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('barcode: $barcode, ')
@@ -363,18 +494,36 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           ..write('saleType: $saleType, ')
           ..write('priceCurrency: $priceCurrency, ')
           ..write('attributes: $attributes, ')
-          ..write('isSerialized: $isSerialized')
+          ..write('isSerialized: $isSerialized, ')
+          ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, name, barcode, price, cost, quantity,
-      minStockAlert, saleType, priceCurrency, attributes, isSerialized);
+  int get hashCode => Object.hash(
+      updatedAt,
+      deletedAt,
+      originDevice,
+      id,
+      name,
+      barcode,
+      price,
+      cost,
+      quantity,
+      minStockAlert,
+      saleType,
+      priceCurrency,
+      attributes,
+      isSerialized,
+      createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is ProductRow &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.originDevice == this.originDevice &&
           other.id == this.id &&
           other.name == this.name &&
           other.barcode == this.barcode &&
@@ -385,10 +534,14 @@ class ProductRow extends DataClass implements Insertable<ProductRow> {
           other.saleType == this.saleType &&
           other.priceCurrency == this.priceCurrency &&
           other.attributes == this.attributes &&
-          other.isSerialized == this.isSerialized);
+          other.isSerialized == this.isSerialized &&
+          other.createdAt == this.createdAt);
 }
 
 class ProductsCompanion extends UpdateCompanion<ProductRow> {
+  final Value<String> updatedAt;
+  final Value<String> deletedAt;
+  final Value<String> originDevice;
   final Value<String> id;
   final Value<String> name;
   final Value<String> barcode;
@@ -400,8 +553,12 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
   final Value<String> priceCurrency;
   final Value<String> attributes;
   final Value<bool> isSerialized;
+  final Value<int> createdAt;
   final Value<int> rowid;
   const ProductsCompanion({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.barcode = const Value.absent(),
@@ -413,9 +570,13 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.priceCurrency = const Value.absent(),
     this.attributes = const Value.absent(),
     this.isSerialized = const Value.absent(),
+    this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ProductsCompanion.insert({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     required String id,
     required String name,
     this.barcode = const Value.absent(),
@@ -427,11 +588,15 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     this.priceCurrency = const Value.absent(),
     this.attributes = const Value.absent(),
     this.isSerialized = const Value.absent(),
+    this.createdAt = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         name = Value(name),
         price = Value(price);
   static Insertable<ProductRow> custom({
+    Expression<String>? updatedAt,
+    Expression<String>? deletedAt,
+    Expression<String>? originDevice,
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? barcode,
@@ -443,9 +608,13 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     Expression<String>? priceCurrency,
     Expression<String>? attributes,
     Expression<bool>? isSerialized,
+    Expression<int>? createdAt,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (originDevice != null) 'origin_device': originDevice,
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (barcode != null) 'barcode': barcode,
@@ -457,12 +626,16 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       if (priceCurrency != null) 'price_currency': priceCurrency,
       if (attributes != null) 'attributes': attributes,
       if (isSerialized != null) 'is_serialized': isSerialized,
+      if (createdAt != null) 'created_at': createdAt,
       if (rowid != null) 'rowid': rowid,
     });
   }
 
   ProductsCompanion copyWith(
-      {Value<String>? id,
+      {Value<String>? updatedAt,
+      Value<String>? deletedAt,
+      Value<String>? originDevice,
+      Value<String>? id,
       Value<String>? name,
       Value<String>? barcode,
       Value<double>? price,
@@ -473,8 +646,12 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       Value<String>? priceCurrency,
       Value<String>? attributes,
       Value<bool>? isSerialized,
+      Value<int>? createdAt,
       Value<int>? rowid}) {
     return ProductsCompanion(
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      originDevice: originDevice ?? this.originDevice,
       id: id ?? this.id,
       name: name ?? this.name,
       barcode: barcode ?? this.barcode,
@@ -486,6 +663,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
       priceCurrency: priceCurrency ?? this.priceCurrency,
       attributes: attributes ?? this.attributes,
       isSerialized: isSerialized ?? this.isSerialized,
+      createdAt: createdAt ?? this.createdAt,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -493,6 +671,15 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<String>(deletedAt.value);
+    }
+    if (originDevice.present) {
+      map['origin_device'] = Variable<String>(originDevice.value);
+    }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
@@ -526,6 +713,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
     if (isSerialized.present) {
       map['is_serialized'] = Variable<bool>(isSerialized.value);
     }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -535,6 +725,9 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
   @override
   String toString() {
     return (StringBuffer('ProductsCompanion(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('barcode: $barcode, ')
@@ -546,6 +739,7 @@ class ProductsCompanion extends UpdateCompanion<ProductRow> {
           ..write('priceCurrency: $priceCurrency, ')
           ..write('attributes: $attributes, ')
           ..write('isSerialized: $isSerialized, ')
+          ..write('createdAt: $createdAt, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -558,6 +752,30 @@ class $ShopSettingsTable extends ShopSettings
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $ShopSettingsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<String> deletedAt = GeneratedColumn<String>(
+      'deleted_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _originDeviceMeta =
+      const VerificationMeta('originDevice');
+  @override
+  late final GeneratedColumn<String> originDevice = GeneratedColumn<String>(
+      'origin_device', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -614,6 +832,9 @@ class $ShopSettingsTable extends ShopSettings
       defaultValue: const Constant('ل.س'));
   @override
   List<GeneratedColumn> get $columns => [
+        updatedAt,
+        deletedAt,
+        originDevice,
         id,
         name,
         addressLine1,
@@ -632,6 +853,20 @@ class $ShopSettingsTable extends ShopSettings
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('origin_device')) {
+      context.handle(
+          _originDeviceMeta,
+          originDevice.isAcceptableOrUnknown(
+              data['origin_device']!, _originDeviceMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     }
@@ -678,6 +913,12 @@ class $ShopSettingsTable extends ShopSettings
   ShopRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return ShopRow(
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}deleted_at'])!,
+      originDevice: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}origin_device'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       name: attachedDatabase.typeMapping
@@ -702,6 +943,37 @@ class $ShopSettingsTable extends ShopSettings
 }
 
 class ShopRow extends DataClass implements Insertable<ShopRow> {
+  /// Packed [Hlc] of the last change to this row — the **authorship** clock,
+  /// used to resolve last-write-wins.
+  ///
+  /// Deliberately *not* the sync cursor: the server stamps its own monotonic
+  /// sequence on arrival, and ordering conflicts by arrival would let a device
+  /// that was offline for three days overwrite fresher edits. Text because the
+  /// packed form sorts lexicographically in clock order, so plain SQL
+  /// comparison works.
+  ///
+  /// `''` means "predates sync" — treated as older than any real stamp, so a
+  /// legacy row never beats a real edit.
+  final String updatedAt;
+
+  /// Tombstone: packed [Hlc] of the deletion, `''` while the row is live.
+  ///
+  /// Synced rows are **never physically deleted**. Without a tombstone, "absent
+  /// here, present there" is ambiguous — never-synced or deliberately deleted? —
+  /// and the merge would resurrect the row from the other device on the next
+  /// pull. A shopkeeper deleting a product and watching it reappear is the
+  /// single most corrosive sync bug, because it makes the whole feature look
+  /// untrustworthy.
+  final String deletedAt;
+
+  /// Device that authored the row's current state.
+  ///
+  /// Doubles as the audit trail. Because the shops running two devices are
+  /// staffed by partners and relatives, the product decision was to make
+  /// changes *visible* rather than forbidden — no permission system, but the
+  /// owner can always see which device changed a price. Relaying a row must
+  /// preserve this value, never overwrite it with the forwarding device.
+  final String originDevice;
   final String id;
   final String name;
   final String addressLine1;
@@ -710,7 +982,10 @@ class ShopRow extends DataClass implements Insertable<ShopRow> {
   final String footerText;
   final String currencySymbol;
   const ShopRow(
-      {required this.id,
+      {required this.updatedAt,
+      required this.deletedAt,
+      required this.originDevice,
+      required this.id,
       required this.name,
       required this.addressLine1,
       required this.addressLine2,
@@ -720,6 +995,9 @@ class ShopRow extends DataClass implements Insertable<ShopRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['updated_at'] = Variable<String>(updatedAt);
+    map['deleted_at'] = Variable<String>(deletedAt);
+    map['origin_device'] = Variable<String>(originDevice);
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     map['address_line1'] = Variable<String>(addressLine1);
@@ -732,6 +1010,9 @@ class ShopRow extends DataClass implements Insertable<ShopRow> {
 
   ShopSettingsCompanion toCompanion(bool nullToAbsent) {
     return ShopSettingsCompanion(
+      updatedAt: Value(updatedAt),
+      deletedAt: Value(deletedAt),
+      originDevice: Value(originDevice),
       id: Value(id),
       name: Value(name),
       addressLine1: Value(addressLine1),
@@ -746,6 +1027,9 @@ class ShopRow extends DataClass implements Insertable<ShopRow> {
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ShopRow(
+      updatedAt: serializer.fromJson<String>(json['updatedAt']),
+      deletedAt: serializer.fromJson<String>(json['deletedAt']),
+      originDevice: serializer.fromJson<String>(json['originDevice']),
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       addressLine1: serializer.fromJson<String>(json['addressLine1']),
@@ -759,6 +1043,9 @@ class ShopRow extends DataClass implements Insertable<ShopRow> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'updatedAt': serializer.toJson<String>(updatedAt),
+      'deletedAt': serializer.toJson<String>(deletedAt),
+      'originDevice': serializer.toJson<String>(originDevice),
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'addressLine1': serializer.toJson<String>(addressLine1),
@@ -770,7 +1057,10 @@ class ShopRow extends DataClass implements Insertable<ShopRow> {
   }
 
   ShopRow copyWith(
-          {String? id,
+          {String? updatedAt,
+          String? deletedAt,
+          String? originDevice,
+          String? id,
           String? name,
           String? addressLine1,
           String? addressLine2,
@@ -778,6 +1068,9 @@ class ShopRow extends DataClass implements Insertable<ShopRow> {
           String? footerText,
           String? currencySymbol}) =>
       ShopRow(
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt ?? this.deletedAt,
+        originDevice: originDevice ?? this.originDevice,
         id: id ?? this.id,
         name: name ?? this.name,
         addressLine1: addressLine1 ?? this.addressLine1,
@@ -788,6 +1081,11 @@ class ShopRow extends DataClass implements Insertable<ShopRow> {
       );
   ShopRow copyWithCompanion(ShopSettingsCompanion data) {
     return ShopRow(
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      originDevice: data.originDevice.present
+          ? data.originDevice.value
+          : this.originDevice,
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       addressLine1: data.addressLine1.present
@@ -809,6 +1107,9 @@ class ShopRow extends DataClass implements Insertable<ShopRow> {
   @override
   String toString() {
     return (StringBuffer('ShopRow(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('addressLine1: $addressLine1, ')
@@ -821,12 +1122,15 @@ class ShopRow extends DataClass implements Insertable<ShopRow> {
   }
 
   @override
-  int get hashCode => Object.hash(id, name, addressLine1, addressLine2,
-      phoneNumber, footerText, currencySymbol);
+  int get hashCode => Object.hash(updatedAt, deletedAt, originDevice, id, name,
+      addressLine1, addressLine2, phoneNumber, footerText, currencySymbol);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is ShopRow &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.originDevice == this.originDevice &&
           other.id == this.id &&
           other.name == this.name &&
           other.addressLine1 == this.addressLine1 &&
@@ -837,6 +1141,9 @@ class ShopRow extends DataClass implements Insertable<ShopRow> {
 }
 
 class ShopSettingsCompanion extends UpdateCompanion<ShopRow> {
+  final Value<String> updatedAt;
+  final Value<String> deletedAt;
+  final Value<String> originDevice;
   final Value<String> id;
   final Value<String> name;
   final Value<String> addressLine1;
@@ -846,6 +1153,9 @@ class ShopSettingsCompanion extends UpdateCompanion<ShopRow> {
   final Value<String> currencySymbol;
   final Value<int> rowid;
   const ShopSettingsCompanion({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.addressLine1 = const Value.absent(),
@@ -856,6 +1166,9 @@ class ShopSettingsCompanion extends UpdateCompanion<ShopRow> {
     this.rowid = const Value.absent(),
   });
   ShopSettingsCompanion.insert({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.addressLine1 = const Value.absent(),
@@ -866,6 +1179,9 @@ class ShopSettingsCompanion extends UpdateCompanion<ShopRow> {
     this.rowid = const Value.absent(),
   });
   static Insertable<ShopRow> custom({
+    Expression<String>? updatedAt,
+    Expression<String>? deletedAt,
+    Expression<String>? originDevice,
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? addressLine1,
@@ -876,6 +1192,9 @@ class ShopSettingsCompanion extends UpdateCompanion<ShopRow> {
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (originDevice != null) 'origin_device': originDevice,
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (addressLine1 != null) 'address_line1': addressLine1,
@@ -888,7 +1207,10 @@ class ShopSettingsCompanion extends UpdateCompanion<ShopRow> {
   }
 
   ShopSettingsCompanion copyWith(
-      {Value<String>? id,
+      {Value<String>? updatedAt,
+      Value<String>? deletedAt,
+      Value<String>? originDevice,
+      Value<String>? id,
       Value<String>? name,
       Value<String>? addressLine1,
       Value<String>? addressLine2,
@@ -897,6 +1219,9 @@ class ShopSettingsCompanion extends UpdateCompanion<ShopRow> {
       Value<String>? currencySymbol,
       Value<int>? rowid}) {
     return ShopSettingsCompanion(
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      originDevice: originDevice ?? this.originDevice,
       id: id ?? this.id,
       name: name ?? this.name,
       addressLine1: addressLine1 ?? this.addressLine1,
@@ -911,6 +1236,15 @@ class ShopSettingsCompanion extends UpdateCompanion<ShopRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<String>(deletedAt.value);
+    }
+    if (originDevice.present) {
+      map['origin_device'] = Variable<String>(originDevice.value);
+    }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
@@ -941,6 +1275,9 @@ class ShopSettingsCompanion extends UpdateCompanion<ShopRow> {
   @override
   String toString() {
     return (StringBuffer('ShopSettingsCompanion(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('addressLine1: $addressLine1, ')
@@ -1150,6 +1487,30 @@ class $SalesInvoicesTable extends SalesInvoices
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $SalesInvoicesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<String> deletedAt = GeneratedColumn<String>(
+      'deleted_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _originDeviceMeta =
+      const VerificationMeta('originDevice');
+  @override
+  late final GeneratedColumn<String> originDevice = GeneratedColumn<String>(
+      'origin_device', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -1176,8 +1537,15 @@ class $SalesInvoicesTable extends SalesInvoices
       requiredDuringInsert: false,
       defaultValue: const Constant(0));
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, createdAt, totalAmount, invoiceDiscount];
+  List<GeneratedColumn> get $columns => [
+        updatedAt,
+        deletedAt,
+        originDevice,
+        id,
+        createdAt,
+        totalAmount,
+        invoiceDiscount
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -1188,6 +1556,20 @@ class $SalesInvoicesTable extends SalesInvoices
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('origin_device')) {
+      context.handle(
+          _originDeviceMeta,
+          originDevice.isAcceptableOrUnknown(
+              data['origin_device']!, _originDeviceMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
@@ -1222,6 +1604,12 @@ class $SalesInvoicesTable extends SalesInvoices
   SalesInvoiceRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return SalesInvoiceRow(
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}deleted_at'])!,
+      originDevice: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}origin_device'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       createdAt: attachedDatabase.typeMapping
@@ -1240,6 +1628,37 @@ class $SalesInvoicesTable extends SalesInvoices
 }
 
 class SalesInvoiceRow extends DataClass implements Insertable<SalesInvoiceRow> {
+  /// Packed [Hlc] of the last change to this row — the **authorship** clock,
+  /// used to resolve last-write-wins.
+  ///
+  /// Deliberately *not* the sync cursor: the server stamps its own monotonic
+  /// sequence on arrival, and ordering conflicts by arrival would let a device
+  /// that was offline for three days overwrite fresher edits. Text because the
+  /// packed form sorts lexicographically in clock order, so plain SQL
+  /// comparison works.
+  ///
+  /// `''` means "predates sync" — treated as older than any real stamp, so a
+  /// legacy row never beats a real edit.
+  final String updatedAt;
+
+  /// Tombstone: packed [Hlc] of the deletion, `''` while the row is live.
+  ///
+  /// Synced rows are **never physically deleted**. Without a tombstone, "absent
+  /// here, present there" is ambiguous — never-synced or deliberately deleted? —
+  /// and the merge would resurrect the row from the other device on the next
+  /// pull. A shopkeeper deleting a product and watching it reappear is the
+  /// single most corrosive sync bug, because it makes the whole feature look
+  /// untrustworthy.
+  final String deletedAt;
+
+  /// Device that authored the row's current state.
+  ///
+  /// Doubles as the audit trail. Because the shops running two devices are
+  /// staffed by partners and relatives, the product decision was to make
+  /// changes *visible* rather than forbidden — no permission system, but the
+  /// owner can always see which device changed a price. Relaying a row must
+  /// preserve this value, never overwrite it with the forwarding device.
+  final String originDevice;
   final String id;
 
   /// Stored as milliseconds since epoch.
@@ -1247,13 +1666,19 @@ class SalesInvoiceRow extends DataClass implements Insertable<SalesInvoiceRow> {
   final double totalAmount;
   final double invoiceDiscount;
   const SalesInvoiceRow(
-      {required this.id,
+      {required this.updatedAt,
+      required this.deletedAt,
+      required this.originDevice,
+      required this.id,
       required this.createdAt,
       required this.totalAmount,
       required this.invoiceDiscount});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['updated_at'] = Variable<String>(updatedAt);
+    map['deleted_at'] = Variable<String>(deletedAt);
+    map['origin_device'] = Variable<String>(originDevice);
     map['id'] = Variable<String>(id);
     map['created_at'] = Variable<int>(createdAt);
     map['total_amount'] = Variable<double>(totalAmount);
@@ -1263,6 +1688,9 @@ class SalesInvoiceRow extends DataClass implements Insertable<SalesInvoiceRow> {
 
   SalesInvoicesCompanion toCompanion(bool nullToAbsent) {
     return SalesInvoicesCompanion(
+      updatedAt: Value(updatedAt),
+      deletedAt: Value(deletedAt),
+      originDevice: Value(originDevice),
       id: Value(id),
       createdAt: Value(createdAt),
       totalAmount: Value(totalAmount),
@@ -1274,6 +1702,9 @@ class SalesInvoiceRow extends DataClass implements Insertable<SalesInvoiceRow> {
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return SalesInvoiceRow(
+      updatedAt: serializer.fromJson<String>(json['updatedAt']),
+      deletedAt: serializer.fromJson<String>(json['deletedAt']),
+      originDevice: serializer.fromJson<String>(json['originDevice']),
       id: serializer.fromJson<String>(json['id']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
       totalAmount: serializer.fromJson<double>(json['totalAmount']),
@@ -1284,6 +1715,9 @@ class SalesInvoiceRow extends DataClass implements Insertable<SalesInvoiceRow> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'updatedAt': serializer.toJson<String>(updatedAt),
+      'deletedAt': serializer.toJson<String>(deletedAt),
+      'originDevice': serializer.toJson<String>(originDevice),
       'id': serializer.toJson<String>(id),
       'createdAt': serializer.toJson<int>(createdAt),
       'totalAmount': serializer.toJson<double>(totalAmount),
@@ -1292,11 +1726,17 @@ class SalesInvoiceRow extends DataClass implements Insertable<SalesInvoiceRow> {
   }
 
   SalesInvoiceRow copyWith(
-          {String? id,
+          {String? updatedAt,
+          String? deletedAt,
+          String? originDevice,
+          String? id,
           int? createdAt,
           double? totalAmount,
           double? invoiceDiscount}) =>
       SalesInvoiceRow(
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt ?? this.deletedAt,
+        originDevice: originDevice ?? this.originDevice,
         id: id ?? this.id,
         createdAt: createdAt ?? this.createdAt,
         totalAmount: totalAmount ?? this.totalAmount,
@@ -1304,6 +1744,11 @@ class SalesInvoiceRow extends DataClass implements Insertable<SalesInvoiceRow> {
       );
   SalesInvoiceRow copyWithCompanion(SalesInvoicesCompanion data) {
     return SalesInvoiceRow(
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      originDevice: data.originDevice.present
+          ? data.originDevice.value
+          : this.originDevice,
       id: data.id.present ? data.id.value : this.id,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       totalAmount:
@@ -1317,6 +1762,9 @@ class SalesInvoiceRow extends DataClass implements Insertable<SalesInvoiceRow> {
   @override
   String toString() {
     return (StringBuffer('SalesInvoiceRow(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
           ..write('createdAt: $createdAt, ')
           ..write('totalAmount: $totalAmount, ')
@@ -1326,11 +1774,15 @@ class SalesInvoiceRow extends DataClass implements Insertable<SalesInvoiceRow> {
   }
 
   @override
-  int get hashCode => Object.hash(id, createdAt, totalAmount, invoiceDiscount);
+  int get hashCode => Object.hash(updatedAt, deletedAt, originDevice, id,
+      createdAt, totalAmount, invoiceDiscount);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is SalesInvoiceRow &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.originDevice == this.originDevice &&
           other.id == this.id &&
           other.createdAt == this.createdAt &&
           other.totalAmount == this.totalAmount &&
@@ -1338,12 +1790,18 @@ class SalesInvoiceRow extends DataClass implements Insertable<SalesInvoiceRow> {
 }
 
 class SalesInvoicesCompanion extends UpdateCompanion<SalesInvoiceRow> {
+  final Value<String> updatedAt;
+  final Value<String> deletedAt;
+  final Value<String> originDevice;
   final Value<String> id;
   final Value<int> createdAt;
   final Value<double> totalAmount;
   final Value<double> invoiceDiscount;
   final Value<int> rowid;
   const SalesInvoicesCompanion({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     this.id = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.totalAmount = const Value.absent(),
@@ -1351,6 +1809,9 @@ class SalesInvoicesCompanion extends UpdateCompanion<SalesInvoiceRow> {
     this.rowid = const Value.absent(),
   });
   SalesInvoicesCompanion.insert({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     required String id,
     required int createdAt,
     required double totalAmount,
@@ -1360,6 +1821,9 @@ class SalesInvoicesCompanion extends UpdateCompanion<SalesInvoiceRow> {
         createdAt = Value(createdAt),
         totalAmount = Value(totalAmount);
   static Insertable<SalesInvoiceRow> custom({
+    Expression<String>? updatedAt,
+    Expression<String>? deletedAt,
+    Expression<String>? originDevice,
     Expression<String>? id,
     Expression<int>? createdAt,
     Expression<double>? totalAmount,
@@ -1367,6 +1831,9 @@ class SalesInvoicesCompanion extends UpdateCompanion<SalesInvoiceRow> {
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (originDevice != null) 'origin_device': originDevice,
       if (id != null) 'id': id,
       if (createdAt != null) 'created_at': createdAt,
       if (totalAmount != null) 'total_amount': totalAmount,
@@ -1376,12 +1843,18 @@ class SalesInvoicesCompanion extends UpdateCompanion<SalesInvoiceRow> {
   }
 
   SalesInvoicesCompanion copyWith(
-      {Value<String>? id,
+      {Value<String>? updatedAt,
+      Value<String>? deletedAt,
+      Value<String>? originDevice,
+      Value<String>? id,
       Value<int>? createdAt,
       Value<double>? totalAmount,
       Value<double>? invoiceDiscount,
       Value<int>? rowid}) {
     return SalesInvoicesCompanion(
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      originDevice: originDevice ?? this.originDevice,
       id: id ?? this.id,
       createdAt: createdAt ?? this.createdAt,
       totalAmount: totalAmount ?? this.totalAmount,
@@ -1393,6 +1866,15 @@ class SalesInvoicesCompanion extends UpdateCompanion<SalesInvoiceRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<String>(deletedAt.value);
+    }
+    if (originDevice.present) {
+      map['origin_device'] = Variable<String>(originDevice.value);
+    }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
@@ -1414,6 +1896,9 @@ class SalesInvoicesCompanion extends UpdateCompanion<SalesInvoiceRow> {
   @override
   String toString() {
     return (StringBuffer('SalesInvoicesCompanion(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
           ..write('createdAt: $createdAt, ')
           ..write('totalAmount: $totalAmount, ')
@@ -1430,6 +1915,30 @@ class $SalesItemsTable extends SalesItems
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $SalesItemsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<String> deletedAt = GeneratedColumn<String>(
+      'deleted_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _originDeviceMeta =
+      const VerificationMeta('originDevice');
+  @override
+  late final GeneratedColumn<String> originDevice = GeneratedColumn<String>(
+      'origin_device', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<int> id = GeneratedColumn<int>(
@@ -1439,6 +1948,13 @@ class $SalesItemsTable extends SalesItems
       requiredDuringInsert: false,
       defaultConstraints:
           GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'));
+  static const VerificationMeta _uuidMeta = const VerificationMeta('uuid');
+  @override
+  late final GeneratedColumn<String> uuid = GeneratedColumn<String>(
+      'uuid', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   static const VerificationMeta _invoiceIdMeta =
       const VerificationMeta('invoiceId');
   @override
@@ -1532,7 +2048,11 @@ class $SalesItemsTable extends SalesItems
       defaultValue: const Constant(''));
   @override
   List<GeneratedColumn> get $columns => [
+        updatedAt,
+        deletedAt,
+        originDevice,
         id,
+        uuid,
         invoiceId,
         productId,
         productName,
@@ -1557,8 +2077,26 @@ class $SalesItemsTable extends SalesItems
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('origin_device')) {
+      context.handle(
+          _originDeviceMeta,
+          originDevice.isAcceptableOrUnknown(
+              data['origin_device']!, _originDeviceMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('uuid')) {
+      context.handle(
+          _uuidMeta, uuid.isAcceptableOrUnknown(data['uuid']!, _uuidMeta));
     }
     if (data.containsKey('invoice_id')) {
       context.handle(_invoiceIdMeta,
@@ -1641,8 +2179,16 @@ class $SalesItemsTable extends SalesItems
   SalesItemRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return SalesItemRow(
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}deleted_at'])!,
+      originDevice: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}origin_device'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      uuid: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}uuid'])!,
       invoiceId: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}invoice_id'])!,
       productId: attachedDatabase.typeMapping
@@ -1679,7 +2225,39 @@ class $SalesItemsTable extends SalesItems
 }
 
 class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
+  /// Packed [Hlc] of the last change to this row — the **authorship** clock,
+  /// used to resolve last-write-wins.
+  ///
+  /// Deliberately *not* the sync cursor: the server stamps its own monotonic
+  /// sequence on arrival, and ordering conflicts by arrival would let a device
+  /// that was offline for three days overwrite fresher edits. Text because the
+  /// packed form sorts lexicographically in clock order, so plain SQL
+  /// comparison works.
+  ///
+  /// `''` means "predates sync" — treated as older than any real stamp, so a
+  /// legacy row never beats a real edit.
+  final String updatedAt;
+
+  /// Tombstone: packed [Hlc] of the deletion, `''` while the row is live.
+  ///
+  /// Synced rows are **never physically deleted**. Without a tombstone, "absent
+  /// here, present there" is ambiguous — never-synced or deliberately deleted? —
+  /// and the merge would resurrect the row from the other device on the next
+  /// pull. A shopkeeper deleting a product and watching it reappear is the
+  /// single most corrosive sync bug, because it makes the whole feature look
+  /// untrustworthy.
+  final String deletedAt;
+
+  /// Device that authored the row's current state.
+  ///
+  /// Doubles as the audit trail. Because the shops running two devices are
+  /// staffed by partners and relatives, the product decision was to make
+  /// changes *visible* rather than forbidden — no permission system, but the
+  /// owner can always see which device changed a price. Relaying a row must
+  /// preserve this value, never overwrite it with the forwarding device.
+  final String originDevice;
   final int id;
+  final String uuid;
   final String invoiceId;
   final String productId;
   final String productName;
@@ -1694,7 +2272,11 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
   final String saleType;
   final String serialSnapshot;
   const SalesItemRow(
-      {required this.id,
+      {required this.updatedAt,
+      required this.deletedAt,
+      required this.originDevice,
+      required this.id,
+      required this.uuid,
       required this.invoiceId,
       required this.productId,
       required this.productName,
@@ -1711,7 +2293,11 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['updated_at'] = Variable<String>(updatedAt);
+    map['deleted_at'] = Variable<String>(deletedAt);
+    map['origin_device'] = Variable<String>(originDevice);
     map['id'] = Variable<int>(id);
+    map['uuid'] = Variable<String>(uuid);
     map['invoice_id'] = Variable<String>(invoiceId);
     map['product_id'] = Variable<String>(productId);
     map['product_name'] = Variable<String>(productName);
@@ -1730,7 +2316,11 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
 
   SalesItemsCompanion toCompanion(bool nullToAbsent) {
     return SalesItemsCompanion(
+      updatedAt: Value(updatedAt),
+      deletedAt: Value(deletedAt),
+      originDevice: Value(originDevice),
       id: Value(id),
+      uuid: Value(uuid),
       invoiceId: Value(invoiceId),
       productId: Value(productId),
       productName: Value(productName),
@@ -1751,7 +2341,11 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return SalesItemRow(
+      updatedAt: serializer.fromJson<String>(json['updatedAt']),
+      deletedAt: serializer.fromJson<String>(json['deletedAt']),
+      originDevice: serializer.fromJson<String>(json['originDevice']),
       id: serializer.fromJson<int>(json['id']),
+      uuid: serializer.fromJson<String>(json['uuid']),
       invoiceId: serializer.fromJson<String>(json['invoiceId']),
       productId: serializer.fromJson<String>(json['productId']),
       productName: serializer.fromJson<String>(json['productName']),
@@ -1772,7 +2366,11 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'updatedAt': serializer.toJson<String>(updatedAt),
+      'deletedAt': serializer.toJson<String>(deletedAt),
+      'originDevice': serializer.toJson<String>(originDevice),
       'id': serializer.toJson<int>(id),
+      'uuid': serializer.toJson<String>(uuid),
       'invoiceId': serializer.toJson<String>(invoiceId),
       'productId': serializer.toJson<String>(productId),
       'productName': serializer.toJson<String>(productName),
@@ -1790,7 +2388,11 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
   }
 
   SalesItemRow copyWith(
-          {int? id,
+          {String? updatedAt,
+          String? deletedAt,
+          String? originDevice,
+          int? id,
+          String? uuid,
           String? invoiceId,
           String? productId,
           String? productName,
@@ -1805,7 +2407,11 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
           String? saleType,
           String? serialSnapshot}) =>
       SalesItemRow(
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt ?? this.deletedAt,
+        originDevice: originDevice ?? this.originDevice,
         id: id ?? this.id,
+        uuid: uuid ?? this.uuid,
         invoiceId: invoiceId ?? this.invoiceId,
         productId: productId ?? this.productId,
         productName: productName ?? this.productName,
@@ -1822,7 +2428,13 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
       );
   SalesItemRow copyWithCompanion(SalesItemsCompanion data) {
     return SalesItemRow(
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      originDevice: data.originDevice.present
+          ? data.originDevice.value
+          : this.originDevice,
       id: data.id.present ? data.id.value : this.id,
+      uuid: data.uuid.present ? data.uuid.value : this.uuid,
       invoiceId: data.invoiceId.present ? data.invoiceId.value : this.invoiceId,
       productId: data.productId.present ? data.productId.value : this.productId,
       productName:
@@ -1851,7 +2463,11 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
   @override
   String toString() {
     return (StringBuffer('SalesItemRow(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
+          ..write('uuid: $uuid, ')
           ..write('invoiceId: $invoiceId, ')
           ..write('productId: $productId, ')
           ..write('productName: $productName, ')
@@ -1871,7 +2487,11 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
 
   @override
   int get hashCode => Object.hash(
+      updatedAt,
+      deletedAt,
+      originDevice,
       id,
+      uuid,
       invoiceId,
       productId,
       productName,
@@ -1889,7 +2509,11 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is SalesItemRow &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.originDevice == this.originDevice &&
           other.id == this.id &&
+          other.uuid == this.uuid &&
           other.invoiceId == this.invoiceId &&
           other.productId == this.productId &&
           other.productName == this.productName &&
@@ -1906,7 +2530,11 @@ class SalesItemRow extends DataClass implements Insertable<SalesItemRow> {
 }
 
 class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
+  final Value<String> updatedAt;
+  final Value<String> deletedAt;
+  final Value<String> originDevice;
   final Value<int> id;
+  final Value<String> uuid;
   final Value<String> invoiceId;
   final Value<String> productId;
   final Value<String> productName;
@@ -1921,7 +2549,11 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
   final Value<String> saleType;
   final Value<String> serialSnapshot;
   const SalesItemsCompanion({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     this.id = const Value.absent(),
+    this.uuid = const Value.absent(),
     this.invoiceId = const Value.absent(),
     this.productId = const Value.absent(),
     this.productName = const Value.absent(),
@@ -1937,7 +2569,11 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
     this.serialSnapshot = const Value.absent(),
   });
   SalesItemsCompanion.insert({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     this.id = const Value.absent(),
+    this.uuid = const Value.absent(),
     required String invoiceId,
     required String productId,
     required String productName,
@@ -1957,7 +2593,11 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
         price = Value(price),
         quantity = Value(quantity);
   static Insertable<SalesItemRow> custom({
+    Expression<String>? updatedAt,
+    Expression<String>? deletedAt,
+    Expression<String>? originDevice,
     Expression<int>? id,
+    Expression<String>? uuid,
     Expression<String>? invoiceId,
     Expression<String>? productId,
     Expression<String>? productName,
@@ -1973,7 +2613,11 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
     Expression<String>? serialSnapshot,
   }) {
     return RawValuesInsertable({
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (originDevice != null) 'origin_device': originDevice,
       if (id != null) 'id': id,
+      if (uuid != null) 'uuid': uuid,
       if (invoiceId != null) 'invoice_id': invoiceId,
       if (productId != null) 'product_id': productId,
       if (productName != null) 'product_name': productName,
@@ -1991,7 +2635,11 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
   }
 
   SalesItemsCompanion copyWith(
-      {Value<int>? id,
+      {Value<String>? updatedAt,
+      Value<String>? deletedAt,
+      Value<String>? originDevice,
+      Value<int>? id,
+      Value<String>? uuid,
       Value<String>? invoiceId,
       Value<String>? productId,
       Value<String>? productName,
@@ -2006,7 +2654,11 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
       Value<String>? saleType,
       Value<String>? serialSnapshot}) {
     return SalesItemsCompanion(
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      originDevice: originDevice ?? this.originDevice,
       id: id ?? this.id,
+      uuid: uuid ?? this.uuid,
       invoiceId: invoiceId ?? this.invoiceId,
       productId: productId ?? this.productId,
       productName: productName ?? this.productName,
@@ -2026,8 +2678,20 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<String>(deletedAt.value);
+    }
+    if (originDevice.present) {
+      map['origin_device'] = Variable<String>(originDevice.value);
+    }
     if (id.present) {
       map['id'] = Variable<int>(id.value);
+    }
+    if (uuid.present) {
+      map['uuid'] = Variable<String>(uuid.value);
     }
     if (invoiceId.present) {
       map['invoice_id'] = Variable<String>(invoiceId.value);
@@ -2074,7 +2738,11 @@ class SalesItemsCompanion extends UpdateCompanion<SalesItemRow> {
   @override
   String toString() {
     return (StringBuffer('SalesItemsCompanion(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
+          ..write('uuid: $uuid, ')
           ..write('invoiceId: $invoiceId, ')
           ..write('productId: $productId, ')
           ..write('productName: $productName, ')
@@ -2099,6 +2767,30 @@ class $CustomersTable extends Customers
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $CustomersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<String> deletedAt = GeneratedColumn<String>(
+      'deleted_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _originDeviceMeta =
+      const VerificationMeta('originDevice');
+  @override
+  late final GeneratedColumn<String> originDevice = GeneratedColumn<String>(
+      'origin_device', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -2140,8 +2832,17 @@ class $CustomersTable extends Customers
           GeneratedColumn.constraintIsAlways('CHECK ("is_archived" IN (0, 1))'),
       defaultValue: const Constant(false));
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, name, phone, note, createdAt, isArchived];
+  List<GeneratedColumn> get $columns => [
+        updatedAt,
+        deletedAt,
+        originDevice,
+        id,
+        name,
+        phone,
+        note,
+        createdAt,
+        isArchived
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2152,6 +2853,20 @@ class $CustomersTable extends Customers
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('origin_device')) {
+      context.handle(
+          _originDeviceMeta,
+          originDevice.isAcceptableOrUnknown(
+              data['origin_device']!, _originDeviceMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
@@ -2192,6 +2907,12 @@ class $CustomersTable extends Customers
   CustomerRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return CustomerRow(
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}deleted_at'])!,
+      originDevice: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}origin_device'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       name: attachedDatabase.typeMapping
@@ -2214,6 +2935,37 @@ class $CustomersTable extends Customers
 }
 
 class CustomerRow extends DataClass implements Insertable<CustomerRow> {
+  /// Packed [Hlc] of the last change to this row — the **authorship** clock,
+  /// used to resolve last-write-wins.
+  ///
+  /// Deliberately *not* the sync cursor: the server stamps its own monotonic
+  /// sequence on arrival, and ordering conflicts by arrival would let a device
+  /// that was offline for three days overwrite fresher edits. Text because the
+  /// packed form sorts lexicographically in clock order, so plain SQL
+  /// comparison works.
+  ///
+  /// `''` means "predates sync" — treated as older than any real stamp, so a
+  /// legacy row never beats a real edit.
+  final String updatedAt;
+
+  /// Tombstone: packed [Hlc] of the deletion, `''` while the row is live.
+  ///
+  /// Synced rows are **never physically deleted**. Without a tombstone, "absent
+  /// here, present there" is ambiguous — never-synced or deliberately deleted? —
+  /// and the merge would resurrect the row from the other device on the next
+  /// pull. A shopkeeper deleting a product and watching it reappear is the
+  /// single most corrosive sync bug, because it makes the whole feature look
+  /// untrustworthy.
+  final String deletedAt;
+
+  /// Device that authored the row's current state.
+  ///
+  /// Doubles as the audit trail. Because the shops running two devices are
+  /// staffed by partners and relatives, the product decision was to make
+  /// changes *visible* rather than forbidden — no permission system, but the
+  /// owner can always see which device changed a price. Relaying a row must
+  /// preserve this value, never overwrite it with the forwarding device.
+  final String originDevice;
   final String id;
   final String name;
   final String phone;
@@ -2225,7 +2977,10 @@ class CustomerRow extends DataClass implements Insertable<CustomerRow> {
   /// Soft-hide a customer without deleting their ledger history.
   final bool isArchived;
   const CustomerRow(
-      {required this.id,
+      {required this.updatedAt,
+      required this.deletedAt,
+      required this.originDevice,
+      required this.id,
       required this.name,
       required this.phone,
       required this.note,
@@ -2234,6 +2989,9 @@ class CustomerRow extends DataClass implements Insertable<CustomerRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['updated_at'] = Variable<String>(updatedAt);
+    map['deleted_at'] = Variable<String>(deletedAt);
+    map['origin_device'] = Variable<String>(originDevice);
     map['id'] = Variable<String>(id);
     map['name'] = Variable<String>(name);
     map['phone'] = Variable<String>(phone);
@@ -2245,6 +3003,9 @@ class CustomerRow extends DataClass implements Insertable<CustomerRow> {
 
   CustomersCompanion toCompanion(bool nullToAbsent) {
     return CustomersCompanion(
+      updatedAt: Value(updatedAt),
+      deletedAt: Value(deletedAt),
+      originDevice: Value(originDevice),
       id: Value(id),
       name: Value(name),
       phone: Value(phone),
@@ -2258,6 +3019,9 @@ class CustomerRow extends DataClass implements Insertable<CustomerRow> {
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return CustomerRow(
+      updatedAt: serializer.fromJson<String>(json['updatedAt']),
+      deletedAt: serializer.fromJson<String>(json['deletedAt']),
+      originDevice: serializer.fromJson<String>(json['originDevice']),
       id: serializer.fromJson<String>(json['id']),
       name: serializer.fromJson<String>(json['name']),
       phone: serializer.fromJson<String>(json['phone']),
@@ -2270,6 +3034,9 @@ class CustomerRow extends DataClass implements Insertable<CustomerRow> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'updatedAt': serializer.toJson<String>(updatedAt),
+      'deletedAt': serializer.toJson<String>(deletedAt),
+      'originDevice': serializer.toJson<String>(originDevice),
       'id': serializer.toJson<String>(id),
       'name': serializer.toJson<String>(name),
       'phone': serializer.toJson<String>(phone),
@@ -2280,13 +3047,19 @@ class CustomerRow extends DataClass implements Insertable<CustomerRow> {
   }
 
   CustomerRow copyWith(
-          {String? id,
+          {String? updatedAt,
+          String? deletedAt,
+          String? originDevice,
+          String? id,
           String? name,
           String? phone,
           String? note,
           int? createdAt,
           bool? isArchived}) =>
       CustomerRow(
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt ?? this.deletedAt,
+        originDevice: originDevice ?? this.originDevice,
         id: id ?? this.id,
         name: name ?? this.name,
         phone: phone ?? this.phone,
@@ -2296,6 +3069,11 @@ class CustomerRow extends DataClass implements Insertable<CustomerRow> {
       );
   CustomerRow copyWithCompanion(CustomersCompanion data) {
     return CustomerRow(
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      originDevice: data.originDevice.present
+          ? data.originDevice.value
+          : this.originDevice,
       id: data.id.present ? data.id.value : this.id,
       name: data.name.present ? data.name.value : this.name,
       phone: data.phone.present ? data.phone.value : this.phone,
@@ -2309,6 +3087,9 @@ class CustomerRow extends DataClass implements Insertable<CustomerRow> {
   @override
   String toString() {
     return (StringBuffer('CustomerRow(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('phone: $phone, ')
@@ -2320,11 +3101,15 @@ class CustomerRow extends DataClass implements Insertable<CustomerRow> {
   }
 
   @override
-  int get hashCode => Object.hash(id, name, phone, note, createdAt, isArchived);
+  int get hashCode => Object.hash(updatedAt, deletedAt, originDevice, id, name,
+      phone, note, createdAt, isArchived);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is CustomerRow &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.originDevice == this.originDevice &&
           other.id == this.id &&
           other.name == this.name &&
           other.phone == this.phone &&
@@ -2334,6 +3119,9 @@ class CustomerRow extends DataClass implements Insertable<CustomerRow> {
 }
 
 class CustomersCompanion extends UpdateCompanion<CustomerRow> {
+  final Value<String> updatedAt;
+  final Value<String> deletedAt;
+  final Value<String> originDevice;
   final Value<String> id;
   final Value<String> name;
   final Value<String> phone;
@@ -2342,6 +3130,9 @@ class CustomersCompanion extends UpdateCompanion<CustomerRow> {
   final Value<bool> isArchived;
   final Value<int> rowid;
   const CustomersCompanion({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     this.id = const Value.absent(),
     this.name = const Value.absent(),
     this.phone = const Value.absent(),
@@ -2351,6 +3142,9 @@ class CustomersCompanion extends UpdateCompanion<CustomerRow> {
     this.rowid = const Value.absent(),
   });
   CustomersCompanion.insert({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     required String id,
     required String name,
     this.phone = const Value.absent(),
@@ -2362,6 +3156,9 @@ class CustomersCompanion extends UpdateCompanion<CustomerRow> {
         name = Value(name),
         createdAt = Value(createdAt);
   static Insertable<CustomerRow> custom({
+    Expression<String>? updatedAt,
+    Expression<String>? deletedAt,
+    Expression<String>? originDevice,
     Expression<String>? id,
     Expression<String>? name,
     Expression<String>? phone,
@@ -2371,6 +3168,9 @@ class CustomersCompanion extends UpdateCompanion<CustomerRow> {
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (originDevice != null) 'origin_device': originDevice,
       if (id != null) 'id': id,
       if (name != null) 'name': name,
       if (phone != null) 'phone': phone,
@@ -2382,7 +3182,10 @@ class CustomersCompanion extends UpdateCompanion<CustomerRow> {
   }
 
   CustomersCompanion copyWith(
-      {Value<String>? id,
+      {Value<String>? updatedAt,
+      Value<String>? deletedAt,
+      Value<String>? originDevice,
+      Value<String>? id,
       Value<String>? name,
       Value<String>? phone,
       Value<String>? note,
@@ -2390,6 +3193,9 @@ class CustomersCompanion extends UpdateCompanion<CustomerRow> {
       Value<bool>? isArchived,
       Value<int>? rowid}) {
     return CustomersCompanion(
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      originDevice: originDevice ?? this.originDevice,
       id: id ?? this.id,
       name: name ?? this.name,
       phone: phone ?? this.phone,
@@ -2403,6 +3209,15 @@ class CustomersCompanion extends UpdateCompanion<CustomerRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<String>(deletedAt.value);
+    }
+    if (originDevice.present) {
+      map['origin_device'] = Variable<String>(originDevice.value);
+    }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
@@ -2430,6 +3245,9 @@ class CustomersCompanion extends UpdateCompanion<CustomerRow> {
   @override
   String toString() {
     return (StringBuffer('CustomersCompanion(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
           ..write('name: $name, ')
           ..write('phone: $phone, ')
@@ -2448,6 +3266,30 @@ class $LedgerEntriesTable extends LedgerEntries
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $LedgerEntriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<String> deletedAt = GeneratedColumn<String>(
+      'deleted_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _originDeviceMeta =
+      const VerificationMeta('originDevice');
+  @override
+  late final GeneratedColumn<String> originDevice = GeneratedColumn<String>(
+      'origin_device', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -2490,8 +3332,18 @@ class $LedgerEntriesTable extends LedgerEntries
       'created_at', aliasedName, false,
       type: DriftSqlType.int, requiredDuringInsert: true);
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, customerId, invoiceId, entryType, amount, note, createdAt];
+  List<GeneratedColumn> get $columns => [
+        updatedAt,
+        deletedAt,
+        originDevice,
+        id,
+        customerId,
+        invoiceId,
+        entryType,
+        amount,
+        note,
+        createdAt
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2502,6 +3354,20 @@ class $LedgerEntriesTable extends LedgerEntries
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('origin_device')) {
+      context.handle(
+          _originDeviceMeta,
+          originDevice.isAcceptableOrUnknown(
+              data['origin_device']!, _originDeviceMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
@@ -2550,6 +3416,12 @@ class $LedgerEntriesTable extends LedgerEntries
   LedgerEntryRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return LedgerEntryRow(
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}deleted_at'])!,
+      originDevice: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}origin_device'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       customerId: attachedDatabase.typeMapping
@@ -2574,6 +3446,37 @@ class $LedgerEntriesTable extends LedgerEntries
 }
 
 class LedgerEntryRow extends DataClass implements Insertable<LedgerEntryRow> {
+  /// Packed [Hlc] of the last change to this row — the **authorship** clock,
+  /// used to resolve last-write-wins.
+  ///
+  /// Deliberately *not* the sync cursor: the server stamps its own monotonic
+  /// sequence on arrival, and ordering conflicts by arrival would let a device
+  /// that was offline for three days overwrite fresher edits. Text because the
+  /// packed form sorts lexicographically in clock order, so plain SQL
+  /// comparison works.
+  ///
+  /// `''` means "predates sync" — treated as older than any real stamp, so a
+  /// legacy row never beats a real edit.
+  final String updatedAt;
+
+  /// Tombstone: packed [Hlc] of the deletion, `''` while the row is live.
+  ///
+  /// Synced rows are **never physically deleted**. Without a tombstone, "absent
+  /// here, present there" is ambiguous — never-synced or deliberately deleted? —
+  /// and the merge would resurrect the row from the other device on the next
+  /// pull. A shopkeeper deleting a product and watching it reappear is the
+  /// single most corrosive sync bug, because it makes the whole feature look
+  /// untrustworthy.
+  final String deletedAt;
+
+  /// Device that authored the row's current state.
+  ///
+  /// Doubles as the audit trail. Because the shops running two devices are
+  /// staffed by partners and relatives, the product decision was to make
+  /// changes *visible* rather than forbidden — no permission system, but the
+  /// owner can always see which device changed a price. Relaying a row must
+  /// preserve this value, never overwrite it with the forwarding device.
+  final String originDevice;
   final String id;
   final String customerId;
 
@@ -2592,7 +3495,10 @@ class LedgerEntryRow extends DataClass implements Insertable<LedgerEntryRow> {
   /// Stored as milliseconds since epoch.
   final int createdAt;
   const LedgerEntryRow(
-      {required this.id,
+      {required this.updatedAt,
+      required this.deletedAt,
+      required this.originDevice,
+      required this.id,
       required this.customerId,
       this.invoiceId,
       required this.entryType,
@@ -2602,6 +3508,9 @@ class LedgerEntryRow extends DataClass implements Insertable<LedgerEntryRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['updated_at'] = Variable<String>(updatedAt);
+    map['deleted_at'] = Variable<String>(deletedAt);
+    map['origin_device'] = Variable<String>(originDevice);
     map['id'] = Variable<String>(id);
     map['customer_id'] = Variable<String>(customerId);
     if (!nullToAbsent || invoiceId != null) {
@@ -2616,6 +3525,9 @@ class LedgerEntryRow extends DataClass implements Insertable<LedgerEntryRow> {
 
   LedgerEntriesCompanion toCompanion(bool nullToAbsent) {
     return LedgerEntriesCompanion(
+      updatedAt: Value(updatedAt),
+      deletedAt: Value(deletedAt),
+      originDevice: Value(originDevice),
       id: Value(id),
       customerId: Value(customerId),
       invoiceId: invoiceId == null && nullToAbsent
@@ -2632,6 +3544,9 @@ class LedgerEntryRow extends DataClass implements Insertable<LedgerEntryRow> {
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return LedgerEntryRow(
+      updatedAt: serializer.fromJson<String>(json['updatedAt']),
+      deletedAt: serializer.fromJson<String>(json['deletedAt']),
+      originDevice: serializer.fromJson<String>(json['originDevice']),
       id: serializer.fromJson<String>(json['id']),
       customerId: serializer.fromJson<String>(json['customerId']),
       invoiceId: serializer.fromJson<String?>(json['invoiceId']),
@@ -2645,6 +3560,9 @@ class LedgerEntryRow extends DataClass implements Insertable<LedgerEntryRow> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'updatedAt': serializer.toJson<String>(updatedAt),
+      'deletedAt': serializer.toJson<String>(deletedAt),
+      'originDevice': serializer.toJson<String>(originDevice),
       'id': serializer.toJson<String>(id),
       'customerId': serializer.toJson<String>(customerId),
       'invoiceId': serializer.toJson<String?>(invoiceId),
@@ -2656,7 +3574,10 @@ class LedgerEntryRow extends DataClass implements Insertable<LedgerEntryRow> {
   }
 
   LedgerEntryRow copyWith(
-          {String? id,
+          {String? updatedAt,
+          String? deletedAt,
+          String? originDevice,
+          String? id,
           String? customerId,
           Value<String?> invoiceId = const Value.absent(),
           String? entryType,
@@ -2664,6 +3585,9 @@ class LedgerEntryRow extends DataClass implements Insertable<LedgerEntryRow> {
           String? note,
           int? createdAt}) =>
       LedgerEntryRow(
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt ?? this.deletedAt,
+        originDevice: originDevice ?? this.originDevice,
         id: id ?? this.id,
         customerId: customerId ?? this.customerId,
         invoiceId: invoiceId.present ? invoiceId.value : this.invoiceId,
@@ -2674,6 +3598,11 @@ class LedgerEntryRow extends DataClass implements Insertable<LedgerEntryRow> {
       );
   LedgerEntryRow copyWithCompanion(LedgerEntriesCompanion data) {
     return LedgerEntryRow(
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      originDevice: data.originDevice.present
+          ? data.originDevice.value
+          : this.originDevice,
       id: data.id.present ? data.id.value : this.id,
       customerId:
           data.customerId.present ? data.customerId.value : this.customerId,
@@ -2688,6 +3617,9 @@ class LedgerEntryRow extends DataClass implements Insertable<LedgerEntryRow> {
   @override
   String toString() {
     return (StringBuffer('LedgerEntryRow(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
           ..write('customerId: $customerId, ')
           ..write('invoiceId: $invoiceId, ')
@@ -2700,12 +3632,15 @@ class LedgerEntryRow extends DataClass implements Insertable<LedgerEntryRow> {
   }
 
   @override
-  int get hashCode => Object.hash(
-      id, customerId, invoiceId, entryType, amount, note, createdAt);
+  int get hashCode => Object.hash(updatedAt, deletedAt, originDevice, id,
+      customerId, invoiceId, entryType, amount, note, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is LedgerEntryRow &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.originDevice == this.originDevice &&
           other.id == this.id &&
           other.customerId == this.customerId &&
           other.invoiceId == this.invoiceId &&
@@ -2716,6 +3651,9 @@ class LedgerEntryRow extends DataClass implements Insertable<LedgerEntryRow> {
 }
 
 class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntryRow> {
+  final Value<String> updatedAt;
+  final Value<String> deletedAt;
+  final Value<String> originDevice;
   final Value<String> id;
   final Value<String> customerId;
   final Value<String?> invoiceId;
@@ -2725,6 +3663,9 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntryRow> {
   final Value<int> createdAt;
   final Value<int> rowid;
   const LedgerEntriesCompanion({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     this.id = const Value.absent(),
     this.customerId = const Value.absent(),
     this.invoiceId = const Value.absent(),
@@ -2735,6 +3676,9 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntryRow> {
     this.rowid = const Value.absent(),
   });
   LedgerEntriesCompanion.insert({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     required String id,
     required String customerId,
     this.invoiceId = const Value.absent(),
@@ -2749,6 +3693,9 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntryRow> {
         amount = Value(amount),
         createdAt = Value(createdAt);
   static Insertable<LedgerEntryRow> custom({
+    Expression<String>? updatedAt,
+    Expression<String>? deletedAt,
+    Expression<String>? originDevice,
     Expression<String>? id,
     Expression<String>? customerId,
     Expression<String>? invoiceId,
@@ -2759,6 +3706,9 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntryRow> {
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (originDevice != null) 'origin_device': originDevice,
       if (id != null) 'id': id,
       if (customerId != null) 'customer_id': customerId,
       if (invoiceId != null) 'invoice_id': invoiceId,
@@ -2771,7 +3721,10 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntryRow> {
   }
 
   LedgerEntriesCompanion copyWith(
-      {Value<String>? id,
+      {Value<String>? updatedAt,
+      Value<String>? deletedAt,
+      Value<String>? originDevice,
+      Value<String>? id,
       Value<String>? customerId,
       Value<String?>? invoiceId,
       Value<String>? entryType,
@@ -2780,6 +3733,9 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntryRow> {
       Value<int>? createdAt,
       Value<int>? rowid}) {
     return LedgerEntriesCompanion(
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      originDevice: originDevice ?? this.originDevice,
       id: id ?? this.id,
       customerId: customerId ?? this.customerId,
       invoiceId: invoiceId ?? this.invoiceId,
@@ -2794,6 +3750,15 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntryRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<String>(deletedAt.value);
+    }
+    if (originDevice.present) {
+      map['origin_device'] = Variable<String>(originDevice.value);
+    }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
@@ -2824,6 +3789,9 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntryRow> {
   @override
   String toString() {
     return (StringBuffer('LedgerEntriesCompanion(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
           ..write('customerId: $customerId, ')
           ..write('invoiceId: $invoiceId, ')
@@ -2843,6 +3811,30 @@ class $CashboxTransactionsTable extends CashboxTransactions
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $CashboxTransactionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<String> deletedAt = GeneratedColumn<String>(
+      'deleted_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _originDeviceMeta =
+      const VerificationMeta('originDevice');
+  @override
+  late final GeneratedColumn<String> originDevice = GeneratedColumn<String>(
+      'origin_device', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -2884,8 +3876,18 @@ class $CashboxTransactionsTable extends CashboxTransactions
       'created_at', aliasedName, false,
       type: DriftSqlType.int, requiredDuringInsert: true);
   @override
-  List<GeneratedColumn> get $columns =>
-      [id, type, amount, note, relatedId, occurredAt, createdAt];
+  List<GeneratedColumn> get $columns => [
+        updatedAt,
+        deletedAt,
+        originDevice,
+        id,
+        type,
+        amount,
+        note,
+        relatedId,
+        occurredAt,
+        createdAt
+      ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2897,6 +3899,20 @@ class $CashboxTransactionsTable extends CashboxTransactions
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('origin_device')) {
+      context.handle(
+          _originDeviceMeta,
+          originDevice.isAcceptableOrUnknown(
+              data['origin_device']!, _originDeviceMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
@@ -2945,6 +3961,12 @@ class $CashboxTransactionsTable extends CashboxTransactions
   CashboxTransactionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return CashboxTransactionRow(
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}deleted_at'])!,
+      originDevice: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}origin_device'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       type: attachedDatabase.typeMapping
@@ -2970,6 +3992,37 @@ class $CashboxTransactionsTable extends CashboxTransactions
 
 class CashboxTransactionRow extends DataClass
     implements Insertable<CashboxTransactionRow> {
+  /// Packed [Hlc] of the last change to this row — the **authorship** clock,
+  /// used to resolve last-write-wins.
+  ///
+  /// Deliberately *not* the sync cursor: the server stamps its own monotonic
+  /// sequence on arrival, and ordering conflicts by arrival would let a device
+  /// that was offline for three days overwrite fresher edits. Text because the
+  /// packed form sorts lexicographically in clock order, so plain SQL
+  /// comparison works.
+  ///
+  /// `''` means "predates sync" — treated as older than any real stamp, so a
+  /// legacy row never beats a real edit.
+  final String updatedAt;
+
+  /// Tombstone: packed [Hlc] of the deletion, `''` while the row is live.
+  ///
+  /// Synced rows are **never physically deleted**. Without a tombstone, "absent
+  /// here, present there" is ambiguous — never-synced or deliberately deleted? —
+  /// and the merge would resurrect the row from the other device on the next
+  /// pull. A shopkeeper deleting a product and watching it reappear is the
+  /// single most corrosive sync bug, because it makes the whole feature look
+  /// untrustworthy.
+  final String deletedAt;
+
+  /// Device that authored the row's current state.
+  ///
+  /// Doubles as the audit trail. Because the shops running two devices are
+  /// staffed by partners and relatives, the product decision was to make
+  /// changes *visible* rather than forbidden — no permission system, but the
+  /// owner can always see which device changed a price. Relaying a row must
+  /// preserve this value, never overwrite it with the forwarding device.
+  final String originDevice;
   final String id;
 
   /// `CashTransactionType.name` — persisted by name string, never index.
@@ -2991,7 +4044,10 @@ class CashboxTransactionRow extends DataClass
   /// Audit insertion time (milliseconds since epoch).
   final int createdAt;
   const CashboxTransactionRow(
-      {required this.id,
+      {required this.updatedAt,
+      required this.deletedAt,
+      required this.originDevice,
+      required this.id,
       required this.type,
       required this.amount,
       required this.note,
@@ -3001,6 +4057,9 @@ class CashboxTransactionRow extends DataClass
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['updated_at'] = Variable<String>(updatedAt);
+    map['deleted_at'] = Variable<String>(deletedAt);
+    map['origin_device'] = Variable<String>(originDevice);
     map['id'] = Variable<String>(id);
     map['type'] = Variable<String>(type);
     map['amount'] = Variable<double>(amount);
@@ -3015,6 +4074,9 @@ class CashboxTransactionRow extends DataClass
 
   CashboxTransactionsCompanion toCompanion(bool nullToAbsent) {
     return CashboxTransactionsCompanion(
+      updatedAt: Value(updatedAt),
+      deletedAt: Value(deletedAt),
+      originDevice: Value(originDevice),
       id: Value(id),
       type: Value(type),
       amount: Value(amount),
@@ -3031,6 +4093,9 @@ class CashboxTransactionRow extends DataClass
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return CashboxTransactionRow(
+      updatedAt: serializer.fromJson<String>(json['updatedAt']),
+      deletedAt: serializer.fromJson<String>(json['deletedAt']),
+      originDevice: serializer.fromJson<String>(json['originDevice']),
       id: serializer.fromJson<String>(json['id']),
       type: serializer.fromJson<String>(json['type']),
       amount: serializer.fromJson<double>(json['amount']),
@@ -3044,6 +4109,9 @@ class CashboxTransactionRow extends DataClass
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'updatedAt': serializer.toJson<String>(updatedAt),
+      'deletedAt': serializer.toJson<String>(deletedAt),
+      'originDevice': serializer.toJson<String>(originDevice),
       'id': serializer.toJson<String>(id),
       'type': serializer.toJson<String>(type),
       'amount': serializer.toJson<double>(amount),
@@ -3055,7 +4123,10 @@ class CashboxTransactionRow extends DataClass
   }
 
   CashboxTransactionRow copyWith(
-          {String? id,
+          {String? updatedAt,
+          String? deletedAt,
+          String? originDevice,
+          String? id,
           String? type,
           double? amount,
           String? note,
@@ -3063,6 +4134,9 @@ class CashboxTransactionRow extends DataClass
           int? occurredAt,
           int? createdAt}) =>
       CashboxTransactionRow(
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt ?? this.deletedAt,
+        originDevice: originDevice ?? this.originDevice,
         id: id ?? this.id,
         type: type ?? this.type,
         amount: amount ?? this.amount,
@@ -3073,6 +4147,11 @@ class CashboxTransactionRow extends DataClass
       );
   CashboxTransactionRow copyWithCompanion(CashboxTransactionsCompanion data) {
     return CashboxTransactionRow(
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      originDevice: data.originDevice.present
+          ? data.originDevice.value
+          : this.originDevice,
       id: data.id.present ? data.id.value : this.id,
       type: data.type.present ? data.type.value : this.type,
       amount: data.amount.present ? data.amount.value : this.amount,
@@ -3087,6 +4166,9 @@ class CashboxTransactionRow extends DataClass
   @override
   String toString() {
     return (StringBuffer('CashboxTransactionRow(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
           ..write('type: $type, ')
           ..write('amount: $amount, ')
@@ -3099,12 +4181,15 @@ class CashboxTransactionRow extends DataClass
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, type, amount, note, relatedId, occurredAt, createdAt);
+  int get hashCode => Object.hash(updatedAt, deletedAt, originDevice, id, type,
+      amount, note, relatedId, occurredAt, createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is CashboxTransactionRow &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.originDevice == this.originDevice &&
           other.id == this.id &&
           other.type == this.type &&
           other.amount == this.amount &&
@@ -3116,6 +4201,9 @@ class CashboxTransactionRow extends DataClass
 
 class CashboxTransactionsCompanion
     extends UpdateCompanion<CashboxTransactionRow> {
+  final Value<String> updatedAt;
+  final Value<String> deletedAt;
+  final Value<String> originDevice;
   final Value<String> id;
   final Value<String> type;
   final Value<double> amount;
@@ -3125,6 +4213,9 @@ class CashboxTransactionsCompanion
   final Value<int> createdAt;
   final Value<int> rowid;
   const CashboxTransactionsCompanion({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     this.id = const Value.absent(),
     this.type = const Value.absent(),
     this.amount = const Value.absent(),
@@ -3135,6 +4226,9 @@ class CashboxTransactionsCompanion
     this.rowid = const Value.absent(),
   });
   CashboxTransactionsCompanion.insert({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     required String id,
     required String type,
     required double amount,
@@ -3149,6 +4243,9 @@ class CashboxTransactionsCompanion
         occurredAt = Value(occurredAt),
         createdAt = Value(createdAt);
   static Insertable<CashboxTransactionRow> custom({
+    Expression<String>? updatedAt,
+    Expression<String>? deletedAt,
+    Expression<String>? originDevice,
     Expression<String>? id,
     Expression<String>? type,
     Expression<double>? amount,
@@ -3159,6 +4256,9 @@ class CashboxTransactionsCompanion
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (originDevice != null) 'origin_device': originDevice,
       if (id != null) 'id': id,
       if (type != null) 'type': type,
       if (amount != null) 'amount': amount,
@@ -3171,7 +4271,10 @@ class CashboxTransactionsCompanion
   }
 
   CashboxTransactionsCompanion copyWith(
-      {Value<String>? id,
+      {Value<String>? updatedAt,
+      Value<String>? deletedAt,
+      Value<String>? originDevice,
+      Value<String>? id,
       Value<String>? type,
       Value<double>? amount,
       Value<String>? note,
@@ -3180,6 +4283,9 @@ class CashboxTransactionsCompanion
       Value<int>? createdAt,
       Value<int>? rowid}) {
     return CashboxTransactionsCompanion(
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      originDevice: originDevice ?? this.originDevice,
       id: id ?? this.id,
       type: type ?? this.type,
       amount: amount ?? this.amount,
@@ -3194,6 +4300,15 @@ class CashboxTransactionsCompanion
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<String>(deletedAt.value);
+    }
+    if (originDevice.present) {
+      map['origin_device'] = Variable<String>(originDevice.value);
+    }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
@@ -3224,6 +4339,9 @@ class CashboxTransactionsCompanion
   @override
   String toString() {
     return (StringBuffer('CashboxTransactionsCompanion(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
           ..write('type: $type, ')
           ..write('amount: $amount, ')
@@ -3243,6 +4361,30 @@ class $AttributeDefinitionsTable extends AttributeDefinitions
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $AttributeDefinitionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<String> deletedAt = GeneratedColumn<String>(
+      'deleted_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _originDeviceMeta =
+      const VerificationMeta('originDevice');
+  @override
+  late final GeneratedColumn<String> originDevice = GeneratedColumn<String>(
+      'origin_device', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -3325,6 +4467,9 @@ class $AttributeDefinitionsTable extends AttributeDefinitions
       defaultValue: const Constant(false));
   @override
   List<GeneratedColumn> get $columns => [
+        updatedAt,
+        deletedAt,
+        originDevice,
         id,
         label,
         type,
@@ -3347,6 +4492,20 @@ class $AttributeDefinitionsTable extends AttributeDefinitions
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('origin_device')) {
+      context.handle(
+          _originDeviceMeta,
+          originDevice.isAcceptableOrUnknown(
+              data['origin_device']!, _originDeviceMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
@@ -3407,6 +4566,12 @@ class $AttributeDefinitionsTable extends AttributeDefinitions
   AttributeDefinitionRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return AttributeDefinitionRow(
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}deleted_at'])!,
+      originDevice: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}origin_device'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       label: attachedDatabase.typeMapping
@@ -3438,6 +4603,37 @@ class $AttributeDefinitionsTable extends AttributeDefinitions
 
 class AttributeDefinitionRow extends DataClass
     implements Insertable<AttributeDefinitionRow> {
+  /// Packed [Hlc] of the last change to this row — the **authorship** clock,
+  /// used to resolve last-write-wins.
+  ///
+  /// Deliberately *not* the sync cursor: the server stamps its own monotonic
+  /// sequence on arrival, and ordering conflicts by arrival would let a device
+  /// that was offline for three days overwrite fresher edits. Text because the
+  /// packed form sorts lexicographically in clock order, so plain SQL
+  /// comparison works.
+  ///
+  /// `''` means "predates sync" — treated as older than any real stamp, so a
+  /// legacy row never beats a real edit.
+  final String updatedAt;
+
+  /// Tombstone: packed [Hlc] of the deletion, `''` while the row is live.
+  ///
+  /// Synced rows are **never physically deleted**. Without a tombstone, "absent
+  /// here, present there" is ambiguous — never-synced or deliberately deleted? —
+  /// and the merge would resurrect the row from the other device on the next
+  /// pull. A shopkeeper deleting a product and watching it reappear is the
+  /// single most corrosive sync bug, because it makes the whole feature look
+  /// untrustworthy.
+  final String deletedAt;
+
+  /// Device that authored the row's current state.
+  ///
+  /// Doubles as the audit trail. Because the shops running two devices are
+  /// staffed by partners and relatives, the product decision was to make
+  /// changes *visible* rather than forbidden — no permission system, but the
+  /// owner can always see which device changed a price. Relaying a row must
+  /// preserve this value, never overwrite it with the forwarding device.
+  final String originDevice;
   final String id;
   final String label;
   final String type;
@@ -3449,7 +4645,10 @@ class AttributeDefinitionRow extends DataClass
   final int sortOrder;
   final bool isArchived;
   const AttributeDefinitionRow(
-      {required this.id,
+      {required this.updatedAt,
+      required this.deletedAt,
+      required this.originDevice,
+      required this.id,
       required this.label,
       required this.type,
       required this.options,
@@ -3462,6 +4661,9 @@ class AttributeDefinitionRow extends DataClass
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['updated_at'] = Variable<String>(updatedAt);
+    map['deleted_at'] = Variable<String>(deletedAt);
+    map['origin_device'] = Variable<String>(originDevice);
     map['id'] = Variable<String>(id);
     map['label'] = Variable<String>(label);
     map['type'] = Variable<String>(type);
@@ -3477,6 +4679,9 @@ class AttributeDefinitionRow extends DataClass
 
   AttributeDefinitionsCompanion toCompanion(bool nullToAbsent) {
     return AttributeDefinitionsCompanion(
+      updatedAt: Value(updatedAt),
+      deletedAt: Value(deletedAt),
+      originDevice: Value(originDevice),
       id: Value(id),
       label: Value(label),
       type: Value(type),
@@ -3494,6 +4699,9 @@ class AttributeDefinitionRow extends DataClass
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return AttributeDefinitionRow(
+      updatedAt: serializer.fromJson<String>(json['updatedAt']),
+      deletedAt: serializer.fromJson<String>(json['deletedAt']),
+      originDevice: serializer.fromJson<String>(json['originDevice']),
       id: serializer.fromJson<String>(json['id']),
       label: serializer.fromJson<String>(json['label']),
       type: serializer.fromJson<String>(json['type']),
@@ -3510,6 +4718,9 @@ class AttributeDefinitionRow extends DataClass
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'updatedAt': serializer.toJson<String>(updatedAt),
+      'deletedAt': serializer.toJson<String>(deletedAt),
+      'originDevice': serializer.toJson<String>(originDevice),
       'id': serializer.toJson<String>(id),
       'label': serializer.toJson<String>(label),
       'type': serializer.toJson<String>(type),
@@ -3524,7 +4735,10 @@ class AttributeDefinitionRow extends DataClass
   }
 
   AttributeDefinitionRow copyWith(
-          {String? id,
+          {String? updatedAt,
+          String? deletedAt,
+          String? originDevice,
+          String? id,
           String? label,
           String? type,
           String? options,
@@ -3535,6 +4749,9 @@ class AttributeDefinitionRow extends DataClass
           int? sortOrder,
           bool? isArchived}) =>
       AttributeDefinitionRow(
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt ?? this.deletedAt,
+        originDevice: originDevice ?? this.originDevice,
         id: id ?? this.id,
         label: label ?? this.label,
         type: type ?? this.type,
@@ -3548,6 +4765,11 @@ class AttributeDefinitionRow extends DataClass
       );
   AttributeDefinitionRow copyWithCompanion(AttributeDefinitionsCompanion data) {
     return AttributeDefinitionRow(
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      originDevice: data.originDevice.present
+          ? data.originDevice.value
+          : this.originDevice,
       id: data.id.present ? data.id.value : this.id,
       label: data.label.present ? data.label.value : this.label,
       type: data.type.present ? data.type.value : this.type,
@@ -3569,6 +4791,9 @@ class AttributeDefinitionRow extends DataClass
   @override
   String toString() {
     return (StringBuffer('AttributeDefinitionRow(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
           ..write('label: $label, ')
           ..write('type: $type, ')
@@ -3584,12 +4809,27 @@ class AttributeDefinitionRow extends DataClass
   }
 
   @override
-  int get hashCode => Object.hash(id, label, type, options, unit, isRequired,
-      showInList, showOnReceipt, sortOrder, isArchived);
+  int get hashCode => Object.hash(
+      updatedAt,
+      deletedAt,
+      originDevice,
+      id,
+      label,
+      type,
+      options,
+      unit,
+      isRequired,
+      showInList,
+      showOnReceipt,
+      sortOrder,
+      isArchived);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is AttributeDefinitionRow &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.originDevice == this.originDevice &&
           other.id == this.id &&
           other.label == this.label &&
           other.type == this.type &&
@@ -3604,6 +4844,9 @@ class AttributeDefinitionRow extends DataClass
 
 class AttributeDefinitionsCompanion
     extends UpdateCompanion<AttributeDefinitionRow> {
+  final Value<String> updatedAt;
+  final Value<String> deletedAt;
+  final Value<String> originDevice;
   final Value<String> id;
   final Value<String> label;
   final Value<String> type;
@@ -3616,6 +4859,9 @@ class AttributeDefinitionsCompanion
   final Value<bool> isArchived;
   final Value<int> rowid;
   const AttributeDefinitionsCompanion({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     this.id = const Value.absent(),
     this.label = const Value.absent(),
     this.type = const Value.absent(),
@@ -3629,6 +4875,9 @@ class AttributeDefinitionsCompanion
     this.rowid = const Value.absent(),
   });
   AttributeDefinitionsCompanion.insert({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     required String id,
     required String label,
     this.type = const Value.absent(),
@@ -3643,6 +4892,9 @@ class AttributeDefinitionsCompanion
   })  : id = Value(id),
         label = Value(label);
   static Insertable<AttributeDefinitionRow> custom({
+    Expression<String>? updatedAt,
+    Expression<String>? deletedAt,
+    Expression<String>? originDevice,
     Expression<String>? id,
     Expression<String>? label,
     Expression<String>? type,
@@ -3656,6 +4908,9 @@ class AttributeDefinitionsCompanion
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (originDevice != null) 'origin_device': originDevice,
       if (id != null) 'id': id,
       if (label != null) 'label': label,
       if (type != null) 'type': type,
@@ -3671,7 +4926,10 @@ class AttributeDefinitionsCompanion
   }
 
   AttributeDefinitionsCompanion copyWith(
-      {Value<String>? id,
+      {Value<String>? updatedAt,
+      Value<String>? deletedAt,
+      Value<String>? originDevice,
+      Value<String>? id,
       Value<String>? label,
       Value<String>? type,
       Value<String>? options,
@@ -3683,6 +4941,9 @@ class AttributeDefinitionsCompanion
       Value<bool>? isArchived,
       Value<int>? rowid}) {
     return AttributeDefinitionsCompanion(
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      originDevice: originDevice ?? this.originDevice,
       id: id ?? this.id,
       label: label ?? this.label,
       type: type ?? this.type,
@@ -3700,6 +4961,15 @@ class AttributeDefinitionsCompanion
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<String>(deletedAt.value);
+    }
+    if (originDevice.present) {
+      map['origin_device'] = Variable<String>(originDevice.value);
+    }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
@@ -3739,6 +5009,9 @@ class AttributeDefinitionsCompanion
   @override
   String toString() {
     return (StringBuffer('AttributeDefinitionsCompanion(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
           ..write('label: $label, ')
           ..write('type: $type, ')
@@ -3761,6 +5034,30 @@ class $ProductUnitsTable extends ProductUnits
   final GeneratedDatabase attachedDatabase;
   final String? _alias;
   $ProductUnitsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<String> deletedAt = GeneratedColumn<String>(
+      'deleted_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _originDeviceMeta =
+      const VerificationMeta('originDevice');
+  @override
+  late final GeneratedColumn<String> originDevice = GeneratedColumn<String>(
+      'origin_device', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
   static const VerificationMeta _idMeta = const VerificationMeta('id');
   @override
   late final GeneratedColumn<String> id = GeneratedColumn<String>(
@@ -3822,6 +5119,9 @@ class $ProductUnitsTable extends ProductUnits
       type: DriftSqlType.int, requiredDuringInsert: true);
   @override
   List<GeneratedColumn> get $columns => [
+        updatedAt,
+        deletedAt,
+        originDevice,
         id,
         productId,
         serial,
@@ -3842,6 +5142,20 @@ class $ProductUnitsTable extends ProductUnits
       {bool isInserting = false}) {
     final context = VerificationContext();
     final data = instance.toColumns(true);
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('origin_device')) {
+      context.handle(
+          _originDeviceMeta,
+          originDevice.isAcceptableOrUnknown(
+              data['origin_device']!, _originDeviceMeta));
+    }
     if (data.containsKey('id')) {
       context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
     } else if (isInserting) {
@@ -3898,6 +5212,12 @@ class $ProductUnitsTable extends ProductUnits
   ProductUnitRow map(Map<String, dynamic> data, {String? tablePrefix}) {
     final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
     return ProductUnitRow(
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}deleted_at'])!,
+      originDevice: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}origin_device'])!,
       id: attachedDatabase.typeMapping
           .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
       productId: attachedDatabase.typeMapping
@@ -3926,6 +5246,37 @@ class $ProductUnitsTable extends ProductUnits
 }
 
 class ProductUnitRow extends DataClass implements Insertable<ProductUnitRow> {
+  /// Packed [Hlc] of the last change to this row — the **authorship** clock,
+  /// used to resolve last-write-wins.
+  ///
+  /// Deliberately *not* the sync cursor: the server stamps its own monotonic
+  /// sequence on arrival, and ordering conflicts by arrival would let a device
+  /// that was offline for three days overwrite fresher edits. Text because the
+  /// packed form sorts lexicographically in clock order, so plain SQL
+  /// comparison works.
+  ///
+  /// `''` means "predates sync" — treated as older than any real stamp, so a
+  /// legacy row never beats a real edit.
+  final String updatedAt;
+
+  /// Tombstone: packed [Hlc] of the deletion, `''` while the row is live.
+  ///
+  /// Synced rows are **never physically deleted**. Without a tombstone, "absent
+  /// here, present there" is ambiguous — never-synced or deliberately deleted? —
+  /// and the merge would resurrect the row from the other device on the next
+  /// pull. A shopkeeper deleting a product and watching it reappear is the
+  /// single most corrosive sync bug, because it makes the whole feature look
+  /// untrustworthy.
+  final String deletedAt;
+
+  /// Device that authored the row's current state.
+  ///
+  /// Doubles as the audit trail. Because the shops running two devices are
+  /// staffed by partners and relatives, the product decision was to make
+  /// changes *visible* rather than forbidden — no permission system, but the
+  /// owner can always see which device changed a price. Relaying a row must
+  /// preserve this value, never overwrite it with the forwarding device.
+  final String originDevice;
   final String id;
 
   /// The SKU this unit is one instance of.
@@ -3957,7 +5308,10 @@ class ProductUnitRow extends DataClass implements Insertable<ProductUnitRow> {
   final String note;
   final int createdAt;
   const ProductUnitRow(
-      {required this.id,
+      {required this.updatedAt,
+      required this.deletedAt,
+      required this.originDevice,
+      required this.id,
       required this.productId,
       required this.serial,
       required this.status,
@@ -3969,6 +5323,9 @@ class ProductUnitRow extends DataClass implements Insertable<ProductUnitRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    map['updated_at'] = Variable<String>(updatedAt);
+    map['deleted_at'] = Variable<String>(deletedAt);
+    map['origin_device'] = Variable<String>(originDevice);
     map['id'] = Variable<String>(id);
     map['product_id'] = Variable<String>(productId);
     map['serial'] = Variable<String>(serial);
@@ -3983,6 +5340,9 @@ class ProductUnitRow extends DataClass implements Insertable<ProductUnitRow> {
 
   ProductUnitsCompanion toCompanion(bool nullToAbsent) {
     return ProductUnitsCompanion(
+      updatedAt: Value(updatedAt),
+      deletedAt: Value(deletedAt),
+      originDevice: Value(originDevice),
       id: Value(id),
       productId: Value(productId),
       serial: Value(serial),
@@ -3999,6 +5359,9 @@ class ProductUnitRow extends DataClass implements Insertable<ProductUnitRow> {
       {ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return ProductUnitRow(
+      updatedAt: serializer.fromJson<String>(json['updatedAt']),
+      deletedAt: serializer.fromJson<String>(json['deletedAt']),
+      originDevice: serializer.fromJson<String>(json['originDevice']),
       id: serializer.fromJson<String>(json['id']),
       productId: serializer.fromJson<String>(json['productId']),
       serial: serializer.fromJson<String>(json['serial']),
@@ -4014,6 +5377,9 @@ class ProductUnitRow extends DataClass implements Insertable<ProductUnitRow> {
   Map<String, dynamic> toJson({ValueSerializer? serializer}) {
     serializer ??= driftRuntimeOptions.defaultSerializer;
     return <String, dynamic>{
+      'updatedAt': serializer.toJson<String>(updatedAt),
+      'deletedAt': serializer.toJson<String>(deletedAt),
+      'originDevice': serializer.toJson<String>(originDevice),
       'id': serializer.toJson<String>(id),
       'productId': serializer.toJson<String>(productId),
       'serial': serializer.toJson<String>(serial),
@@ -4027,7 +5393,10 @@ class ProductUnitRow extends DataClass implements Insertable<ProductUnitRow> {
   }
 
   ProductUnitRow copyWith(
-          {String? id,
+          {String? updatedAt,
+          String? deletedAt,
+          String? originDevice,
+          String? id,
           String? productId,
           String? serial,
           String? status,
@@ -4037,6 +5406,9 @@ class ProductUnitRow extends DataClass implements Insertable<ProductUnitRow> {
           String? note,
           int? createdAt}) =>
       ProductUnitRow(
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt ?? this.deletedAt,
+        originDevice: originDevice ?? this.originDevice,
         id: id ?? this.id,
         productId: productId ?? this.productId,
         serial: serial ?? this.serial,
@@ -4049,6 +5421,11 @@ class ProductUnitRow extends DataClass implements Insertable<ProductUnitRow> {
       );
   ProductUnitRow copyWithCompanion(ProductUnitsCompanion data) {
     return ProductUnitRow(
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      originDevice: data.originDevice.present
+          ? data.originDevice.value
+          : this.originDevice,
       id: data.id.present ? data.id.value : this.id,
       productId: data.productId.present ? data.productId.value : this.productId,
       serial: data.serial.present ? data.serial.value : this.serial,
@@ -4068,6 +5445,9 @@ class ProductUnitRow extends DataClass implements Insertable<ProductUnitRow> {
   @override
   String toString() {
     return (StringBuffer('ProductUnitRow(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
           ..write('productId: $productId, ')
           ..write('serial: $serial, ')
@@ -4082,12 +5462,26 @@ class ProductUnitRow extends DataClass implements Insertable<ProductUnitRow> {
   }
 
   @override
-  int get hashCode => Object.hash(id, productId, serial, status, soldInvoiceId,
-      soldAt, warrantyUntil, note, createdAt);
+  int get hashCode => Object.hash(
+      updatedAt,
+      deletedAt,
+      originDevice,
+      id,
+      productId,
+      serial,
+      status,
+      soldInvoiceId,
+      soldAt,
+      warrantyUntil,
+      note,
+      createdAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is ProductUnitRow &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.originDevice == this.originDevice &&
           other.id == this.id &&
           other.productId == this.productId &&
           other.serial == this.serial &&
@@ -4100,6 +5494,9 @@ class ProductUnitRow extends DataClass implements Insertable<ProductUnitRow> {
 }
 
 class ProductUnitsCompanion extends UpdateCompanion<ProductUnitRow> {
+  final Value<String> updatedAt;
+  final Value<String> deletedAt;
+  final Value<String> originDevice;
   final Value<String> id;
   final Value<String> productId;
   final Value<String> serial;
@@ -4111,6 +5508,9 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitRow> {
   final Value<int> createdAt;
   final Value<int> rowid;
   const ProductUnitsCompanion({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     this.id = const Value.absent(),
     this.productId = const Value.absent(),
     this.serial = const Value.absent(),
@@ -4123,6 +5523,9 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitRow> {
     this.rowid = const Value.absent(),
   });
   ProductUnitsCompanion.insert({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
     required String id,
     required String productId,
     required String serial,
@@ -4138,6 +5541,9 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitRow> {
         serial = Value(serial),
         createdAt = Value(createdAt);
   static Insertable<ProductUnitRow> custom({
+    Expression<String>? updatedAt,
+    Expression<String>? deletedAt,
+    Expression<String>? originDevice,
     Expression<String>? id,
     Expression<String>? productId,
     Expression<String>? serial,
@@ -4150,6 +5556,9 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitRow> {
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (originDevice != null) 'origin_device': originDevice,
       if (id != null) 'id': id,
       if (productId != null) 'product_id': productId,
       if (serial != null) 'serial': serial,
@@ -4164,7 +5573,10 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitRow> {
   }
 
   ProductUnitsCompanion copyWith(
-      {Value<String>? id,
+      {Value<String>? updatedAt,
+      Value<String>? deletedAt,
+      Value<String>? originDevice,
+      Value<String>? id,
       Value<String>? productId,
       Value<String>? serial,
       Value<String>? status,
@@ -4175,6 +5587,9 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitRow> {
       Value<int>? createdAt,
       Value<int>? rowid}) {
     return ProductUnitsCompanion(
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      originDevice: originDevice ?? this.originDevice,
       id: id ?? this.id,
       productId: productId ?? this.productId,
       serial: serial ?? this.serial,
@@ -4191,6 +5606,15 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitRow> {
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<String>(deletedAt.value);
+    }
+    if (originDevice.present) {
+      map['origin_device'] = Variable<String>(originDevice.value);
+    }
     if (id.present) {
       map['id'] = Variable<String>(id.value);
     }
@@ -4227,6 +5651,9 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitRow> {
   @override
   String toString() {
     return (StringBuffer('ProductUnitsCompanion(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
           ..write('id: $id, ')
           ..write('productId: $productId, ')
           ..write('serial: $serial, ')
@@ -4287,6 +5714,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
 }
 
 typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   required String id,
   required String name,
   Value<String> barcode,
@@ -4298,9 +5728,13 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   Value<String> priceCurrency,
   Value<String> attributes,
   Value<bool> isSerialized,
+  Value<int> createdAt,
   Value<int> rowid,
 });
 typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   Value<String> id,
   Value<String> name,
   Value<String> barcode,
@@ -4312,6 +5746,7 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<String> priceCurrency,
   Value<String> attributes,
   Value<bool> isSerialized,
+  Value<int> createdAt,
   Value<int> rowid,
 });
 
@@ -4324,6 +5759,15 @@ class $$ProductsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -4356,6 +5800,9 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<bool> get isSerialized => $composableBuilder(
       column: $table.isSerialized, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
 }
 
 class $$ProductsTableOrderingComposer
@@ -4367,6 +5814,16 @@ class $$ProductsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get originDevice => $composableBuilder(
+      column: $table.originDevice,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -4402,6 +5859,9 @@ class $$ProductsTableOrderingComposer
   ColumnOrderings<bool> get isSerialized => $composableBuilder(
       column: $table.isSerialized,
       builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
 }
 
 class $$ProductsTableAnnotationComposer
@@ -4413,6 +5873,15 @@ class $$ProductsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => column);
+
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -4445,6 +5914,9 @@ class $$ProductsTableAnnotationComposer
 
   GeneratedColumn<bool> get isSerialized => $composableBuilder(
       column: $table.isSerialized, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
 }
 
 class $$ProductsTableTableManager extends RootTableManager<
@@ -4470,6 +5942,9 @@ class $$ProductsTableTableManager extends RootTableManager<
           createComputedFieldComposer: () =>
               $$ProductsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             Value<String> id = const Value.absent(),
             Value<String> name = const Value.absent(),
             Value<String> barcode = const Value.absent(),
@@ -4481,9 +5956,13 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String> priceCurrency = const Value.absent(),
             Value<String> attributes = const Value.absent(),
             Value<bool> isSerialized = const Value.absent(),
+            Value<int> createdAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               ProductsCompanion(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
             name: name,
             barcode: barcode,
@@ -4495,9 +5974,13 @@ class $$ProductsTableTableManager extends RootTableManager<
             priceCurrency: priceCurrency,
             attributes: attributes,
             isSerialized: isSerialized,
+            createdAt: createdAt,
             rowid: rowid,
           ),
           createCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             required String id,
             required String name,
             Value<String> barcode = const Value.absent(),
@@ -4509,9 +5992,13 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String> priceCurrency = const Value.absent(),
             Value<String> attributes = const Value.absent(),
             Value<bool> isSerialized = const Value.absent(),
+            Value<int> createdAt = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               ProductsCompanion.insert(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
             name: name,
             barcode: barcode,
@@ -4523,6 +6010,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             priceCurrency: priceCurrency,
             attributes: attributes,
             isSerialized: isSerialized,
+            createdAt: createdAt,
             rowid: rowid,
           ),
           withReferenceMapper: (p0) => p0
@@ -4546,6 +6034,9 @@ typedef $$ProductsTableProcessedTableManager = ProcessedTableManager<
     PrefetchHooks Function()>;
 typedef $$ShopSettingsTableCreateCompanionBuilder = ShopSettingsCompanion
     Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   Value<String> id,
   Value<String> name,
   Value<String> addressLine1,
@@ -4557,6 +6048,9 @@ typedef $$ShopSettingsTableCreateCompanionBuilder = ShopSettingsCompanion
 });
 typedef $$ShopSettingsTableUpdateCompanionBuilder = ShopSettingsCompanion
     Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   Value<String> id,
   Value<String> name,
   Value<String> addressLine1,
@@ -4576,6 +6070,15 @@ class $$ShopSettingsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -4608,6 +6111,16 @@ class $$ShopSettingsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get originDevice => $composableBuilder(
+      column: $table.originDevice,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -4642,6 +6155,15 @@ class $$ShopSettingsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => column);
+
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -4687,6 +6209,9 @@ class $$ShopSettingsTableTableManager extends RootTableManager<
           createComputedFieldComposer: () =>
               $$ShopSettingsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             Value<String> id = const Value.absent(),
             Value<String> name = const Value.absent(),
             Value<String> addressLine1 = const Value.absent(),
@@ -4697,6 +6222,9 @@ class $$ShopSettingsTableTableManager extends RootTableManager<
             Value<int> rowid = const Value.absent(),
           }) =>
               ShopSettingsCompanion(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
             name: name,
             addressLine1: addressLine1,
@@ -4707,6 +6235,9 @@ class $$ShopSettingsTableTableManager extends RootTableManager<
             rowid: rowid,
           ),
           createCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             Value<String> id = const Value.absent(),
             Value<String> name = const Value.absent(),
             Value<String> addressLine1 = const Value.absent(),
@@ -4717,6 +6248,9 @@ class $$ShopSettingsTableTableManager extends RootTableManager<
             Value<int> rowid = const Value.absent(),
           }) =>
               ShopSettingsCompanion.insert(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
             name: name,
             addressLine1: addressLine1,
@@ -4869,6 +6403,9 @@ typedef $$AppSettingsTableProcessedTableManager = ProcessedTableManager<
     PrefetchHooks Function()>;
 typedef $$SalesInvoicesTableCreateCompanionBuilder = SalesInvoicesCompanion
     Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   required String id,
   required int createdAt,
   required double totalAmount,
@@ -4877,6 +6414,9 @@ typedef $$SalesInvoicesTableCreateCompanionBuilder = SalesInvoicesCompanion
 });
 typedef $$SalesInvoicesTableUpdateCompanionBuilder = SalesInvoicesCompanion
     Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   Value<String> id,
   Value<int> createdAt,
   Value<double> totalAmount,
@@ -4893,6 +6433,15 @@ class $$SalesInvoicesTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -4916,6 +6465,16 @@ class $$SalesInvoicesTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get originDevice => $composableBuilder(
+      column: $table.originDevice,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -4939,6 +6498,15 @@ class $$SalesInvoicesTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => column);
+
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -4978,6 +6546,9 @@ class $$SalesInvoicesTableTableManager extends RootTableManager<
           createComputedFieldComposer: () =>
               $$SalesInvoicesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             Value<String> id = const Value.absent(),
             Value<int> createdAt = const Value.absent(),
             Value<double> totalAmount = const Value.absent(),
@@ -4985,6 +6556,9 @@ class $$SalesInvoicesTableTableManager extends RootTableManager<
             Value<int> rowid = const Value.absent(),
           }) =>
               SalesInvoicesCompanion(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
             createdAt: createdAt,
             totalAmount: totalAmount,
@@ -4992,6 +6566,9 @@ class $$SalesInvoicesTableTableManager extends RootTableManager<
             rowid: rowid,
           ),
           createCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             required String id,
             required int createdAt,
             required double totalAmount,
@@ -4999,6 +6576,9 @@ class $$SalesInvoicesTableTableManager extends RootTableManager<
             Value<int> rowid = const Value.absent(),
           }) =>
               SalesInvoicesCompanion.insert(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
             createdAt: createdAt,
             totalAmount: totalAmount,
@@ -5028,7 +6608,11 @@ typedef $$SalesInvoicesTableProcessedTableManager = ProcessedTableManager<
     SalesInvoiceRow,
     PrefetchHooks Function()>;
 typedef $$SalesItemsTableCreateCompanionBuilder = SalesItemsCompanion Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   Value<int> id,
+  Value<String> uuid,
   required String invoiceId,
   required String productId,
   required String productName,
@@ -5044,7 +6628,11 @@ typedef $$SalesItemsTableCreateCompanionBuilder = SalesItemsCompanion Function({
   Value<String> serialSnapshot,
 });
 typedef $$SalesItemsTableUpdateCompanionBuilder = SalesItemsCompanion Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   Value<int> id,
+  Value<String> uuid,
   Value<String> invoiceId,
   Value<String> productId,
   Value<String> productName,
@@ -5069,8 +6657,20 @@ class $$SalesItemsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get uuid => $composableBuilder(
+      column: $table.uuid, builder: (column) => ColumnFilters(column));
 
   ColumnFilters<String> get invoiceId => $composableBuilder(
       column: $table.invoiceId, builder: (column) => ColumnFilters(column));
@@ -5123,8 +6723,21 @@ class $$SalesItemsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get originDevice => $composableBuilder(
+      column: $table.originDevice,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<int> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get uuid => $composableBuilder(
+      column: $table.uuid, builder: (column) => ColumnOrderings(column));
 
   ColumnOrderings<String> get invoiceId => $composableBuilder(
       column: $table.invoiceId, builder: (column) => ColumnOrderings(column));
@@ -5179,8 +6792,20 @@ class $$SalesItemsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => column);
+
   GeneratedColumn<int> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get uuid =>
+      $composableBuilder(column: $table.uuid, builder: (column) => column);
 
   GeneratedColumn<String> get invoiceId =>
       $composableBuilder(column: $table.invoiceId, builder: (column) => column);
@@ -5248,7 +6873,11 @@ class $$SalesItemsTableTableManager extends RootTableManager<
           createComputedFieldComposer: () =>
               $$SalesItemsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             Value<int> id = const Value.absent(),
+            Value<String> uuid = const Value.absent(),
             Value<String> invoiceId = const Value.absent(),
             Value<String> productId = const Value.absent(),
             Value<String> productName = const Value.absent(),
@@ -5264,7 +6893,11 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             Value<String> serialSnapshot = const Value.absent(),
           }) =>
               SalesItemsCompanion(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
+            uuid: uuid,
             invoiceId: invoiceId,
             productId: productId,
             productName: productName,
@@ -5280,7 +6913,11 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             serialSnapshot: serialSnapshot,
           ),
           createCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             Value<int> id = const Value.absent(),
+            Value<String> uuid = const Value.absent(),
             required String invoiceId,
             required String productId,
             required String productName,
@@ -5296,7 +6933,11 @@ class $$SalesItemsTableTableManager extends RootTableManager<
             Value<String> serialSnapshot = const Value.absent(),
           }) =>
               SalesItemsCompanion.insert(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
+            uuid: uuid,
             invoiceId: invoiceId,
             productId: productId,
             productName: productName,
@@ -5334,6 +6975,9 @@ typedef $$SalesItemsTableProcessedTableManager = ProcessedTableManager<
     SalesItemRow,
     PrefetchHooks Function()>;
 typedef $$CustomersTableCreateCompanionBuilder = CustomersCompanion Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   required String id,
   required String name,
   Value<String> phone,
@@ -5343,6 +6987,9 @@ typedef $$CustomersTableCreateCompanionBuilder = CustomersCompanion Function({
   Value<int> rowid,
 });
 typedef $$CustomersTableUpdateCompanionBuilder = CustomersCompanion Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   Value<String> id,
   Value<String> name,
   Value<String> phone,
@@ -5361,6 +7008,15 @@ class $$CustomersTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -5389,6 +7045,16 @@ class $$CustomersTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get originDevice => $composableBuilder(
+      column: $table.originDevice,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -5417,6 +7083,15 @@ class $$CustomersTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => column);
+
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -5459,6 +7134,9 @@ class $$CustomersTableTableManager extends RootTableManager<
           createComputedFieldComposer: () =>
               $$CustomersTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             Value<String> id = const Value.absent(),
             Value<String> name = const Value.absent(),
             Value<String> phone = const Value.absent(),
@@ -5468,6 +7146,9 @@ class $$CustomersTableTableManager extends RootTableManager<
             Value<int> rowid = const Value.absent(),
           }) =>
               CustomersCompanion(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
             name: name,
             phone: phone,
@@ -5477,6 +7158,9 @@ class $$CustomersTableTableManager extends RootTableManager<
             rowid: rowid,
           ),
           createCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             required String id,
             required String name,
             Value<String> phone = const Value.absent(),
@@ -5486,6 +7170,9 @@ class $$CustomersTableTableManager extends RootTableManager<
             Value<int> rowid = const Value.absent(),
           }) =>
               CustomersCompanion.insert(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
             name: name,
             phone: phone,
@@ -5515,6 +7202,9 @@ typedef $$CustomersTableProcessedTableManager = ProcessedTableManager<
     PrefetchHooks Function()>;
 typedef $$LedgerEntriesTableCreateCompanionBuilder = LedgerEntriesCompanion
     Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   required String id,
   required String customerId,
   Value<String?> invoiceId,
@@ -5526,6 +7216,9 @@ typedef $$LedgerEntriesTableCreateCompanionBuilder = LedgerEntriesCompanion
 });
 typedef $$LedgerEntriesTableUpdateCompanionBuilder = LedgerEntriesCompanion
     Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   Value<String> id,
   Value<String> customerId,
   Value<String?> invoiceId,
@@ -5545,6 +7238,15 @@ class $$LedgerEntriesTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -5576,6 +7278,16 @@ class $$LedgerEntriesTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get originDevice => $composableBuilder(
+      column: $table.originDevice,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -5607,6 +7319,15 @@ class $$LedgerEntriesTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => column);
+
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -5655,6 +7376,9 @@ class $$LedgerEntriesTableTableManager extends RootTableManager<
           createComputedFieldComposer: () =>
               $$LedgerEntriesTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             Value<String> id = const Value.absent(),
             Value<String> customerId = const Value.absent(),
             Value<String?> invoiceId = const Value.absent(),
@@ -5665,6 +7389,9 @@ class $$LedgerEntriesTableTableManager extends RootTableManager<
             Value<int> rowid = const Value.absent(),
           }) =>
               LedgerEntriesCompanion(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
             customerId: customerId,
             invoiceId: invoiceId,
@@ -5675,6 +7402,9 @@ class $$LedgerEntriesTableTableManager extends RootTableManager<
             rowid: rowid,
           ),
           createCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             required String id,
             required String customerId,
             Value<String?> invoiceId = const Value.absent(),
@@ -5685,6 +7415,9 @@ class $$LedgerEntriesTableTableManager extends RootTableManager<
             Value<int> rowid = const Value.absent(),
           }) =>
               LedgerEntriesCompanion.insert(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
             customerId: customerId,
             invoiceId: invoiceId,
@@ -5718,6 +7451,9 @@ typedef $$LedgerEntriesTableProcessedTableManager = ProcessedTableManager<
     PrefetchHooks Function()>;
 typedef $$CashboxTransactionsTableCreateCompanionBuilder
     = CashboxTransactionsCompanion Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   required String id,
   required String type,
   required double amount,
@@ -5729,6 +7465,9 @@ typedef $$CashboxTransactionsTableCreateCompanionBuilder
 });
 typedef $$CashboxTransactionsTableUpdateCompanionBuilder
     = CashboxTransactionsCompanion Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   Value<String> id,
   Value<String> type,
   Value<double> amount,
@@ -5748,6 +7487,15 @@ class $$CashboxTransactionsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -5779,6 +7527,16 @@ class $$CashboxTransactionsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get originDevice => $composableBuilder(
+      column: $table.originDevice,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -5810,6 +7568,15 @@ class $$CashboxTransactionsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => column);
+
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -5862,6 +7629,9 @@ class $$CashboxTransactionsTableTableManager extends RootTableManager<
               $$CashboxTransactionsTableAnnotationComposer(
                   $db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             Value<String> id = const Value.absent(),
             Value<String> type = const Value.absent(),
             Value<double> amount = const Value.absent(),
@@ -5872,6 +7642,9 @@ class $$CashboxTransactionsTableTableManager extends RootTableManager<
             Value<int> rowid = const Value.absent(),
           }) =>
               CashboxTransactionsCompanion(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
             type: type,
             amount: amount,
@@ -5882,6 +7655,9 @@ class $$CashboxTransactionsTableTableManager extends RootTableManager<
             rowid: rowid,
           ),
           createCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             required String id,
             required String type,
             required double amount,
@@ -5892,6 +7668,9 @@ class $$CashboxTransactionsTableTableManager extends RootTableManager<
             Value<int> rowid = const Value.absent(),
           }) =>
               CashboxTransactionsCompanion.insert(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
             type: type,
             amount: amount,
@@ -5926,6 +7705,9 @@ typedef $$CashboxTransactionsTableProcessedTableManager = ProcessedTableManager<
     PrefetchHooks Function()>;
 typedef $$AttributeDefinitionsTableCreateCompanionBuilder
     = AttributeDefinitionsCompanion Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   required String id,
   required String label,
   Value<String> type,
@@ -5940,6 +7722,9 @@ typedef $$AttributeDefinitionsTableCreateCompanionBuilder
 });
 typedef $$AttributeDefinitionsTableUpdateCompanionBuilder
     = AttributeDefinitionsCompanion Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   Value<String> id,
   Value<String> label,
   Value<String> type,
@@ -5962,6 +7747,15 @@ class $$AttributeDefinitionsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -6002,6 +7796,16 @@ class $$AttributeDefinitionsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get originDevice => $composableBuilder(
+      column: $table.originDevice,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -6043,6 +7847,15 @@ class $$AttributeDefinitionsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => column);
+
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -6104,6 +7917,9 @@ class $$AttributeDefinitionsTableTableManager extends RootTableManager<
               $$AttributeDefinitionsTableAnnotationComposer(
                   $db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             Value<String> id = const Value.absent(),
             Value<String> label = const Value.absent(),
             Value<String> type = const Value.absent(),
@@ -6117,6 +7933,9 @@ class $$AttributeDefinitionsTableTableManager extends RootTableManager<
             Value<int> rowid = const Value.absent(),
           }) =>
               AttributeDefinitionsCompanion(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
             label: label,
             type: type,
@@ -6130,6 +7949,9 @@ class $$AttributeDefinitionsTableTableManager extends RootTableManager<
             rowid: rowid,
           ),
           createCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             required String id,
             required String label,
             Value<String> type = const Value.absent(),
@@ -6143,6 +7965,9 @@ class $$AttributeDefinitionsTableTableManager extends RootTableManager<
             Value<int> rowid = const Value.absent(),
           }) =>
               AttributeDefinitionsCompanion.insert(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
             label: label,
             type: type,
@@ -6181,6 +8006,9 @@ typedef $$AttributeDefinitionsTableProcessedTableManager
         PrefetchHooks Function()>;
 typedef $$ProductUnitsTableCreateCompanionBuilder = ProductUnitsCompanion
     Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   required String id,
   required String productId,
   required String serial,
@@ -6194,6 +8022,9 @@ typedef $$ProductUnitsTableCreateCompanionBuilder = ProductUnitsCompanion
 });
 typedef $$ProductUnitsTableUpdateCompanionBuilder = ProductUnitsCompanion
     Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
   Value<String> id,
   Value<String> productId,
   Value<String> serial,
@@ -6215,6 +8046,15 @@ class $$ProductUnitsTableFilterComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => ColumnFilters(column));
+
   ColumnFilters<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnFilters(column));
 
@@ -6252,6 +8092,16 @@ class $$ProductUnitsTableOrderingComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get originDevice => $composableBuilder(
+      column: $table.originDevice,
+      builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get id => $composableBuilder(
       column: $table.id, builder: (column) => ColumnOrderings(column));
 
@@ -6291,6 +8141,15 @@ class $$ProductUnitsTableAnnotationComposer
     super.$addJoinBuilderToRootComposer,
     super.$removeJoinBuilderFromRootComposer,
   });
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => column);
+
   GeneratedColumn<String> get id =>
       $composableBuilder(column: $table.id, builder: (column) => column);
 
@@ -6345,6 +8204,9 @@ class $$ProductUnitsTableTableManager extends RootTableManager<
           createComputedFieldComposer: () =>
               $$ProductUnitsTableAnnotationComposer($db: db, $table: table),
           updateCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             Value<String> id = const Value.absent(),
             Value<String> productId = const Value.absent(),
             Value<String> serial = const Value.absent(),
@@ -6357,6 +8219,9 @@ class $$ProductUnitsTableTableManager extends RootTableManager<
             Value<int> rowid = const Value.absent(),
           }) =>
               ProductUnitsCompanion(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
             productId: productId,
             serial: serial,
@@ -6369,6 +8234,9 @@ class $$ProductUnitsTableTableManager extends RootTableManager<
             rowid: rowid,
           ),
           createCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
             required String id,
             required String productId,
             required String serial,
@@ -6381,6 +8249,9 @@ class $$ProductUnitsTableTableManager extends RootTableManager<
             Value<int> rowid = const Value.absent(),
           }) =>
               ProductUnitsCompanion.insert(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
             id: id,
             productId: productId,
             serial: serial,

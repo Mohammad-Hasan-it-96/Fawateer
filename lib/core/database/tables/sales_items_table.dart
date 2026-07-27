@@ -1,8 +1,24 @@
 import 'package:drift/drift.dart';
 
+import 'sync_meta.dart';
+
 @DataClassName('SalesItemRow')
-class SalesItems extends Table {
+class SalesItems extends Table with SyncMeta {
+  // Local row id. **Device-local and meaningless across devices** — two devices
+  // both mint id=1 for different lines — so it is never the sync identity; see
+  // [uuid] below. Kept as the primary key because replacing it would mean the
+  // first table rebuild since v5→v6, and nothing anywhere references a sales
+  // item by this id (verified: no foreign key, no query, no UI).
   IntColumn get id => integer().autoIncrement()();
+  // Globally unique sync identity (Plan 002, Phase 0). This is what
+  // insert-if-absent matches on when a line arrives from another device.
+  //
+  // Added as a *column* rather than by converting the primary key, so the
+  // migration stays additive. Existing rows are backfilled deterministically
+  // in SQL as `invoice_id || '-' || id`, which is globally unique because the
+  // invoice id already is — no random generation, and re-running the migration
+  // would produce identical values. New rows get a UUID v4.
+  TextColumn get uuid => text().withDefault(const Constant(''))();
   TextColumn get invoiceId => text()();
   TextColumn get productId => text()();
   TextColumn get productName => text()();

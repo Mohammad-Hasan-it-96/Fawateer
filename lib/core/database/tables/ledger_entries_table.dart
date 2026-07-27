@@ -1,11 +1,13 @@
 import 'package:drift/drift.dart';
 
+import 'sync_meta.dart';
+
 /// A single signed movement on a customer's account (single-entry ledger). The
 /// running balance is always DERIVED by summing entries (`charge` as +amount,
 /// `payment` as −amount) — never stored on the customer — so it can't drift out
 /// of sync.
 @DataClassName('LedgerEntryRow')
-class LedgerEntries extends Table {
+class LedgerEntries extends Table with SyncMeta {
   TextColumn get id => text()();
   TextColumn get customerId => text()();
 

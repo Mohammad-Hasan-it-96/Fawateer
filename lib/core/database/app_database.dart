@@ -61,7 +61,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -71,6 +71,7 @@ class AppDatabase extends _$AppDatabase {
       await _createLedgerIndexes();
       await _createCashboxIndexes();
       await _createProductUnitIndexes();
+      await _createSyncIndexes();
     },
     beforeOpen: (details) async {
       // Enforce foreign keys for every connection. Set here (after migrations
@@ -193,8 +194,103 @@ class AppDatabase extends _$AppDatabase {
         await migrator.createTable(productUnits);
         await _createProductUnitIndexes();
       }
+      if (from < 16) {
+        // Multi-device sync groundwork (Plan 002, Phase 0). No sync code runs
+        // yet — this only gives every replicated row somewhere to record *when*
+        // it changed, *whether* it was deleted, and *which device* changed it.
+        //
+        // Doing it before any device syncs is deliberate: these columns must
+        // exist on a shop's database before that shop's data can ever be split
+        // across two devices, and the migration gets more expensive with every
+        // install. Purely additive — every existing row decodes as "predates
+        // sync, not deleted, origin unknown", which is exactly true.
+        // Columns are passed as typed references rather than looked up by name.
+        // A mistyped string here would throw *during* a shop's upgrade — the
+        // one failure this file works hardest to avoid (see the barcode de-dup
+        // in _createIndexes) — and no test would catch it on a fresh database.
+        // This way it is a compile error.
+        Future<void> addSyncMeta(
+          TableInfo table,
+          GeneratedColumn updated,
+          GeneratedColumn deleted,
+          GeneratedColumn origin,
+        ) async {
+          await migrator.addColumn(table, updated);
+          await migrator.addColumn(table, deleted);
+          await migrator.addColumn(table, origin);
+        }
+
+        await addSyncMeta(products, products.updatedAt, products.deletedAt,
+            products.originDevice);
+        await addSyncMeta(customers, customers.updatedAt, customers.deletedAt,
+            customers.originDevice);
+        await addSyncMeta(shopSettings, shopSettings.updatedAt,
+            shopSettings.deletedAt, shopSettings.originDevice);
+        await addSyncMeta(salesInvoices, salesInvoices.updatedAt,
+            salesInvoices.deletedAt, salesInvoices.originDevice);
+        await addSyncMeta(salesItems, salesItems.updatedAt,
+            salesItems.deletedAt, salesItems.originDevice);
+        await addSyncMeta(ledgerEntries, ledgerEntries.updatedAt,
+            ledgerEntries.deletedAt, ledgerEntries.originDevice);
+        await addSyncMeta(cashboxTransactions, cashboxTransactions.updatedAt,
+            cashboxTransactions.deletedAt, cashboxTransactions.originDevice);
+        await addSyncMeta(productUnits, productUnits.updatedAt,
+            productUnits.deletedAt, productUnits.originDevice);
+        await addSyncMeta(
+            attributeDefinitions,
+            attributeDefinitions.updatedAt,
+            attributeDefinitions.deletedAt,
+            attributeDefinitions.originDevice);
+
+        // Sync identity for sale lines. The table's own `id` is an
+        // autoincrement int — device-local, so two devices mint id=1 for
+        // different lines. Backfilled deterministically rather than with random
+        // UUIDs: `invoice_id` is already globally unique, so `invoice_id-id` is
+        // too, it needs no Dart round-trip over every historical row, and
+        // re-running this step would produce identical values.
+        await migrator.addColumn(salesItems, salesItems.uuid);
+        await customStatement(
+            "UPDATE sales_items SET uuid = invoice_id || '-' || id "
+            "WHERE uuid = ''");
+
+        // Newest-first ordering (Plan 011 #5) used `rowId desc`, which is local
+        // insertion order and disagrees between devices. Existing rows keep 0
+        // so they sort oldest rather than claiming a creation time we do not
+        // know; only genuinely new products carry a real one.
+        await migrator.addColumn(products, products.createdAt);
+
+        await _createSyncIndexes();
+      }
     },
   );
+
+  /// Idempotent indexes supporting sync (Plan 002, Phase 0). Called from
+  /// [onCreate] and the v15→v16 upgrade.
+  Future<void> _createSyncIndexes() async {
+    // The push path asks each table "what changed since my last cursor" —
+    // an `updated_at` scan per table. Cheap to index, and these are the queries
+    // that run on every sync tick.
+    for (final table in const [
+      'products',
+      'customers',
+      'shop_settings',
+      'sales_invoices',
+      'sales_items',
+      'ledger_entries',
+      'cashbox_transactions',
+      'product_units',
+      'attribute_definitions',
+    ]) {
+      await customStatement('CREATE INDEX IF NOT EXISTS '
+          'idx_${table}_updated_at ON $table (updated_at)');
+    }
+    // Sale lines arriving from another device are matched by this, so it is a
+    // uniqueness constraint as much as a lookup. Partial over non-empty values,
+    // mirroring idx_products_barcode: a row that predates the backfill must
+    // stay legal rather than brick the migration.
+    await customStatement('CREATE UNIQUE INDEX IF NOT EXISTS '
+        "idx_sales_items_uuid ON sales_items (uuid) WHERE uuid != ''");
+  }
 
   /// Idempotent index creation (`IF NOT EXISTS`), shared by [onCreate] and the
   /// v3→v4 / v5→v6 upgrades (the latter rebuilds sales_items, dropping its
