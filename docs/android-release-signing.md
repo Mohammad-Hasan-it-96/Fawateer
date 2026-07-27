@@ -47,19 +47,53 @@ keytool -genkey -v \
   or company name is fine. None of it is shown to users.
 - Then `cp android/key.properties.example android/key.properties` and fill it in.
 
-## ⚠️ Back up the keystore + passwords NOW
+## Backups — done, and where they live
 
 **The keystore is unrecoverable.** There is no reset, no support ticket, no
 regeneration. Lose it and you can never update any installed copy of Fawateer —
 every existing user is stranded on their current version, and moving them to a
-new key costs them their data.
+new key costs them their data. That is why this section is not advice; it is a
+record of the current state, to be kept accurate.
 
-Store in **two separate places** (e.g. a password manager entry with the `.jks`
-attached, plus an offline copy):
+**As of 2026-07-27** (verified — see *Verify* below):
 
-- the `.jks` file itself
-- `keyAlias`, `keyPassword`, `storePassword`
-- the SHA-1 (below)
+| What | Where |
+|---|---|
+| `fawateer-release.jks` | working copy on the dev laptop (`C:\Users\ASUS\keystores\`), Google Drive, external hard drive |
+| `keyAlias` / `keyPassword` / `storePassword` | **Bitwarden** (item *"Fawateer keystore"*, synced to phone + laptop); also a plaintext `.txt` alongside the `.jks` on Drive and the external drive |
+| SHA-1 | in this file (below), and in Google Cloud Console |
+
+Three copies of the key across independently-failing systems, and the passwords
+survive losing the laptop. **Never store fewer than two.**
+
+### Two follow-ups this arrangement creates
+
+1. **Don't let Bitwarden become a single point of failure.** The vault is
+   zero-knowledge: forget the master password and there is no reset. Keep 2FA
+   on, keep its **recovery code** offline, and keep the master password written
+   down somewhere physical. Until that's true, the `.txt` copy on the external
+   drive is the escape hatch — don't delete it.
+2. **The Drive copy holds both halves.** The `.jks` and the plaintext password
+   `.txt` sit in the same account, so one phished Google login yields complete
+   control of the app's signing identity — enough to push a counterfeit
+   "update" over a real shop's install. Once Bitwarden is hardened per (1),
+   **delete the `.txt` from Drive** and leave the `.jks` there alone.
+
+### Verifying a backup actually works
+
+A backup you have never opened is not yet a backup. Two levels:
+
+- `keytool -list -v -alias fawateer -keystore <path>` proves **which** keystore
+  it is (compare the SHA-1). Note that if you press Enter at the password
+  prompt it still lists — certificate data is public — and prints a
+  `WARNING ... integrity has NOT been verified` block. Seeing that warning means
+  the password was **not** checked.
+- **`flutter build apk --release` is the real test.** It exercises
+  `storePassword` *and* `keyPassword` (which may differ — `-list` only checks
+  the store one) plus the `key.properties` wiring. If it signs, everything works.
+
+Re-run the release build after any change to the keystore, `key.properties`, or
+the backup copies.
 
 ## ⚠️ Google Drive backup: register the new SHA-1
 

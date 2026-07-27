@@ -528,13 +528,18 @@ switched on in a live shop. Everything else is field-proven.
 
 ### Operational items still live
 
-- 🔴 **Losing the release keystore is unrecoverable** — Android refuses updates
-  signed with a different key. It lives outside the repo, pointed at by the
-  gitignored `android/key.properties`. **With the app now in a real shop, this
-  is the highest-consequence operational risk left:** losing it means that shop
-  can never be updated again, only reinstalled from scratch. Confirm it is
-  backed up somewhere you do not control alone.
-  See `docs/android-release-signing.md`.
+- ✅ **The release keystore is backed up and verified** (2026-07-27) — three
+  copies of the `.jks` (laptop, Google Drive, external drive) and the passwords
+  in Bitwarden, synced to phone and laptop. Verified end-to-end, not just
+  stored: `keytool` confirms the SHA-1 matches Cloud Console, and a release
+  build signs successfully — which is the only thing that proves both passwords
+  are correct. Losing it is still unrecoverable and still strands every install,
+  so treat the backup layout in `docs/android-release-signing.md` as something
+  to keep true, not a task that was completed.
+  - 🟠 Two follow-ups remain there: harden the Bitwarden account (2FA +
+    recovery code stored offline — the vault has no password reset), then
+    delete the plaintext password `.txt` that currently sits beside the `.jks`
+    on Drive.
 - 🟠 **`google-services.json` is gitignored**, so a fresh clone **fails the
   Android build** until it's restored (the Gradle plugin is applied
   unconditionally). See `android/README-fcm.md`.
