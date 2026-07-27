@@ -1,0 +1,256 @@
+================================================================================
+PROMPT FOR A CLAUDE CODE SESSION IN THE `evotech-core` PROJECT
+Subject: backend work required for Fawateer multi-device sync (Plan 002)
+Written: 2026-07-27, from the Fawateer side. Paste this whole file as your
+first message in an evotech-core session.
+================================================================================
+
+## 0. READ THIS FIRST — how to use this document
+
+This describes a CONTRACT the Fawateer Flutter app needs, not an implementation.
+You know `evotech-core`; I do not. So:
+
+1. FIRST inspect what already exists. `Modules\DeviceSubscriptions` already
+   serves Fawateer's licensing contract — `create_device`, `check_device`,
+   `update_my_data`, `getPlans`, `add_review` — unversioned and unauthenticated,
+   identified by `app_name` in the body, namespaced per app at
+   `/api/fawateer`. Multi-device EXTENDS that; it does not replace it.
+2. THEN tell me where this design conflicts with how evotech-core actually
+   works. Push back rather than contorting the platform to match my guesses.
+3. DO NOT break the existing licensing contract. Fawateer 1.0.1 is in
+   production in a real shop and must keep working unchanged against these
+   endpoints. Every change here is ADDITIVE.
+
+Where I say "the app", I mean the Fawateer Flutter client.
+
+
+## 1. What Fawateer is, in one paragraph
+
+An offline-first Arabic POS for small shops. Every device holds a COMPLETE local
+SQLite (Drift) database and works fully offline — that is the product's core
+promise and must never be compromised for sync. The backend today only handles
+subscriptions/licensing; no business data has ever left the device except as an
+opaque Google-Drive backup blob the server never sees. Multi-device sync is the
+first time shop business data reaches our server. Treat that as a meaningful
+change in data-custody responsibility: these are real shops' financial records.
+
+
+## 2. What we are building
+
+One subscription = one BUSINESS owning up to N DEVICES that all sell
+independently, offline-capable, converging within ~30 seconds when online.
+
+Confirmed requirements from the product owner:
+  R1. Two-plus devices selling simultaneously in one shop.
+  R2. The owner's device watches the business remotely from home AND sells in
+      the shop — it is a full peer, not a read-only viewer.
+  R3. Any device works as a standalone POS with no connectivity.
+  R4. Sync must be accurate; ~30 s latency is acceptable.
+  R5. Sold as tiers: 1 device / up to 3 / up to 5.
+  R6. When the subscription expires, all devices lock (with an exception — §8).
+
+Devices are NOT assumed to share a LAN or Wi-Fi. All coordination is
+server-mediated over the public internet.
+
+
+## 3. Architecture decisions ALREADY LOCKED (do not re-litigate)
+
+D1. SUBSTRATE = evotech-core + MySQL. Firestore was evaluated and rejected:
+    Fawateer's data is append-only UUID events, so the merge complexity
+    Firestore sells you is complexity this app mostly does not have — leaving
+    only its costs (a second backend, per-op billing, data custody, lock-in).
+
+D2. TRANSPORT = plain HTTPS REST. Poll + push. NO websockets (battery,
+    reconnection complexity, and full offline correctness is required anyway,
+    so a socket would only save seconds). NO Redis for v1 — it is a cache and
+    fan-out layer, not a source of truth, and MySQL is untroubled by 2–5
+    devices per shop. Revisit Redis only at thousands of concurrent shops.
+
+D3. LATENCY = FCM data-message ping meaning "something changed, pull now".
+    FCM is ALREADY WIRED AND DEVICE-VERIFIED for licensing (project
+    `fawateer-4c9bc`). Reuse that channel. The ping carries NO business data —
+    it is a doorbell, not a payload.
+
+D4. SYNC MODEL = per-table merge rules, never whole-database copy:
+    - Append-only tables (sales_invoices, sales_items, ledger_entries,
+      cashbox_transactions, product_units, stock_movements): INSERT-IF-ABSENT
+      BY UUID. Union merge, zero conflict logic. This is ~90% of the data.
+    - Mutable tables (products, customers, shop_settings): last-write-wins on
+      a logical clock, with tombstones.
+    - Stock: an append-only MOVEMENT LOG; on-hand = SUM(movements). Never sync
+      a stock quantity as a last-write-wins scalar — two devices each selling 1
+      of 5 would converge on 4 and silently lose a unit.
+
+D5. TWO SEPARATE CLOCKS. This is the subtlest point here and the easiest to get
+    wrong, so it is spelled out:
+      (a) A SERVER-ASSIGNED MONOTONIC SEQUENCE, per business, stamped at the
+          moment a change is accepted. This drives the PULL CURSOR only —
+          pagination and "what haven't I seen".
+      (b) A LOGICAL TIMESTAMP CAPTURED ON THE DEVICE AT AUTHORSHIP, travelling
+          with the row. This resolves CONFLICTS only.
+    They cannot be the same value. If conflicts were resolved by arrival order,
+    a device offline for three days would push stale edits that beat fresher
+    ones made yesterday on another device. Conversely authorship time cannot
+    drive a cursor because it is not monotonic across devices.
+    NOTE: Fawateer already distrusts device clocks — its licence guard has a
+    48-hour rollback check because shop phones genuinely have wrong times. So
+    (b) must be a logical clock (HLC or a per-row version counter), NEVER bare
+    wall-clock. Clamp implausible values rather than trusting them.
+
+D6. IDEMPOTENCY IS MANDATORY. Every write is keyed by a client-generated UUID.
+    Re-pushing the same batch must be a no-op. Phone networks drop responses
+    after the server has committed; the client WILL retry. Design for it.
+
+
+## 4. Seat / subscription model
+
+Currently: one device = one subscription. Required: one subscription = one
+business owning N devices.
+
+- Add `device_allowance` INTEGER to the subscription/entitlement record,
+  default 1. Existing subscribers are unaffected — they simply have 1.
+- The tiers (1 / 3 / 5) are PRESETS OVER THIS INTEGER, not separate plan types.
+  Store the number; market the tiers. Re-cutting tiers later must be a pricing
+  change, never a migration.
+- Enforce the allowance AT THE SUBSCRIPTION (business) level. Not per device —
+  a device is disposable hardware and per-device entitlement produces a lockout
+  on every phone swap. Not per user — there are no user accounts.
+- Device registry per business, each row roughly:
+    device_id (the app's existing SHA-256 hash — reuse it, do not mint a new
+      identity scheme), role, enrolled_at, revoked_at, last_seen_at,
+      last_sync_seq, fcm_token, app_version
+- Replacing a phone must NOT consume an extra seat. Revoking a device frees its
+  slot immediately. This is a frequent, legitimate, free action — if it reads as
+  a way to charge again, it will generate refunds.
+
+
+## 5. Device enrollment (QR)
+
+- Manager device requests a join token: short TTL (minutes), SINGLE USE, signed,
+  bound to the business. It is an INVITATION, NEVER A DURABLE SECRET — a leaked
+  long-lived QR means a stranger joins a shop's financial data.
+- The new device posts {token, device_id, fcm_token} and is registered as a
+  seat, receiving a durable per-device sync credential.
+- Reject enrollment when the business is at its allowance, with a distinct,
+  machine-readable error the app can turn into "upgrade your plan" rather than a
+  generic failure.
+- Revocation must invalidate that device's sync credential SERVER-SIDE. Hiding
+  UI on the client is not revocation.
+
+
+## 6. Sync endpoints (shape, not prescription)
+
+  POST /sync/push
+    Body: device_id, business scope, batch of changes. Each change carries
+    table, row UUID, operation (upsert|delete-tombstone), payload, and the
+    authorship logical timestamp (D5b).
+    Behaviour: validate role permissions (§7), apply per-table merge rules
+    (D4), assign the server sequence (D5a), return per-row accepted/rejected/
+    conflict. MUST be idempotent (D6). Partial success is expected and normal —
+    never fail a whole batch because one row conflicted.
+
+  GET /sync/pull?since=<seq>&limit=<n>
+    Returns changes for the business with sequence > since, ascending, plus the
+    new cursor and a has-more flag. Must be stable under concurrent writes:
+    a row must never be skipped because it was inserted mid-page.
+
+  GET  /sync/conflicts            — unresolved conflicts for the business
+  POST /sync/conflicts/{id}/resolve
+
+Scale reality check: a shop does tens to low hundreds of rows per day. This does
+not need to be clever. It needs to be correct, debuggable, and idempotent.
+
+
+## 7. Roles and server-side authorisation
+
+Two roles: MANAGER and CASHIER. Enforce at the server, not only in the app — a
+tampered client must not be able to exceed its role.
+
+CASHIER may: create sales, take payments, add customers, record debt
+repayments, create products (confirmed by the owner), post stock movements.
+CASHIER may NOT: change product PRICES, delete invoices or products, edit shop
+settings, or manage devices.
+
+>> OPEN QUESTION FOR THE OWNER, flag it rather than guessing: a cashier may
+>> CREATE a product (which necessarily sets an initial price) but may not EDIT
+>> a price afterwards. That is implementable but subtle — confirm it is what is
+>> wanted before enforcing it.
+
+
+## 8. Subscription expiry — the exception that prevents data loss
+
+On expiry, all devices lock for SELLING. The app already has expiry reminders at
+7/3/1/0 days.
+
+CRITICAL EXCEPTION: an expired device MUST still be able to PUSH its pending
+changes. A device may hold sales made offline that were never uploaded; if the
+lock is absolute those sales are stranded on a phone the shopkeeper can no
+longer open, and if they uninstall in frustration that revenue is destroyed
+permanently. So: expired => reject new selling, ACCEPT push of already-recorded
+changes, and return a pending count the app can display. An expired subscription
+must never be able to destroy a shop's books.
+
+
+## 9. Conflict detection the server must own
+
+Most data cannot conflict (append-only union). Three cases can, and all three
+surface on a single MANAGER-ONLY screen in the app — cashiers are never
+interrupted mid-sale:
+
+C1. SERIALIZED UNIT DOUBLE-SALE. Fawateer tracks individual items by serial /
+    IMEI (`product_units`); a unit's `soldInvoiceId` can reference only ONE
+    invoice. Two devices claiming the same unit is an IMPOSSIBLE physical state,
+    not a tolerable inconsistency.
+    RULE: first claim to reach the server wins; reject subsequent claims and
+    raise a conflict.
+    Deliberately NOT using a reservation/lease, because physical possession is
+    already a natural mutex — for two cashiers to sell the same handset it must
+    be in two hands at once. A lease would break offline selling for an entire
+    product class to prevent something reality already prevents.
+
+C2. DUPLICATE PRODUCT NAME. Cashiers may create products, so two offline devices
+    can both create "Coca Cola". Each device's local uniqueness check passes;
+    they collide only at merge. The server must detect same-name products from
+    different origin devices and raise a conflict for the manager to merge or
+    rename. Do NOT auto-merge — the two rows may have different prices, costs
+    or barcodes, and silently picking one loses a real edit.
+
+C3. CONCURRENT EDIT of the same mutable row (product/customer/settings).
+    Resolve by last-write-wins on the authorship clock (D5b). Only raise a
+    conflict when the losing write is not a strict subset — do not spam the
+    manager with routine edits.
+
+Note `shop_settings` is a SINGLE ROW with id='default', so it exists on every
+device with an identical key. It is the one row guaranteed to collide. Prefer
+FIELD-LEVEL last-write-wins there, or restrict writes to the manager.
+
+
+## 10. Explicit NON-GOALS for v1
+
+- No websockets, no Redis, no message queue.
+- No real-time collaborative editing.
+- No server-side business logic duplicating the app's (no recomputing totals,
+  profit, or balances server-side — the app derives those and they must not
+  disagree).
+- No cross-business anything. Every query is scoped by business; a device must
+  never be able to read another shop's data. Treat this as the single most
+  important security property of the whole feature.
+
+
+## 11. What I need back from you
+
+1. Where does this conflict with how evotech-core actually works today?
+2. Proposed endpoint shapes and the migration plan for `device_allowance` +
+   the device registry.
+3. Your recommendation on the sequence-number mechanism (per-business counter
+   vs global) and how you keep pull pages stable under concurrent writes.
+4. A definitive answer on one OPEN ITEM already outstanding from the Fawateer
+   side: `Modules\DeviceSubscriptions`'s `FirebasePushNotifier` was last seen as
+   a SCAFFOLD that logs "FCM send (not yet implemented)" and returns. Push
+   DELIVERY to the app is confirmed working on a real device, so if that sender
+   is still a stub, operator activation does not unlock a running app live today
+   — and D3's sync ping cannot work either. Please verify and report.
+
+================================================================================
+END OF PROMPT
+================================================================================
