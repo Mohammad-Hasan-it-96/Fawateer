@@ -12,6 +12,8 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
+import 'schema_downgrade.dart';
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -27,8 +29,9 @@ void main() {
     if (dbFile.existsSync()) dbFile.deleteSync();
   });
 
-  /// Build a "v14" database: the full current schema with the v15 additions
-  /// stripped and the old user_version stamped, so reopening triggers onUpgrade.
+  /// Build a "v14" database: the full current schema with every later addition
+  /// stripped and the old user_version stamped, so reopening triggers onUpgrade
+  /// for real (v15 *and* v16, exactly as a shop on the old build would).
   Future<void> seedV14() async {
     final db = AppDatabase.forTesting(NativeDatabase(dbFile));
     await db.customStatement(
@@ -41,10 +44,11 @@ void main() {
         "INSERT INTO sales_items (invoice_id,product_id,product_name,price,quantity) "
         "VALUES ('inv1','p1','iPhone 15',5000000,1)");
 
-    await db.customStatement('DROP TABLE product_units');
-    await db.customStatement('ALTER TABLE products DROP COLUMN is_serialized');
-    await db
-        .customStatement('ALTER TABLE sales_items DROP COLUMN serial_snapshot');
+    // Strip downwards from the current version — v16 first, then v15. Dropping
+    // only v15 would leave v16's columns on a database claiming user_version 14,
+    // and the v16 step would then try to add them again.
+    await stripV16(db);
+    await stripV15(db);
     await db.customStatement('PRAGMA user_version = 14');
     await db.close();
   }

@@ -16,18 +16,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
-/// Every table that gained sync metadata in v16.
-const _syncedTables = [
-  'products',
-  'customers',
-  'shop_settings',
-  'sales_invoices',
-  'sales_items',
-  'ledger_entries',
-  'cashbox_transactions',
-  'product_units',
-  'attribute_definitions',
-];
+import 'schema_downgrade.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -55,7 +44,7 @@ void main() {
 
     await db.customStatement(
         "INSERT INTO products (id,name,barcode,price,quantity) "
-        "VALUES ('p1','رز',5000,0,10)");
+        "VALUES ('p1','رز','BR-1',5000,10)");
     await db.customStatement(
         "INSERT INTO customers (id,name,created_at) VALUES ('c1','أبو أحمد',1000)");
     await db.customStatement(
@@ -73,17 +62,11 @@ void main() {
         "INSERT INTO ledger_entries (id,customer_id,entry_type,amount,created_at) "
         "VALUES ('l1','c1','charge',15000,1000)");
     await db.customStatement(
-        "INSERT INTO cashbox_transactions (id,type,amount,occurred_at) "
-        "VALUES ('cb1','cashSale',15000,1000)");
+        "INSERT INTO cashbox_transactions (id,type,amount,occurred_at,created_at) "
+        "VALUES ('cb1','cashSale',15000,1000,1000)");
 
-    // Strip the v16 additions.
-    for (final t in _syncedTables) {
-      await db.customStatement('ALTER TABLE $t DROP COLUMN updated_at');
-      await db.customStatement('ALTER TABLE $t DROP COLUMN deleted_at');
-      await db.customStatement('ALTER TABLE $t DROP COLUMN origin_device');
-    }
-    await db.customStatement('ALTER TABLE sales_items DROP COLUMN uuid');
-    await db.customStatement('ALTER TABLE products DROP COLUMN created_at');
+    // v16 is the current version, so this is the only strip needed here.
+    await stripV16(db);
     await db.customStatement('PRAGMA user_version = 15');
     await db.close();
   }
@@ -95,7 +78,7 @@ void main() {
     // Every synced table must carry all three columns. Checked by querying
     // rather than by inspecting the schema, so a column that exists but is
     // unreadable still fails.
-    for (final table in _syncedTables) {
+    for (final table in kSyncedTables) {
       final row = await db
           .customSelect(
               'SELECT updated_at, deleted_at, origin_device FROM $table LIMIT 1')

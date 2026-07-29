@@ -13,6 +13,8 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
+import 'schema_downgrade.dart';
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -41,7 +43,12 @@ void main() {
         "INSERT INTO sales_items (invoice_id,product_id,product_name,price,quantity) VALUES "
         "('inv1','p1','Rice',2000,2)," // legacy weighed 2.000 kg
         "('inv1','p2','Soap',1000,3)");
-    await db.customStatement('ALTER TABLE sales_items DROP COLUMN sale_type');
+    // Strip downwards from the current version — v16, v15, then v14. Dropping
+    // only v14 would leave later columns on a database claiming user_version 13,
+    // and those steps would then try to add them again.
+    await stripV16(db);
+    await stripV15(db);
+    await stripV14(db);
     await db.customStatement('PRAGMA user_version = 13');
     await db.close();
 

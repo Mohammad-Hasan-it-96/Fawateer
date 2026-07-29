@@ -116,6 +116,10 @@ class AppDatabase extends _$AppDatabase {
         // weight/fractional sale can be recorded). SQLite can't change a column
         // type in place, so rebuild the table; existing integer quantities copy
         // over as reals. The rebuild drops the table's indexes, so recreate them.
+        //
+        // The rebuild emits the CURRENT sales_items definition, so on a v1–v5
+        // install this table arrives already carrying every later addition — which
+        // is why every subsequent addColumn goes through _addColumnIfMissing.
         await migrator.alterTable(TableMigration(salesItems));
         await _createIndexes();
       }
@@ -144,10 +148,13 @@ class AppDatabase extends _$AppDatabase {
         // all with defaults so existing rows decode as SP-native. products
         // gains the price currency; sales_items gains the per-line FX snapshot
         // (currency/rate/original) used for display & audit. No table rebuild.
-        await migrator.addColumn(products, products.priceCurrency);
-        await migrator.addColumn(salesItems, salesItems.priceCurrency);
-        await migrator.addColumn(salesItems, salesItems.fxRate);
-        await migrator.addColumn(salesItems, salesItems.priceOriginal);
+        await _addColumnIfMissing(
+            migrator, products, products.priceCurrency);
+        await _addColumnIfMissing(
+            migrator, salesItems, salesItems.priceCurrency);
+        await _addColumnIfMissing(migrator, salesItems, salesItems.fxRate);
+        await _addColumnIfMissing(
+            migrator, salesItems, salesItems.priceOriginal);
       }
       if (from < 11) {
         // The old '₹' (Indian rupee) default was wrong for this Syria-first app.
@@ -160,8 +167,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 12) {
         // Manual discounts (Plan 005): additive SP-discount columns. Every
         // existing row decodes as "no discount". No table rebuild.
-        await migrator.addColumn(salesItems, salesItems.discount);
-        await migrator.addColumn(salesInvoices, salesInvoices.invoiceDiscount);
+        await _addColumnIfMissing(migrator, salesItems, salesItems.discount);
+        await _addColumnIfMissing(
+            migrator, salesInvoices, salesInvoices.invoiceDiscount);
       }
       if (from < 13) {
         // Dynamic product attributes (Plan 010, bucket A). Purely additive:
@@ -169,8 +177,9 @@ class AppDatabase extends _$AppDatabase {
         //  - sales_items.attributes_snapshot: printed attributes frozen at sale
         //  - attribute_definitions: the owner's custom-field metadata (new table)
         // No existing table is touched; every existing row decodes as empty.
-        await migrator.addColumn(products, products.attributes);
-        await migrator.addColumn(salesItems, salesItems.attributesSnapshot);
+        await _addColumnIfMissing(migrator, products, products.attributes);
+        await _addColumnIfMissing(
+            migrator, salesItems, salesItems.attributesSnapshot);
         await migrator.createTable(attributeDefinitions);
       }
       if (from < 14) {
@@ -178,7 +187,7 @@ class AppDatabase extends _$AppDatabase {
         // reprint keeps its "كغ" and the invoice table stops guessing kg-vs-
         // piece from the quantity. Additive; existing rows decode as ''
         // (unknown) and keep using the old heuristic.
-        await migrator.addColumn(salesItems, salesItems.saleType);
+        await _addColumnIfMissing(migrator, salesItems, salesItems.saleType);
       }
       if (from < 15) {
         // Serialized units (Plan 012, bucket C of Plan 010): per-physical-item
@@ -189,8 +198,9 @@ class AppDatabase extends _$AppDatabase {
         // Purely additive (addColumn ×2 + createTable): every existing product
         // decodes as non-serialized and every existing sale line as having no
         // serial, so nothing changes for a shop that never opts in.
-        await migrator.addColumn(products, products.isSerialized);
-        await migrator.addColumn(salesItems, salesItems.serialSnapshot);
+        await _addColumnIfMissing(migrator, products, products.isSerialized);
+        await _addColumnIfMissing(
+            migrator, salesItems, salesItems.serialSnapshot);
         await migrator.createTable(productUnits);
         await _createProductUnitIndexes();
       }
@@ -215,9 +225,9 @@ class AppDatabase extends _$AppDatabase {
           GeneratedColumn deleted,
           GeneratedColumn origin,
         ) async {
-          await migrator.addColumn(table, updated);
-          await migrator.addColumn(table, deleted);
-          await migrator.addColumn(table, origin);
+          await _addColumnIfMissing(migrator, table, updated);
+          await _addColumnIfMissing(migrator, table, deleted);
+          await _addColumnIfMissing(migrator, table, origin);
         }
 
         await addSyncMeta(products, products.updatedAt, products.deletedAt,
@@ -248,7 +258,7 @@ class AppDatabase extends _$AppDatabase {
         // UUIDs: `invoice_id` is already globally unique, so `invoice_id-id` is
         // too, it needs no Dart round-trip over every historical row, and
         // re-running this step would produce identical values.
-        await migrator.addColumn(salesItems, salesItems.uuid);
+        await _addColumnIfMissing(migrator, salesItems, salesItems.uuid);
         await customStatement(
             "UPDATE sales_items SET uuid = invoice_id || '-' || id "
             "WHERE uuid = ''");
@@ -257,12 +267,42 @@ class AppDatabase extends _$AppDatabase {
         // insertion order and disagrees between devices. Existing rows keep 0
         // so they sort oldest rather than claiming a creation time we do not
         // know; only genuinely new products carry a real one.
-        await migrator.addColumn(products, products.createdAt);
+        await _addColumnIfMissing(migrator, products, products.createdAt);
 
         await _createSyncIndexes();
       }
     },
   );
+
+  /// `migrator.addColumn`, but a no-op when the column is already there.
+  ///
+  /// Load-bearing for any step whose columns can arrive by a second route.
+  /// `migrator.createTable`/`alterTable` always emit the **current** Dart table
+  /// definition — not the definition as of the version being migrated to — so an
+  /// upgrade that runs an earlier table-creating step first already has the later
+  /// columns by the time the later step runs. Concretely for v16: an install
+  /// below v15 creates `customers`/`ledger_entries` (v7), `cashbox_transactions`
+  /// (v9), `attribute_definitions` (v13) and `product_units` (v15) on the way
+  /// past, and v6 rebuilds `sales_items` — all five arriving with the v16 sync
+  /// columns already attached. Adding them again throws `duplicate column name`
+  /// and the shop's database fails to open.
+  ///
+  /// Caught on a device by migration_v14_test/migration_v15_test: without this,
+  /// every install older than v15 bricks on upgrade. Checking the live schema
+  /// beats branching on `from`, because it stays correct when a future step adds
+  /// another table to that set.
+  ///
+  /// Routing *shipped* steps through this is the one sanctioned exception to
+  /// "never edit a shipped block": it cannot change the outcome of an upgrade
+  /// that already succeeded (the column was absent, so it is still added) and
+  /// only rescues the paths that previously threw.
+  Future<void> _addColumnIfMissing(
+      Migrator migrator, TableInfo table, GeneratedColumn column) async {
+    final info =
+        await customSelect('PRAGMA table_info(${table.actualTableName})').get();
+    final present = info.any((row) => row.read<String>('name') == column.name);
+    if (!present) await migrator.addColumn(table, column);
+  }
 
   /// Idempotent indexes supporting sync (Plan 002, Phase 0). Called from
   /// [onCreate] and the v15→v16 upgrade.
