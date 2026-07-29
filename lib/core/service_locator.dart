@@ -13,9 +13,14 @@ import 'database/daos/dashboard_dao.dart';
 import 'database/daos/attributes_dao.dart';
 import 'database/daos/product_units_dao.dart';
 import 'database/daos/stock_dao.dart';
+import 'database/daos/sync_dao.dart';
 
 // Core — Network
 import 'network/api_client.dart';
+import 'network/sync_api_client.dart';
+import '../features/sync/data/repositories/sync_enrollment_repository_impl.dart';
+import '../features/sync/data/sync_credential_store.dart';
+import '../features/sync/domain/repositories/sync_enrollment_repository.dart';
 import 'config/remote_config_service.dart';
 import 'currency/exchange_rate_service.dart';
 import 'settings/inventory_settings_service.dart';
@@ -43,6 +48,12 @@ import '../features/ledger/presentation/bloc/ledger_bloc.dart';
 import '../features/cashbox/data/repositories/cashbox_repository_drift_impl.dart';
 import '../features/cashbox/domain/repositories/cashbox_repository.dart';
 import '../features/cashbox/presentation/bloc/cashbox_bloc.dart';
+
+// Features — Sync (multi-device, Plan 002)
+import '../features/sync/data/sync_api_transport.dart';
+import '../features/sync/data/sync_engine.dart';
+import '../features/sync/data/sync_state_store.dart';
+import '../features/sync/domain/sync_transport.dart';
 
 // Features — Backup (cloud backup / restore)
 import '../features/backup/data/auto_backup_service.dart';
@@ -110,12 +121,35 @@ Future<void> init() async {
   sl.registerLazySingleton<AttributesDao>(() => AttributesDao(sl()));
   sl.registerLazySingleton<ProductUnitsDao>(() => ProductUnitsDao(sl()));
   sl.registerLazySingleton<StockDao>(() => StockDao(sl()));
+  sl.registerLazySingleton<SyncDao>(() => SyncDao(sl()));
 
   // ── Sync (Plan 002, Phase 0) ─────────────────────────────────────────────
   // Registered before the repositories because every one that can delete needs
   // it to stamp a tombstone. Its node id is empty until `main()` awaits
   // `load()` — see the startup wiring there.
   sl.registerLazySingleton<SyncClock>(() => SyncClock(sl<SettingsDao>()));
+
+  // Multi-device sync (Plan 002, Phase 1). Registered as singletons because the
+  // engine serialises its own passes — two instances would each think they were
+  // the only one running and race to advance the cursor.
+  // SyncApiClient and SyncCredentialStore are registered with the enrollment
+  // block further down; these lazy factories only resolve them on first use,
+  // which is after init() has finished, so the order here does not matter.
+  sl.registerLazySingleton<SyncStateStore>(
+      () => SyncStateStore(sl<SettingsDao>()));
+  sl.registerLazySingleton<SyncTransport>(() => SyncApiTransport(
+        sl<SyncApiClient>(),
+        // Read per request, never captured: the seat token is rotated when a
+        // device re-enrolls as owner, and a cached copy would keep sending the
+        // dead one until the app restarted.
+        () async => (await sl<SyncCredentialStore>().load())?.syncToken,
+      ));
+  sl.registerLazySingleton<SyncEngine>(() => SyncEngine(
+        dao: sl<SyncDao>(),
+        transport: sl<SyncTransport>(),
+        state: sl<SyncStateStore>(),
+        clock: sl<SyncClock>(),
+      ));
 
   // ── Services ─────────────────────────────────────────────────────────────
   sl.registerLazySingleton<ExchangeRateService>(
@@ -182,6 +216,13 @@ Future<void> init() async {
       () => LicenseRepositoryImpl(sl(), sl(), sl()));
   sl.registerLazySingleton<PushNotificationService>(
       () => PushNotificationService(sl()));
+
+  // ── Multi-device sync (network-backed; credential in SharedPreferences) ────
+  sl.registerLazySingleton<SyncApiClient>(() => SyncApiClient());
+  sl.registerLazySingleton<SyncCredentialStore>(() => SyncCredentialStore());
+  sl.registerLazySingleton<SyncEnrollmentRepository>(() =>
+      SyncEnrollmentRepositoryImpl(
+          sl<SyncApiClient>(), sl<SyncCredentialStore>(), sl<DeviceIdentityService>()));
 
   // ── BLoCs ─────────────────────────────────────────────────────────────────
   sl.registerFactory(

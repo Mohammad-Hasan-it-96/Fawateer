@@ -11,6 +11,7 @@ import 'tables/ledger_entries_table.dart';
 import 'tables/cashbox_transactions_table.dart';
 import 'tables/attribute_definitions_table.dart';
 import 'tables/product_units_table.dart';
+import 'sync_tables.dart';
 import 'tables/stock_movements_table.dart';
 
 import 'daos/products_dao.dart';
@@ -24,6 +25,7 @@ import 'daos/dashboard_dao.dart';
 import 'daos/attributes_dao.dart';
 import 'daos/product_units_dao.dart';
 import 'daos/stock_dao.dart';
+import 'daos/sync_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -53,6 +55,7 @@ part 'app_database.g.dart';
     AttributesDao,
     ProductUnitsDao,
     StockDao,
+    SyncDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -386,18 +389,13 @@ class AppDatabase extends _$AppDatabase {
     // The push path asks each table "what changed since my last cursor" —
     // an `updated_at` scan per table. Cheap to index, and these are the queries
     // that run on every sync tick.
-    for (final table in const [
-      'products',
-      'customers',
-      'shop_settings',
-      'sales_invoices',
-      'sales_items',
-      'ledger_entries',
-      'cashbox_transactions',
-      'product_units',
-      'attribute_definitions',
-      'stock_movements',
-    ]) {
+    //
+    // Driven off [kSyncTables] rather than a list of its own: a table that
+    // replicates but is not indexed here would still work, just with a full
+    // scan per sync tick on a table that only ever grows — the kind of thing
+    // nobody notices until a shop with two years of sales says sync got slow.
+    for (final spec in kSyncTables) {
+      final table = spec.table;
       if (!existing.contains(table)) continue;
       await customStatement('CREATE INDEX IF NOT EXISTS '
           'idx_${table}_updated_at ON $table (updated_at)');
