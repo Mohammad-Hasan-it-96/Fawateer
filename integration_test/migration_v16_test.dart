@@ -65,7 +65,10 @@ void main() {
         "INSERT INTO cashbox_transactions (id,type,amount,occurred_at,created_at) "
         "VALUES ('cb1','cashSale',15000,1000,1000)");
 
-    // v16 is the current version, so this is the only strip needed here.
+    // Downwards from the current version: v17 first (it rescoped the unique
+    // indexes to reference deleted_at, and SQLite refuses to drop a column any
+    // index mentions), then v16.
+    await stripV17(db);
     await stripV16(db);
     await db.customStatement('PRAGMA user_version = 15');
     await db.close();

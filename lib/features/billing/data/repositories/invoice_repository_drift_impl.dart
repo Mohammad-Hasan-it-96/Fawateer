@@ -4,6 +4,7 @@ import 'package:uuid/uuid.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/daos/sales_dao.dart';
 import '../../../../core/error/failure.dart';
+import '../../../../core/sync/sync_clock.dart';
 import '../../domain/entities/invoice.dart';
 import '../../domain/entities/invoice_item.dart';
 import '../../domain/entities/invoice_list_item.dart';
@@ -13,7 +14,8 @@ import '../../domain/repositories/invoice_repository.dart';
 
 class InvoiceRepositoryDriftImpl implements InvoiceRepository {
   final SalesDao _dao;
-  const InvoiceRepositoryDriftImpl(this._dao);
+  final SyncClock _clock;
+  const InvoiceRepositoryDriftImpl(this._dao, this._clock);
 
   static Invoice _toEntity(SalesInvoiceRow r) => Invoice(
         id: r.id,
@@ -206,7 +208,7 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
   @override
   Future<Either<Failure, void>> deleteInvoice(String id) async {
     try {
-      await _dao.deleteInvoice(id);
+      await _dao.softDeleteInvoice(id, await _clock.stamp());
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));

@@ -5,6 +5,7 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/database/daos/cashbox_dao.dart';
 import '../../../../core/database/daos/ledger_dao.dart';
 import '../../../../core/error/failure.dart';
+import '../../../../core/sync/sync_clock.dart';
 import '../../domain/entities/ledger_entry.dart';
 import '../../domain/repositories/ledger_repository.dart';
 
@@ -16,7 +17,10 @@ class LedgerRepositoryDriftImpl implements LedgerRepository {
   final AppDatabase _db;
   final CashboxDao _cashboxDao;
 
-  const LedgerRepositoryDriftImpl(this._dao, this._db, this._cashboxDao);
+  final SyncClock _clock;
+
+  const LedgerRepositoryDriftImpl(
+      this._dao, this._db, this._cashboxDao, this._clock);
 
   static const _charge = 'charge';
   static const _payment = 'payment';
@@ -88,12 +92,17 @@ class LedgerRepositoryDriftImpl implements LedgerRepository {
   @override
   Future<Either<Failure, void>> deleteEntry(String id) async {
     try {
-      // Delete the entry and reverse any cashbox entry it posted (a debt
-      // payment) in one transaction. deleteByRelatedId is a no-op for a charge
-      // (which posts no cash), so this is safe for either entry type.
+      // Tombstone the entry and reverse any cashbox entry it posted (a debt
+      // payment) in one transaction. softDeleteByRelatedId is a no-op for a
+      // charge (which posts no cash), so this is safe for either entry type.
+      //
+      // One stamp for both writes, taken outside the transaction: they are a
+      // single logical act, and giving the reversal a later timestamp than the
+      // deletion it reverses would be a lie the merge could act on.
+      final stamp = await _clock.stamp();
       await _db.transaction(() async {
-        await _dao.deleteEntry(id);
-        await _cashboxDao.deleteByRelatedId(id);
+        await _dao.softDeleteEntry(id, stamp);
+        await _cashboxDao.softDeleteByRelatedId(id, stamp);
       });
       return const Right(null);
     } catch (e) {

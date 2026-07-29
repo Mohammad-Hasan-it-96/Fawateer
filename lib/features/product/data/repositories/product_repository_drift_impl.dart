@@ -4,6 +4,7 @@ import '../../../../core/attributes/product_attributes.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/daos/products_dao.dart';
 import '../../../../core/error/failure.dart';
+import '../../../../core/sync/sync_clock.dart';
 import '../../domain/entities/price_currency.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/product_sale_type.dart';
@@ -11,8 +12,9 @@ import '../../domain/repositories/product_repository.dart';
 
 class ProductRepositoryDriftImpl implements ProductRepository {
   final ProductsDao _dao;
+  final SyncClock _clock;
 
-  const ProductRepositoryDriftImpl(this._dao);
+  const ProductRepositoryDriftImpl(this._dao, this._clock);
 
   // ── mapping helpers ───────────────────────────────────────────────────────
 
@@ -114,7 +116,7 @@ class ProductRepositoryDriftImpl implements ProductRepository {
   @override
   Future<Either<Failure, void>> deleteProduct(String id) async {
     try {
-      await _dao.deleteProduct(id);
+      await _dao.softDeleteProduct(id, await _clock.stamp());
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));

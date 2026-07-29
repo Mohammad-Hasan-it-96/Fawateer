@@ -44,9 +44,10 @@ void main() {
         "INSERT INTO sales_items (invoice_id,product_id,product_name,price,quantity) "
         "VALUES ('inv1','p1','iPhone 15',5000000,1)");
 
-    // Strip downwards from the current version — v16 first, then v15. Dropping
-    // only v15 would leave v16's columns on a database claiming user_version 14,
-    // and the v16 step would then try to add them again.
+    // Strip downwards from the current version — v17, v16, then v15. Dropping
+    // only v15 would leave later columns on a database claiming user_version 14,
+    // and those steps would then try to add them again.
+    await stripV17(db);
     await stripV16(db);
     await stripV15(db);
     await db.customStatement('PRAGMA user_version = 14');

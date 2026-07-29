@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import '../../sync/sync_clock.dart';
 import '../app_database.dart';
 import '../tables/sales_invoices_table.dart';
 import '../tables/sales_items_table.dart';
@@ -27,20 +28,23 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   SalesDao(super.db);
 
   /// All invoices ordered by newest first.
-  Future<List<SalesInvoiceRow>> getAllInvoices() =>
-      (select(salesInvoices)
-            ..orderBy([(i) => OrderingTerm.desc(i.createdAt)]))
-          .get();
+  Future<List<SalesInvoiceRow>> getAllInvoices() => (select(salesInvoices)
+        ..where((i) => i.deletedAt.equals(''))
+        ..orderBy([(i) => OrderingTerm.desc(i.createdAt)]))
+      .get();
 
   /// Reactive stream of all invoices.
-  Stream<List<SalesInvoiceRow>> watchAllInvoices() =>
-      (select(salesInvoices)
-            ..orderBy([(i) => OrderingTerm.desc(i.createdAt)]))
-          .watch();
+  Stream<List<SalesInvoiceRow>> watchAllInvoices() => (select(salesInvoices)
+        ..where((i) => i.deletedAt.equals(''))
+        ..orderBy([(i) => OrderingTerm.desc(i.createdAt)]))
+      .watch();
 
   /// All line items belonging to a specific invoice.
   Future<List<SalesItemRow>> getItemsForInvoice(String invoiceId) =>
-      (select(salesItems)..where((i) => i.invoiceId.equals(invoiceId))).get();
+      (select(salesItems)
+            ..where(
+                (i) => i.invoiceId.equals(invoiceId) & i.deletedAt.equals('')))
+          .get();
 
   // ── Audit center (filtered list + summary) ─────────────────────────────────
   //
@@ -62,7 +66,8 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
     required String payment,
     required String search,
   }) {
-    final where = StringBuffer('WHERE i.created_at BETWEEN ? AND ?');
+    final where =
+        StringBuffer("WHERE i.deleted_at = '' AND i.created_at BETWEEN ? AND ?");
     final vars = <Variable>[Variable.withInt(fromMs), Variable.withInt(toMs)];
     if (payment == 'credit') {
       where.write(' AND le.invoice_id IS NOT NULL');
@@ -94,10 +99,12 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
 SELECT i.id AS id, i.created_at AS created_at, i.total_amount AS total_amount,
        c.name AS customer_name,
        (le.invoice_id IS NOT NULL) AS is_credit,
-       (SELECT COUNT(*) FROM sales_items si WHERE si.invoice_id = i.id) AS item_count
+       (SELECT COUNT(*) FROM sales_items si
+         WHERE si.invoice_id = i.id AND si.deleted_at = '') AS item_count
 FROM sales_invoices i
 LEFT JOIN ledger_entries le ON le.invoice_id = i.id AND le.entry_type = 'charge'
-LEFT JOIN customers c ON c.id = le.customer_id
+                           AND le.deleted_at = ''
+LEFT JOIN customers c ON c.id = le.customer_id AND c.deleted_at = ''
 $whereSql
 ORDER BY $orderBySql
 LIMIT ? OFFSET ?''';
@@ -138,12 +145,14 @@ SELECT COUNT(*) AS cnt,
        COALESCE(SUM(CASE WHEN le.invoice_id IS NOT NULL THEN i.total_amount ELSE 0 END), 0.0) AS credit_total,
        COALESCE(SUM(
          (SELECT COALESCE(SUM((si.price - si.cost) * si.quantity - si.discount), 0.0)
-          FROM sales_items si WHERE si.invoice_id = i.id)
+          FROM sales_items si
+          WHERE si.invoice_id = i.id AND si.deleted_at = '')
          - i.invoice_discount
        ), 0.0) AS profit
 FROM sales_invoices i
 LEFT JOIN ledger_entries le ON le.invoice_id = i.id AND le.entry_type = 'charge'
-LEFT JOIN customers c ON c.id = le.customer_id
+                           AND le.deleted_at = ''
+LEFT JOIN customers c ON c.id = le.customer_id AND c.deleted_at = ''
 $whereSql''';
     return customSelect(
       sql,
@@ -207,7 +216,8 @@ $whereSql''';
           // *relative* (`quantity - ?`) and floor-clamped in one statement, so
           // two concurrent sales can't read-modify-write over each other.
           await customUpdate(
-            'UPDATE products SET quantity = MAX(quantity - ?, 0) WHERE id = ?',
+            'UPDATE products SET quantity = MAX(quantity - ?, 0) '
+            "WHERE id = ? AND deleted_at = ''",
             variables: [
               Variable<double>(item.quantity.value),
               Variable<String>(item.productId.value),
@@ -238,10 +248,15 @@ $whereSql''';
         }
       });
 
-  /// Delete an invoice together with its line items in one transaction, so no
-  /// orphaned `sales_items` rows are left behind. Also reverses the invoice's
+  /// Tombstone an invoice together with its line items in one transaction, so
+  /// no line is left visible without its invoice. Also reverses the invoice's
   /// cashbox entry (if it was a cash sale) so the cash-on-hand balance stays
   /// honest; no-op for a credit sale (nothing was posted there).
+  ///
+  /// The lines are tombstoned individually rather than left to fall out with
+  /// their parent: the sync contract replicates rows, not row trees, so a line
+  /// whose only claim to being deleted is its invoice's tombstone would arrive
+  /// on the other device as a live orphan.
   ///
   /// **Incomplete for credit sales — do not wire this to a UI as-is.** A credit
   /// sale also writes a `charge` row to `ledger_entries` (see the ledger
@@ -249,33 +264,60 @@ $whereSql''';
   /// invoice today would leave the customer still owing money for a sale that
   /// no longer exists, and the debt is derived from those rows, so the error is
   /// permanent and invisible. Nothing calls this yet; whoever adds "delete
-  /// invoice" must delete the matching `ledger_entries` row (by `invoiceId`) in
-  /// this same transaction.
-  Future<void> deleteInvoice(String id) => transaction(() async {
-        await (delete(salesItems)..where((i) => i.invoiceId.equals(id))).go();
-        await (delete(salesInvoices)..where((i) => i.id.equals(id))).go();
-        await (delete(cashboxTransactions)
-              ..where((c) => c.relatedId.equals(id)))
-            .go();
+  /// invoice" must tombstone the matching `ledger_entries` row (by `invoiceId`)
+  /// in this same transaction.
+  Future<void> softDeleteInvoice(String id, SyncStamp stamp) =>
+      transaction(() async {
+        await (update(salesItems)
+              ..where(
+                  (i) => i.invoiceId.equals(id) & i.deletedAt.equals('')))
+            .write(SalesItemsCompanion(
+          deletedAt: Value(stamp.hlc),
+          updatedAt: Value(stamp.hlc),
+          originDevice: Value(stamp.device),
+        ));
+        await (update(salesInvoices)
+              ..where((i) => i.id.equals(id) & i.deletedAt.equals('')))
+            .write(SalesInvoicesCompanion(
+          deletedAt: Value(stamp.hlc),
+          updatedAt: Value(stamp.hlc),
+          originDevice: Value(stamp.device),
+        ));
+        await (update(cashboxTransactions)
+              ..where(
+                  (c) => c.relatedId.equals(id) & c.deletedAt.equals('')))
+            .write(CashboxTransactionsCompanion(
+          deletedAt: Value(stamp.hlc),
+          updatedAt: Value(stamp.hlc),
+          originDevice: Value(stamp.device),
+        ));
         // Release any serialized units this invoice consumed back to stock
         // (Plan 012) — the same "reverse what the source posted" rule the
-        // cashbox line above follows. Their SKUs' cached quantities are then
-        // rebuilt from the authoritative unit count.
+        // cashbox line above follows. The units themselves are NOT tombstoned:
+        // the handsets still exist and are back on the shelf; only the sale was
+        // undone. Their SKUs' cached quantities are then rebuilt from the
+        // authoritative unit count.
         final freed = await (select(productUnits)
-              ..where((u) => u.soldInvoiceId.equals(id)))
+              ..where((u) =>
+                  u.soldInvoiceId.equals(id) & u.deletedAt.equals('')))
             .get();
         if (freed.isNotEmpty) {
-          await (update(productUnits)..where((u) => u.soldInvoiceId.equals(id)))
-              .write(const ProductUnitsCompanion(
-            status: Value('inStock'),
-            soldInvoiceId: Value(''),
-            soldAt: Value(0),
+          await (update(productUnits)
+                ..where((u) =>
+                    u.soldInvoiceId.equals(id) & u.deletedAt.equals('')))
+              .write(ProductUnitsCompanion(
+            status: const Value('inStock'),
+            soldInvoiceId: const Value(''),
+            soldAt: const Value(0),
+            updatedAt: Value(stamp.hlc),
+            originDevice: Value(stamp.device),
           ));
           for (final productId in freed.map((r) => r.productId).toSet()) {
             await customUpdate(
               'UPDATE products SET quantity = ('
               '  SELECT COUNT(*) FROM product_units'
               "  WHERE product_id = ? AND status = 'inStock'"
+              "    AND deleted_at = ''"
               ') WHERE id = ? AND is_serialized = 1',
               variables: [
                 Variable<String>(productId),

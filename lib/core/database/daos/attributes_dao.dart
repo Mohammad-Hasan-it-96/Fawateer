@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import '../../sync/sync_clock.dart';
 import '../app_database.dart';
 import '../tables/attribute_definitions_table.dart';
 
@@ -15,6 +16,7 @@ class AttributesDao extends DatabaseAccessor<AppDatabase>
   /// All definitions ordered for display (sortOrder then label).
   Future<List<AttributeDefinitionRow>> getAll() =>
       (select(attributeDefinitions)
+            ..where((t) => t.deletedAt.equals(''))
             ..orderBy([
               (t) => OrderingTerm(expression: t.sortOrder),
               (t) => OrderingTerm(expression: t.label),
@@ -24,6 +26,7 @@ class AttributesDao extends DatabaseAccessor<AppDatabase>
   /// Reactive stream of all definitions (archived included; callers filter).
   Stream<List<AttributeDefinitionRow>> watchAll() =>
       (select(attributeDefinitions)
+            ..where((t) => t.deletedAt.equals(''))
             ..orderBy([
               (t) => OrderingTerm(expression: t.sortOrder),
               (t) => OrderingTerm(expression: t.label),
@@ -39,14 +42,25 @@ class AttributesDao extends DatabaseAccessor<AppDatabase>
       batch((b) => b.insertAll(attributeDefinitions, defs,
           mode: InsertMode.insertOrReplace));
 
-  /// Hard-delete a definition by id. Callers guard with soft-archive when the
+  /// Tombstone a definition by id. Callers guard with soft-archive when the
   /// field is in use on existing products.
-  Future<int> deleteById(String id) =>
-      (delete(attributeDefinitions)..where((t) => t.id.equals(id))).go();
+  Future<int> softDeleteById(String id, SyncStamp stamp) =>
+      (update(attributeDefinitions)
+            ..where((t) => t.id.equals(id) & t.deletedAt.equals('')))
+          .write(AttributeDefinitionsCompanion(
+        deletedAt: Value(stamp.hlc),
+        updatedAt: Value(stamp.hlc),
+        originDevice: Value(stamp.device),
+      ));
 
   /// How many definitions currently exist (used to run onboarding only once).
+  ///
+  /// Counts live rows: a shop that deleted every field it created should be
+  /// offered onboarding again, not left staring at an empty screen.
   Future<int> count() async {
-    final rows = await select(attributeDefinitions).get();
+    final rows = await (select(attributeDefinitions)
+          ..where((t) => t.deletedAt.equals('')))
+        .get();
     return rows.length;
   }
 }

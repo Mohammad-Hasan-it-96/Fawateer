@@ -19,6 +19,7 @@ import 'config/remote_config_service.dart';
 import 'currency/exchange_rate_service.dart';
 import 'settings/inventory_settings_service.dart';
 import 'settings/print_settings_service.dart';
+import 'sync/sync_clock.dart';
 import 'theme/font_scale_controller.dart';
 import 'theme/theme_controller.dart';
 
@@ -108,6 +109,12 @@ Future<void> init() async {
   sl.registerLazySingleton<AttributesDao>(() => AttributesDao(sl()));
   sl.registerLazySingleton<ProductUnitsDao>(() => ProductUnitsDao(sl()));
 
+  // ── Sync (Plan 002, Phase 0) ─────────────────────────────────────────────
+  // Registered before the repositories because every one that can delete needs
+  // it to stamp a tombstone. Its node id is empty until `main()` awaits
+  // `load()` — see the startup wiring there.
+  sl.registerLazySingleton<SyncClock>(() => SyncClock(sl<SettingsDao>()));
+
   // ── Services ─────────────────────────────────────────────────────────────
   sl.registerLazySingleton<ExchangeRateService>(
       () => ExchangeRateService(sl<SettingsDao>()));
@@ -124,25 +131,27 @@ Future<void> init() async {
 
   // ── Repositories ─────────────────────────────────────────────────────────
   sl.registerLazySingleton<ProductRepository>(
-      () => ProductRepositoryDriftImpl(sl()));
+      () => ProductRepositoryDriftImpl(sl(), sl<SyncClock>()));
   sl.registerLazySingleton<ShopRepository>(
       () => ShopRepositoryDriftImpl(sl()));
   sl.registerLazySingleton<PrinterRepository>(
       () => PrinterRepositoryDriftImpl(sl()));
   sl.registerLazySingleton<InvoiceRepository>(
-      () => InvoiceRepositoryDriftImpl(sl()));
+      () => InvoiceRepositoryDriftImpl(sl(), sl<SyncClock>()));
   sl.registerLazySingleton<CustomerRepository>(
-      () => CustomerRepositoryDriftImpl(sl()));
+      () => CustomerRepositoryDriftImpl(sl(), sl<SyncClock>()));
   sl.registerLazySingleton<LedgerRepository>(
-      () => LedgerRepositoryDriftImpl(sl(), sl(), sl()));
+      () => LedgerRepositoryDriftImpl(sl(), sl(), sl(), sl<SyncClock>()));
   sl.registerLazySingleton<CashboxRepository>(
-      () => CashboxRepositoryDriftImpl(sl()));
+      () => CashboxRepositoryDriftImpl(sl(), sl<SyncClock>()));
   sl.registerLazySingleton<DashboardRepository>(
       () => DashboardRepositoryDriftImpl(sl<DashboardDao>()));
   sl.registerLazySingleton<AttributeDefinitionRepository>(
-      () => AttributeDefinitionRepositoryDriftImpl(sl<AttributesDao>()));
+      () => AttributeDefinitionRepositoryDriftImpl(
+          sl<AttributesDao>(), sl<SyncClock>()));
   sl.registerLazySingleton<ProductUnitRepository>(
-      () => ProductUnitRepositoryDriftImpl(sl<ProductUnitsDao>()));
+      () => ProductUnitRepositoryDriftImpl(
+          sl<ProductUnitsDao>(), sl<SyncClock>()));
 
   // ── Backup (Drift snapshot + Google Drive target) ────────────────────────
   sl.registerLazySingleton<BackupEngine>(() => BackupEngine(sl(), sl()));

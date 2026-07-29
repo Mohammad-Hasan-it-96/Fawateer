@@ -28,6 +28,21 @@ const kSyncedTables = [
   'attribute_definitions',
 ];
 
+/// Undo v17 (Plan 002 Phase 0 — tombstones).
+///
+/// v17 added no columns; it only rescoped two partial-UNIQUE indexes to live
+/// rows. So "undoing" it means putting the *old* predicates back, which is what
+/// makes the v16→v17 test meaningful: the fixture must genuinely start with an
+/// index that a tombstoned row can still block.
+Future<void> stripV17(AppDatabase db) async {
+  await db.customStatement('DROP INDEX IF EXISTS idx_products_barcode');
+  await db.customStatement('DROP INDEX IF EXISTS idx_product_units_serial');
+  await db.customStatement('CREATE UNIQUE INDEX idx_products_barcode '
+      "ON products (barcode) WHERE barcode != ''");
+  await db.customStatement('CREATE UNIQUE INDEX idx_product_units_serial '
+      "ON product_units (serial) WHERE serial != ''");
+}
+
 /// Undo v16 (Plan 002 Phase 0 — sync metadata, `sales_items.uuid`,
 /// `products.created_at`).
 Future<void> stripV16(AppDatabase db) async {

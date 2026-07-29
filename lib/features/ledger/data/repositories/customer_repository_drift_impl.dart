@@ -4,14 +4,16 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/daos/customers_dao.dart';
 import '../../../../core/error/failure.dart';
+import '../../../../core/sync/sync_clock.dart';
 import '../../domain/entities/customer.dart';
 import '../../domain/entities/customer_account.dart';
 import '../../domain/repositories/customer_repository.dart';
 
 class CustomerRepositoryDriftImpl implements CustomerRepository {
   final CustomersDao _dao;
+  final SyncClock _clock;
 
-  const CustomerRepositoryDriftImpl(this._dao);
+  const CustomerRepositoryDriftImpl(this._dao, this._clock);
 
   static Customer _toEntity(CustomerRow r) => Customer(
         id: r.id,
@@ -99,7 +101,7 @@ class CustomerRepositoryDriftImpl implements CustomerRepository {
         return const Left(
             ConflictFailure('Customer still has ledger entries'));
       }
-      await _dao.deleteCustomer(id);
+      await _dao.softDeleteCustomer(id, await _clock.stamp());
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));

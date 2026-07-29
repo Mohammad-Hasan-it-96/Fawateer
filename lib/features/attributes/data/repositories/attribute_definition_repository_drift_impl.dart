@@ -6,6 +6,7 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/daos/attributes_dao.dart';
 import '../../../../core/error/failure.dart';
+import '../../../../core/sync/sync_clock.dart';
 import '../../domain/entities/attribute_definition.dart';
 import '../../domain/entities/attribute_type.dart';
 import '../../domain/repositories/attribute_definition_repository.dart';
@@ -13,8 +14,9 @@ import '../../domain/repositories/attribute_definition_repository.dart';
 class AttributeDefinitionRepositoryDriftImpl
     implements AttributeDefinitionRepository {
   final AttributesDao _dao;
+  final SyncClock _clock;
 
-  const AttributeDefinitionRepositoryDriftImpl(this._dao);
+  const AttributeDefinitionRepositoryDriftImpl(this._dao, this._clock);
 
   // ── mapping ────────────────────────────────────────────────────────────────
 
@@ -98,7 +100,7 @@ class AttributeDefinitionRepositoryDriftImpl
   @override
   Future<Either<Failure, void>> delete(String id) async {
     try {
-      await _dao.deleteById(id);
+      await _dao.softDeleteById(id, await _clock.stamp());
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));

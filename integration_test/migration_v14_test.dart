@@ -43,9 +43,10 @@ void main() {
         "INSERT INTO sales_items (invoice_id,product_id,product_name,price,quantity) VALUES "
         "('inv1','p1','Rice',2000,2)," // legacy weighed 2.000 kg
         "('inv1','p2','Soap',1000,3)");
-    // Strip downwards from the current version — v16, v15, then v14. Dropping
-    // only v14 would leave later columns on a database claiming user_version 13,
-    // and those steps would then try to add them again.
+    // Strip downwards from the current version — v17, v16, v15, then v14.
+    // Dropping only v14 would leave later columns on a database claiming
+    // user_version 13, and those steps would then try to add them again.
+    await stripV17(db);
     await stripV16(db);
     await stripV15(db);
     await stripV14(db);

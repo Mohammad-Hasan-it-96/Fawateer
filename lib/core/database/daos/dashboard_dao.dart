@@ -51,11 +51,12 @@ SELECT COUNT(*) AS cnt,
        COALESCE(SUM(i.total_amount), 0.0) AS revenue,
        COALESCE(SUM(
          (SELECT COALESCE(SUM((si.price - si.cost) * si.quantity - si.discount), 0.0)
-          FROM sales_items si WHERE si.invoice_id = i.id)
+          FROM sales_items si
+          WHERE si.invoice_id = i.id AND si.deleted_at = '')
          - i.invoice_discount
        ), 0.0) AS profit
 FROM sales_invoices i
-WHERE i.created_at BETWEEN ? AND ?''',
+WHERE i.deleted_at = '' AND i.created_at BETWEEN ? AND ?''',
       variables: [Variable.withInt(fromMs), Variable.withInt(toMs)],
       readsFrom: {salesInvoices, salesItems},
     ).getSingle();
@@ -71,7 +72,8 @@ WHERE i.created_at BETWEEN ? AND ?''',
   Future<List<InvoiceStampRow>> invoiceStamps(int fromMs, int toMs) async {
     final rows = await customSelect(
       'SELECT created_at, total_amount FROM sales_invoices '
-      'WHERE created_at BETWEEN ? AND ? ORDER BY created_at ASC',
+      "WHERE deleted_at = '' AND created_at BETWEEN ? AND ? "
+      'ORDER BY created_at ASC',
       variables: [Variable.withInt(fromMs), Variable.withInt(toMs)],
       readsFrom: {salesInvoices},
     ).get();
@@ -101,7 +103,8 @@ SELECT si.product_id AS product_id,
        COALESCE(SUM((si.price - si.cost) * si.quantity - si.discount), 0.0) AS profit
 FROM sales_items si
 JOIN sales_invoices i ON i.id = si.invoice_id
-WHERE i.created_at BETWEEN ? AND ?
+WHERE si.deleted_at = '' AND i.deleted_at = ''
+  AND i.created_at BETWEEN ? AND ?
 GROUP BY si.product_id, si.product_name
 ORDER BY $orderByColumn DESC
 LIMIT ?''',
@@ -153,7 +156,8 @@ SELECT COALESCE(
 FROM sales_items si
 JOIN sales_invoices i ON i.id = si.invoice_id
 JOIN products p ON p.id = si.product_id
-WHERE i.created_at BETWEEN ? AND ?
+WHERE si.deleted_at = '' AND i.deleted_at = '' AND p.deleted_at = ''
+  AND i.created_at BETWEEN ? AND ?
 GROUP BY attr_value
 ORDER BY $orderByColumn DESC
 LIMIT ?''',
@@ -185,7 +189,7 @@ SELECT COALESCE(SUM(CASE WHEN amount > 0 THEN amount ELSE 0 END), 0.0) AS cash_i
        COALESCE(SUM(CASE WHEN type = 'expense' THEN -amount ELSE 0 END), 0.0) AS expenses,
        COALESCE(SUM(CASE WHEN type = 'personalWithdrawal' THEN -amount ELSE 0 END), 0.0) AS withdrawals
 FROM cashbox_transactions
-WHERE occurred_at BETWEEN ? AND ?''',
+WHERE deleted_at = '' AND occurred_at BETWEEN ? AND ?''',
       variables: [Variable.withInt(fromMs), Variable.withInt(toMs)],
       readsFrom: {cashboxTransactions},
     ).getSingle();
@@ -200,7 +204,8 @@ WHERE occurred_at BETWEEN ? AND ?''',
   /// Current cash-drawer balance (all-time signed sum).
   Future<double> cashBalance() async {
     final r = await customSelect(
-      'SELECT COALESCE(SUM(amount), 0.0) AS bal FROM cashbox_transactions',
+      'SELECT COALESCE(SUM(amount), 0.0) AS bal '
+      "FROM cashbox_transactions WHERE deleted_at = ''",
       readsFrom: {cashboxTransactions},
     ).getSingle();
     return r.read<double>('bal');
@@ -210,7 +215,7 @@ WHERE occurred_at BETWEEN ? AND ?''',
   Future<double> outstandingDebts() async {
     final r = await customSelect(
       "SELECT COALESCE(SUM(CASE WHEN entry_type = 'charge' THEN amount ELSE -amount END), 0.0) AS owed "
-      'FROM ledger_entries',
+      "FROM ledger_entries WHERE deleted_at = ''",
       readsFrom: {ledgerEntries},
     ).getSingle();
     return r.read<double>('owed');
@@ -219,7 +224,8 @@ WHERE occurred_at BETWEEN ? AND ?''',
   /// Inventory value on hand = Σ(quantity × cost).
   Future<double> inventoryValue() async {
     final r = await customSelect(
-      'SELECT COALESCE(SUM(quantity * cost), 0.0) AS val FROM products',
+      'SELECT COALESCE(SUM(quantity * cost), 0.0) AS val '
+      "FROM products WHERE deleted_at = ''",
       readsFrom: {products},
     ).getSingle();
     return r.read<double>('val');
@@ -230,7 +236,8 @@ WHERE occurred_at BETWEEN ? AND ?''',
   Future<List<NamedQtyRow>> lowStockProducts({int limit = 5}) async {
     final rows = await customSelect(
       'SELECT name, quantity FROM products '
-      'WHERE min_stock_alert > 0 AND quantity <= min_stock_alert '
+      "WHERE deleted_at = '' "
+      'AND min_stock_alert > 0 AND quantity <= min_stock_alert '
       'ORDER BY quantity ASC LIMIT ?',
       variables: [Variable.withInt(limit)],
       readsFrom: {products},
@@ -251,6 +258,7 @@ SELECT c.name AS name,
        SUM(CASE WHEN le.entry_type = 'charge' THEN le.amount ELSE -le.amount END) AS balance
 FROM ledger_entries le
 JOIN customers c ON c.id = le.customer_id
+WHERE le.deleted_at = '' AND c.deleted_at = ''
 GROUP BY le.customer_id, c.name
 HAVING balance > 0.005
 ORDER BY balance DESC

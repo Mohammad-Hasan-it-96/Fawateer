@@ -4,13 +4,15 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/daos/product_units_dao.dart';
 import '../../../../core/error/failure.dart';
+import '../../../../core/sync/sync_clock.dart';
 import '../../domain/entities/product_unit.dart';
 import '../../domain/entities/unit_status.dart';
 import '../../domain/repositories/product_unit_repository.dart';
 
 class ProductUnitRepositoryDriftImpl implements ProductUnitRepository {
   final ProductUnitsDao _dao;
-  const ProductUnitRepositoryDriftImpl(this._dao);
+  final SyncClock _clock;
+  const ProductUnitRepositoryDriftImpl(this._dao, this._clock);
 
   // ── mapping helpers ───────────────────────────────────────────────────────
 
@@ -123,7 +125,7 @@ class ProductUnitRepositoryDriftImpl implements ProductUnitRepository {
         // prevent, so refuse rather than delete history.
         return const Left(ConflictFailure('unit_already_sold'));
       }
-      await _dao.deleteUnit(id);
+      await _dao.softDeleteUnit(id, await _clock.stamp());
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));

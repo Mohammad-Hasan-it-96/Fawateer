@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import '../../sync/sync_clock.dart';
 import '../app_database.dart';
 import '../tables/product_units_table.dart';
 import '../tables/products_table.dart';
@@ -31,15 +32,20 @@ class ProductUnitsDao extends DatabaseAccessor<AppDatabase>
   /// Live list of a SKU's units, newest first.
   Stream<List<ProductUnitRow>> watchUnitsForProduct(String productId) =>
       (select(productUnits)
-            ..where((u) => u.productId.equals(productId))
+            ..where((u) =>
+                u.productId.equals(productId) & u.deletedAt.equals(''))
             ..orderBy([(u) => OrderingTerm.desc(u.createdAt)]))
           .watch();
 
-  Future<ProductUnitRow?> getUnitById(String id) =>
-      (select(productUnits)..where((u) => u.id.equals(id))).getSingleOrNull();
+  Future<ProductUnitRow?> getUnitById(String id) => (select(productUnits)
+        ..where((u) => u.id.equals(id) & u.deletedAt.equals('')))
+      .getSingleOrNull();
 
   Future<List<ProductUnitRow>> getUnitsForProduct(String productId) =>
-      (select(productUnits)..where((u) => u.productId.equals(productId))).get();
+      (select(productUnits)
+            ..where((u) =>
+                u.productId.equals(productId) & u.deletedAt.equals('')))
+          .get();
 
   /// Find one unit by its exact serial. This is the second scan path (Plan 012
   /// D6): the POS tries `getByBarcode` first and falls through to here, so
@@ -50,14 +56,16 @@ class ProductUnitsDao extends DatabaseAccessor<AppDatabase>
   /// silently pick an arbitrary unit.
   Future<ProductUnitRow?> getBySerial(String serial) {
     if (serial.isEmpty) return Future.value(null);
-    return (select(productUnits)..where((u) => u.serial.equals(serial)))
+    return (select(productUnits)
+          ..where((u) => u.serial.equals(serial) & u.deletedAt.equals('')))
         .getSingleOrNull();
   }
 
   /// How many units of [productId] are on the shelf.
   Future<int> availableCount(String productId) async {
     final row = await customSelect(
-      'SELECT COUNT(*) AS c FROM product_units WHERE product_id = ? AND status = ?',
+      'SELECT COUNT(*) AS c FROM product_units '
+      "WHERE product_id = ? AND status = ? AND deleted_at = ''",
       variables: [
         Variable<String>(productId),
         const Variable<String>(_available),
@@ -78,18 +86,32 @@ class ProductUnitsDao extends DatabaseAccessor<AppDatabase>
         await _syncQuantity(unit.productId.value);
       });
 
-  /// Delete a unit and re-sync the cached quantity, atomically.
-  Future<void> deleteUnit(String id) => transaction(() async {
-        final row = await (select(productUnits)..where((u) => u.id.equals(id)))
+  /// Tombstone a unit and re-sync the cached quantity, atomically.
+  ///
+  /// The serial is **left on the tombstoned row**, not blanked. Blanking would
+  /// free the serial for immediate re-entry, but it would also destroy the one
+  /// thing a warranty claim needs — which handset this row was. The
+  /// partial-unique serial index is scoped to live rows instead (v17), so the
+  /// serial is re-enterable *and* the history survives.
+  Future<void> softDeleteUnit(String id, SyncStamp stamp) =>
+      transaction(() async {
+        final row = await (select(productUnits)
+              ..where((u) => u.id.equals(id) & u.deletedAt.equals('')))
             .getSingleOrNull();
         if (row == null) return;
-        await (delete(productUnits)..where((u) => u.id.equals(id))).go();
+        await (update(productUnits)..where((u) => u.id.equals(id)))
+            .write(ProductUnitsCompanion(
+          deletedAt: Value(stamp.hlc),
+          updatedAt: Value(stamp.hlc),
+          originDevice: Value(stamp.device),
+        ));
         await _syncQuantity(row.productId);
       });
 
   /// Change a unit's status (e.g. mark defective) and re-sync, atomically.
   Future<void> updateStatus(String id, String status) => transaction(() async {
-        final row = await (select(productUnits)..where((u) => u.id.equals(id)))
+        final row = await (select(productUnits)
+              ..where((u) => u.id.equals(id) & u.deletedAt.equals('')))
             .getSingleOrNull();
         if (row == null) return;
         await (update(productUnits)..where((u) => u.id.equals(id)))
@@ -100,7 +122,8 @@ class ProductUnitsDao extends DatabaseAccessor<AppDatabase>
   /// Set a unit's warranty expiry (ms since epoch; 0 clears it). Does not touch
   /// stock, so no re-sync is needed.
   Future<void> setWarranty(String id, int warrantyUntil) =>
-      (update(productUnits)..where((u) => u.id.equals(id)))
+      (update(productUnits)
+            ..where((u) => u.id.equals(id) & u.deletedAt.equals('')))
           .write(ProductUnitsCompanion(warrantyUntil: Value(warrantyUntil)));
 
   /// Mark units sold as part of a sale.
@@ -121,7 +144,9 @@ class ProductUnitsDao extends DatabaseAccessor<AppDatabase>
     required int soldAt,
   }) async {
     for (final id in unitIds) {
-      await (update(productUnits)..where((u) => u.id.equals(id))).write(
+      await (update(productUnits)
+            ..where((u) => u.id.equals(id) & u.deletedAt.equals('')))
+          .write(
         ProductUnitsCompanion(
           status: const Value('sold'),
           soldInvoiceId: Value(invoiceId),
@@ -135,11 +160,13 @@ class ProductUnitsDao extends DatabaseAccessor<AppDatabase>
   /// affected SKUs. Mirrors how deleting a sale reverses its cashbox entry.
   Future<void> releaseByInvoiceInTransaction(String invoiceId) async {
     final rows = await (select(productUnits)
-          ..where((u) => u.soldInvoiceId.equals(invoiceId)))
+          ..where((u) =>
+              u.soldInvoiceId.equals(invoiceId) & u.deletedAt.equals('')))
         .get();
     if (rows.isEmpty) return;
     await (update(productUnits)
-            ..where((u) => u.soldInvoiceId.equals(invoiceId)))
+          ..where((u) =>
+              u.soldInvoiceId.equals(invoiceId) & u.deletedAt.equals('')))
         .write(const ProductUnitsCompanion(
       status: Value(_available),
       soldInvoiceId: Value(''),
@@ -158,7 +185,7 @@ class ProductUnitsDao extends DatabaseAccessor<AppDatabase>
   Future<void> _syncQuantity(String productId) => customUpdate(
         'UPDATE products SET quantity = ('
         '  SELECT COUNT(*) FROM product_units'
-        '  WHERE product_id = ? AND status = ?'
+        "  WHERE product_id = ? AND status = ? AND deleted_at = ''"
         ') WHERE id = ? AND is_serialized = 1',
         variables: [
           Variable<String>(productId),

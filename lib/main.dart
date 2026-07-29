@@ -9,6 +9,8 @@ import 'config/routes/app_routes.dart';
 import 'core/config/remote_config_service.dart';
 import 'core/config/update_dialog.dart';
 import 'core/service_locator.dart' as di;
+import 'core/sync/sync_clock.dart';
+import 'core/sync/sync_identity.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/font_scale_controller.dart';
 import 'core/theme/theme_controller.dart';
@@ -21,6 +23,7 @@ import 'features/shop/presentation/bloc/shop_bloc.dart';
 import 'features/settings/presentation/bloc/printer_bloc.dart';
 import 'features/settings/presentation/bloc/printer_event.dart';
 import 'features/licensing/presentation/bloc/license_bloc.dart';
+import 'features/licensing/data/services/device_identity_service.dart';
 import 'features/licensing/data/services/push_notification_service.dart';
 import 'features/ledger/presentation/bloc/customer_bloc.dart';
 import 'features/cashbox/presentation/bloc/cashbox_bloc.dart';
@@ -53,6 +56,16 @@ void main() async {
         .ensureLoaded()
         .timeout(const Duration(seconds: 4));
   } catch (_) {/* keep going; the config applies once it lands */}
+
+  // Adopt this device's sync identity and restore the logical clock before any
+  // screen can write (Plan 002, Phase 0). Awaited rather than fired off: a
+  // delete taken before this lands would stamp its tombstone with an empty node
+  // id, which unpacks as malformed and would lose the delete on the next merge.
+  // `getDeviceId` is already bounded by its own 3s channel timeout and never
+  // throws, so this cannot stall startup the way the config fetch can.
+  await di
+      .sl<SyncClock>()
+      .load(syncNodeId(await di.sl<DeviceIdentityService>().getDeviceId()));
 
   // Read the stored light/dark preference before the first frame, so the app
   // doesn't paint light and then flip. Local DB read; never throws.

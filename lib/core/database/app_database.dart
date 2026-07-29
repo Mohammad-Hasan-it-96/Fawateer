@@ -61,7 +61,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -271,6 +271,25 @@ class AppDatabase extends _$AppDatabase {
 
         await _createSyncIndexes();
       }
+      if (from < 17) {
+        // Tombstones (Plan 002, Phase 0). No new columns — `deleted_at` already
+        // arrived in v16. What changes is the two partial-UNIQUE indexes, which
+        // must stop counting deleted rows.
+        //
+        // Without this, deleting is a one-way door: a shop that deletes a
+        // product can never re-add anything with that barcode, and a shop that
+        // deletes a unit can never re-enter that serial, because the tombstoned
+        // row still occupies the value. Hard deletes hid the problem; soft
+        // deletes surface it immediately.
+        //
+        // Recreated rather than adjusted — SQLite has no ALTER INDEX. Dropping
+        // a unique index momentarily is safe here: nothing else writes during a
+        // migration.
+        await customStatement('DROP INDEX IF EXISTS idx_products_barcode');
+        await customStatement('DROP INDEX IF EXISTS idx_product_units_serial');
+        await _createIndexes();
+        await _createProductUnitIndexes();
+      }
     },
   );
 
@@ -344,10 +363,15 @@ class AppDatabase extends _$AppDatabase {
     // fresh/clean DB.
     await customStatement(
         "UPDATE products SET barcode = '' "
-        "WHERE barcode != '' AND rowid NOT IN ("
-        "SELECT MIN(rowid) FROM products WHERE barcode != '' GROUP BY barcode)");
+        "WHERE barcode != '' AND deleted_at = '' AND rowid NOT IN ("
+        "SELECT MIN(rowid) FROM products WHERE barcode != '' AND deleted_at = ''"
+        ' GROUP BY barcode)');
+    // Scoped to LIVE rows (v17). A tombstoned product keeps its barcode — the
+    // row is history and must stay readable — but it must not reserve that
+    // barcode forever, or deleting a product would permanently burn its code.
     await customStatement(
-        "CREATE UNIQUE INDEX IF NOT EXISTS idx_products_barcode ON products (barcode) WHERE barcode != ''");
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_products_barcode '
+        "ON products (barcode) WHERE barcode != '' AND deleted_at = ''");
     await customStatement(
         'CREATE INDEX IF NOT EXISTS idx_sales_invoices_created_at ON sales_invoices (created_at)');
     await customStatement(
@@ -391,8 +415,12 @@ class AppDatabase extends _$AppDatabase {
   Future<void> _createProductUnitIndexes() async {
     await customStatement(
         'CREATE INDEX IF NOT EXISTS idx_product_units_product_id ON product_units (product_id)');
+    // Live rows only (v17), for the same reason as idx_products_barcode: a
+    // tombstoned unit keeps its serial as the warranty record, but a returned
+    // handset re-entered later must not be refused as a duplicate.
     await customStatement(
-        "CREATE UNIQUE INDEX IF NOT EXISTS idx_product_units_serial ON product_units (serial) WHERE serial != ''");
+        'CREATE UNIQUE INDEX IF NOT EXISTS idx_product_units_serial '
+        "ON product_units (serial) WHERE serial != '' AND deleted_at = ''");
     await customStatement(
         'CREATE INDEX IF NOT EXISTS idx_product_units_invoice ON product_units (sold_invoice_id)');
   }

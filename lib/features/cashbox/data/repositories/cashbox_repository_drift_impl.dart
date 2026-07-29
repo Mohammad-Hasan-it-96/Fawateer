@@ -4,14 +4,16 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/daos/cashbox_dao.dart';
 import '../../../../core/error/failure.dart';
+import '../../../../core/sync/sync_clock.dart';
 import '../../domain/entities/cash_transaction.dart';
 import '../../domain/entities/cash_transaction_type.dart';
 import '../../domain/repositories/cashbox_repository.dart';
 
 class CashboxRepositoryDriftImpl implements CashboxRepository {
   final CashboxDao _dao;
+  final SyncClock _clock;
 
-  const CashboxRepositoryDriftImpl(this._dao);
+  const CashboxRepositoryDriftImpl(this._dao, this._clock);
 
   static CashTransaction _toEntity(CashboxTransactionRow r) => CashTransaction(
         id: r.id,
@@ -52,7 +54,7 @@ class CashboxRepositoryDriftImpl implements CashboxRepository {
   @override
   Future<Either<Failure, void>> deleteTransaction(String id) async {
     try {
-      await _dao.deleteTransaction(id);
+      await _dao.softDeleteTransaction(id, await _clock.stamp());
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
