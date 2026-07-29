@@ -381,6 +381,36 @@ void main() {
     });
   });
 
+  group('what the scheduler listens to', () {
+    test('a received row is not pushed straight back', () async {
+      await addProduct(a, 'p1', 'رز');
+      await settle();
+      expect(await nameOf(b, 'p1'), 'رز');
+
+      // B now holds a row whose authored HLC is ABOVE B's own push watermark.
+      // Without the origin filter B would collect it and push it back, and the
+      // two tills would spend every tick echoing each other's traffic.
+      final mine = await b.db.syncDao
+          .collectSince('', originDevice: 'nodeBBBBBBBBBBBB');
+      expect(mine.where((c) => c.rowUuid == 'p1'), isEmpty,
+          reason: 'a row we did not author came FROM the server — it has it');
+
+      // And it is still collectable by the device that did author it, so the
+      // filter has not simply hidden everything.
+      final theirs = await a.db.syncDao
+          .collectSince('', originDevice: 'nodeAAAAAAAAAAAA');
+      expect(theirs.map((c) => c.rowUuid), contains('p1'));
+    });
+
+    test('a local write wakes the change ticker', () async {
+      // What the scheduler debounces on. Faked in the host test, so this is the
+      // only place it meets real Drift.
+      final fired = a.db.syncDao.watchLocalChanges().first;
+      await addProduct(a, 'p1', 'رز');
+      await expectLater(fired.timeout(const Duration(seconds: 5)), completes);
+    });
+  });
+
   group('the engine protects its own position', () {
     test('a rejected row stops the watermark so nothing is stranded', () async {
       await addProduct(a, 'p1', 'رز');

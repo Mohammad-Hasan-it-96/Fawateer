@@ -52,6 +52,7 @@ import '../features/cashbox/presentation/bloc/cashbox_bloc.dart';
 // Features — Sync (multi-device, Plan 002)
 import '../features/sync/data/sync_api_transport.dart';
 import '../features/sync/data/sync_engine.dart';
+import '../features/sync/data/sync_scheduler.dart';
 import '../features/sync/data/sync_state_store.dart';
 import '../features/sync/domain/sync_transport.dart';
 
@@ -149,6 +150,13 @@ Future<void> init() async {
         transport: sl<SyncTransport>(),
         state: sl<SyncStateStore>(),
         clock: sl<SyncClock>(),
+      ));
+  // Singleton: it registers a lifecycle observer and a periodic timer, so a
+  // second instance would double every trigger and leak the first one's timer.
+  sl.registerLazySingleton<SyncScheduler>(() => SyncScheduler(
+        engine: sl<SyncEngine>(),
+        credentials: sl<SyncCredentialStore>(),
+        dao: sl<SyncDao>(),
       ));
 
   // ── Services ─────────────────────────────────────────────────────────────

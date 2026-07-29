@@ -12,6 +12,19 @@ const Set<String> _kLicenseMessageTypes = {
   'license_updated',
 };
 
+/// The multi-device sync doorbell (Plan 002, Phase 1).
+///
+/// Carries **no data** — it only says "the server has something for you", and
+/// the device then runs an ordinary pull. Deliberately not a payload: a change
+/// pushed inside a notification would arrive out of order relative to the pull
+/// cursor, could be dropped by the OS under battery policy, and would have to be
+/// merged from a background isolate with no database open. A doorbell just makes
+/// the next pull happen sooner than the timer would.
+const Set<String> _kSyncMessageTypes = {
+  'sync_changes_available',
+  'sync_device_revoked',
+};
+
 /// Background isolate handler. Must be a top-level / static function annotated
 /// with `@pragma('vm:entry-point')`. Fawateer does no background work — the
 /// unlock re-check happens when the app next comes to the foreground (or when
@@ -60,6 +73,11 @@ class PushNotificationService {
   /// they don't need one.)
   void Function()? _onForegroundLicenseChange;
 
+  /// Called when the sync doorbell rings — the app wires this to a sync pass.
+  /// Silent by design: the shopkeeper should not be notified that a routine
+  /// pull is about to happen, only see the result appear.
+  void Function()? _onSyncChanged;
+
   /// Idempotent. [onLicenseChanged] is invoked (on the main isolate) whenever a
   /// license-related message is received in the foreground, opened from the
   /// tray, or launched the app from terminated state. [onForegroundLicenseChange]
@@ -67,11 +85,13 @@ class PushNotificationService {
   Future<void> initialize({
     void Function()? onLicenseChanged,
     void Function()? onForegroundLicenseChange,
+    void Function()? onSyncChanged,
   }) async {
     if (_initialized) return;
     _initialized = true;
     _onLicenseChanged = onLicenseChanged;
     _onForegroundLicenseChange = onForegroundLicenseChange;
+    _onSyncChanged = onSyncChanged;
 
     try {
       await Firebase.initializeApp();
@@ -172,6 +192,16 @@ class PushNotificationService {
 
   void _handleMessage(RemoteMessage message, {required bool foreground}) {
     final type = (message.data['type'] ?? '').toString().trim();
+
+    // Checked before the licence types so a sync doorbell can never be mistaken
+    // for a licence event and fire a subscription re-check (and, in the
+    // foreground, a "subscription activated" banner) on every sale the other
+    // till makes.
+    if (_kSyncMessageTypes.contains(type)) {
+      _onSyncChanged?.call();
+      return;
+    }
+
     if (!_kLicenseMessageTypes.contains(type)) return;
     _onLicenseChanged?.call();
     if (foreground) _onForegroundLicenseChange?.call();

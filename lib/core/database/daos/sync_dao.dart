@@ -51,7 +51,19 @@ class SyncDao extends DatabaseAccessor<AppDatabase> with _$SyncDaoMixin {
   /// that history row-by-row on first enrollment would be both enormous and
   /// pointless — the bootstrap snapshot carries it instead (ADR 0011 Decision
   /// 13). They start replicating the moment anything touches them.
-  Future<List<SyncChange>> collectSince(String sinceHlc, {int limit = 500}) async {
+  ///
+  /// Only rows **this device authored** ([originDevice]) are collected. An
+  /// applied remote row carries the author's HLC, which is normally *above* our
+  /// watermark — so without this filter every device pushes straight back
+  /// everything it has just received. The server deduplicates it by idempotency
+  /// key so nothing breaks, but two tills would spend every sync tick echoing
+  /// each other's traffic. Nothing is lost by not relaying: a row we did not
+  /// author reached us from the server, so the server already has it.
+  Future<List<SyncChange>> collectSince(
+    String sinceHlc, {
+    required String originDevice,
+    int limit = 500,
+  }) async {
     final out = <SyncChange>[];
     for (final spec in kSyncTables) {
       if (out.length >= limit) break;
@@ -60,10 +72,11 @@ class SyncDao extends DatabaseAccessor<AppDatabase> with _$SyncDaoMixin {
 
       final rows = await customSelect(
         'SELECT * FROM ${spec.table} '
-        "WHERE updated_at != '' AND updated_at > ? "
+        "WHERE updated_at != '' AND updated_at > ? AND origin_device = ? "
         'ORDER BY updated_at ASC LIMIT ?',
         variables: [
           Variable<String>(sinceHlc),
+          Variable<String>(originDevice),
           Variable<int>(limit - out.length),
         ],
       ).get();
@@ -201,6 +214,20 @@ class SyncDao extends DatabaseAccessor<AppDatabase> with _$SyncDaoMixin {
       }
       return applied;
     });
+  }
+
+  /// Fires whenever anything in a replicated table changes, so a sale can reach
+  /// the other till in seconds rather than on the next timer tick.
+  ///
+  /// Note this also fires for changes *we just applied* from a pull. That is a
+  /// self-trigger, not a loop: the pass it provokes finds nothing of ours to
+  /// push (see [collectSince]) and nothing new to pull, so it settles after one
+  /// extra round. Debouncing in the scheduler keeps that round cheap.
+  Stream<void> watchLocalChanges() {
+    final names = kSyncTables.map((s) => s.table).toSet();
+    return attachedDatabase.tableUpdates().where((updates) {
+      return updates.any((u) => names.contains(u.table));
+    }).map((_) {});
   }
 
   /// Bind a JSON scalar as the right SQLite type.

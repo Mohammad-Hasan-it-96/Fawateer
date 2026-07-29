@@ -11,6 +11,7 @@ import 'core/config/update_dialog.dart';
 import 'core/service_locator.dart' as di;
 import 'core/sync/sync_clock.dart';
 import 'core/sync/sync_identity.dart';
+import 'features/sync/data/sync_scheduler.dart';
 import 'core/theme/app_theme.dart';
 import 'core/theme/font_scale_controller.dart';
 import 'core/theme/theme_controller.dart';
@@ -83,7 +84,17 @@ void main() async {
   di.sl<PushNotificationService>().initialize(
         onLicenseChanged: () => di.sl<LicenseBloc>().add(CheckLicenseEvent()),
         onForegroundLicenseChange: _showSubscriptionActivatedBanner,
+        // The sync doorbell. Silent — the shopkeeper sees the other till's sale
+        // appear, not a notification that one is coming.
+        onSyncChanged: () => di.sl<SyncScheduler>().onRemoteChange(),
       );
+
+  // Multi-device sync triggers (Plan 002, Phase 1). Started after runApp and
+  // deliberately NOT awaited: it fires a pass on launch, and blocking the first
+  // frame on a network round trip is exactly the startup cost this app has
+  // avoided everywhere else. It short-circuits immediately on a device with no
+  // seat, which is most of them.
+  unawaited(di.sl<SyncScheduler>().start());
 }
 
 void _showSubscriptionActivatedBanner() {

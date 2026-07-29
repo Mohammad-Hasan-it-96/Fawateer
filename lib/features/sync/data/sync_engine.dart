@@ -94,7 +94,11 @@ class SyncEngine {
     // rejection would advance the watermark over rows that never landed.
     while (true) {
       final watermark = await _state.pushWatermark();
-      final changes = await _dao.collectSince(watermark, limit: batchSize);
+      final changes = await _dao.collectSince(
+        watermark,
+        originDevice: _clock.nodeId,
+        limit: batchSize,
+      );
       if (changes.isEmpty) break;
 
       final result = await _transport.push(changes);
