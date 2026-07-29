@@ -1768,4 +1768,150 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get productNameExistsError =>
       'A product with this name already exists';
+
+  @override
+  String get syncItem => 'Devices & sync';
+
+  @override
+  String get syncSubtitle => 'Share this shop between two phones';
+
+  @override
+  String get syncTitle => 'Devices & sync';
+
+  @override
+  String get syncPitchTitle => 'Use this shop on more than one phone';
+
+  @override
+  String get syncPitchBody =>
+      'Sales, products, customers and the cash drawer stay the same on every phone. Each phone keeps working with no internet and catches up when it reconnects.';
+
+  @override
+  String get syncEnableAction => 'Turn on for this shop';
+
+  @override
+  String get syncEnableHint =>
+      'Choose this on the phone that already has your data.';
+
+  @override
+  String get syncJoinAction => 'Join a shop';
+
+  @override
+  String get syncJoinHint =>
+      'Choose this on the second phone, then scan the code shown on the first.';
+
+  @override
+  String get syncStatusOwner => 'Main phone';
+
+  @override
+  String get syncStatusMember => 'Linked phone';
+
+  @override
+  String syncDevicesUsed(int allowance) {
+    return 'Devices allowed: $allowance';
+  }
+
+  @override
+  String syncLastAt(String when) {
+    return 'Last sync: $when';
+  }
+
+  @override
+  String get syncNever => 'Not synced yet';
+
+  @override
+  String get syncNowAction => 'Sync now';
+
+  @override
+  String get syncUpToDate => 'Everything is up to date';
+
+  @override
+  String syncMovedCounts(int sent, int received) {
+    return 'Sent $sent, received $received';
+  }
+
+  @override
+  String syncPendingRejected(int count) {
+    return '$count changes could not be sent — they will be retried';
+  }
+
+  @override
+  String get syncAddDeviceAction => 'Add a phone';
+
+  @override
+  String get syncJoinCodeTitle => 'Scan on the other phone';
+
+  @override
+  String syncJoinCodeExpires(int minutes) {
+    return 'Valid for $minutes more minutes';
+  }
+
+  @override
+  String get syncJoinCodeExpired => 'This code has expired — create a new one';
+
+  @override
+  String get syncJoinCodeManual => 'Or type this code';
+
+  @override
+  String get syncJoinCodeCopied => 'Code copied';
+
+  @override
+  String get syncJoinCodeDone => 'Done';
+
+  @override
+  String get syncEnterCodeTitle => 'Join a shop';
+
+  @override
+  String get syncEnterCodeLabel => 'Code from the other phone';
+
+  @override
+  String get syncEnterCodeScan => 'Scan';
+
+  @override
+  String get syncEnterCodeConfirm => 'Join';
+
+  @override
+  String get syncLeaveAction => 'Unlink this phone';
+
+  @override
+  String get syncLeaveTitle => 'Unlink this phone?';
+
+  @override
+  String get syncLeaveBody =>
+      'This phone keeps all its data but stops sharing with the others. Nothing is deleted.';
+
+  @override
+  String get syncLeaveConfirm => 'Unlink';
+
+  @override
+  String get syncEnabledMessage => 'Sync is on for this shop';
+
+  @override
+  String get syncJoinedMessage => 'This phone is linked';
+
+  @override
+  String get syncLeftMessage => 'This phone is no longer linked';
+
+  @override
+  String get syncErrorSubscription =>
+      'Your subscription doesn\'t include extra phones';
+
+  @override
+  String get syncErrorAllowance =>
+      'You\'ve used all the phones your plan allows';
+
+  @override
+  String get syncErrorJoinToken => 'That code is wrong, used, or expired';
+
+  @override
+  String get syncErrorFallbackDevice =>
+      'This phone can\'t be identified reliably, so it can\'t be linked';
+
+  @override
+  String get syncErrorOffline => 'No connection — it will try again on its own';
+
+  @override
+  String get syncErrorServer => 'Something went wrong. Please try again';
+
+  @override
+  String get syncCopyCode => 'Copy';
 }

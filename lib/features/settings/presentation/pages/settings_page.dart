@@ -307,6 +307,12 @@ class _SettingsPageState extends State<SettingsPage> {
                   subtitle: l10n.backupSubtitle,
                   onTap: () => context.push('/settings/backup'),
                 ),
+                _buildListItem(
+                  icon: Icons.devices_other,
+                  title: l10n.syncItem,
+                  subtitle: l10n.syncSubtitle,
+                  onTap: () => context.push('/settings/sync'),
+                ),
               ],
             ),
 

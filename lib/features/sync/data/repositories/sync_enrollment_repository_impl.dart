@@ -6,6 +6,7 @@ import '../../../../core/network/sync_api_client.dart';
 import '../../../licensing/data/services/device_identity_service.dart';
 import '../../domain/entities/bootstrap_handoff.dart';
 import '../../domain/entities/enrollment_outcome.dart';
+import '../../domain/entities/join_token.dart';
 import '../../domain/entities/sync_seat_role.dart';
 import '../../domain/entities/sync_session.dart';
 import '../../domain/repositories/sync_enrollment_repository.dart';
@@ -57,6 +58,28 @@ class SyncEnrollmentRepositoryImpl implements SyncEnrollmentRepository {
       final outcome = _outcomeFromData(_data(json));
       await _store.save(outcome.session);
       return Right(outcome);
+    } on SyncApiException catch (e) {
+      if (e.isOffline) return Left(NetworkFailure(e.message));
+      return Left(SyncFailure(SyncError.fromCode(e.code), e.message));
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, JoinToken>> mintJoinToken() async {
+    try {
+      final session = await _store.load();
+      // Guarded locally as well as server-side: without a seat there is no
+      // Bearer credential to send, and an unauthenticated call would come back
+      // as a generic 401 that says nothing useful to the owner.
+      if (session == null) {
+        return const Left(SyncFailure(
+            SyncError.subscriptionRequired, 'not enrolled'));
+      }
+      final json = await _api
+          .postJson('sync/enroll/token', const {}, token: session.syncToken);
+      return Right(JoinToken.fromJson(_data(json)));
     } on SyncApiException catch (e) {
       if (e.isOffline) return Left(NetworkFailure(e.message));
       return Left(SyncFailure(SyncError.fromCode(e.code), e.message));

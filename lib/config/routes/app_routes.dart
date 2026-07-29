@@ -36,6 +36,8 @@ import '../../features/cashbox/presentation/pages/cashbox_page.dart';
 import '../../features/cashbox/presentation/pages/cashbox_history_page.dart';
 import '../../features/backup/presentation/bloc/backup_bloc.dart';
 import '../../features/backup/presentation/pages/backup_page.dart';
+import '../../features/sync/presentation/bloc/sync_bloc.dart';
+import '../../features/sync/presentation/pages/sync_page.dart';
 import 'app_shell.dart';
 
 /// The single shared LicenseBloc instance the gate reacts to.
@@ -287,6 +289,17 @@ final router = GoRouter(
                   builder: (context, state) => BlocProvider(
                     create: (_) => sl<BackupBloc>(),
                     child: const BackupPage(),
+                  ),
+                ),
+                // Devices & sync (Plan 002). SyncBloc is scoped here, like
+                // BackupBloc — nothing outside this page needs enrollment
+                // state. The route dispatches nothing; SyncPage.initState
+                // fires LoadSyncStatus.
+                GoRoute(
+                  path: 'sync',
+                  builder: (context, state) => BlocProvider(
+                    create: (_) => sl<SyncBloc>(),
+                    child: const SyncPage(),
                   ),
                 ),
                 // Subscription management (reachable only while active; the gate

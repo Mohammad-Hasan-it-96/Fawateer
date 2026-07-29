@@ -46,7 +46,7 @@ class _CountingEngine implements SyncEngine {
 }
 
 class _FakeSyncDao implements SyncDao {
-  final controller = Stream<void>.empty();
+  final controller = const Stream<void>.empty();
 
   @override
   Stream<void> watchLocalChanges() => controller;

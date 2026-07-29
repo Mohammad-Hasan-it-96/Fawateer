@@ -2,6 +2,7 @@ import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
 import '../entities/enrollment_outcome.dart';
+import '../entities/join_token.dart';
 import '../entities/sync_session.dart';
 
 /// Enrollment of this device into a sync business (ADR 0011). The two entry
@@ -22,6 +23,13 @@ abstract class SyncEnrollmentRepository {
     String joinToken, {
     String? pushToken,
   });
+
+  /// Mint a single-use invitation for another device
+  /// (`POST /api/v1/sync/enroll/token`, OWNER role only). Fails with
+  /// [SyncError.allowanceExceeded] when the business is already at its device
+  /// cap — refused at mint rather than at redemption, so the owner finds out
+  /// while looking at their own phone instead of at the other person's.
+  Future<Either<Failure, JoinToken>> mintJoinToken();
 
   /// The locally cached sync credential, or null if this device has not enrolled.
   Future<SyncSession?> currentSession();

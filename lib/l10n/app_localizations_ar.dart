@@ -1753,4 +1753,147 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get productNameExistsError => 'يوجد منتج بهذا الاسم بالفعل';
+
+  @override
+  String get syncItem => 'الأجهزة والمزامنة';
+
+  @override
+  String get syncSubtitle => 'شارك هذا المحل بين هاتفين';
+
+  @override
+  String get syncTitle => 'الأجهزة والمزامنة';
+
+  @override
+  String get syncPitchTitle => 'استخدم محلّك على أكثر من هاتف';
+
+  @override
+  String get syncPitchBody =>
+      'المبيعات والمنتجات والزبائن والصندوق تبقى نفسها على كل هاتف. كل هاتف يعمل بدون إنترنت ويتحدّث عند عودة الاتصال.';
+
+  @override
+  String get syncEnableAction => 'تفعيل للمحل';
+
+  @override
+  String get syncEnableHint => 'اختر هذا على الهاتف الذي يحتوي بياناتك.';
+
+  @override
+  String get syncJoinAction => 'الانضمام إلى محل';
+
+  @override
+  String get syncJoinHint =>
+      'اختر هذا على الهاتف الثاني، ثم امسح الرمز الظاهر على الهاتف الأول.';
+
+  @override
+  String get syncStatusOwner => 'الهاتف الرئيسي';
+
+  @override
+  String get syncStatusMember => 'هاتف مرتبط';
+
+  @override
+  String syncDevicesUsed(int allowance) {
+    return 'عدد الأجهزة المسموح: $allowance';
+  }
+
+  @override
+  String syncLastAt(String when) {
+    return 'آخر مزامنة: $when';
+  }
+
+  @override
+  String get syncNever => 'لم تتم المزامنة بعد';
+
+  @override
+  String get syncNowAction => 'مزامنة الآن';
+
+  @override
+  String get syncUpToDate => 'كل شيء محدّث';
+
+  @override
+  String syncMovedCounts(int sent, int received) {
+    return 'أُرسل $sent، ووصل $received';
+  }
+
+  @override
+  String syncPendingRejected(int count) {
+    return 'تعذّر إرسال $count تغييرات — ستتم إعادة المحاولة';
+  }
+
+  @override
+  String get syncAddDeviceAction => 'إضافة هاتف';
+
+  @override
+  String get syncJoinCodeTitle => 'امسح الرمز على الهاتف الآخر';
+
+  @override
+  String syncJoinCodeExpires(int minutes) {
+    return 'صالح لمدة $minutes دقيقة';
+  }
+
+  @override
+  String get syncJoinCodeExpired => 'انتهت صلاحية الرمز — أنشئ رمزاً جديداً';
+
+  @override
+  String get syncJoinCodeManual => 'أو اكتب هذا الرمز';
+
+  @override
+  String get syncJoinCodeCopied => 'تم نسخ الرمز';
+
+  @override
+  String get syncJoinCodeDone => 'تم';
+
+  @override
+  String get syncEnterCodeTitle => 'الانضمام إلى محل';
+
+  @override
+  String get syncEnterCodeLabel => 'الرمز من الهاتف الآخر';
+
+  @override
+  String get syncEnterCodeScan => 'مسح';
+
+  @override
+  String get syncEnterCodeConfirm => 'انضمام';
+
+  @override
+  String get syncLeaveAction => 'إلغاء ربط هذا الهاتف';
+
+  @override
+  String get syncLeaveTitle => 'إلغاء ربط هذا الهاتف؟';
+
+  @override
+  String get syncLeaveBody =>
+      'يحتفظ الهاتف بكل بياناته لكنه يتوقف عن المشاركة مع الأجهزة الأخرى. لا يُحذف أي شيء.';
+
+  @override
+  String get syncLeaveConfirm => 'إلغاء الربط';
+
+  @override
+  String get syncEnabledMessage => 'تم تفعيل المزامنة للمحل';
+
+  @override
+  String get syncJoinedMessage => 'تم ربط هذا الهاتف';
+
+  @override
+  String get syncLeftMessage => 'لم يعد هذا الهاتف مرتبطاً';
+
+  @override
+  String get syncErrorSubscription => 'اشتراكك لا يشمل أجهزة إضافية';
+
+  @override
+  String get syncErrorAllowance => 'استخدمت كل الأجهزة المسموح بها في خطتك';
+
+  @override
+  String get syncErrorJoinToken => 'الرمز غير صحيح أو مستخدم أو منتهي الصلاحية';
+
+  @override
+  String get syncErrorFallbackDevice =>
+      'لا يمكن تمييز هذا الهاتف بشكل موثوق، لذا لا يمكن ربطه';
+
+  @override
+  String get syncErrorOffline => 'لا يوجد اتصال — ستتم إعادة المحاولة تلقائياً';
+
+  @override
+  String get syncErrorServer => 'حدث خطأ. حاول مرة أخرى';
+
+  @override
+  String get syncCopyCode => 'نسخ';
 }

@@ -53,6 +53,7 @@ import '../features/cashbox/presentation/bloc/cashbox_bloc.dart';
 import '../features/sync/data/sync_api_transport.dart';
 import '../features/sync/data/sync_engine.dart';
 import '../features/sync/data/sync_scheduler.dart';
+import '../features/sync/presentation/bloc/sync_bloc.dart';
 import '../features/sync/data/sync_state_store.dart';
 import '../features/sync/domain/sync_transport.dart';
 
@@ -231,6 +232,13 @@ Future<void> init() async {
   sl.registerLazySingleton<SyncEnrollmentRepository>(() =>
       SyncEnrollmentRepositoryImpl(
           sl<SyncApiClient>(), sl<SyncCredentialStore>(), sl<DeviceIdentityService>()));
+  // Factory, not a singleton: route-scoped, so a fresh one per visit (the
+  // BackupBloc/LedgerBloc precedent).
+  sl.registerFactory(() => SyncBloc(
+        repository: sl<SyncEnrollmentRepository>(),
+        scheduler: sl<SyncScheduler>(),
+        state: sl<SyncStateStore>(),
+      ));
 
   // ── BLoCs ─────────────────────────────────────────────────────────────────
   sl.registerFactory(

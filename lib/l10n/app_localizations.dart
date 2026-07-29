@@ -3398,6 +3398,264 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A product with this name already exists'**
   String get productNameExistsError;
+
+  /// No description provided for @syncItem.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices & sync'**
+  String get syncItem;
+
+  /// No description provided for @syncSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Share this shop between two phones'**
+  String get syncSubtitle;
+
+  /// No description provided for @syncTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices & sync'**
+  String get syncTitle;
+
+  /// No description provided for @syncPitchTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this shop on more than one phone'**
+  String get syncPitchTitle;
+
+  /// No description provided for @syncPitchBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Sales, products, customers and the cash drawer stay the same on every phone. Each phone keeps working with no internet and catches up when it reconnects.'**
+  String get syncPitchBody;
+
+  /// No description provided for @syncEnableAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on for this shop'**
+  String get syncEnableAction;
+
+  /// No description provided for @syncEnableHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose this on the phone that already has your data.'**
+  String get syncEnableHint;
+
+  /// No description provided for @syncJoinAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Join a shop'**
+  String get syncJoinAction;
+
+  /// No description provided for @syncJoinHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose this on the second phone, then scan the code shown on the first.'**
+  String get syncJoinHint;
+
+  /// No description provided for @syncStatusOwner.
+  ///
+  /// In en, this message translates to:
+  /// **'Main phone'**
+  String get syncStatusOwner;
+
+  /// No description provided for @syncStatusMember.
+  ///
+  /// In en, this message translates to:
+  /// **'Linked phone'**
+  String get syncStatusMember;
+
+  /// No description provided for @syncDevicesUsed.
+  ///
+  /// In en, this message translates to:
+  /// **'Devices allowed: {allowance}'**
+  String syncDevicesUsed(int allowance);
+
+  /// No description provided for @syncLastAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Last sync: {when}'**
+  String syncLastAt(String when);
+
+  /// No description provided for @syncNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Not synced yet'**
+  String get syncNever;
+
+  /// No description provided for @syncNowAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync now'**
+  String get syncNowAction;
+
+  /// No description provided for @syncUpToDate.
+  ///
+  /// In en, this message translates to:
+  /// **'Everything is up to date'**
+  String get syncUpToDate;
+
+  /// No description provided for @syncMovedCounts.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent {sent}, received {received}'**
+  String syncMovedCounts(int sent, int received);
+
+  /// No description provided for @syncPendingRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} changes could not be sent — they will be retried'**
+  String syncPendingRejected(int count);
+
+  /// No description provided for @syncAddDeviceAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a phone'**
+  String get syncAddDeviceAction;
+
+  /// No description provided for @syncJoinCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan on the other phone'**
+  String get syncJoinCodeTitle;
+
+  /// No description provided for @syncJoinCodeExpires.
+  ///
+  /// In en, this message translates to:
+  /// **'Valid for {minutes} more minutes'**
+  String syncJoinCodeExpires(int minutes);
+
+  /// No description provided for @syncJoinCodeExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'This code has expired — create a new one'**
+  String get syncJoinCodeExpired;
+
+  /// No description provided for @syncJoinCodeManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Or type this code'**
+  String get syncJoinCodeManual;
+
+  /// No description provided for @syncJoinCodeCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Code copied'**
+  String get syncJoinCodeCopied;
+
+  /// No description provided for @syncJoinCodeDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Done'**
+  String get syncJoinCodeDone;
+
+  /// No description provided for @syncEnterCodeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Join a shop'**
+  String get syncEnterCodeTitle;
+
+  /// No description provided for @syncEnterCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Code from the other phone'**
+  String get syncEnterCodeLabel;
+
+  /// No description provided for @syncEnterCodeScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan'**
+  String get syncEnterCodeScan;
+
+  /// No description provided for @syncEnterCodeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Join'**
+  String get syncEnterCodeConfirm;
+
+  /// No description provided for @syncLeaveAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink this phone'**
+  String get syncLeaveAction;
+
+  /// No description provided for @syncLeaveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink this phone?'**
+  String get syncLeaveTitle;
+
+  /// No description provided for @syncLeaveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone keeps all its data but stops sharing with the others. Nothing is deleted.'**
+  String get syncLeaveBody;
+
+  /// No description provided for @syncLeaveConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlink'**
+  String get syncLeaveConfirm;
+
+  /// No description provided for @syncEnabledMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync is on for this shop'**
+  String get syncEnabledMessage;
+
+  /// No description provided for @syncJoinedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone is linked'**
+  String get syncJoinedMessage;
+
+  /// No description provided for @syncLeftMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone is no longer linked'**
+  String get syncLeftMessage;
+
+  /// No description provided for @syncErrorSubscription.
+  ///
+  /// In en, this message translates to:
+  /// **'Your subscription doesn\'t include extra phones'**
+  String get syncErrorSubscription;
+
+  /// No description provided for @syncErrorAllowance.
+  ///
+  /// In en, this message translates to:
+  /// **'You\'ve used all the phones your plan allows'**
+  String get syncErrorAllowance;
+
+  /// No description provided for @syncErrorJoinToken.
+  ///
+  /// In en, this message translates to:
+  /// **'That code is wrong, used, or expired'**
+  String get syncErrorJoinToken;
+
+  /// No description provided for @syncErrorFallbackDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone can\'t be identified reliably, so it can\'t be linked'**
+  String get syncErrorFallbackDevice;
+
+  /// No description provided for @syncErrorOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'No connection — it will try again on its own'**
+  String get syncErrorOffline;
+
+  /// No description provided for @syncErrorServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again'**
+  String get syncErrorServer;
+
+  /// No description provided for @syncCopyCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy'**
+  String get syncCopyCode;
 }
 
 class _AppLocalizationsDelegate
