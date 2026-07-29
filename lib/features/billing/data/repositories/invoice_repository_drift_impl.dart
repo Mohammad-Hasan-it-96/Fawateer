@@ -90,23 +90,31 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
           totalAmount: Value(invoice.totalAmount),
           invoiceDiscount: Value(invoice.invoiceDiscount),
         ),
-        items: items
-            .map((i) => SalesItemsCompanion(
-                  invoiceId: Value(invoice.id),
-                  productId: Value(i.productId),
-                  productName: Value(i.productName),
-                  price: Value(i.price),
-                  cost: Value(i.cost),
-                  quantity: Value(i.quantity),
-                  priceCurrency: Value(i.priceCurrency),
-                  fxRate: Value(i.fxRate),
-                  priceOriginal: Value(i.priceOriginal),
-                  discount: Value(i.discount),
-                  attributesSnapshot: Value(i.attributesSnapshot),
-                  saleType: Value(i.saleType),
-                  serialSnapshot: Value(i.serialSnapshot),
-                ))
-            .toList(),
+        stamp: await _clock.stamp(),
+        items: [
+          for (final (index, i) in items.indexed)
+            SalesItemsCompanion(
+              // The line's device-independent sync id. `sales_items.id` is a
+              // local autoincrement, so two devices mint id=1 for different
+              // lines. Same deterministic shape the v16 backfill gave
+              // historical rows, and the stock movement is keyed off it, so a
+              // sale that arrives twice cannot deduct the stock twice.
+              uuid: Value('${invoice.id}-$index'),
+              invoiceId: Value(invoice.id),
+              productId: Value(i.productId),
+              productName: Value(i.productName),
+              price: Value(i.price),
+              cost: Value(i.cost),
+              quantity: Value(i.quantity),
+              priceCurrency: Value(i.priceCurrency),
+              fxRate: Value(i.fxRate),
+              priceOriginal: Value(i.priceOriginal),
+              discount: Value(i.discount),
+              attributesSnapshot: Value(i.attributesSnapshot),
+              saleType: Value(i.saleType),
+              serialSnapshot: Value(i.serialSnapshot),
+            ),
+        ],
         creditCharge: creditCharge,
         cashReceipt: cashReceipt,
         soldUnitIds: soldUnitIds,

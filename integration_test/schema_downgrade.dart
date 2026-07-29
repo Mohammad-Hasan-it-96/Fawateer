@@ -28,6 +28,16 @@ const kSyncedTables = [
   'attribute_definitions',
 ];
 
+/// Undo v18 (Plan 002 Phase 0 — the stock movement log).
+///
+/// Dropping the table takes its indexes with it, so they need no separate
+/// statement. Note this leaves `products.quantity` holding whatever the log had
+/// last computed — which is exactly the pre-v18 world, where that column *was*
+/// the truth.
+Future<void> stripV18(AppDatabase db) async {
+  await db.customStatement('DROP TABLE IF EXISTS stock_movements');
+}
+
 /// Undo v17 (Plan 002 Phase 0 — tombstones).
 ///
 /// v17 added no columns; it only rescoped two partial-UNIQUE indexes to live

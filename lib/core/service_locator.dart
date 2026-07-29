@@ -12,6 +12,7 @@ import 'database/daos/cashbox_dao.dart';
 import 'database/daos/dashboard_dao.dart';
 import 'database/daos/attributes_dao.dart';
 import 'database/daos/product_units_dao.dart';
+import 'database/daos/stock_dao.dart';
 
 // Core — Network
 import 'network/api_client.dart';
@@ -108,6 +109,7 @@ Future<void> init() async {
   sl.registerLazySingleton<DashboardDao>(() => DashboardDao(sl()));
   sl.registerLazySingleton<AttributesDao>(() => AttributesDao(sl()));
   sl.registerLazySingleton<ProductUnitsDao>(() => ProductUnitsDao(sl()));
+  sl.registerLazySingleton<StockDao>(() => StockDao(sl()));
 
   // ── Sync (Plan 002, Phase 0) ─────────────────────────────────────────────
   // Registered before the repositories because every one that can delete needs
@@ -131,7 +133,8 @@ Future<void> init() async {
 
   // ── Repositories ─────────────────────────────────────────────────────────
   sl.registerLazySingleton<ProductRepository>(
-      () => ProductRepositoryDriftImpl(sl(), sl<SyncClock>()));
+      () => ProductRepositoryDriftImpl(
+          sl(), sl<StockDao>(), sl<SyncClock>()));
   sl.registerLazySingleton<ShopRepository>(
       () => ShopRepositoryDriftImpl(sl()));
   sl.registerLazySingleton<PrinterRepository>(

@@ -228,7 +228,8 @@ void main() {
   });
 
   group('invoices', () {
-    Future<void> sell() => db.salesDao.insertInvoiceWithItems(
+    Future<void> sell() async => db.salesDao.insertInvoiceWithItems(
+          stamp: await clock.stamp(),
           invoice: SalesInvoicesCompanion.insert(
             id: 'inv1',
             createdAt: 1000,

@@ -8,6 +8,7 @@ import '../tables/cashbox_transactions_table.dart';
 import '../tables/customers_table.dart';
 import '../tables/products_table.dart';
 import '../tables/product_units_table.dart';
+import '../tables/stock_movements_table.dart';
 
 part 'sales_dao.g.dart';
 
@@ -23,6 +24,8 @@ part 'sales_dao.g.dart';
   // Serialized units consumed by a sale are marked sold in the sale's own
   // transaction (Plan 012).
   ProductUnits,
+  // A sale appends one signed movement per line (Plan 002, Phase 0).
+  StockMovements,
 ])
 class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
   SalesDao(super.db);
@@ -167,17 +170,21 @@ $whereSql''';
   }
 
   /// Record a sale atomically: insert the invoice, insert its line items, and
-  /// deduct each sold quantity from product on-hand stock — all in one
-  /// transaction. Stock is decremented *relatively* (`quantity = quantity - ?`)
-  /// straight in SQL, so it never overwrites the rest of the product row and
-  /// can't clobber a concurrent edit to price/name/cost.
+  /// append one signed stock movement per line — all in one transaction.
   ///
-  /// The deduction is clamped at 0 (`MAX(quantity - ?, 0)`) so on-hand can never
-  /// go negative: overselling a tracked item, or selling one that is untracked
-  /// (quantity 0) or was deleted mid-cart (matches 0 rows), leaves on-hand at 0
-  /// instead of a nonsensical negative. The sale itself always completes and is
-  /// recorded in full via the snapshotted line item (name/price/cost) — a POS
-  /// must never block a sale the cashier is physically making.
+  /// Stock is recorded as an **event, not a new total** (Plan 002, Phase 0).
+  /// The old code decremented `products.quantity` in place; under sync that
+  /// scalar is merged last-write-wins, so two devices each selling one of five
+  /// converge on "4" and one sale disappears from the books entirely. A
+  /// movement of `-quantity` cannot be overwritten — devices merge the log by
+  /// union and both sales count.
+  ///
+  /// The sale itself always completes and is recorded in full via the
+  /// snapshotted line item (name/price/cost) — a POS must never block a sale
+  /// the cashier is physically making. Selling an untracked item, or one
+  /// deleted mid-cart, simply drives the derived sum negative; the cached
+  /// `products.quantity` still floors at 0 for display (see
+  /// `kRecomputeQuantitySql`), so nothing on screen changes.
   ///
   /// For a **credit sale**, pass [creditCharge] — the customer's ledger `charge`
   /// entry (amount = invoice total, linked to this invoice). It is written in
@@ -197,33 +204,32 @@ $whereSql''';
   Future<void> insertInvoiceWithItems({
     required SalesInvoicesCompanion invoice,
     required List<SalesItemsCompanion> items,
+    required SyncStamp stamp,
     LedgerEntriesCompanion? creditCharge,
     CashboxTransactionsCompanion? cashReceipt,
     List<String> soldUnitIds = const [],
   }) =>
       transaction(() async {
         await into(salesInvoices).insert(invoice);
+        final soldAt = invoice.createdAt.value;
+        final touched = <String>{};
         for (final item in items) {
           await into(salesItems).insert(item);
-          // `customUpdate` with `updates:`, never `customStatement`: the raw
-          // form writes the row but tells Drift nothing, so `watchAllProducts`
-          // never re-runs and every screen keeps showing the pre-sale quantity
-          // until the app restarts. The stock was decrementing correctly all
-          // along — it simply never reached the UI, which reads as "stock does
-          // not go down after a sale".
-          //
-          // Still raw SQL rather than a typed update because the write is
-          // *relative* (`quantity - ?`) and floor-clamped in one statement, so
-          // two concurrent sales can't read-modify-write over each other.
-          await customUpdate(
-            'UPDATE products SET quantity = MAX(quantity - ?, 0) '
-            "WHERE id = ? AND deleted_at = ''",
-            variables: [
-              Variable<double>(item.quantity.value),
-              Variable<String>(item.productId.value),
-            ],
-            updates: {products},
-          );
+          touched.add(item.productId.value);
+          // The movement id is derived from the line's own sync id rather than
+          // freshly generated, so a sale that arrives twice inserts the same
+          // row instead of deducting the stock a second time.
+          await into(stockMovements).insert(StockMovementsCompanion.insert(
+            id: 'stock-${item.uuid.value}',
+            productId: item.productId.value,
+            delta: -item.quantity.value,
+            reason: const Value('sale'),
+            relatedId: invoice.id,
+            occurredAt: soldAt,
+            createdAt: soldAt,
+            updatedAt: Value(stamp.hlc),
+            originDevice: Value(stamp.device),
+          ));
         }
         if (creditCharge != null) {
           await into(ledgerEntries).insert(creditCharge);
@@ -232,19 +238,35 @@ $whereSql''';
           await into(cashboxTransactions).insert(cashReceipt);
         }
         if (soldUnitIds.isNotEmpty) {
-          // Serialized units (Plan 012). Note the quantity is NOT re-synced from
-          // the unit count here: the loop above already decremented
-          // `products.quantity` for every line, serialized or not, so doing both
-          // would double-count the same sale.
-          final soldAt = invoice.createdAt.value;
+          // Serialized units (Plan 012).
           for (final unitId in soldUnitIds) {
             await (update(productUnits)..where((u) => u.id.equals(unitId)))
                 .write(ProductUnitsCompanion(
               status: const Value('sold'),
               soldInvoiceId: invoice.id,
               soldAt: Value(soldAt),
+              updatedAt: Value(stamp.hlc),
+              originDevice: Value(stamp.device),
             ));
           }
+        }
+        // Refresh the cached on-hand LAST, once per product. It has to come
+        // after the units are marked sold: for a serialized SKU the cache is
+        // rebuilt from the live unit count, so recomputing mid-loop would read
+        // the pre-sale count and put the stock straight back.
+        //
+        // `customUpdate` with `updates:`, never `customStatement`: the raw form
+        // writes the row but tells Drift nothing, so `watchAllProducts` never
+        // re-runs and every screen keeps showing the pre-sale quantity until
+        // the app restarts. The stock was decrementing correctly all along — it
+        // simply never reached the UI, which reads as "stock does not go down
+        // after a sale".
+        for (final productId in touched) {
+          await customUpdate(
+            kRecomputeQuantitySql,
+            variables: [Variable<String>(productId)],
+            updates: {products},
+          );
         }
       });
 
@@ -291,12 +313,31 @@ $whereSql''';
           updatedAt: Value(stamp.hlc),
           originDevice: Value(stamp.device),
         ));
+        // Take back the stock the sale removed, by tombstoning the movements
+        // it posted — the same "reverse what the source posted" rule the
+        // cashbox line above follows, done the same way. Tombstoned rather
+        // than compensated with an opposite movement because the sale did not
+        // happen: the honest record is that the event is gone. A genuine
+        // *return* is a different event and gets its own reason.
+        final touched = <String>{};
+        final reversed = await (select(stockMovements)
+              ..where((m) => m.relatedId.equals(id) & m.deletedAt.equals('')))
+            .get();
+        if (reversed.isNotEmpty) {
+          await (update(stockMovements)
+                ..where(
+                    (m) => m.relatedId.equals(id) & m.deletedAt.equals('')))
+              .write(StockMovementsCompanion(
+            deletedAt: Value(stamp.hlc),
+            updatedAt: Value(stamp.hlc),
+            originDevice: Value(stamp.device),
+          ));
+          touched.addAll(reversed.map((m) => m.productId));
+        }
+
         // Release any serialized units this invoice consumed back to stock
-        // (Plan 012) — the same "reverse what the source posted" rule the
-        // cashbox line above follows. The units themselves are NOT tombstoned:
-        // the handsets still exist and are back on the shelf; only the sale was
-        // undone. Their SKUs' cached quantities are then rebuilt from the
-        // authoritative unit count.
+        // (Plan 012). The units themselves are NOT tombstoned: the handsets
+        // still exist and are back on the shelf; only the sale was undone.
         final freed = await (select(productUnits)
               ..where((u) =>
                   u.soldInvoiceId.equals(id) & u.deletedAt.equals('')))
@@ -312,20 +353,15 @@ $whereSql''';
             updatedAt: Value(stamp.hlc),
             originDevice: Value(stamp.device),
           ));
-          for (final productId in freed.map((r) => r.productId).toSet()) {
-            await customUpdate(
-              'UPDATE products SET quantity = ('
-              '  SELECT COUNT(*) FROM product_units'
-              "  WHERE product_id = ? AND status = 'inStock'"
-              "    AND deleted_at = ''"
-              ') WHERE id = ? AND is_serialized = 1',
-              variables: [
-                Variable<String>(productId),
-                Variable<String>(productId),
-              ],
-              updates: {products},
-            );
-          }
+          touched.addAll(freed.map((r) => r.productId));
+        }
+
+        for (final productId in touched) {
+          await customUpdate(
+            kRecomputeQuantitySql,
+            variables: [Variable<String>(productId)],
+            updates: {products},
+          );
         }
       });
 }

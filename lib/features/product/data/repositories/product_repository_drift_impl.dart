@@ -1,20 +1,24 @@
 import 'package:drift/drift.dart';
 import 'package:fpdart/fpdart.dart';
+import 'package:uuid/uuid.dart';
 import '../../../../core/attributes/product_attributes.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/daos/products_dao.dart';
+import '../../../../core/database/daos/stock_dao.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/sync/sync_clock.dart';
 import '../../domain/entities/price_currency.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/product_sale_type.dart';
+import '../../domain/entities/stock_movement_reason.dart';
 import '../../domain/repositories/product_repository.dart';
 
 class ProductRepositoryDriftImpl implements ProductRepository {
   final ProductsDao _dao;
+  final StockDao _stock;
   final SyncClock _clock;
 
-  const ProductRepositoryDriftImpl(this._dao, this._clock);
+  const ProductRepositoryDriftImpl(this._dao, this._stock, this._clock);
 
   // ── mapping helpers ───────────────────────────────────────────────────────
 
@@ -32,13 +36,18 @@ class ProductRepositoryDriftImpl implements ProductRepository {
         isSerialized: row.isSerialized,
       );
 
+  /// **`quantity` is deliberately absent.** It is a cache of the stock movement
+  /// log (Plan 002, Phase 0) and is written only by `StockDao`'s recompute.
+  /// Including it here would let a product save overwrite on-hand with whatever
+  /// number the form was showing — the last-write-wins scalar the movement log
+  /// exists to eliminate — and would silently erase any sale made while the
+  /// edit screen was open.
   static ProductsCompanion _toCompanion(Product p) => ProductsCompanion(
         id: Value(p.id),
         name: Value(p.name),
         barcode: Value(p.barcode),
         price: Value(p.price),
         cost: Value(p.cost),
-        quantity: Value(p.quantity),
         minStockAlert: Value(p.minStockAlert),
         saleType: Value(p.saleType.name),
         priceCurrency: Value(p.priceCurrency.name),
@@ -92,6 +101,10 @@ class ProductRepositoryDriftImpl implements ProductRepository {
   Future<Either<Failure, void>> addProduct(Product product) async {
     try {
       await _dao.createProduct(_toCompanion(product));
+      // Whatever stock the owner typed on the add form becomes the product's
+      // opening balance — an event, so a second device adding the same product
+      // offline contributes its own movement instead of overwriting this one.
+      await _applyQuantity(product, StockMovementReason.openingBalance);
       return const Right(null);
     } catch (e) {
       // A non-empty barcode that already exists trips the partial-unique index.
@@ -107,10 +120,34 @@ class ProductRepositoryDriftImpl implements ProductRepository {
   Future<Either<Failure, void>> updateProduct(Product product) async {
     try {
       await _dao.insertProduct(_toCompanion(product)); // insertOrReplace
+      // The edit form's quantity field is a *correction*, recorded as the
+      // difference from what the log currently says. Serialized products send
+      // their unchanged on-hand (the field is read-only for them), so this is a
+      // no-op there and units stay the sole authority.
+      await _applyQuantity(product, StockMovementReason.adjustment);
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
     }
+  }
+
+  /// Move a product's on-hand to what the form asked for, by recording the
+  /// difference. No-op for a serialized product, whose stock is owned by its
+  /// units — writing a movement there would give it two disagreeing authorities.
+  Future<void> _applyQuantity(
+      Product product, StockMovementReason reason) async {
+    if (product.isSerialized) {
+      await _stock.recomputeQuantity(product.id);
+      return;
+    }
+    await _stock.setOnHand(
+      productId: product.id,
+      target: product.quantity,
+      movementId: const Uuid().v4(),
+      reason: reason.name,
+      now: DateTime.now().millisecondsSinceEpoch,
+      stamp: await _clock.stamp(),
+    );
   }
 
   @override

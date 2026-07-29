@@ -47,6 +47,7 @@ void main() {
     // Strip downwards from the current version — v17, v16, then v15. Dropping
     // only v15 would leave later columns on a database claiming user_version 14,
     // and those steps would then try to add them again.
+    await stripV18(db);
     await stripV17(db);
     await stripV16(db);
     await stripV15(db);

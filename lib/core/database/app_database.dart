@@ -11,6 +11,7 @@ import 'tables/ledger_entries_table.dart';
 import 'tables/cashbox_transactions_table.dart';
 import 'tables/attribute_definitions_table.dart';
 import 'tables/product_units_table.dart';
+import 'tables/stock_movements_table.dart';
 
 import 'daos/products_dao.dart';
 import 'daos/shop_dao.dart';
@@ -22,6 +23,7 @@ import 'daos/cashbox_dao.dart';
 import 'daos/dashboard_dao.dart';
 import 'daos/attributes_dao.dart';
 import 'daos/product_units_dao.dart';
+import 'daos/stock_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -37,6 +39,7 @@ part 'app_database.g.dart';
     CashboxTransactions,
     AttributeDefinitions,
     ProductUnits,
+    StockMovements,
   ],
   daos: [
     ProductsDao,
@@ -49,6 +52,7 @@ part 'app_database.g.dart';
     DashboardDao,
     AttributesDao,
     ProductUnitsDao,
+    StockDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -61,7 +65,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -71,6 +75,7 @@ class AppDatabase extends _$AppDatabase {
       await _createLedgerIndexes();
       await _createCashboxIndexes();
       await _createProductUnitIndexes();
+      await _createStockIndexes();
       await _createSyncIndexes();
     },
     beforeOpen: (details) async {
@@ -290,6 +295,42 @@ class AppDatabase extends _$AppDatabase {
         await _createIndexes();
         await _createProductUnitIndexes();
       }
+      if (from < 18) {
+        // Stock movement log (Plan 002, Phase 0 — "inventory, the hard one").
+        // `products.quantity` stops being the truth and becomes a cache of
+        // SUM(delta): a scalar merged last-write-wins loses sales outright
+        // (two devices each selling one of five converge on "4"), whereas
+        // append-only movements merge by union and both sales count.
+        await migrator.createTable(stockMovements);
+        await _createStockIndexes();
+        await _createSyncIndexes();
+
+        // Backfill: every product with stock gets one opening-balance movement
+        // so the log already sums to what the shop currently sees. Without it
+        // the first recompute would wipe every on-hand count to zero — the
+        // migration would look like it deleted the shop's entire inventory.
+        //
+        // Deterministic ids ('opening-<product id>'), never random: this must be
+        // safe to re-run, and two devices that both migrate before their first
+        // sync must produce the *same* row rather than two opening balances
+        // that sum to double the real stock.
+        //
+        // Serialized SKUs are skipped — their `product_units` rows already ARE
+        // an append-only, uuid-keyed, merge-safe log, so a second ledger could
+        // only disagree with them (see kRecomputeQuantitySql).
+        //
+        // `updated_at` is left '' ("predates sync") deliberately: these are
+        // reconstructed history, not edits this device authored, and claiming
+        // a real stamp would let them beat genuine remote edits.
+        await customStatement(
+            "INSERT INTO stock_movements "
+            '(id, product_id, delta, reason, related_id, note, '
+            ' occurred_at, created_at) '
+            "SELECT 'opening-' || id, id, quantity, 'openingBalance', '', '', "
+            '       0, 0 '
+            'FROM products '
+            "WHERE deleted_at = '' AND is_serialized = 0 AND quantity != 0");
+      }
     },
   );
 
@@ -324,8 +365,24 @@ class AppDatabase extends _$AppDatabase {
   }
 
   /// Idempotent indexes supporting sync (Plan 002, Phase 0). Called from
-  /// [onCreate] and the v15→v16 upgrade.
+  /// [onCreate] and from every upgrade step that adds a replicated table.
+  ///
+  /// **Tables that do not exist yet are skipped, deliberately.** This helper is
+  /// called from the *v16* step, but the list it walks grows every time a new
+  /// synced table ships — `stock_movements` arrived in v18. An upgrade starting
+  /// below 16 runs the v16 step first, when that table is still several steps
+  /// away, and `CREATE INDEX` on a missing table throws and bricks the upgrade.
+  /// Caught on a device by `migration_v16_test`; it is the same shape as the
+  /// trap `_addColumnIfMissing` exists for, and skipping is the fix that keeps
+  /// working when the next synced table lands: the step that creates the table
+  /// calls this again immediately afterwards, so nothing is left unindexed.
   Future<void> _createSyncIndexes() async {
+    final existing = (await customSelect(
+                "SELECT name FROM sqlite_master WHERE type = 'table'")
+            .get())
+        .map((row) => row.read<String>('name'))
+        .toSet();
+
     // The push path asks each table "what changed since my last cursor" —
     // an `updated_at` scan per table. Cheap to index, and these are the queries
     // that run on every sync tick.
@@ -339,7 +396,9 @@ class AppDatabase extends _$AppDatabase {
       'cashbox_transactions',
       'product_units',
       'attribute_definitions',
+      'stock_movements',
     ]) {
+      if (!existing.contains(table)) continue;
       await customStatement('CREATE INDEX IF NOT EXISTS '
           'idx_${table}_updated_at ON $table (updated_at)');
     }
@@ -347,8 +406,10 @@ class AppDatabase extends _$AppDatabase {
     // uniqueness constraint as much as a lookup. Partial over non-empty values,
     // mirroring idx_products_barcode: a row that predates the backfill must
     // stay legal rather than brick the migration.
-    await customStatement('CREATE UNIQUE INDEX IF NOT EXISTS '
-        "idx_sales_items_uuid ON sales_items (uuid) WHERE uuid != ''");
+    if (existing.contains('sales_items')) {
+      await customStatement('CREATE UNIQUE INDEX IF NOT EXISTS '
+          "idx_sales_items_uuid ON sales_items (uuid) WHERE uuid != ''");
+    }
   }
 
   /// Idempotent index creation (`IF NOT EXISTS`), shared by [onCreate] and the
@@ -399,6 +460,20 @@ class AppDatabase extends _$AppDatabase {
         'CREATE INDEX IF NOT EXISTS idx_cashbox_occurred_at ON cashbox_transactions (occurred_at)');
     await customStatement(
         'CREATE INDEX IF NOT EXISTS idx_cashbox_related_id ON cashbox_transactions (related_id)');
+  }
+
+  /// Idempotent indexes for the stock movement log (Plan 002, Phase 0), called
+  /// from [onCreate] and the v17→v18 upgrade.
+  ///
+  /// Both queries this backs run on every stock write: on-hand is
+  /// `SUM(delta) WHERE product_id = ?`, and deleting an invoice reverses its
+  /// movements by `related_id` — the same pair `_createCashboxIndexes` exists
+  /// for, because it is the same shape of ledger.
+  Future<void> _createStockIndexes() async {
+    await customStatement('CREATE INDEX IF NOT EXISTS '
+        'idx_stock_movements_product_id ON stock_movements (product_id)');
+    await customStatement('CREATE INDEX IF NOT EXISTS '
+        'idx_stock_movements_related_id ON stock_movements (related_id)');
   }
 
   /// Idempotent indexes for serialized units (Plan 012), called from [onCreate]

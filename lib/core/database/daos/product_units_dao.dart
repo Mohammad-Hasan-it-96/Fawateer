@@ -3,6 +3,7 @@ import '../../sync/sync_clock.dart';
 import '../app_database.dart';
 import '../tables/product_units_table.dart';
 import '../tables/products_table.dart';
+import '../tables/stock_movements_table.dart';
 
 part 'product_units_dao.g.dart';
 
@@ -177,21 +178,20 @@ class ProductUnitsDao extends DatabaseAccessor<AppDatabase>
     }
   }
 
-  /// Rewrite `products.quantity` from the authoritative unit count.
+  /// Rewrite `products.quantity` from whatever is authoritative for this SKU.
   ///
-  /// Written as one `UPDATE … SELECT COUNT(*)` rather than read-then-write so
-  /// two concurrent unit edits can't read the same stale count and clobber each
+  /// Shares [kRecomputeQuantitySql] with the sale and stock paths rather than
+  /// counting units inline: on-hand must mean one thing across the app, and
+  /// three copies of that `CASE` would be three chances for it not to. For a
+  /// serialized product it still resolves to the live `inStock` count — the
+  /// clause `_available` used to name is inside that shared statement.
+  ///
+  /// Written as one `UPDATE … SELECT` rather than read-then-write so two
+  /// concurrent unit edits can't read the same stale count and clobber each
   /// other — the same reasoning behind the sale's relative stock decrement.
   Future<void> _syncQuantity(String productId) => customUpdate(
-        'UPDATE products SET quantity = ('
-        '  SELECT COUNT(*) FROM product_units'
-        "  WHERE product_id = ? AND status = ? AND deleted_at = ''"
-        ') WHERE id = ? AND is_serialized = 1',
-        variables: [
-          Variable<String>(productId),
-          const Variable<String>(_available),
-          Variable<String>(productId),
-        ],
+        kRecomputeQuantitySql,
+        variables: [Variable<String>(productId)],
         updates: {products},
       );
 }

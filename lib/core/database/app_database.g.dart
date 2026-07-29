@@ -5669,6 +5669,593 @@ class ProductUnitsCompanion extends UpdateCompanion<ProductUnitRow> {
   }
 }
 
+class $StockMovementsTable extends StockMovements
+    with TableInfo<$StockMovementsTable, StockMovementRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $StockMovementsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _updatedAtMeta =
+      const VerificationMeta('updatedAt');
+  @override
+  late final GeneratedColumn<String> updatedAt = GeneratedColumn<String>(
+      'updated_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _deletedAtMeta =
+      const VerificationMeta('deletedAt');
+  @override
+  late final GeneratedColumn<String> deletedAt = GeneratedColumn<String>(
+      'deleted_at', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _originDeviceMeta =
+      const VerificationMeta('originDevice');
+  @override
+  late final GeneratedColumn<String> originDevice = GeneratedColumn<String>(
+      'origin_device', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _productIdMeta =
+      const VerificationMeta('productId');
+  @override
+  late final GeneratedColumn<String> productId = GeneratedColumn<String>(
+      'product_id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _deltaMeta = const VerificationMeta('delta');
+  @override
+  late final GeneratedColumn<double> delta = GeneratedColumn<double>(
+      'delta', aliasedName, false,
+      type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _reasonMeta = const VerificationMeta('reason');
+  @override
+  late final GeneratedColumn<String> reason = GeneratedColumn<String>(
+      'reason', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant('adjustment'));
+  static const VerificationMeta _relatedIdMeta =
+      const VerificationMeta('relatedId');
+  @override
+  late final GeneratedColumn<String> relatedId = GeneratedColumn<String>(
+      'related_id', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+      'note', aliasedName, false,
+      type: DriftSqlType.string,
+      requiredDuringInsert: false,
+      defaultValue: const Constant(''));
+  static const VerificationMeta _occurredAtMeta =
+      const VerificationMeta('occurredAt');
+  @override
+  late final GeneratedColumn<int> occurredAt = GeneratedColumn<int>(
+      'occurred_at', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns => [
+        updatedAt,
+        deletedAt,
+        originDevice,
+        id,
+        productId,
+        delta,
+        reason,
+        relatedId,
+        note,
+        occurredAt,
+        createdAt
+      ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'stock_movements';
+  @override
+  VerificationContext validateIntegrity(Insertable<StockMovementRow> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('updated_at')) {
+      context.handle(_updatedAtMeta,
+          updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta));
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(_deletedAtMeta,
+          deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta));
+    }
+    if (data.containsKey('origin_device')) {
+      context.handle(
+          _originDeviceMeta,
+          originDevice.isAcceptableOrUnknown(
+              data['origin_device']!, _originDeviceMeta));
+    }
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('product_id')) {
+      context.handle(_productIdMeta,
+          productId.isAcceptableOrUnknown(data['product_id']!, _productIdMeta));
+    } else if (isInserting) {
+      context.missing(_productIdMeta);
+    }
+    if (data.containsKey('delta')) {
+      context.handle(
+          _deltaMeta, delta.isAcceptableOrUnknown(data['delta']!, _deltaMeta));
+    } else if (isInserting) {
+      context.missing(_deltaMeta);
+    }
+    if (data.containsKey('reason')) {
+      context.handle(_reasonMeta,
+          reason.isAcceptableOrUnknown(data['reason']!, _reasonMeta));
+    }
+    if (data.containsKey('related_id')) {
+      context.handle(_relatedIdMeta,
+          relatedId.isAcceptableOrUnknown(data['related_id']!, _relatedIdMeta));
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    if (data.containsKey('occurred_at')) {
+      context.handle(
+          _occurredAtMeta,
+          occurredAt.isAcceptableOrUnknown(
+              data['occurred_at']!, _occurredAtMeta));
+    } else if (isInserting) {
+      context.missing(_occurredAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  StockMovementRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return StockMovementRow(
+      updatedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}updated_at'])!,
+      deletedAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}deleted_at'])!,
+      originDevice: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}origin_device'])!,
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      productId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}product_id'])!,
+      delta: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}delta'])!,
+      reason: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}reason'])!,
+      relatedId: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}related_id'])!,
+      note: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note'])!,
+      occurredAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}occurred_at'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $StockMovementsTable createAlias(String alias) {
+    return $StockMovementsTable(attachedDatabase, alias);
+  }
+}
+
+class StockMovementRow extends DataClass
+    implements Insertable<StockMovementRow> {
+  /// Packed [Hlc] of the last change to this row — the **authorship** clock,
+  /// used to resolve last-write-wins.
+  ///
+  /// Deliberately *not* the sync cursor: the server stamps its own monotonic
+  /// sequence on arrival, and ordering conflicts by arrival would let a device
+  /// that was offline for three days overwrite fresher edits. Text because the
+  /// packed form sorts lexicographically in clock order, so plain SQL
+  /// comparison works.
+  ///
+  /// `''` means "predates sync" — treated as older than any real stamp, so a
+  /// legacy row never beats a real edit.
+  final String updatedAt;
+
+  /// Tombstone: packed [Hlc] of the deletion, `''` while the row is live.
+  ///
+  /// Synced rows are **never physically deleted**. Without a tombstone, "absent
+  /// here, present there" is ambiguous — never-synced or deliberately deleted? —
+  /// and the merge would resurrect the row from the other device on the next
+  /// pull. A shopkeeper deleting a product and watching it reappear is the
+  /// single most corrosive sync bug, because it makes the whole feature look
+  /// untrustworthy.
+  final String deletedAt;
+
+  /// Device that authored the row's current state.
+  ///
+  /// Doubles as the audit trail. Because the shops running two devices are
+  /// staffed by partners and relatives, the product decision was to make
+  /// changes *visible* rather than forbidden — no permission system, but the
+  /// owner can always see which device changed a price. Relaying a row must
+  /// preserve this value, never overwrite it with the forwarding device.
+  final String originDevice;
+  final String id;
+  final String productId;
+
+  /// Signed change to on-hand: negative for a sale, positive for a restock.
+  ///
+  /// `double` (not int) because stock is `double` app-wide — a shop selling
+  /// 0.333 kg of rice records a fractional movement.
+  final double delta;
+
+  /// Why the stock moved, persisted **by name** — never by index, the same rule
+  /// as `ProductSaleType` / `PriceCurrency` / `CashTransactionType` / `UnitStatus`,
+  /// so reordering the enum can't silently remap history.
+  final String reason;
+
+  /// The record that caused the movement (invoice id for a sale), or `''`.
+  /// Mirrors `cashbox_transactions.relatedId` — it is what lets a deleted
+  /// invoice find and reverse the movements it posted.
+  final String relatedId;
+  final String note;
+
+  /// When the stock actually moved, ms since epoch. Separate from [createdAt]
+  /// for the same reason the cashbox separates them: a movement can be recorded
+  /// after the fact.
+  final int occurredAt;
+  final int createdAt;
+  const StockMovementRow(
+      {required this.updatedAt,
+      required this.deletedAt,
+      required this.originDevice,
+      required this.id,
+      required this.productId,
+      required this.delta,
+      required this.reason,
+      required this.relatedId,
+      required this.note,
+      required this.occurredAt,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['updated_at'] = Variable<String>(updatedAt);
+    map['deleted_at'] = Variable<String>(deletedAt);
+    map['origin_device'] = Variable<String>(originDevice);
+    map['id'] = Variable<String>(id);
+    map['product_id'] = Variable<String>(productId);
+    map['delta'] = Variable<double>(delta);
+    map['reason'] = Variable<String>(reason);
+    map['related_id'] = Variable<String>(relatedId);
+    map['note'] = Variable<String>(note);
+    map['occurred_at'] = Variable<int>(occurredAt);
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  StockMovementsCompanion toCompanion(bool nullToAbsent) {
+    return StockMovementsCompanion(
+      updatedAt: Value(updatedAt),
+      deletedAt: Value(deletedAt),
+      originDevice: Value(originDevice),
+      id: Value(id),
+      productId: Value(productId),
+      delta: Value(delta),
+      reason: Value(reason),
+      relatedId: Value(relatedId),
+      note: Value(note),
+      occurredAt: Value(occurredAt),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory StockMovementRow.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return StockMovementRow(
+      updatedAt: serializer.fromJson<String>(json['updatedAt']),
+      deletedAt: serializer.fromJson<String>(json['deletedAt']),
+      originDevice: serializer.fromJson<String>(json['originDevice']),
+      id: serializer.fromJson<String>(json['id']),
+      productId: serializer.fromJson<String>(json['productId']),
+      delta: serializer.fromJson<double>(json['delta']),
+      reason: serializer.fromJson<String>(json['reason']),
+      relatedId: serializer.fromJson<String>(json['relatedId']),
+      note: serializer.fromJson<String>(json['note']),
+      occurredAt: serializer.fromJson<int>(json['occurredAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'updatedAt': serializer.toJson<String>(updatedAt),
+      'deletedAt': serializer.toJson<String>(deletedAt),
+      'originDevice': serializer.toJson<String>(originDevice),
+      'id': serializer.toJson<String>(id),
+      'productId': serializer.toJson<String>(productId),
+      'delta': serializer.toJson<double>(delta),
+      'reason': serializer.toJson<String>(reason),
+      'relatedId': serializer.toJson<String>(relatedId),
+      'note': serializer.toJson<String>(note),
+      'occurredAt': serializer.toJson<int>(occurredAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  StockMovementRow copyWith(
+          {String? updatedAt,
+          String? deletedAt,
+          String? originDevice,
+          String? id,
+          String? productId,
+          double? delta,
+          String? reason,
+          String? relatedId,
+          String? note,
+          int? occurredAt,
+          int? createdAt}) =>
+      StockMovementRow(
+        updatedAt: updatedAt ?? this.updatedAt,
+        deletedAt: deletedAt ?? this.deletedAt,
+        originDevice: originDevice ?? this.originDevice,
+        id: id ?? this.id,
+        productId: productId ?? this.productId,
+        delta: delta ?? this.delta,
+        reason: reason ?? this.reason,
+        relatedId: relatedId ?? this.relatedId,
+        note: note ?? this.note,
+        occurredAt: occurredAt ?? this.occurredAt,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  StockMovementRow copyWithCompanion(StockMovementsCompanion data) {
+    return StockMovementRow(
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+      originDevice: data.originDevice.present
+          ? data.originDevice.value
+          : this.originDevice,
+      id: data.id.present ? data.id.value : this.id,
+      productId: data.productId.present ? data.productId.value : this.productId,
+      delta: data.delta.present ? data.delta.value : this.delta,
+      reason: data.reason.present ? data.reason.value : this.reason,
+      relatedId: data.relatedId.present ? data.relatedId.value : this.relatedId,
+      note: data.note.present ? data.note.value : this.note,
+      occurredAt:
+          data.occurredAt.present ? data.occurredAt.value : this.occurredAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StockMovementRow(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
+          ..write('id: $id, ')
+          ..write('productId: $productId, ')
+          ..write('delta: $delta, ')
+          ..write('reason: $reason, ')
+          ..write('relatedId: $relatedId, ')
+          ..write('note: $note, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(updatedAt, deletedAt, originDevice, id,
+      productId, delta, reason, relatedId, note, occurredAt, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is StockMovementRow &&
+          other.updatedAt == this.updatedAt &&
+          other.deletedAt == this.deletedAt &&
+          other.originDevice == this.originDevice &&
+          other.id == this.id &&
+          other.productId == this.productId &&
+          other.delta == this.delta &&
+          other.reason == this.reason &&
+          other.relatedId == this.relatedId &&
+          other.note == this.note &&
+          other.occurredAt == this.occurredAt &&
+          other.createdAt == this.createdAt);
+}
+
+class StockMovementsCompanion extends UpdateCompanion<StockMovementRow> {
+  final Value<String> updatedAt;
+  final Value<String> deletedAt;
+  final Value<String> originDevice;
+  final Value<String> id;
+  final Value<String> productId;
+  final Value<double> delta;
+  final Value<String> reason;
+  final Value<String> relatedId;
+  final Value<String> note;
+  final Value<int> occurredAt;
+  final Value<int> createdAt;
+  final Value<int> rowid;
+  const StockMovementsCompanion({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
+    this.id = const Value.absent(),
+    this.productId = const Value.absent(),
+    this.delta = const Value.absent(),
+    this.reason = const Value.absent(),
+    this.relatedId = const Value.absent(),
+    this.note = const Value.absent(),
+    this.occurredAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  StockMovementsCompanion.insert({
+    this.updatedAt = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.originDevice = const Value.absent(),
+    required String id,
+    required String productId,
+    required double delta,
+    this.reason = const Value.absent(),
+    this.relatedId = const Value.absent(),
+    this.note = const Value.absent(),
+    required int occurredAt,
+    required int createdAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        productId = Value(productId),
+        delta = Value(delta),
+        occurredAt = Value(occurredAt),
+        createdAt = Value(createdAt);
+  static Insertable<StockMovementRow> custom({
+    Expression<String>? updatedAt,
+    Expression<String>? deletedAt,
+    Expression<String>? originDevice,
+    Expression<String>? id,
+    Expression<String>? productId,
+    Expression<double>? delta,
+    Expression<String>? reason,
+    Expression<String>? relatedId,
+    Expression<String>? note,
+    Expression<int>? occurredAt,
+    Expression<int>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (originDevice != null) 'origin_device': originDevice,
+      if (id != null) 'id': id,
+      if (productId != null) 'product_id': productId,
+      if (delta != null) 'delta': delta,
+      if (reason != null) 'reason': reason,
+      if (relatedId != null) 'related_id': relatedId,
+      if (note != null) 'note': note,
+      if (occurredAt != null) 'occurred_at': occurredAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  StockMovementsCompanion copyWith(
+      {Value<String>? updatedAt,
+      Value<String>? deletedAt,
+      Value<String>? originDevice,
+      Value<String>? id,
+      Value<String>? productId,
+      Value<double>? delta,
+      Value<String>? reason,
+      Value<String>? relatedId,
+      Value<String>? note,
+      Value<int>? occurredAt,
+      Value<int>? createdAt,
+      Value<int>? rowid}) {
+    return StockMovementsCompanion(
+      updatedAt: updatedAt ?? this.updatedAt,
+      deletedAt: deletedAt ?? this.deletedAt,
+      originDevice: originDevice ?? this.originDevice,
+      id: id ?? this.id,
+      productId: productId ?? this.productId,
+      delta: delta ?? this.delta,
+      reason: reason ?? this.reason,
+      relatedId: relatedId ?? this.relatedId,
+      note: note ?? this.note,
+      occurredAt: occurredAt ?? this.occurredAt,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<String>(updatedAt.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<String>(deletedAt.value);
+    }
+    if (originDevice.present) {
+      map['origin_device'] = Variable<String>(originDevice.value);
+    }
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (productId.present) {
+      map['product_id'] = Variable<String>(productId.value);
+    }
+    if (delta.present) {
+      map['delta'] = Variable<double>(delta.value);
+    }
+    if (reason.present) {
+      map['reason'] = Variable<String>(reason.value);
+    }
+    if (relatedId.present) {
+      map['related_id'] = Variable<String>(relatedId.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (occurredAt.present) {
+      map['occurred_at'] = Variable<int>(occurredAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('StockMovementsCompanion(')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('originDevice: $originDevice, ')
+          ..write('id: $id, ')
+          ..write('productId: $productId, ')
+          ..write('delta: $delta, ')
+          ..write('reason: $reason, ')
+          ..write('relatedId: $relatedId, ')
+          ..write('note: $note, ')
+          ..write('occurredAt: $occurredAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -5684,6 +6271,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $AttributeDefinitionsTable attributeDefinitions =
       $AttributeDefinitionsTable(this);
   late final $ProductUnitsTable productUnits = $ProductUnitsTable(this);
+  late final $StockMovementsTable stockMovements = $StockMovementsTable(this);
   late final ProductsDao productsDao = ProductsDao(this as AppDatabase);
   late final ShopDao shopDao = ShopDao(this as AppDatabase);
   late final SettingsDao settingsDao = SettingsDao(this as AppDatabase);
@@ -5695,6 +6283,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final AttributesDao attributesDao = AttributesDao(this as AppDatabase);
   late final ProductUnitsDao productUnitsDao =
       ProductUnitsDao(this as AppDatabase);
+  late final StockDao stockDao = StockDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -5709,7 +6298,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         ledgerEntries,
         cashboxTransactions,
         attributeDefinitions,
-        productUnits
+        productUnits,
+        stockMovements
       ];
 }
 
@@ -8285,6 +8875,271 @@ typedef $$ProductUnitsTableProcessedTableManager = ProcessedTableManager<
     ),
     ProductUnitRow,
     PrefetchHooks Function()>;
+typedef $$StockMovementsTableCreateCompanionBuilder = StockMovementsCompanion
+    Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
+  required String id,
+  required String productId,
+  required double delta,
+  Value<String> reason,
+  Value<String> relatedId,
+  Value<String> note,
+  required int occurredAt,
+  required int createdAt,
+  Value<int> rowid,
+});
+typedef $$StockMovementsTableUpdateCompanionBuilder = StockMovementsCompanion
+    Function({
+  Value<String> updatedAt,
+  Value<String> deletedAt,
+  Value<String> originDevice,
+  Value<String> id,
+  Value<String> productId,
+  Value<double> delta,
+  Value<String> reason,
+  Value<String> relatedId,
+  Value<String> note,
+  Value<int> occurredAt,
+  Value<int> createdAt,
+  Value<int> rowid,
+});
+
+class $$StockMovementsTableFilterComposer
+    extends Composer<_$AppDatabase, $StockMovementsTable> {
+  $$StockMovementsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get productId => $composableBuilder(
+      column: $table.productId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<double> get delta => $composableBuilder(
+      column: $table.delta, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get reason => $composableBuilder(
+      column: $table.reason, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get relatedId => $composableBuilder(
+      column: $table.relatedId, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get occurredAt => $composableBuilder(
+      column: $table.occurredAt, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnFilters(column));
+}
+
+class $$StockMovementsTableOrderingComposer
+    extends Composer<_$AppDatabase, $StockMovementsTable> {
+  $$StockMovementsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get updatedAt => $composableBuilder(
+      column: $table.updatedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get deletedAt => $composableBuilder(
+      column: $table.deletedAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get originDevice => $composableBuilder(
+      column: $table.originDevice,
+      builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get id => $composableBuilder(
+      column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get productId => $composableBuilder(
+      column: $table.productId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<double> get delta => $composableBuilder(
+      column: $table.delta, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get reason => $composableBuilder(
+      column: $table.reason, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get relatedId => $composableBuilder(
+      column: $table.relatedId, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get note => $composableBuilder(
+      column: $table.note, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get occurredAt => $composableBuilder(
+      column: $table.occurredAt, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<int> get createdAt => $composableBuilder(
+      column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+}
+
+class $$StockMovementsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $StockMovementsTable> {
+  $$StockMovementsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get originDevice => $composableBuilder(
+      column: $table.originDevice, builder: (column) => column);
+
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get productId =>
+      $composableBuilder(column: $table.productId, builder: (column) => column);
+
+  GeneratedColumn<double> get delta =>
+      $composableBuilder(column: $table.delta, builder: (column) => column);
+
+  GeneratedColumn<String> get reason =>
+      $composableBuilder(column: $table.reason, builder: (column) => column);
+
+  GeneratedColumn<String> get relatedId =>
+      $composableBuilder(column: $table.relatedId, builder: (column) => column);
+
+  GeneratedColumn<String> get note =>
+      $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<int> get occurredAt => $composableBuilder(
+      column: $table.occurredAt, builder: (column) => column);
+
+  GeneratedColumn<int> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$StockMovementsTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $StockMovementsTable,
+    StockMovementRow,
+    $$StockMovementsTableFilterComposer,
+    $$StockMovementsTableOrderingComposer,
+    $$StockMovementsTableAnnotationComposer,
+    $$StockMovementsTableCreateCompanionBuilder,
+    $$StockMovementsTableUpdateCompanionBuilder,
+    (
+      StockMovementRow,
+      BaseReferences<_$AppDatabase, $StockMovementsTable, StockMovementRow>
+    ),
+    StockMovementRow,
+    PrefetchHooks Function()> {
+  $$StockMovementsTableTableManager(
+      _$AppDatabase db, $StockMovementsTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$StockMovementsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$StockMovementsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$StockMovementsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
+            Value<String> id = const Value.absent(),
+            Value<String> productId = const Value.absent(),
+            Value<double> delta = const Value.absent(),
+            Value<String> reason = const Value.absent(),
+            Value<String> relatedId = const Value.absent(),
+            Value<String> note = const Value.absent(),
+            Value<int> occurredAt = const Value.absent(),
+            Value<int> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              StockMovementsCompanion(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
+            id: id,
+            productId: productId,
+            delta: delta,
+            reason: reason,
+            relatedId: relatedId,
+            note: note,
+            occurredAt: occurredAt,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            Value<String> updatedAt = const Value.absent(),
+            Value<String> deletedAt = const Value.absent(),
+            Value<String> originDevice = const Value.absent(),
+            required String id,
+            required String productId,
+            required double delta,
+            Value<String> reason = const Value.absent(),
+            Value<String> relatedId = const Value.absent(),
+            Value<String> note = const Value.absent(),
+            required int occurredAt,
+            required int createdAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              StockMovementsCompanion.insert(
+            updatedAt: updatedAt,
+            deletedAt: deletedAt,
+            originDevice: originDevice,
+            id: id,
+            productId: productId,
+            delta: delta,
+            reason: reason,
+            relatedId: relatedId,
+            note: note,
+            occurredAt: occurredAt,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ));
+}
+
+typedef $$StockMovementsTableProcessedTableManager = ProcessedTableManager<
+    _$AppDatabase,
+    $StockMovementsTable,
+    StockMovementRow,
+    $$StockMovementsTableFilterComposer,
+    $$StockMovementsTableOrderingComposer,
+    $$StockMovementsTableAnnotationComposer,
+    $$StockMovementsTableCreateCompanionBuilder,
+    $$StockMovementsTableUpdateCompanionBuilder,
+    (
+      StockMovementRow,
+      BaseReferences<_$AppDatabase, $StockMovementsTable, StockMovementRow>
+    ),
+    StockMovementRow,
+    PrefetchHooks Function()>;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -8309,4 +9164,6 @@ class $AppDatabaseManager {
       $$AttributeDefinitionsTableTableManager(_db, _db.attributeDefinitions);
   $$ProductUnitsTableTableManager get productUnits =>
       $$ProductUnitsTableTableManager(_db, _db.productUnits);
+  $$StockMovementsTableTableManager get stockMovements =>
+      $$StockMovementsTableTableManager(_db, _db.stockMovements);
 }
