@@ -5,6 +5,7 @@
 // ASCII that RTL will happily reorder, and the QR is drawn by a CustomPainter
 // that has to survive a dark theme.
 import 'package:billing_app/features/sync/data/sync_state_store.dart';
+import 'package:billing_app/features/sync/domain/entities/join_invite.dart';
 import 'package:billing_app/features/sync/domain/entities/join_token.dart';
 import 'package:billing_app/features/sync/domain/entities/sync_seat_role.dart';
 import 'package:billing_app/features/sync/domain/entities/sync_session.dart';
@@ -102,9 +103,12 @@ void main() {
         final bloc = _StubSyncBloc(SyncState(
           loaded: true,
           session: _owner,
-          joinToken: JoinToken(
-            token: 'JOIN-ABC-123',
-            expiresAt: DateTime.now().add(const Duration(minutes: 9)),
+          invite: JoinInvite(
+            token: JoinToken(
+              token: 'JOIN-ABC-123',
+              expiresAt: DateTime.now().add(const Duration(minutes: 9)),
+            ),
+            snapshotSha256: 'abc123',
           ),
         ));
         await tester.pumpWidget(_host(locale, bloc));
@@ -129,9 +133,11 @@ void main() {
         final bloc = _StubSyncBloc(SyncState(
           loaded: true,
           session: _owner,
-          joinToken: JoinToken(
-            token: 'OLD',
-            expiresAt: DateTime.now().subtract(const Duration(minutes: 1)),
+          invite: JoinInvite(
+            token: JoinToken(
+              token: 'OLD',
+              expiresAt: DateTime.now().subtract(const Duration(minutes: 1)),
+            ),
           ),
         ));
         await tester.pumpWidget(_host(locale, bloc));
@@ -159,9 +165,11 @@ void main() {
     final bloc = _StubSyncBloc(SyncState(
       loaded: true,
       session: _owner,
-      joinToken: JoinToken(
-        token: 'JOIN-1',
-        expiresAt: DateTime.now().add(const Duration(minutes: 5)),
+      invite: JoinInvite(
+        token: JoinToken(
+          token: 'JOIN-1',
+          expiresAt: DateTime.now().add(const Duration(minutes: 5)),
+        ),
       ),
     ));
     await tester.pumpWidget(MaterialApp(

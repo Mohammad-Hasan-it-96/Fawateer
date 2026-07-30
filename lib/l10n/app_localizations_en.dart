@@ -1914,4 +1914,27 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncCopyCode => 'Copy';
+
+  @override
+  String get syncStepSyncing => 'Catching up with the other phones…';
+
+  @override
+  String get syncStepSnapshotting => 'Preparing a copy of the shop…';
+
+  @override
+  String get syncStepUploading => 'Sending the shop to the new phone…';
+
+  @override
+  String get syncJoinCodePreferScan =>
+      'Scanning is safer than typing this code.';
+
+  @override
+  String get syncRestartTitle => 'The shop is on this phone';
+
+  @override
+  String get syncRestartBody =>
+      'This phone now has a copy of the shop and needs to be opened again to use it. Close the app and start it again.';
+
+  @override
+  String get syncRestartConfirm => 'Close the app';
 }

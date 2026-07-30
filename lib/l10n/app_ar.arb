@@ -633,5 +633,13 @@
   "syncErrorFallbackDevice": "لا يمكن تمييز هذا الهاتف بشكل موثوق، لذا لا يمكن ربطه",
   "syncErrorOffline": "لا يوجد اتصال — ستتم إعادة المحاولة تلقائياً",
   "syncErrorServer": "حدث خطأ. حاول مرة أخرى",
-  "syncCopyCode": "نسخ"
+  "syncCopyCode": "نسخ",
+
+  "syncStepSyncing": "جارٍ التحديث مع الهواتف الأخرى…",
+  "syncStepSnapshotting": "جارٍ تجهيز نسخة من المحل…",
+  "syncStepUploading": "جارٍ إرسال المحل إلى الهاتف الجديد…",
+  "syncJoinCodePreferScan": "المسح أأمن من كتابة الرمز.",
+  "syncRestartTitle": "المحل الآن على هذا الهاتف",
+  "syncRestartBody": "أصبحت نسخة المحل على هذا الهاتف، ويلزم فتح التطبيق من جديد لاستخدامها. أغلق التطبيق ثم شغّله مرة أخرى.",
+  "syncRestartConfirm": "إغلاق التطبيق"
 }

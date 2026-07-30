@@ -16,7 +16,20 @@ class JoinToken extends Equatable {
 
   final DateTime expiresAt;
 
-  const JoinToken({required this.token, required this.expiresAt});
+  /// Where this device should POST the bootstrap snapshot bound to [token].
+  ///
+  /// The 2026-07-28 §H reply says the enrollment family returns "upload target +
+  /// signed-URL download" but never pins the field or the path, so this is the
+  /// one shape in the whole contract we are guessing at: absent, the caller
+  /// falls back to a conventional endpoint on the sync base. Worth confirming
+  /// against the first server build.
+  final String? uploadUrl;
+
+  const JoinToken({
+    required this.token,
+    required this.expiresAt,
+    this.uploadUrl,
+  });
 
   bool isExpiredAt(DateTime now) => !now.isBefore(expiresAt);
 
@@ -39,9 +52,10 @@ class JoinToken extends Equatable {
       // than as "no expiry". Guessing generously here would be inventing a
       // durable credential out of a malformed response.
       expiresAt: expiry ?? (now ?? DateTime.now()),
+      uploadUrl: json['upload_url']?.toString(),
     );
   }
 
   @override
-  List<Object> get props => [token, expiresAt];
+  List<Object?> get props => [token, expiresAt, uploadUrl];
 }

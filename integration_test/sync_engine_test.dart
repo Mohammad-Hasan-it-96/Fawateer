@@ -15,7 +15,6 @@
 import 'dart:io';
 
 import 'package:billing_app/core/database/app_database.dart';
-import 'package:billing_app/core/sync/sync_clock.dart';
 import 'package:billing_app/features/sync/data/sync_engine.dart';
 import 'package:billing_app/features/sync/data/sync_state_store.dart';
 import 'package:billing_app/features/sync/domain/entities/sync_change.dart';
@@ -23,121 +22,22 @@ import 'package:billing_app/features/sync/domain/sync_transport.dart';
 // `isNull`/`isNotNull` collide with drift's SQL builder; the matchers are
 // what is meant here.
 import 'package:drift/drift.dart' hide isNull, isNotNull;
-import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 
-/// Stands in for `device_changes`: an append-only oplog with a per-business
-/// sequence, exactly the shape the backend committed to.
-class _Relay {
-  final List<SyncChange> log = [];
-  int _seq = 0;
-
-  /// Row uuids to refuse, so the stranding guard can be exercised.
-  final Set<String> refuse = {};
-
-  PushResult accept(List<SyncChange> changes) {
-    final accepted = <String>{};
-    final rejected = <String>{};
-    for (final c in changes) {
-      if (refuse.contains(c.rowUuid)) {
-        rejected.add(c.rowUuid);
-        continue;
-      }
-      // UNIQUE(business_id, idempotency_key): a re-push of the same edit is a
-      // no-op but still reports as accepted.
-      final duplicate =
-          log.any((e) => e.idempotencyKey == c.idempotencyKey);
-      if (!duplicate) {
-        log.add(SyncChange(
-          table: c.table,
-          rowUuid: c.rowUuid,
-          op: c.op,
-          payload: c.payload,
-          authoredHlc: c.authoredHlc,
-          // Preserved verbatim, never overwritten with the pusher — the rule
-          // that keeps "which device changed this price" honest through a relay.
-          originDevice: c.originDevice,
-          seq: ++_seq,
-        ));
-      }
-      accepted.add(c.rowUuid);
-    }
-    return PushResult(accepted: accepted, rejected: rejected);
-  }
-
-  PullPage read(int since, int limit) {
-    final page = log.where((c) => (c.seq ?? 0) > since).take(limit).toList();
-    final examined = log.isEmpty ? since : log.last.seq ?? since;
-    final lastReturned = page.isEmpty ? since : page.last.seq!;
-    final hasMore = log.any((c) => (c.seq ?? 0) > lastReturned);
-    return PullPage(
-      changes: page,
-      // Highest seq EXAMINED when the page was not truncated, otherwise the
-      // last one returned — the rule pinned on 2026-07-29.
-      nextCursor: hasMore ? lastReturned : examined,
-      hasMore: hasMore,
-    );
-  }
-}
-
-class _RelayTransport implements SyncTransport {
-  final _Relay relay;
-  _RelayTransport(this.relay);
-
-  @override
-  Future<PushResult> push(List<SyncChange> changes) async =>
-      relay.accept(changes);
-
-  @override
-  Future<PullPage> pull({required int since, int limit = 200}) async =>
-      relay.read(since, limit);
-}
-
-/// One simulated till: its own database, clock and engine.
-class _Device {
-  final String name;
-  final File file;
-  final AppDatabase db;
-  final SyncClock clock;
-  final SyncEngine engine;
-
-  _Device(this.name, this.file, this.db, this.clock, this.engine);
-
-  static Future<_Device> create(String name, String node, _Relay relay) async {
-    final file = File(
-        '${Directory.systemTemp.path}/fawateer_sync_${name}_${DateTime.now().microsecondsSinceEpoch}.sqlite');
-    if (file.existsSync()) file.deleteSync();
-    final db = AppDatabase.forTesting(NativeDatabase(file));
-    final clock = SyncClock(db.settingsDao);
-    await clock.load(node);
-    final engine = SyncEngine(
-      dao: db.syncDao,
-      transport: _RelayTransport(relay),
-      state: SyncStateStore(db.settingsDao),
-      clock: clock,
-      batchSize: 50,
-    );
-    return _Device(name, file, db, clock, engine);
-  }
-
-  Future<void> dispose() async {
-    await db.close();
-    if (file.existsSync()) file.deleteSync();
-  }
-}
+import 'sync_relay.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  late _Relay relay;
-  late _Device a;
-  late _Device b;
+  late SyncRelay relay;
+  late TestDevice a;
+  late TestDevice b;
 
   setUp(() async {
-    relay = _Relay();
-    a = await _Device.create('a', 'nodeAAAAAAAAAAAA', relay);
-    b = await _Device.create('b', 'nodeBBBBBBBBBBBB', relay);
+    relay = SyncRelay();
+    a = await TestDevice.create('a', 'nodeAAAAAAAAAAAA', relay);
+    b = await TestDevice.create('b', 'nodeBBBBBBBBBBBB', relay);
   });
 
   tearDown(() async {
@@ -155,7 +55,7 @@ void main() {
     }
   }
 
-  Future<void> addProduct(_Device d, String id, String name,
+  Future<void> addProduct(TestDevice d, String id, String name,
       {double qty = 0, String barcode = ''}) async {
     final stamp = await d.clock.stamp();
     await d.db.productsDao.createProduct(ProductsCompanion.insert(
@@ -179,7 +79,7 @@ void main() {
     }
   }
 
-  Future<void> rename(_Device d, String id, String name) async {
+  Future<void> rename(TestDevice d, String id, String name) async {
     final stamp = await d.clock.stamp();
     await d.db.customUpdate(
       'UPDATE products SET name = ?, updated_at = ?, origin_device = ? '
@@ -194,10 +94,10 @@ void main() {
     );
   }
 
-  Future<String?> nameOf(_Device d, String id) async =>
+  Future<String?> nameOf(TestDevice d, String id) async =>
       (await d.db.productsDao.getById(id))?.name;
 
-  Future<double> qtyOf(_Device d, String id) async =>
+  Future<double> qtyOf(TestDevice d, String id) async =>
       (await d.db.productsDao.getById(id))?.quantity ?? -1;
 
   group('replication', () {
@@ -464,7 +364,7 @@ void main() {
 /// A sale on one till, written through the real sale path so the movement,
 /// invoice and line all get their stamps the way production does.
 // ignore: library_private_types_in_public_api  — a test-local helper type
-Future<void> sell(_Device d, String invoiceId, double qty) async {
+Future<void> sell(TestDevice d, String invoiceId, double qty) async {
   final stamp = await d.clock.stamp();
   await d.db.salesDao.insertInvoiceWithItems(
     stamp: stamp,

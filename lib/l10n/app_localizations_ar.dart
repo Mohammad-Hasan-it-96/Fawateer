@@ -1896,4 +1896,26 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get syncCopyCode => 'نسخ';
+
+  @override
+  String get syncStepSyncing => 'جارٍ التحديث مع الهواتف الأخرى…';
+
+  @override
+  String get syncStepSnapshotting => 'جارٍ تجهيز نسخة من المحل…';
+
+  @override
+  String get syncStepUploading => 'جارٍ إرسال المحل إلى الهاتف الجديد…';
+
+  @override
+  String get syncJoinCodePreferScan => 'المسح أأمن من كتابة الرمز.';
+
+  @override
+  String get syncRestartTitle => 'المحل الآن على هذا الهاتف';
+
+  @override
+  String get syncRestartBody =>
+      'أصبحت نسخة المحل على هذا الهاتف، ويلزم فتح التطبيق من جديد لاستخدامها. أغلق التطبيق ثم شغّله مرة أخرى.';
+
+  @override
+  String get syncRestartConfirm => 'إغلاق التطبيق';
 }

@@ -3656,6 +3656,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Copy'**
   String get syncCopyCode;
+
+  /// No description provided for @syncStepSyncing.
+  ///
+  /// In en, this message translates to:
+  /// **'Catching up with the other phones…'**
+  String get syncStepSyncing;
+
+  /// No description provided for @syncStepSnapshotting.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing a copy of the shop…'**
+  String get syncStepSnapshotting;
+
+  /// No description provided for @syncStepUploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Sending the shop to the new phone…'**
+  String get syncStepUploading;
+
+  /// No description provided for @syncJoinCodePreferScan.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning is safer than typing this code.'**
+  String get syncJoinCodePreferScan;
+
+  /// No description provided for @syncRestartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'The shop is on this phone'**
+  String get syncRestartTitle;
+
+  /// No description provided for @syncRestartBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone now has a copy of the shop and needs to be opened again to use it. Close the app and start it again.'**
+  String get syncRestartBody;
+
+  /// No description provided for @syncRestartConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Close the app'**
+  String get syncRestartConfirm;
 }
 
 class _AppLocalizationsDelegate

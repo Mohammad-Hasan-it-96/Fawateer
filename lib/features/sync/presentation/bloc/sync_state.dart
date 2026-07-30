@@ -23,7 +23,17 @@ class SyncState extends Equatable {
   final SyncMessage? message;
 
   /// A freshly minted invitation, shown until dismissed or the page leaves.
-  final JoinToken? joinToken;
+  final JoinInvite? invite;
+
+  /// Which stage of the owner's invite preparation is running. Preparing an
+  /// invite is a sync, a vacuum and a multi-megabyte upload — on a shop's 3G
+  /// that is long enough that an unlabelled spinner reads as a hang.
+  final BootstrapStep? step;
+
+  /// The database was replaced by a bootstrap snapshot, so SQLite is closed and
+  /// the app has to be restarted. Terminal: nothing else on this screen works
+  /// from here.
+  final bool restartRequired;
 
   final SyncOutcome? outcome;
   final DateTime? lastSyncAt;
@@ -35,7 +45,9 @@ class SyncState extends Equatable {
     this.busy = false,
     this.error,
     this.message,
-    this.joinToken,
+    this.invite,
+    this.step,
+    this.restartRequired = false,
     this.outcome,
     this.lastSyncAt,
   });
@@ -50,12 +62,15 @@ class SyncState extends Equatable {
     bool? busy,
     SyncError? error,
     SyncMessage? message,
-    JoinToken? joinToken,
+    JoinInvite? invite,
+    BootstrapStep? step,
+    bool? restartRequired,
     SyncOutcome? outcome,
     DateTime? lastSyncAt,
     bool clearSession = false,
     bool clearFeedback = false,
     bool clearToken = false,
+    bool clearStep = false,
   }) {
     return SyncState(
       loading: loading ?? this.loading,
@@ -66,7 +81,9 @@ class SyncState extends Equatable {
       // a snackbar cannot fire again on the next unrelated rebuild.
       error: clearFeedback ? null : (error ?? this.error),
       message: clearFeedback ? null : (message ?? this.message),
-      joinToken: clearToken ? null : (joinToken ?? this.joinToken),
+      invite: clearToken ? null : (invite ?? this.invite),
+      step: clearStep ? null : (step ?? this.step),
+      restartRequired: restartRequired ?? this.restartRequired,
       outcome: outcome ?? this.outcome,
       lastSyncAt: lastSyncAt ?? this.lastSyncAt,
     );
@@ -80,7 +97,9 @@ class SyncState extends Equatable {
         busy,
         error,
         message,
-        joinToken,
+        invite,
+        step,
+        restartRequired,
         outcome,
         lastSyncAt,
       ];

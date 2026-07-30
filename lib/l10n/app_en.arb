@@ -793,5 +793,13 @@
   "syncErrorFallbackDevice": "This phone can't be identified reliably, so it can't be linked",
   "syncErrorOffline": "No connection — it will try again on its own",
   "syncErrorServer": "Something went wrong. Please try again",
-  "syncCopyCode": "Copy"
+  "syncCopyCode": "Copy",
+
+  "syncStepSyncing": "Catching up with the other phones…",
+  "syncStepSnapshotting": "Preparing a copy of the shop…",
+  "syncStepUploading": "Sending the shop to the new phone…",
+  "syncJoinCodePreferScan": "Scanning is safer than typing this code.",
+  "syncRestartTitle": "The shop is on this phone",
+  "syncRestartBody": "This phone now has a copy of the shop and needs to be opened again to use it. Close the app and start it again.",
+  "syncRestartConfirm": "Close the app"
 }

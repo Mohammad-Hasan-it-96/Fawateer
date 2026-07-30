@@ -157,19 +157,23 @@ class SyncEngine {
     return outcome.copyWith(pulled: applied);
   }
 
-  /// Adopt the seed handed over at enrollment: start pulling from the owner's
-  /// own cursor, and treat everything the snapshot brought as already pushed.
+  /// Adopt the pull position handed over at enrollment, for the case where no
+  /// snapshot came with it.
   ///
   /// The cursor **must** come from the owner's local pull position captured
   /// before the snapshot was taken — not from the server's current head. Taking
   /// it after would skip every change committed between the snapshot and the
   /// handoff; we got this wrong once and the backend had adopted it verbatim
   /// (see `docs/backend-replies/2026-07-29-fawateer-response.txt` §1).
-  Future<void> adoptBootstrap(int cursor) async {
-    await _state.resetPullCursor(cursor);
-    // The snapshot's rows arrive carrying the stamps they already had. Pushing
-    // them straight back would be a pointless round trip of data the server
-    // demonstrably has — it is where they came from.
-    await _state.setPushWatermark(await _dao.highestLocalHlc());
-  }
+  ///
+  /// **Only the cursor.** An earlier draft also pushed the watermark up to
+  /// [SyncDao.highestLocalHlc], reasoning that the snapshot's rows came from the
+  /// server and need not go back. That is right for a restored snapshot — and it
+  /// is handled inside the snapshot itself by [SnapshotSeeder], which is the only
+  /// place it can be handled at all — but catastrophic here: a device enrolling
+  /// *without* a snapshot holds local rows that have never been anywhere, and
+  /// moving the watermark past them means they are never pushed. The shop's first
+  /// device establishing a business is exactly that case, so it would have
+  /// silently declined to upload the entire shop.
+  Future<void> adoptBootstrap(int cursor) => _state.resetPullCursor(cursor);
 }

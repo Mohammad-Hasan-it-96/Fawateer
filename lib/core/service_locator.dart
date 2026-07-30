@@ -50,6 +50,8 @@ import '../features/cashbox/domain/repositories/cashbox_repository.dart';
 import '../features/cashbox/presentation/bloc/cashbox_bloc.dart';
 
 // Features — Sync (multi-device, Plan 002)
+import '../features/sync/data/bootstrap_service.dart';
+import '../features/sync/data/snapshot_seeder.dart';
 import '../features/sync/data/sync_api_transport.dart';
 import '../features/sync/data/sync_engine.dart';
 import '../features/sync/data/sync_scheduler.dart';
@@ -159,6 +161,21 @@ Future<void> init() async {
         credentials: sl<SyncCredentialStore>(),
         dao: sl<SyncDao>(),
       ));
+  // Bootstrap: seeding a joining device with the shop it is joining. Reuses
+  // Plan 001's BackupEngine wholesale — the snapshot format, the SHA-256 check
+  // and the rollback-safe swap are the same mechanism, pointed at a different
+  // courier.
+  sl.registerLazySingleton<SnapshotSeeder>(
+      () => SnapshotSeeder(sl<AppDatabase>()));
+  sl.registerLazySingleton<BootstrapService>(() => BootstrapService(
+        enrollment: sl<SyncEnrollmentRepository>(),
+        engine: sl<SyncEngine>(),
+        state: sl<SyncStateStore>(),
+        backup: sl<BackupEngine>(),
+        seeder: sl<SnapshotSeeder>(),
+        api: sl<SyncApiClient>(),
+        credentials: sl<SyncCredentialStore>(),
+      ));
 
   // ── Services ─────────────────────────────────────────────────────────────
   sl.registerLazySingleton<ExchangeRateService>(
@@ -238,6 +255,7 @@ Future<void> init() async {
         repository: sl<SyncEnrollmentRepository>(),
         scheduler: sl<SyncScheduler>(),
         state: sl<SyncStateStore>(),
+        bootstrap: sl<BootstrapService>(),
       ));
 
   // ── BLoCs ─────────────────────────────────────────────────────────────────

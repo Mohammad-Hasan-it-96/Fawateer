@@ -23,8 +23,13 @@ class BootstrapHandoff extends Equatable {
   });
 
   /// True when there is a snapshot to restore before pulling from [cursor].
-  bool get hasSnapshot =>
-      snapshotUrl != null && (snapshotSha256?.isNotEmpty ?? false);
+  ///
+  /// Keyed on the URL **alone**, deliberately. An earlier version also required
+  /// the hash, which turned a snapshot we could not verify into a snapshot we
+  /// silently ignored — and ignoring it means the phone comes up in an empty
+  /// shop with no error anywhere. Refusing loudly is the job of the integrity
+  /// check in `BootstrapService.adopt`; deciding whether a seed exists is this.
+  bool get hasSnapshot => snapshotUrl != null && snapshotUrl!.isNotEmpty;
 
   factory BootstrapHandoff.fromJson(Map<String, dynamic> json) {
     final cursor = json['cursor'];

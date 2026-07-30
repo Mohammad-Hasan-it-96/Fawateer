@@ -6,7 +6,8 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/utils/app_snack.dart';
 import '../../../../l10n/app_localizations.dart';
-import '../../domain/entities/join_token.dart';
+import '../../data/bootstrap_service.dart';
+import '../../domain/entities/join_invite.dart';
 import '../../domain/entities/sync_outcome.dart';
 import '../../domain/sync_error.dart';
 import '../bloc/sync_bloc.dart';
@@ -43,8 +44,15 @@ class _SyncPageState extends State<SyncPage> {
     return Scaffold(
       appBar: AppBar(title: Text(l10n.syncTitle)),
       body: BlocConsumer<SyncBloc, SyncState>(
-        listenWhen: (a, b) => a.error != b.error || a.message != b.message,
+        listenWhen: (a, b) =>
+            a.error != b.error ||
+            a.message != b.message ||
+            a.restartRequired != b.restartRequired,
         listener: (context, state) {
+          if (state.restartRequired) {
+            _showRestartDialog(context, l10n);
+            return;
+          }
           final text = _feedbackText(l10n, state);
           if (text == null) return;
           ScaffoldMessenger.of(context)
@@ -68,6 +76,18 @@ class _SyncPageState extends State<SyncPage> {
               padding: const EdgeInsets.all(16),
               children: [
                 if (state.busy) const LinearProgressIndicator(),
+                // Preparing an invite is a sync, a vacuum and a multi-megabyte
+                // upload. On a shop's 3G that is long enough that a bare
+                // spinner reads as a hang, so it says which part is running.
+                if (state.step != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    child: Text(
+                      _stepText(l10n, state.step!),
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
                 if (state.isEnrolled)
                   ..._enrolled(context, l10n, state)
                 else
@@ -166,8 +186,8 @@ class _SyncPageState extends State<SyncPage> {
       // Only the main phone can invite another. A linked phone showing this
       // button would be offering something the server will refuse.
       if (session.isOwner) ...[
-        if (state.joinToken != null)
-          _JoinCodeCard(token: state.joinToken!)
+        if (state.invite != null)
+          _JoinCodeCard(invite: state.invite!)
         else
           FilledButton.icon(
             icon: const Icon(Icons.add_to_home_screen),
@@ -279,7 +299,42 @@ class _SyncPageState extends State<SyncPage> {
     if (confirmed == true) bloc.add(const LeaveSyncRequested());
   }
 
+  /// The joining device has just had its database replaced, so SQLite is closed
+  /// and every screen behind this dialog would throw on its first query.
+  ///
+  /// Non-dismissible with a single action, exactly like `BackupPage`'s restore —
+  /// and for the same reason: letting the shopkeeper tap past it drops them into
+  /// a POS whose every query fails, which from behind the counter looks precisely
+  /// like the app destroyed their shop.
+  Future<void> _showRestartDialog(
+      BuildContext context, AppLocalizations l10n) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        child: AlertDialog(
+          title: Text(l10n.syncRestartTitle),
+          content: Text(l10n.syncRestartBody),
+          actions: [
+            FilledButton(
+              onPressed: () => SystemNavigator.pop(),
+              child: Text(l10n.syncRestartConfirm),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ── typed → localized ──────────────────────────────────────────────────────
+
+  static String _stepText(AppLocalizations l10n, BootstrapStep step) =>
+      switch (step) {
+        BootstrapStep.syncing => l10n.syncStepSyncing,
+        BootstrapStep.snapshotting => l10n.syncStepSnapshotting,
+        BootstrapStep.uploading => l10n.syncStepUploading,
+      };
 
   String? _feedbackText(AppLocalizations l10n, SyncState state) {
     final error = state.error;
@@ -320,14 +375,15 @@ String syncErrorText(AppLocalizations l10n, SyncError error) =>
 /// scan still has to be able to join — Plan 002 Q2 keeps a typed fallback for
 /// exactly that, and a QR-only screen would strand those shops.
 class _JoinCodeCard extends StatelessWidget {
-  const _JoinCodeCard({required this.token});
+  const _JoinCodeCard({required this.invite});
 
-  final JoinToken token;
+  final JoinInvite invite;
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final theme = Theme.of(context);
+    final token = invite.token;
     final remaining = token.remainingAt(DateTime.now());
     final expired = remaining == Duration.zero;
 
@@ -346,7 +402,9 @@ class _JoinCodeCard extends StatelessWidget {
                 color: Colors.white,
                 child: CustomPaint(
                   size: const Size(180, 180),
-                  painter: _QrPainter(token.token),
+                  // The QR carries the snapshot's hash alongside the token; the
+                  // typed code below cannot, and says so.
+                  painter: _QrPainter(invite.encode()),
                 ),
               ),
             const SizedBox(height: 16),
@@ -360,6 +418,19 @@ class _JoinCodeCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(l10n.syncJoinCodeManual, style: theme.textTheme.bodySmall),
+            // Scanning carries the snapshot's fingerprint; a typed code cannot
+            // (nobody keys in 64 hex characters), so the joining device has to
+            // trust the server's word on the file instead of the owner's. Worth
+            // one line of nudge, not a warning — the typed path is legitimate
+            // and exists because a cracked lens is common in this trade.
+            if (invite.hasSnapshot)
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(l10n.syncJoinCodePreferScan,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: theme.hintColor)),
+              ),
             const SizedBox(height: 4),
             SelectableText(
               token.token,

@@ -99,6 +99,67 @@ class SyncApiClient {
         () => _client.get(_uri(endpoint), headers: _headers(token)).timeout(timeout));
   }
 
+  /// Upload a file with accompanying form fields.
+  ///
+  /// Multipart rather than a JSON body with base64: the bootstrap snapshot is
+  /// the shop's whole database, and base64 would inflate it by a third and force
+  /// both ends to hold the entire thing in memory as a string.
+  ///
+  /// [endpoint] may be an absolute URL — the server hands back an upload target
+  /// rather than us assuming the path.
+  ///
+  /// The timeout is far longer than the JSON default: this is a multi-megabyte
+  /// body on a shop's 3G, and 15 seconds would fail every real upload.
+  Future<Map<String, dynamic>> postFile(
+    String endpoint,
+    File file, {
+    Map<String, String> fields = const {},
+    String field = 'snapshot',
+    String? token,
+    Duration timeout = const Duration(minutes: 5),
+  }) async {
+    return _send(() async {
+      final uri = endpoint.startsWith('http')
+          ? Uri.parse(endpoint)
+          : _uri(endpoint);
+      final request = http.MultipartRequest('POST', uri)
+        ..headers.addAll({
+          'Accept': 'application/json',
+          if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+        })
+        ..fields.addAll(fields)
+        ..files.add(await http.MultipartFile.fromPath(field, file.path));
+      final streamed = await _client.send(request).timeout(timeout);
+      return http.Response.fromStream(streamed);
+    });
+  }
+
+  /// Fetch raw bytes from a **signed URL the server gave us**, not from an
+  /// endpoint on this API — so it deliberately sends no Bearer token and does no
+  /// JSON decoding. The signature in the URL is the credential.
+  Future<List<int>> downloadBytes(
+    String url, {
+    Duration timeout = const Duration(minutes: 5),
+  }) async {
+    http.Response res;
+    try {
+      res = await _client.get(Uri.parse(url)).timeout(timeout);
+    } on TimeoutException {
+      throw const SyncApiException(ApiErrorKind.timeout, 'Download timed out');
+    } on SocketException catch (e) {
+      throw SyncApiException(ApiErrorKind.network, e.message);
+    } catch (e) {
+      throw SyncApiException(ApiErrorKind.network, e.toString());
+    }
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      // A signed URL that has expired comes back as a plain 403 with no JSON
+      // envelope, so there is no typed code to preserve here.
+      throw SyncApiException(
+          ApiErrorKind.server, 'HTTP ${res.statusCode}', code: 'SNAPSHOT_GONE');
+    }
+    return res.bodyBytes;
+  }
+
   Future<Map<String, dynamic>> _send(
       Future<http.Response> Function() request) async {
     http.Response res;
