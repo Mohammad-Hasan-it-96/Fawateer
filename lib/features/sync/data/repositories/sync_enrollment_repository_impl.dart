@@ -7,7 +7,7 @@ import '../../../licensing/data/services/device_identity_service.dart';
 import '../../domain/entities/bootstrap_handoff.dart';
 import '../../domain/entities/enrollment_outcome.dart';
 import '../../domain/entities/join_token.dart';
-import '../../domain/entities/sync_device.dart';
+import '../../domain/entities/sync_device_registry.dart';
 import '../../domain/entities/sync_seat_role.dart';
 import '../../domain/entities/sync_session.dart';
 import '../../domain/repositories/sync_enrollment_repository.dart';
@@ -77,20 +77,14 @@ class SyncEnrollmentRepositoryImpl implements SyncEnrollmentRepository {
   }
 
   @override
-  Future<Either<Failure, List<SyncDevice>>> listDevices() async {
+  Future<Either<Failure, SyncDeviceRegistry>> listDevices() async {
     return _guarded((session) async {
       final json = await _api.getJson('sync/devices', token: session.syncToken);
-      final data = _data(json);
-      // The list may be the envelope's `data` directly or nested under
-      // `devices`; both shapes appear in the platform's other endpoints and
-      // neither is pinned for this one.
-      final raw = data['devices'] ?? json['data'];
-      if (raw is! List) return <SyncDevice>[];
-      return raw
-          .whereType<Map<String, dynamic>>()
-          .map((e) => SyncDevice.fromJson(e, currentSeat: session.seatUuid))
-          .where((d) => d.uuid.isNotEmpty)
-          .toList();
+      return SyncDeviceRegistry.fromJson(
+        _data(json),
+        envelope: json,
+        currentSeat: session.seatUuid,
+      );
     });
   }
 

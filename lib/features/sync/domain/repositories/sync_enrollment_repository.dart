@@ -4,6 +4,7 @@ import '../../../../core/error/failure.dart';
 import '../entities/enrollment_outcome.dart';
 import '../entities/join_token.dart';
 import '../entities/sync_device.dart';
+import '../entities/sync_device_registry.dart';
 import '../entities/sync_session.dart';
 
 /// Enrollment of this device into a sync business (ADR 0011). The two entry
@@ -32,10 +33,11 @@ abstract class SyncEnrollmentRepository {
   /// while looking at their own phone instead of at the other person's.
   Future<Either<Failure, JoinToken>> mintJoinToken();
 
-  /// Every seat in this business (`GET /api/v1/sync/devices`, OWNER role only).
-  /// The device holding the list is flagged via [SyncDevice.isCurrent], matched
-  /// on the seat uuid this device already knows.
-  Future<Either<Failure, List<SyncDevice>>> listDevices();
+  /// Every seat in this business, plus the allowance the server states now
+  /// (`GET /api/v1/sync/devices`, OWNER role only). The device holding the list
+  /// is flagged via [SyncDevice.isCurrent], matched on the seat uuid this device
+  /// already knows.
+  Future<Either<Failure, SyncDeviceRegistry>> listDevices();
 
   /// Revoke a seat (`DELETE /api/v1/sync/devices/{uuid}`, OWNER role only).
   ///

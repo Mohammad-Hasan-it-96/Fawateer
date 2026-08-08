@@ -1790,8 +1790,30 @@ class AppLocalizationsAr extends AppLocalizations {
   String get syncStatusMember => 'هاتف مرتبط';
 
   @override
-  String syncDevicesUsed(int allowance) {
-    return 'عدد الأجهزة المسموح: $allowance';
+  String syncDevicesUsed(int used, int allowance) {
+    return '$used من $allowance هواتف مستخدمة';
+  }
+
+  @override
+  String syncDevicesAllowed(int allowance) {
+    return 'عدد الهواتف المسموح: $allowance';
+  }
+
+  @override
+  String syncDevicesCount(int count) {
+    return '$count هواتف';
+  }
+
+  @override
+  String get syncStatusOwnerHint =>
+      'يحمل الاشتراك ويستطيع إضافة الهواتف أو إزالتها';
+
+  @override
+  String get syncStatusMemberHint => 'يشارك هذا المحل مع الهاتف الرئيسي';
+
+  @override
+  String syncAtCapHint(int allowance) {
+    return 'جميع الهواتف المسموحة في خطتك ($allowance) قيد الاستخدام. أزل أحدها من القائمة لإضافة هاتف آخر.';
   }
 
   @override

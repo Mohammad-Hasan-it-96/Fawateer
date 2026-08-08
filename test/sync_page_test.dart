@@ -7,6 +7,8 @@
 import 'package:billing_app/features/sync/data/sync_state_store.dart';
 import 'package:billing_app/features/sync/domain/entities/join_invite.dart';
 import 'package:billing_app/features/sync/domain/entities/join_token.dart';
+import 'package:billing_app/features/sync/domain/entities/sync_device.dart';
+import 'package:billing_app/features/sync/domain/entities/sync_device_registry.dart';
 import 'package:billing_app/features/sync/domain/entities/sync_seat_role.dart';
 import 'package:billing_app/features/sync/domain/entities/sync_session.dart';
 import 'package:billing_app/features/sync/presentation/bloc/sync_bloc.dart';
@@ -38,6 +40,19 @@ Widget _host(Locale locale, _StubSyncBloc bloc) => MaterialApp(
       supportedLocales: AppLocalizations.supportedLocales,
       home: BlocProvider<SyncBloc>.value(value: bloc, child: const SyncPage()),
     );
+
+/// The button carrying [label], found by walking up from its text.
+///
+/// `find.byType(FilledButton)` matches the exact runtime type, and
+/// `FilledButton.icon` builds a private subclass — so a byType lookup finds
+/// nothing at all here.
+FilledButton _buttonWith(WidgetTester tester, String label) =>
+    tester.widget<FilledButton>(find
+        .ancestor(
+          of: find.text(label),
+          matching: find.byWidgetPredicate((w) => w is FilledButton),
+        )
+        .first);
 
 const _owner = SyncSession(
   syncToken: 't',
@@ -75,6 +90,70 @@ void main() {
         expect(find.text(l10n.syncAddDeviceAction), findsOneWidget);
         expect(find.text(l10n.syncNowAction), findsOneWidget);
         expect(tester.takeException(), isNull);
+      });
+
+      testWidgets('an offline owner is told the limit, never a used-count',
+          (tester) async {
+        final bloc =
+            _StubSyncBloc(const SyncState(loaded: true, session: _owner));
+        await tester.pumpWidget(_host(locale, bloc));
+        await tester.pumpAndSettle();
+
+        final l10n = await AppLocalizations.delegate.load(locale);
+        // No registry: "0 of 3 phones used" would be a statement about a shop
+        // that may well have three linked phones.
+        expect(find.text(l10n.syncDevicesAllowed(3)), findsOneWidget);
+        expect(find.text(l10n.syncDevicesUsed(0, 3)), findsNothing);
+        // And nothing is gated on information we do not have.
+        expect(_buttonWith(tester, l10n.syncAddDeviceAction).onPressed,
+            isNotNull);
+      });
+
+      testWidgets('an owner at their cap sees why, and Add is disabled',
+          (tester) async {
+        final bloc = _StubSyncBloc(const SyncState(
+          loaded: true,
+          session: _owner,
+          registry: SyncDeviceRegistry(
+            allowance: 2,
+            devices: [
+              SyncDevice(uuid: 's', role: SyncSeatRole.owner, isCurrent: true),
+              SyncDevice(uuid: 's2', role: SyncSeatRole.member),
+            ],
+          ),
+        ));
+        await tester.pumpWidget(_host(locale, bloc));
+        await tester.pumpAndSettle();
+
+        final l10n = await AppLocalizations.delegate.load(locale);
+        expect(find.text(l10n.syncDevicesUsed(2, 2)), findsOneWidget);
+        // Disabled, not hidden: "add a phone" vanishing is what an owner at
+        // their cap reads as the feature being broken, and the reason given is
+        // something they can act on.
+        expect(_buttonWith(tester, l10n.syncAddDeviceAction).onPressed, isNull);
+        expect(find.text(l10n.syncAtCapHint(2)), findsOneWidget);
+      });
+
+      testWidgets('a linked phone is never told a device allowance of zero',
+          (tester) async {
+        final bloc = _StubSyncBloc(const SyncState(
+          loaded: true,
+          session: SyncSession(
+            syncToken: 't',
+            businessUuid: 'b',
+            seatUuid: 's2',
+            role: SyncSeatRole.member,
+            // What a member join actually stores — the allowance belongs to the
+            // business and is only ever sent to the owner.
+            deviceAllowance: 0,
+          ),
+        ));
+        await tester.pumpWidget(_host(locale, bloc));
+        await tester.pumpAndSettle();
+
+        final l10n = await AppLocalizations.delegate.load(locale);
+        expect(find.text(l10n.syncStatusMemberHint), findsOneWidget);
+        expect(find.text(l10n.syncDevicesAllowed(0)), findsNothing);
       });
 
       testWidgets('a linked phone is not offered the owner-only action',

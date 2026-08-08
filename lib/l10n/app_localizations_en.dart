@@ -1806,8 +1806,30 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncStatusMember => 'Linked phone';
 
   @override
-  String syncDevicesUsed(int allowance) {
-    return 'Devices allowed: $allowance';
+  String syncDevicesUsed(int used, int allowance) {
+    return '$used of $allowance phones used';
+  }
+
+  @override
+  String syncDevicesAllowed(int allowance) {
+    return 'Phones allowed: $allowance';
+  }
+
+  @override
+  String syncDevicesCount(int count) {
+    return '$count phones';
+  }
+
+  @override
+  String get syncStatusOwnerHint =>
+      'Holds the subscription and can add or remove phones';
+
+  @override
+  String get syncStatusMemberHint => 'Shares this shop with the main phone';
+
+  @override
+  String syncAtCapHint(int allowance) {
+    return 'All $allowance phones on your plan are in use. Remove one below to add another.';
   }
 
   @override

@@ -18,6 +18,7 @@ import 'package:billing_app/features/sync/domain/entities/enrollment_outcome.dar
 import 'package:billing_app/features/sync/domain/entities/join_invite.dart';
 import 'package:billing_app/features/sync/domain/entities/join_token.dart';
 import 'package:billing_app/features/sync/domain/entities/sync_device.dart';
+import 'package:billing_app/features/sync/domain/entities/sync_device_registry.dart';
 import 'package:billing_app/features/sync/domain/entities/sync_outcome.dart';
 import 'package:billing_app/features/sync/domain/entities/sync_seat_role.dart';
 import 'package:billing_app/features/sync/domain/entities/sync_session.dart';
@@ -51,6 +52,7 @@ class _FakeEnrollment implements SyncEnrollmentRepository {
   String? lastJoinToken;
 
   List<SyncDevice> devices = const [];
+  int? allowance = 3;
   Failure? devicesFailure;
   Failure? revokeFailure;
   int listCalls = 0;
@@ -87,11 +89,11 @@ class _FakeEnrollment implements SyncEnrollmentRepository {
   }
 
   @override
-  Future<Either<Failure, List<SyncDevice>>> listDevices() async {
+  Future<Either<Failure, SyncDeviceRegistry>> listDevices() async {
     listCalls++;
     final f = devicesFailure;
     if (f != null) return Left(f);
-    return Right(devices);
+    return Right(SyncDeviceRegistry(devices: devices, allowance: allowance));
   }
 
   @override
@@ -620,6 +622,89 @@ void main() {
       // red message forever; the pitch is both true and the way back in.
       expect(bloc.state.isEnrolled, isFalse);
       expect(bloc.state.error, SyncError.deviceRevoked);
+      await bloc.close();
+    });
+  });
+
+  group('the allowance', () {
+    const owner = SyncDevice(uuid: 'seat', role: SyncSeatRole.owner);
+    const m1 = SyncDevice(uuid: 's1', role: SyncSeatRole.member);
+    const m2 = SyncDevice(uuid: 's2', role: SyncSeatRole.member);
+
+    test('an unread registry is never at cap', () async {
+      repository.session = _ownerSession;
+      repository.devicesFailure = const NetworkFailure('no route');
+      final bloc = build();
+      bloc.add(const LoadSyncStatus());
+      await bloc.stream.firstWhere((s) => s.devicesError != null);
+
+      // The cached allowance is 3 and the list is empty — but empty here means
+      // "we were not told", not "no phones". A gate that fires on missing
+      // information locks an owner out of the plan they are paying for.
+      expect(bloc.state.registry, isNull);
+      expect(bloc.state.isAtCap, isFalse);
+      expect(bloc.state.allowance, 3, reason: 'the cached limit still shows');
+      await bloc.close();
+    });
+
+    test('a full registry is at cap', () async {
+      repository.session = _ownerSession;
+      repository.devices = const [owner, m1, m2];
+      final bloc = build();
+      bloc.add(const LoadSyncStatus());
+      await bloc.stream.firstWhere((s) => s.devices.isNotEmpty);
+
+      expect(bloc.state.isAtCap, isTrue);
+      await bloc.close();
+    });
+
+    test('the server\'s allowance beats the one cached at enrollment', () async {
+      repository.session = _ownerSession; // cached 3, from enrollment day
+      repository.allowance = 5; // the owner has since upgraded
+      repository.devices = const [owner, m1, m2];
+      final bloc = build();
+      bloc.add(const LoadSyncStatus());
+      await bloc.stream.firstWhere((s) => s.devices.isNotEmpty);
+
+      // device_allowance lives on the business row and is what a plan upgrade
+      // changes. An owner who has just paid for five seats being told they have
+      // three — and being blocked at three — is the failure this prevents.
+      expect(bloc.state.allowance, 5);
+      expect(bloc.state.isAtCap, isFalse);
+      await bloc.close();
+    });
+
+    test('an unstated allowance gates nothing', () async {
+      repository.session = _ownerSession;
+      repository.allowance = null;
+      repository.devices = const [owner, m1, m2];
+      final bloc = build();
+      bloc.add(const LoadSyncStatus());
+      await bloc.stream.firstWhere((s) => s.devices.isNotEmpty);
+
+      // Falls back to the cached 3, which the three seats do fill — but the
+      // point is that it degrades to the cache rather than to zero. A null
+      // allowance read as 0 would lock every owner out on the first response
+      // that omitted the field.
+      expect(bloc.state.allowance, 3);
+      await bloc.close();
+    });
+
+    test('revoking a seat frees the cap immediately', () async {
+      repository.session = _ownerSession;
+      repository.devices = const [owner, m1, m2];
+      final bloc = build();
+      bloc.add(const LoadSyncStatus());
+      await bloc.stream.firstWhere((s) => s.isAtCap);
+
+      bloc.add(const RevokeDeviceRequested('s2'));
+      await bloc.stream.firstWhere((s) => !s.isAtCap);
+
+      // "Remove one to add another" has to be true the moment they do it —
+      // otherwise the owner removes a phone, finds Add still disabled, and
+      // concludes the removal did not work.
+      expect(bloc.state.devices.length, 2);
+      expect(bloc.state.isAtCap, isFalse);
       await bloc.close();
     });
   });

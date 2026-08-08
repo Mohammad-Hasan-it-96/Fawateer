@@ -8,6 +8,7 @@ import '../../data/sync_state_store.dart';
 import '../../domain/entities/enrollment_outcome.dart';
 import '../../domain/entities/join_invite.dart';
 import '../../domain/entities/sync_device.dart';
+import '../../domain/entities/sync_device_registry.dart';
 import '../../domain/entities/sync_outcome.dart';
 import '../../domain/entities/sync_session.dart';
 import '../../domain/repositories/sync_enrollment_repository.dart';
@@ -85,7 +86,8 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     result.match(
       (failure) => emit(state.copyWith(
           devicesLoading: false, devicesError: _errorOf(failure))),
-      (devices) => emit(state.copyWith(devicesLoading: false, devices: devices)),
+      (registry) =>
+          emit(state.copyWith(devicesLoading: false, registry: registry)),
     );
   }
 
@@ -102,8 +104,10 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
         // the length of a network round trip reads as the button not working.
         emit(state.copyWith(
           clearRevoking: true,
-          devices:
-              state.devices.where((d) => d.uuid != event.seatUuid).toList(),
+          registry: state.registry?.copyWith(
+            devices:
+                state.devices.where((d) => d.uuid != event.seatUuid).toList(),
+          ),
           message: SyncMessage.deviceRevoked,
         ));
         // The server is the authority on what a seat freed — the allowance, and

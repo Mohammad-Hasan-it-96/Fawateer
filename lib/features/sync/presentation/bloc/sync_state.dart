@@ -38,13 +38,13 @@ class SyncState extends Equatable {
   final SyncOutcome? outcome;
   final DateTime? lastSyncAt;
 
-  /// Every seat in the business, owner-only and network-fetched.
+  /// The business's seats and allowance, owner-only and network-fetched.
   ///
-  /// Empty means "we have nothing to show", **not** "there are no devices" — the
-  /// registry only exists on the server, so an offline owner sees this empty.
-  /// That is why the page keys its empty/retry copy on [devicesLoading] and
-  /// [devicesError] rather than on the list being short.
-  final List<SyncDevice> devices;
+  /// **Null means "we have not been told", never "there are none".** The
+  /// registry lives only on the server, so an offline owner has none — and a
+  /// screen that renders that as "0 of 3 phones used" is stating something false
+  /// about a shop that may have three. Nullable so the two cannot be confused.
+  final SyncDeviceRegistry? registry;
 
   final bool devicesLoading;
 
@@ -69,7 +69,7 @@ class SyncState extends Equatable {
     this.restartRequired = false,
     this.outcome,
     this.lastSyncAt,
-    this.devices = const [],
+    this.registry,
     this.devicesLoading = false,
     this.devicesError,
     this.revoking,
@@ -77,6 +77,30 @@ class SyncState extends Equatable {
 
   bool get isEnrolled => session != null;
   bool get isOwner => session?.isOwner ?? false;
+
+  List<SyncDevice> get devices => registry?.devices ?? const [];
+
+  /// Seats this business may hold — the server's current number, falling back to
+  /// the one cached when this device enrolled. Null when neither is known.
+  ///
+  /// The server's wins because a plan upgrade changes it and the cached one is
+  /// from enrollment day: an owner who has just paid for five seats must not be
+  /// told they have three.
+  int? get allowance {
+    final fresh = registry?.allowance;
+    if (fresh != null && fresh > 0) return fresh;
+    final cached = session?.deviceAllowance ?? 0;
+    return cached > 0 ? cached : null;
+  }
+
+  /// True only when the registry has actually been read **and** it is full.
+  /// Never true on an unknown allowance or an unread registry — a gate that
+  /// fires on missing information locks an owner out of their own plan.
+  bool get isAtCap {
+    final r = registry;
+    final limit = allowance;
+    return r != null && limit != null && r.used >= limit;
+  }
 
   SyncState copyWith({
     bool? loading,
@@ -90,7 +114,7 @@ class SyncState extends Equatable {
     bool? restartRequired,
     SyncOutcome? outcome,
     DateTime? lastSyncAt,
-    List<SyncDevice>? devices,
+    SyncDeviceRegistry? registry,
     bool? devicesLoading,
     SyncError? devicesError,
     String? revoking,
@@ -115,7 +139,7 @@ class SyncState extends Equatable {
       restartRequired: restartRequired ?? this.restartRequired,
       outcome: outcome ?? this.outcome,
       lastSyncAt: lastSyncAt ?? this.lastSyncAt,
-      devices: devices ?? this.devices,
+      registry: registry ?? this.registry,
       devicesLoading: devicesLoading ?? this.devicesLoading,
       devicesError: clearDevicesError ? null : (devicesError ?? this.devicesError),
       revoking: clearRevoking ? null : (revoking ?? this.revoking),
@@ -135,7 +159,7 @@ class SyncState extends Equatable {
         restartRequired,
         outcome,
         lastSyncAt,
-        devices,
+        registry,
         devicesLoading,
         devicesError,
         revoking,

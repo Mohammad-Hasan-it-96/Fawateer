@@ -3468,8 +3468,38 @@ abstract class AppLocalizations {
   /// No description provided for @syncDevicesUsed.
   ///
   /// In en, this message translates to:
-  /// **'Devices allowed: {allowance}'**
-  String syncDevicesUsed(int allowance);
+  /// **'{used} of {allowance} phones used'**
+  String syncDevicesUsed(int used, int allowance);
+
+  /// No description provided for @syncDevicesAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'Phones allowed: {allowance}'**
+  String syncDevicesAllowed(int allowance);
+
+  /// No description provided for @syncDevicesCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} phones'**
+  String syncDevicesCount(int count);
+
+  /// No description provided for @syncStatusOwnerHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Holds the subscription and can add or remove phones'**
+  String get syncStatusOwnerHint;
+
+  /// No description provided for @syncStatusMemberHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Shares this shop with the main phone'**
+  String get syncStatusMemberHint;
+
+  /// No description provided for @syncAtCapHint.
+  ///
+  /// In en, this message translates to:
+  /// **'All {allowance} phones on your plan are in use. Remove one below to add another.'**
+  String syncAtCapHint(int allowance);
 
   /// No description provided for @syncLastAt.
   ///

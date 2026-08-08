@@ -163,7 +163,16 @@ class _SyncPageState extends State<SyncPage> {
               title: Text(session.isOwner
                   ? l10n.syncStatusOwner
                   : l10n.syncStatusMember),
-              subtitle: Text(l10n.syncDevicesUsed(session.deviceAllowance)),
+              // What the role means, not the seat count — the count lives on
+              // the registry card, next to the list it describes, and stating
+              // it twice a few dp apart reads as two different figures.
+              //
+              // The allowance itself is only ever sent to the owner, so a
+              // member's cached copy is 0; this used to render as "Devices
+              // allowed: 0" on every linked phone.
+              subtitle: Text(session.isOwner
+                  ? l10n.syncStatusOwnerHint
+                  : l10n.syncStatusMemberHint),
             ),
             const Divider(height: 1),
             ListTile(
@@ -191,13 +200,31 @@ class _SyncPageState extends State<SyncPage> {
         const SizedBox(height: 16),
         if (state.invite != null)
           _JoinCodeCard(invite: state.invite!)
-        else
+        else ...[
           FilledButton.icon(
             icon: const Icon(Icons.add_to_home_screen),
             label: Text(l10n.syncAddDeviceAction),
-            onPressed: () =>
-                context.read<SyncBloc>().add(const MintJoinTokenRequested()),
+            // Kept visible and disabled, not hidden. Elsewhere on this screen an
+            // action the server would refuse is hidden — but "add a phone"
+            // vanishing is exactly what an owner at their cap would read as the
+            // feature being broken, and the reason is something they can act on.
+            onPressed: state.isAtCap
+                ? null
+                : () =>
+                    context.read<SyncBloc>().add(const MintJoinTokenRequested()),
           ),
+          // Only ever shown on a registry we actually read (`isAtCap` is false
+          // on an unknown allowance). The server still refuses at mint — this
+          // spares the owner a doomed round trip and a red error for something
+          // predictable, it does not replace the enforcement.
+          if (state.isAtCap)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(l10n.syncAtCapHint(state.allowance!),
+                  style: theme.textTheme.bodySmall
+                      ?.copyWith(color: theme.colorScheme.error)),
+            ),
+        ],
         const SizedBox(height: 24),
       ],
       TextButton.icon(
@@ -233,8 +260,19 @@ class _SyncPageState extends State<SyncPage> {
             child: Row(
               children: [
                 Expanded(
-                  child: Text(l10n.syncDevicesTitle,
-                      style: theme.textTheme.titleMedium),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(l10n.syncDevicesTitle,
+                          style: theme.textTheme.titleMedium),
+                      // "2 of 3 used" is the answer to "can I add another?".
+                      // It degrades rather than disappearing: with no registry
+                      // yet it states the limit alone, never a used-count of
+                      // zero read off a list that simply has not loaded.
+                      Text(_allowanceLine(l10n, state),
+                          style: theme.textTheme.bodySmall),
+                    ],
+                  ),
                 ),
                 if (state.devicesLoading)
                   const SizedBox(
@@ -325,6 +363,24 @@ class _SyncPageState extends State<SyncPage> {
       ),
     );
     if (confirmed == true) bloc.add(RevokeDeviceRequested(device.uuid));
+  }
+
+  /// "2 of 3 phones used", degrading honestly as information runs out.
+  ///
+  /// Three cases, and conflating any two of them states something false:
+  ///  - both known → the count that answers "can I add another?";
+  ///  - a limit but no registry (offline, or the fetch has not landed) → the
+  ///    limit alone. Filling in a used-count of 0 would tell an owner with three
+  ///    linked phones that they have none;
+  ///  - a registry but no stated limit → the count alone, and nothing is gated.
+  static String _allowanceLine(AppLocalizations l10n, SyncState state) {
+    final limit = state.allowance;
+    final registry = state.registry;
+    if (registry == null) {
+      return limit == null ? '' : l10n.syncDevicesAllowed(limit);
+    }
+    if (limit == null) return l10n.syncDevicesCount(registry.used);
+    return l10n.syncDevicesUsed(registry.used, limit);
   }
 
   /// Coarse buckets, deliberately. The owner is asking "is this the one that
