@@ -180,6 +180,20 @@ The v5→v6 `TableMigration` remains the **only** table rebuild in the whole his
 
 - `SyncScheduler.start()` is fire-and-forget from `main()` — blocking the first frame on a network round trip is the startup cost this app avoids everywhere else. A trigger never throws (an unhandled error in a `Timer` callback takes down the zone; this is a background nicety, not worth crashing a till mid-sale).
 
+### Conflict visibility (Plan 002 Q6)
+
+Two disagreements can happen once a shop has two tills, and they surface in two different places because they are different facts.
+
+**Oversold stock — the honest CAP trade-off, made visible.** Given two tills selling the same item at once, a POS can lock the sale on a network round trip or let both through and disagree afterwards; Fawateer chose the second, because a till must never refuse a customer for want of signal. Plan 002 Q6 accepted negative on-hand as the price *provided it was flagged*. `DashboardDao.oversoldProducts` is that flag: `SUM(delta)` over the movement log, worst first, rendered by `StockConflictCard` at the **top** of the Reports dashboard and **only when non-empty** (a section permanently reading "no problems" is one the owner stops seeing).
+
+- **It cannot be derived from `products.quantity`** — `kRecomputeQuantitySql` floors that cache at 0 so no screen prints a negative count, so the signed log is the only place the truth survives.
+- **Serialized SKUs are excluded**, matching the recompute: their authority is `product_units`, and a stray movement on one is counted by nothing else. Same rule, same reason — don't unify them.
+- **`HAVING on_hand < -0.0005`**, the same epsilon as `StockDao.setOnHand`: `0.3 − 0.1 − 0.2` is negative in IEEE 754, and a permanent red card on a shop that sold exactly what it had is worse than no card.
+- **A plain `JOIN`, not a `LEFT JOIN`.** A product nobody has ever counted has no movements, and "no information" must not read as "sold past zero" — which is most of a loose-goods shop's catalogue.
+- **The copy says nothing was lost, and there is no resolve button.** An owner seeing "−3" assumes a sale went missing; the opposite happened — both sales were recorded, which is *why* it can be reported. What is wrong is the shelf count, so the fix is a stock take in the world. A button that made the number go away would falsify a count nobody has checked.
+
+**Server-flagged row conflicts.** `PushResult.conflicts` was always parsed (a conflicted row *landed*, so it must not stall the watermark) and then discarded, making "12 changes sent" the only thing a shop could ever be told. It now rides in `SyncOutcome.conflicts` and shows a line on the sync screen. **Stated, not actioned** — `GET /sync/conflicts` is in the contract but its response shape is unpinned and there is no resolution screen; a count the owner can see is what keeps that a known gap rather than an invisible one.
+
 ### Bootstrap — seeding a joining device (Plan 002, ADR 0011 Decision 13)
 
 **A second phone is seeded from a snapshot, not from the log.** Rows stamped `updated_at = ''` are deliberately never pushed, and for an existing shop that is *everything* — so the log carries what changed since sync began and the snapshot carries the shop. Without this the joiner comes up empty while the first phone looks healthy, which reads to the shopkeeper as the new phone being broken. `BootstrapService` (`features/sync/data/`) owns both directions and reuses Plan 001's `BackupEngine` wholesale: same `VACUUM INTO` snapshot, same SHA-256 check, same rollback-safe swap, pointed at a different courier.

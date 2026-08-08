@@ -11,6 +11,7 @@ mixin _$DashboardDaoMixin on DatabaseAccessor<AppDatabase> {
       attachedDatabase.cashboxTransactions;
   $LedgerEntriesTable get ledgerEntries => attachedDatabase.ledgerEntries;
   $CustomersTable get customers => attachedDatabase.customers;
+  $StockMovementsTable get stockMovements => attachedDatabase.stockMovements;
   DashboardDaoManager get managers => DashboardDaoManager(this);
 }
 
@@ -30,4 +31,7 @@ class DashboardDaoManager {
       $$LedgerEntriesTableTableManager(_db.attachedDatabase, _db.ledgerEntries);
   $$CustomersTableTableManager get customers =>
       $$CustomersTableTableManager(_db.attachedDatabase, _db.customers);
+  $$StockMovementsTableTableManager get stockMovements =>
+      $$StockMovementsTableTableManager(
+          _db.attachedDatabase, _db.stockMovements);
 }

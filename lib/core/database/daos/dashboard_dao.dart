@@ -6,6 +6,7 @@ import '../tables/products_table.dart';
 import '../tables/cashbox_transactions_table.dart';
 import '../tables/ledger_entries_table.dart';
 import '../tables/customers_table.dart';
+import '../tables/stock_movements_table.dart';
 
 part 'dashboard_dao.g.dart';
 
@@ -23,6 +24,7 @@ part 'dashboard_dao.g.dart';
   CashboxTransactions,
   LedgerEntries,
   Customers,
+  StockMovements,
 ])
 class DashboardDao extends DatabaseAccessor<AppDatabase>
     with _$DashboardDaoMixin {
@@ -39,6 +41,12 @@ class DashboardDao extends DatabaseAccessor<AppDatabase>
           cashboxTransactions,
           ledgerEntries,
           products,
+          // A pulled sale lands as movements and the recompute touches
+          // `products` too, so this is belt-and-braces — but the oversold
+          // aggregate reads the log directly, and a metric that only refreshes
+          // because some *other* table happened to change is a coincidence, not
+          // a design.
+          stockMovements,
         },
       ).watch().map((_) {});
 
@@ -246,6 +254,46 @@ WHERE deleted_at = '' AND occurred_at BETWEEN ? AND ?''',
         .map((r) => NamedQtyRow(
               name: r.read<String>('name'),
               value: r.read<double>('quantity'),
+            ))
+        .toList();
+  }
+
+  /// Products the shop has sold **more of than it had** — the honest, unclamped
+  /// on-hand straight from the movement log, worst first.
+  ///
+  /// This is the flag Plan 002 Q6 promised when it chose to *tolerate* negative
+  /// stock rather than lock a sale: availability over consistency, with the
+  /// disagreement surfaced instead of hidden. `products.quantity` cannot show it
+  /// — `kRecomputeQuantitySql` floors that cache at 0 precisely so no screen
+  /// prints a negative count — so the only place the truth survives is the
+  /// signed sum, which is what this reads.
+  ///
+  /// **Serialized SKUs are excluded, deliberately.** Their on-hand authority is
+  /// `product_units`, not this log; the recompute ignores stray movements on
+  /// them, and so must this, or a serialized product could be reported oversold
+  /// on the strength of a row nothing else counts.
+  ///
+  /// The `-0.0005` threshold matches `StockDao.setOnHand`'s epsilon: a weighed
+  /// product accumulating float noise to −1e-15 has not been oversold.
+  Future<List<NamedQtyRow>> oversoldProducts({int limit = 5}) async {
+    final rows = await customSelect(
+      '''
+SELECT p.name AS name,
+       COALESCE(SUM(m.delta), 0.0) AS on_hand
+FROM products p
+JOIN stock_movements m ON m.product_id = p.id AND m.deleted_at = ''
+WHERE p.deleted_at = '' AND p.is_serialized = 0
+GROUP BY p.id, p.name
+HAVING on_hand < -0.0005
+ORDER BY on_hand ASC
+LIMIT ?''',
+      variables: [Variable.withInt(limit)],
+      readsFrom: {products, stockMovements},
+    ).get();
+    return rows
+        .map((r) => NamedQtyRow(
+              name: r.read<String>('name'),
+              value: r.read<double>('on_hand'),
             ))
         .toList();
   }

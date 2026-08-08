@@ -88,6 +88,7 @@ class SyncEngine {
   Future<SyncOutcome> _push(SyncOutcome outcome) async {
     var pushed = 0;
     var rejected = 0;
+    var conflicts = 0;
 
     // Loop so a large backlog drains over several batches in one pass, but stop
     // at the first batch the server does not fully take — pushing on past a
@@ -102,8 +103,13 @@ class SyncEngine {
       if (changes.isEmpty) break;
 
       final result = await _transport.push(changes);
+      // A conflicted row still landed, so it counts as pushed for the
+      // watermark and for "did anything move" — but it is also counted
+      // separately, because "12 sent" and "12 sent, 2 of which disagreed with
+      // the other phone" are different answers and the second one is true.
       pushed += result.accepted.length + result.conflicts.length;
       rejected += result.rejected.length;
+      conflicts += result.conflicts.length;
 
       // Advance only as far as the last *contiguous* accepted change. The list
       // is in authorship order, so stopping at the first row the server did not
@@ -125,7 +131,8 @@ class SyncEngine {
       if (advanceTo == watermark) break; // no progress — do not spin
     }
 
-    return outcome.copyWith(pushed: pushed, rejected: rejected);
+    return outcome.copyWith(
+        pushed: pushed, rejected: rejected, conflicts: conflicts);
   }
 
   Future<SyncOutcome> _pull(SyncOutcome outcome) async {

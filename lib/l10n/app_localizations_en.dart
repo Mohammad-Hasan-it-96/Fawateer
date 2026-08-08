@@ -1591,6 +1591,18 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lowStockTitle => 'Low stock';
 
   @override
+  String get stockConflictTitle => 'Sold more than you had';
+
+  @override
+  String get stockConflictBody =>
+      'This usually happens when two phones sell the same item at the same time. Every sale was recorded — nothing was lost. Count these on the shelf and fix the amount.';
+
+  @override
+  String stockConflictShort(String qty) {
+    return 'short $qty';
+  }
+
+  @override
   String get topDebtorsTitle => 'Top debtors';
 
   @override
@@ -1854,6 +1866,11 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String syncPendingRejected(int count) {
     return '$count changes could not be sent — they will be retried';
+  }
+
+  @override
+  String syncConflicts(int count) {
+    return '$count changes were also edited on another phone — the newest one is kept';
   }
 
   @override

@@ -15,6 +15,7 @@ import '../widgets/kpi_card.dart';
 import '../widgets/mini_list_card.dart';
 import '../widgets/section_card.dart';
 import '../widgets/sales_trend_chart.dart';
+import '../widgets/stock_conflict_card.dart';
 import '../widgets/top_products_chart.dart';
 
 /// The analytics dashboard (Plan 008, lean V1). A single scrollable screen:
@@ -51,6 +52,12 @@ class DashboardView extends StatelessWidget {
                 child: ListView(
                   padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                   children: [
+                    // Above the KPIs, and only when there is something to say.
+                    // A shop that has oversold has a count that is wrong on the
+                    // shelf, which makes every stock figure below it suspect —
+                    // so it is read first, not found after scrolling.
+                    if (d.hasStockConflicts)
+                      StockConflictCard(items: d.oversold),
                     _kpiGrid(context, l10n, currency, d),
                     const SizedBox(height: 12),
                     SectionCard(

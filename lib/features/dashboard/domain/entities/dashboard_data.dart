@@ -76,6 +76,13 @@ class DashboardData extends Equatable {
   final List<NamedAmount> lowStock;
   final List<NamedAmount> topDebtors;
 
+  /// Products sold past zero, with their **negative** on-hand (Plan 002 Q6).
+  ///
+  /// Point-in-time, like `inventoryValue` — it does not move with the range
+  /// picker, because "you are three short right now" is not a fact about last
+  /// week. `amount` is negative by construction; the UI shows the shortfall.
+  final List<NamedAmount> oversold;
+
   const DashboardData({
     this.revenue = 0,
     this.profit = 0,
@@ -93,7 +100,11 @@ class DashboardData extends Equatable {
     this.withdrawals = 0,
     this.lowStock = const [],
     this.topDebtors = const [],
+    this.oversold = const [],
   });
+
+  /// Whether anything needs the owner's eye before they read the numbers.
+  bool get hasStockConflicts => oversold.isNotEmpty;
 
   /// Signed percent change vs the previous period (null when there's no
   /// baseline — avoids a meaningless "+∞%").
@@ -123,5 +134,6 @@ class DashboardData extends Equatable {
         withdrawals,
         lowStock,
         topDebtors,
+        oversold,
       ];
 }

@@ -77,6 +77,7 @@ class DashboardRepositoryDriftImpl implements DashboardRepository {
         _dao.inventoryValue(), // 7
         _dao.lowStockProducts(), // 8
         _dao.topDebtors(), // 9
+        _dao.oversoldProducts(), // 10
       ]);
 
       final totals = results[0] as PeriodTotalsRow;
@@ -89,6 +90,7 @@ class DashboardRepositoryDriftImpl implements DashboardRepository {
       final inventory = results[7] as double;
       final lowStock = results[8] as List<NamedQtyRow>;
       final debtors = results[9] as List<NamedQtyRow>;
+      final oversold = results[10] as List<NamedQtyRow>;
 
       return Right(DashboardData(
         revenue: totals.revenue,
@@ -116,6 +118,9 @@ class DashboardRepositoryDriftImpl implements DashboardRepository {
             .map((r) => NamedAmount(name: r.name, amount: r.value))
             .toList(),
         topDebtors: debtors
+            .map((r) => NamedAmount(name: r.name, amount: r.value))
+            .toList(),
+        oversold: oversold
             .map((r) => NamedAmount(name: r.name, amount: r.value))
             .toList(),
       ));

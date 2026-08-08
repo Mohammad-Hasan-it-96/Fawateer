@@ -1579,6 +1579,18 @@ class AppLocalizationsAr extends AppLocalizations {
   String get lowStockTitle => 'مخزون منخفض';
 
   @override
+  String get stockConflictTitle => 'بِعت أكثر مما لديك';
+
+  @override
+  String get stockConflictBody =>
+      'يحدث هذا عادةً عندما يبيع هاتفان الصنف نفسه في الوقت نفسه. كل عملية بيع مسجّلة — لم يضع شيء. اعدد هذه الأصناف على الرف وصحّح الكمية.';
+
+  @override
+  String stockConflictShort(String qty) {
+    return 'ناقص $qty';
+  }
+
+  @override
   String get topDebtorsTitle => 'أكبر المدينين';
 
   @override
@@ -1838,6 +1850,11 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String syncPendingRejected(int count) {
     return 'تعذّر إرسال $count تغييرات — ستتم إعادة المحاولة';
+  }
+
+  @override
+  String syncConflicts(int count) {
+    return '$count تغييرات جرى تعديلها أيضاً على هاتف آخر — يُعتمد الأحدث';
   }
 
   @override

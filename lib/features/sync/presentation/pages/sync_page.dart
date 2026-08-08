@@ -405,6 +405,13 @@ class _SyncPageState extends State<SyncPage> {
         Text(l10n.syncMovedCounts(outcome.pushed, outcome.pulled)),
         if (outcome.rejected > 0)
           Text(l10n.syncPendingRejected(outcome.rejected)),
+        // Stated, not actioned. There is no resolution screen behind this yet
+        // (`GET /sync/conflicts` is in the contract but its response shape is
+        // unpinned), and a count the owner can see is what keeps that a known
+        // gap rather than an invisible one. The rows themselves landed — the
+        // last write is what both phones will show.
+        if (outcome.conflicts > 0)
+          Text(l10n.syncConflicts(outcome.conflicts)),
       ],
     );
   }

@@ -17,6 +17,17 @@ class SyncOutcome extends Equatable {
   /// retried; it is not fatal, but it must not be reported as a clean sync.
   final int rejected;
 
+  /// Rows the server took but flagged as conflicting with another device's
+  /// version of the same row (`device_conflicts`, ADR 0011 §11.2).
+  ///
+  /// Carried out rather than folded into [pushed], where it used to be silently
+  /// lost: the row landed, so it is not a rejection, but "12 changes sent" and
+  /// "12 sent, 2 of them disagreed with the other phone" are different answers
+  /// and only one of them is true. Counted here even though there is no
+  /// resolution screen yet — a count the owner can see is what makes the missing
+  /// screen a known gap instead of an invisible one.
+  final int conflicts;
+
   /// Set when the pass failed. Push and pull counts may still be non-zero — a
   /// pass that pushed successfully and then lost the network mid-pull did real
   /// work, and saying otherwise would make the user retry something that
@@ -27,6 +38,7 @@ class SyncOutcome extends Equatable {
     this.pushed = 0,
     this.pulled = 0,
     this.rejected = 0,
+    this.conflicts = 0,
     this.error,
   });
 
@@ -36,18 +48,25 @@ class SyncOutcome extends Equatable {
   /// and "synced 12 changes" are both successes but read very differently.
   bool get didWork => pushed > 0 || pulled > 0;
 
-  SyncOutcome copyWith({int? pushed, int? pulled, int? rejected, SyncError? error}) =>
+  SyncOutcome copyWith({
+    int? pushed,
+    int? pulled,
+    int? rejected,
+    int? conflicts,
+    SyncError? error,
+  }) =>
       SyncOutcome(
         pushed: pushed ?? this.pushed,
         pulled: pulled ?? this.pulled,
         rejected: rejected ?? this.rejected,
+        conflicts: conflicts ?? this.conflicts,
         error: error ?? this.error,
       );
 
   @override
-  List<Object?> get props => [pushed, pulled, rejected, error];
+  List<Object?> get props => [pushed, pulled, rejected, conflicts, error];
 
   @override
-  String toString() =>
-      'SyncOutcome(pushed: $pushed, pulled: $pulled, rejected: $rejected, error: $error)';
+  String toString() => 'SyncOutcome(pushed: $pushed, pulled: $pulled, '
+      'rejected: $rejected, conflicts: $conflicts, error: $error)';
 }

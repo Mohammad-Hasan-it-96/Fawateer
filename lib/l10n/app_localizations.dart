@@ -3057,6 +3057,24 @@ abstract class AppLocalizations {
   /// **'Low stock'**
   String get lowStockTitle;
 
+  /// No description provided for @stockConflictTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Sold more than you had'**
+  String get stockConflictTitle;
+
+  /// No description provided for @stockConflictBody.
+  ///
+  /// In en, this message translates to:
+  /// **'This usually happens when two phones sell the same item at the same time. Every sale was recorded — nothing was lost. Count these on the shelf and fix the amount.'**
+  String get stockConflictBody;
+
+  /// No description provided for @stockConflictShort.
+  ///
+  /// In en, this message translates to:
+  /// **'short {qty}'**
+  String stockConflictShort(String qty);
+
   /// No description provided for @topDebtorsTitle.
   ///
   /// In en, this message translates to:
@@ -3536,6 +3554,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{count} changes could not be sent — they will be retried'**
   String syncPendingRejected(int count);
+
+  /// No description provided for @syncConflicts.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} changes were also edited on another phone — the newest one is kept'**
+  String syncConflicts(int count);
 
   /// No description provided for @syncAddDeviceAction.
   ///
