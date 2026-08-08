@@ -6,6 +6,10 @@
   "customersTab": "Customers",
   "settingsTab": "Settings",
   "scannedItems": "Scanned Items",
+  "clearCart": "Clear the invoice",
+  "clearCartTitle": "Clear the whole invoice?",
+  "clearCartBody": "All the scanned items will be removed. This cannot be undone.",
+  "clearCartConfirm": "Clear",
   "itemsCount": "{count} items total",
   "@itemsCount": {
     "placeholders": {
@@ -452,6 +456,8 @@
   "customersLoadFailed": "Couldn't load customers.",
   "noCustomers": "No customers yet",
   "noCustomersHint": "Add a customer to track credit sales and payments.",
+  "searchCustomersHint": "Search by name or phone",
+  "noCustomerResults": "No customer matches this search",
   "selectCustomer": "Select customer",
   "addNewCustomer": "Add new customer",
   "searchCustomerHint": "Search customers",

@@ -27,6 +27,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scannedItems => 'Scanned Items';
 
   @override
+  String get clearCart => 'Clear the invoice';
+
+  @override
+  String get clearCartTitle => 'Clear the whole invoice?';
+
+  @override
+  String get clearCartBody =>
+      'All the scanned items will be removed. This cannot be undone.';
+
+  @override
+  String get clearCartConfirm => 'Clear';
+
+  @override
   String itemsCount(String count) {
     return '$count items total';
   }
@@ -1105,6 +1118,12 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get noCustomersHint =>
       'Add a customer to track credit sales and payments.';
+
+  @override
+  String get searchCustomersHint => 'Search by name or phone';
+
+  @override
+  String get noCustomerResults => 'No customer matches this search';
 
   @override
   String get selectCustomer => 'Select customer';

@@ -134,6 +134,30 @@ abstract class AppLocalizations {
   /// **'Scanned Items'**
   String get scannedItems;
 
+  /// No description provided for @clearCart.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the invoice'**
+  String get clearCart;
+
+  /// No description provided for @clearCartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the whole invoice?'**
+  String get clearCartTitle;
+
+  /// No description provided for @clearCartBody.
+  ///
+  /// In en, this message translates to:
+  /// **'All the scanned items will be removed. This cannot be undone.'**
+  String get clearCartBody;
+
+  /// No description provided for @clearCartConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clearCartConfirm;
+
   /// No description provided for @itemsCount.
   ///
   /// In en, this message translates to:
@@ -2162,6 +2186,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add a customer to track credit sales and payments.'**
   String get noCustomersHint;
+
+  /// No description provided for @searchCustomersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name or phone'**
+  String get searchCustomersHint;
+
+  /// No description provided for @noCustomerResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No customer matches this search'**
+  String get noCustomerResults;
 
   /// No description provided for @selectCustomer.
   ///

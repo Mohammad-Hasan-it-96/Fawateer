@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/theme/app_theme.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../domain/customer_search.dart';
 import '../../domain/entities/customer_account.dart';
 import '../bloc/customer_bloc.dart';
 import '../ledger_money.dart';
@@ -28,8 +29,26 @@ String customerMessageText(CustomerMessage m, AppLocalizations l10n) {
   }
 }
 
-class CustomersPage extends StatelessWidget {
+class CustomersPage extends StatefulWidget {
   const CustomersPage({super.key});
+
+  @override
+  State<CustomersPage> createState() => _CustomersPageState();
+}
+
+class _CustomersPageState extends State<CustomersPage> {
+  /// Search text (Plan 013 #2). Held in the page, not the BLoC: it is view
+  /// state, the list is already in memory from `CustomerBloc`'s stream, and a
+  /// shop's contact list is small enough to filter in Dart — the same call the
+  /// product list makes.
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,6 +59,33 @@ class CustomersPage extends StatelessWidget {
         title: Text(l10n.customersTitle,
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
         centerTitle: true,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(56),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
+            child: TextField(
+              controller: _searchController,
+              onChanged: (v) => setState(() => _query = v.trim()),
+              textInputAction: TextInputAction.search,
+              decoration: InputDecoration(
+                hintText: l10n.searchCustomersHint,
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _query.isEmpty
+                    ? null
+                    : IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _query = '');
+                        },
+                      ),
+                isDense: true,
+                border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/customers/add'),
@@ -64,14 +110,36 @@ class CustomersPage extends StatelessWidget {
           if (state.customers.isEmpty) {
             return _empty(context, l10n);
           }
+          final visible = state.customers
+              .where((c) => customerMatchesSearch(c, _query))
+              .toList();
+          // "No customers yet" and "no customer matches this search" are
+          // different situations, and showing the first one to a shop with 200
+          // customers reads as data loss.
+          if (visible.isEmpty) return _noResults(context, l10n);
           return ListView.separated(
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 88),
-            itemCount: state.customers.length,
+            itemCount: visible.length,
             separatorBuilder: (_, __) => const SizedBox(height: 8),
             itemBuilder: (context, i) =>
-                _customerTile(context, l10n, state.customers[i]),
+                _customerTile(context, l10n, visible[i]),
           );
         },
+      ),
+    );
+  }
+
+  Widget _noResults(BuildContext context, AppLocalizations l10n) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.search_off,
+              size: 56, color: Theme.of(context).colorScheme.onSurfaceVariant),
+          const SizedBox(height: 12),
+          Text(l10n.noCustomerResults,
+              style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
       ),
     );
   }

@@ -27,6 +27,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String get scannedItems => 'المنتجات الممسوحة';
 
   @override
+  String get clearCart => 'إفراغ الفاتورة';
+
+  @override
+  String get clearCartTitle => 'إفراغ الفاتورة بالكامل؟';
+
+  @override
+  String get clearCartBody =>
+      'ستُحذف جميع المنتجات الممسوحة. لا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get clearCartConfirm => 'إفراغ';
+
+  @override
   String itemsCount(String count) {
     return '$count منتج';
   }
@@ -1096,6 +1109,12 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get noCustomersHint => 'أضف عميلاً لتتبع البيع الآجل والدفعات.';
+
+  @override
+  String get searchCustomersHint => 'ابحث بالاسم أو رقم الهاتف';
+
+  @override
+  String get noCustomerResults => 'لا يوجد عميل يطابق هذا البحث';
 
   @override
   String get selectCustomer => 'اختر العميل';

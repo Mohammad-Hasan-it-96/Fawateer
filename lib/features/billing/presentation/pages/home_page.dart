@@ -1025,18 +1025,32 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
                       children: [
-                        Text(l10n.scannedItems,
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w600)),
-                        Text(l10n.itemsCount(formatQty(totalItems)),
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant)),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(l10n.scannedItems,
+                                style: const TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.w600)),
+                            Text(l10n.itemsCount(formatQty(totalItems)),
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant)),
+                          ],
+                        ),
+                        // Clear the whole invoice (Plan 013 #5). Hidden on an
+                        // empty cart — an action that does nothing is noise
+                        // next to the one number the cashier is reading.
+                        if (state.cartItems.isNotEmpty)
+                          IconButton(
+                            icon: const Icon(Icons.remove_shopping_cart_outlined),
+                            color: Theme.of(context).colorScheme.error,
+                            tooltip: l10n.clearCart,
+                            onPressed: () => _confirmClearCart(context, l10n),
+                          ),
                       ],
                     ),
                     Column(
@@ -1301,12 +1315,62 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 ],
               ),
             ),
+          // A real delete, next to the stepper rather than replacing `−`
+          // (Plan 013 #5). `−` still removes the line at quantity 1, but
+          // getting there from 8 is eight taps at a counter with a queue, and a
+          // button whose icon says "minus one" should not be the way you delete.
+          if (!measured)
+            _qtyButton(
+              icon: Icons.delete_outline,
+              color: Theme.of(context).colorScheme.error,
+              onPressed: () => context
+                  .read<BillingBloc>()
+                  .add(RemoveProductFromCartEvent(item.product.id)),
+            ),
         ],
       ),
     );
   }
 
-  Widget _qtyButton({required IconData icon, required VoidCallback onPressed}) {
+  /// Clearing the cart **must** confirm (Plan 013 #5).
+  ///
+  /// It is one tap away from the total, and a mis-tap that erases a 30-line
+  /// invoice with a queue at the counter is the worst outcome this screen can
+  /// produce — there is no undo, and the customer's goods are already scanned.
+  Future<void> _confirmClearCart(
+      BuildContext context, AppLocalizations l10n) async {
+    final bloc = context.read<BillingBloc>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.clearCartTitle),
+        content: Text(l10n.clearCartBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child:
+                Text(MaterialLocalizations.of(dialogContext).cancelButtonLabel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(dialogContext).colorScheme.error),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.clearCartConfirm),
+          ),
+        ],
+      ),
+    );
+    // `ClearCartEvent` deliberately preserves the session-loaded exchange rate,
+    // oversell flag and print flag — a bare `BillingState()` would drop them
+    // for the rest of the session.
+    if (confirmed == true) bloc.add(ClearCartEvent());
+  }
+
+  Widget _qtyButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    Color? color,
+  }) {
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(8),
@@ -1315,7 +1379,8 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         height: 44,
         alignment: Alignment.center,
         child: Icon(icon,
-            size: 24, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            size: 24,
+            color: color ?? Theme.of(context).colorScheme.onSurfaceVariant),
       ),
     );
   }
