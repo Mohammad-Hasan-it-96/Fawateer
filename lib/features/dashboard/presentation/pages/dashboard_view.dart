@@ -7,6 +7,7 @@ import '../../../../l10n/app_localizations.dart';
 import '../../../attributes/domain/entities/attribute_definition.dart';
 import '../../../attributes/presentation/bloc/attribute_definition_bloc.dart';
 import '../../../billing/domain/entities/sales_filter.dart';
+import '../../../product/domain/product_stock_filter.dart';
 import '../../domain/entities/dashboard_data.dart';
 import '../bloc/dashboard_bloc.dart';
 import '../dashboard_format.dart';
@@ -83,13 +84,24 @@ class DashboardView extends StatelessWidget {
                     ),
                     SectionCard(
                       title: l10n.lowStockTitle,
+                      // The card shows the worst five; this is the way to the
+                      // rest (Plan 013 #1). It hands off to the products page
+                      // with the filter already applied rather than opening a
+                      // second list — the next thing the owner does is reorder
+                      // or edit, and that lives there.
+                      trailing: TextButton(
+                        onPressed: () => context.go('/products',
+                            extra: ProductStockFilter.lowStock),
+                        child: Text(l10n.showAll),
+                      ),
                       child: MiniListCard(
                         items: d.lowStock,
                         format: qtyCompact,
                         amountColor: Colors.orange.shade700,
                         leadingIcon: Icons.inventory_2_outlined,
                         emptyText: l10n.dashboardNoData,
-                        onTap: (_) => context.go('/products'),
+                        onTap: (_) => context.go('/products',
+                            extra: ProductStockFilter.lowStock),
                       ),
                     ),
                     SectionCard(

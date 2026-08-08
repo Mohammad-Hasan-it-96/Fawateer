@@ -296,6 +296,13 @@ class AppLocalizationsAr extends AppLocalizations {
   String get lowStockBadge => 'مخزون منخفض';
 
   @override
+  String get showAll => 'عرض الكل';
+
+  @override
+  String get noLowStockThresholds =>
+      'لم يتم تحديد حد أدنى لأي منتج بعد. افتح منتجاً وحدّد تنبيه المخزون المنخفض لاستخدام هذه التصفية.';
+
+  @override
   String get outOfStockBadge => 'منتهي';
 
   @override

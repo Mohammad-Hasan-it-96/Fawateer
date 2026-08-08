@@ -120,6 +120,8 @@
     }
   },
   "lowStockBadge": "Low stock",
+  "showAll": "Show all",
+  "noLowStockThresholds": "No product has a minimum set yet. Open a product and set its low-stock alert to use this filter.",
   "outOfStockBadge": "Out of stock",
   "outOfStockScanNotice": "Out of stock: {name}",
   "@outOfStockScanNotice": {

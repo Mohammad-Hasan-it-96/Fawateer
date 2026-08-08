@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../bloc/product_bloc.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/product_search.dart';
+import '../../domain/product_stock_filter.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/app_validators.dart';
 import '../../../../core/utils/format.dart';
@@ -14,7 +15,12 @@ import '../../../attributes/domain/entities/attribute_type.dart';
 import '../../../../l10n/app_localizations.dart';
 
 class ProductListPage extends StatefulWidget {
-  const ProductListPage({super.key});
+  /// Pre-applied stock filter, set when another screen navigates here to answer
+  /// a specific question — the Reports low-stock card's "show all"
+  /// (Plan 013 #1). Null means the normal entry through the tab.
+  final ProductStockFilter? initialStockFilter;
+
+  const ProductListPage({super.key, this.initialStockFilter});
 
   @override
   State<ProductListPage> createState() => _ProductListPageState();
@@ -52,6 +58,12 @@ class _ProductListPageState extends State<ProductListPage> {
   /// Dart over the in-memory product list — no index/DB query.
   final Map<String, Set<String>> _attrFilters = {};
 
+  /// Quick stock-status filter (Plan 013 #1). A chip row rather than another
+  /// entry in the filter sheet: "what has run out?" is the question a shop asks
+  /// while standing at the shelf, and it should not be two taps behind an icon.
+  late ProductStockFilter _stockFilter =
+      widget.initialStockFilter ?? ProductStockFilter.all;
+
   int get _activeFilterCount =>
       _attrFilters.values.fold(0, (n, s) => n + s.length);
 
@@ -84,8 +96,36 @@ class _ProductListPageState extends State<ProductListPage> {
     }
   }
 
-  bool _matchesFilters(Product product) => productMatchesSearch(product,
-      query: _searchQuery, attrFilters: _attrFilters);
+  bool _matchesFilters(Product product) =>
+      _stockFilter.matches(product) &&
+      productMatchesSearch(product,
+          query: _searchQuery, attrFilters: _attrFilters);
+
+  /// The stock-status chips.
+  ///
+  /// **Low stock only means something once a minimum is set**, and most shops
+  /// never set one — so that chip can look empty and broken on a perfectly
+  /// healthy catalogue. The empty state below says so rather than leaving the
+  /// owner to guess.
+  Widget _stockFilterChips(AppLocalizations l10n) {
+    return SizedBox(
+      height: 40,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        children: [
+          for (final filter in ProductStockFilter.values)
+            Padding(
+              padding: const EdgeInsetsDirectional.only(end: 8),
+              child: ChoiceChip(
+                label: Text(filter.label(l10n)),
+                selected: _stockFilter == filter,
+                onSelected: (_) => setState(() => _stockFilter = filter),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 
   void _openFilterSheet(
       List<AttributeDefinition> selectDefs, AppLocalizations l10n) {
@@ -288,6 +328,8 @@ class _ProductListPageState extends State<ProductListPage> {
                       }),
                     ],
                   ),
+                  const SizedBox(height: 8),
+                  _stockFilterChips(l10n),
                   const SizedBox(height: 6),
                   Text(l10n.tapToScan,
                       style: TextStyle(
@@ -331,7 +373,23 @@ class _ProductListPageState extends State<ProductListPage> {
                     state.products.where(_matchesFilters).toList();
 
                 if (filteredProducts.isEmpty) {
-                  return Center(child: Text(l10n.noProductsMatch));
+                  // An empty "low stock" list usually means nobody has set a
+                  // minimum, not that everything is well stocked. Saying "no
+                  // products match" there sends the owner looking for a bug.
+                  final noMinimumsSet =
+                      _stockFilter == ProductStockFilter.lowStock &&
+                          state.products.every((p) => p.minStockAlert <= 0);
+                  return Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        noMinimumsSet
+                            ? l10n.noLowStockThresholds
+                            : l10n.noProductsMatch,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  );
                 }
 
                 return ListView.separated(

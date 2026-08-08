@@ -1,6 +1,8 @@
 # Plan 013 — V1 Field-Feedback Fixes, Round 2
 
-> **Status:** 📋 **PROPOSED — awaiting owner sign-off.** Source:
+> **Status:** 🚧 **IN PROGRESS.** ✅ Wave A shipped — items **1, 2, 4, 5, 6, 7, 8**
+> (#6 device-verified by the owner). Remaining: the multi-select building block,
+> then #9, #11, #3, #10. Source:
 > `docs/v1-fixes-2.txt`, 11 items from the shop after more real use. Successor to
 > Plan 011 (round 1), same spirit: **mostly papercuts, not new features.**
 >
@@ -35,14 +37,14 @@
 
 | # | Item | Size | Schema? | Notes |
 |---|---|---|---|---|
-| 1 | Reports: "show all low stock" + status filters | S | no | `lowStockProducts` is already capped at 5 |
-| 2 | Search box on the Customers page | S | no | page has no search at all today |
+| 1 | Reports: "show all low stock" + status filters | S | no | ✅ **SHIPPED** |
+| 2 | Search box on the Customers page | S | no | ✅ **SHIPPED** (+ Arabic-aware matching) |
 | 3 | Delete order + change payment/customer, PIN-gated | **M** | no | → Plan 016 (quantity edit **rejected**) |
-| 4 | "Edit product" straight from the POS scan | S | no | |
-| 5 | Delete button instead of `−`, and clear-cart | S | no | |
+| 4 | "Edit product" straight from the POS scan | S | no | ✅ **SHIPPED** |
+| 5 | Delete button instead of `−`, and clear-cart | S | no | ✅ **SHIPPED** (`−` kept, trash added) |
 | 6 | **Bug:** QR wins over barcode on the same item | **S — but a real bug** | no | ✅ **SHIPPED** — see below |
-| 7 | Smaller camera window in POS | S | no | pure layout |
-| 8 | Share a customer statement as an image | S | no | infrastructure already exists |
+| 7 | Smaller camera window in POS | S | no | ✅ **SHIPPED** (0.40 → 0.32) |
+| 8 | Share a customer statement as an image | S | no | ✅ **SHIPPED** (image *and* text) |
 | 9 | Product categories | **M** | **no** | → Plan 014 (attribute field + tabs + bulk + rename) |
 | 10 | Low-stock notifications | M | no | **cannot fire while the app is closed** — see below |
 | 11 | Two prices/one barcode; many barcodes/one price | **M/L** | **yes (index only)** | → Plan 015 |
@@ -111,7 +113,17 @@ it is the point of the test.
 
 ---
 
-## #1 — Reports: all low stock, and status filters
+## #1 — Reports: all low stock, and status filters ✅ SHIPPED
+
+> **As shipped:** the low-stock card gained a **"show all"** that navigates to
+> the products page **with the filter already applied** (`extra:
+> ProductStockFilter.lowStock`), rather than opening a second list — the next
+> thing the owner does is reorder or edit, and that lives there. The products
+> page gained a chip row (`ProductStockFilter`, a typed enum, not two booleans).
+> `lowStock` **excludes** what is already at zero: those have their own chip, and
+> a shopkeeper filtering for "running low" wants what to reorder *before* it
+> goes. The empty-state warning below was built — an empty low-stock list says
+> *"no product has a minimum set yet"* instead of *"no products match"*.
 
 Today `DashboardDao.lowStockProducts({int limit = 5})` shows the worst five and
 there is no way to see the rest. Two parts:
@@ -130,7 +142,15 @@ empty low-stock result: *"no product has a minimum set yet."*
 
 ---
 
-## #2 — Search on the Customers page
+## #2 — Search on the Customers page ✅ SHIPPED
+
+> **As shipped:** matching on name **and** phone, and the Arabic note below
+> turned out to matter more than the search box. `productMatchesSearch` did
+> **not** normalise — it only lower-cased — so the same bug was already shipped
+> on the products page: a product saved as `مياه معدنيّة` was unreachable by
+> anyone typing `مياه معدنية`. Both now share `normalizeForSearch`
+> (`core/utils/arabic_search.dart`), which also maps Arabic-Indic digits to
+> Latin so a phone number survives a keyboard change.
 
 The page has no search field. A shop with 200 debt customers scrolls.
 

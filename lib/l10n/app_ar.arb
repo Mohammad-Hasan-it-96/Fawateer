@@ -99,6 +99,8 @@
   "deleteProductConfirm": "هل تريد حذف {name}؟",
   "stockCountLabel": "المتوفر: {qty}",
   "lowStockBadge": "مخزون منخفض",
+  "showAll": "عرض الكل",
+  "noLowStockThresholds": "لم يتم تحديد حد أدنى لأي منتج بعد. افتح منتجاً وحدّد تنبيه المخزون المنخفض لاستخدام هذه التصفية.",
   "outOfStockBadge": "منتهي",
   "outOfStockScanNotice": "انتهت كمية المنتج: {name}",
   "@outOfStockScanNotice": {

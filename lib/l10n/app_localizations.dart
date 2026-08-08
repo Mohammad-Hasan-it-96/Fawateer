@@ -650,6 +650,18 @@ abstract class AppLocalizations {
   /// **'Low stock'**
   String get lowStockBadge;
 
+  /// No description provided for @showAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all'**
+  String get showAll;
+
+  /// No description provided for @noLowStockThresholds.
+  ///
+  /// In en, this message translates to:
+  /// **'No product has a minimum set yet. Open a product and set its low-stock alert to use this filter.'**
+  String get noLowStockThresholds;
+
   /// No description provided for @outOfStockBadge.
   ///
   /// In en, this message translates to:

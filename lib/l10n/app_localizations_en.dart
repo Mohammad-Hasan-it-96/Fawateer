@@ -297,6 +297,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get lowStockBadge => 'Low stock';
 
   @override
+  String get showAll => 'Show all';
+
+  @override
+  String get noLowStockThresholds =>
+      'No product has a minimum set yet. Open a product and set its low-stock alert to use this filter.';
+
+  @override
   String get outOfStockBadge => 'Out of stock';
 
   @override

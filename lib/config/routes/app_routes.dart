@@ -24,6 +24,7 @@ import '../../features/licensing/presentation/pages/subscription_plans_page.dart
 import '../../features/licensing/presentation/pages/subscription_status_page.dart';
 import '../../features/licensing/presentation/pages/verification_required_page.dart';
 import '../../features/product/domain/entities/product.dart';
+import '../../features/product/domain/product_stock_filter.dart';
 import '../../features/product/presentation/pages/add_product_page.dart';
 import '../../features/product/presentation/pages/edit_product_page.dart';
 import '../../features/product/presentation/pages/product_list_page.dart';
@@ -183,7 +184,13 @@ final router = GoRouter(
           routes: [
             GoRoute(
               path: '/products',
-              builder: (context, state) => const ProductListPage(),
+              // `extra` optionally carries a stock filter, so the Reports
+              // low-stock card can hand off with it already applied
+              // (Plan 013 #1).
+              builder: (context, state) => ProductListPage(
+                  initialStockFilter: state.extra is ProductStockFilter
+                      ? state.extra as ProductStockFilter
+                      : null),
               routes: [
                 GoRoute(
                   path: 'add',
