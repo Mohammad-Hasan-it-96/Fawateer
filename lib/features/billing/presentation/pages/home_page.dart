@@ -151,6 +151,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   int _pendingScanCount = 0;
   static const int _kScanConfirmations = 2;
 
+  /// How much of the screen the camera takes (Plan 013 #7).
+  ///
+  /// Was `0.4`, which left room for about three cart lines on a small phone —
+  /// so a cashier scanning a ten-item basket could not see what they had
+  /// already scanned, which is exactly when a double-scan goes unnoticed.
+  ///
+  /// Not smaller than this: the preview is also the aiming window, and the
+  /// live rectangle has to stay big enough to hold a wholesale carton's label
+  /// at arm's length. This is the balance point, not a free dial.
+  static const double _kScannerHeightFraction = 0.32;
+
   // "Try inverted mode" hint (Plan 011 #11 follow-up).
   //
   // Polarity can't be alternated automatically: `invertImage` is a
@@ -500,24 +511,30 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             },
           ),
         ],
-        child: Stack(
-          children: [
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: MediaQuery.of(context).size.height * 0.4,
-              child: _buildScannerSection(l10n),
-            ),
-            Positioned(
-              top: (MediaQuery.of(context).size.height * 0.4) - 24,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _buildBottomPanel(l10n),
-            ),
-          ],
-        ),
+        child: Builder(builder: (context) {
+          final scannerHeight =
+              MediaQuery.of(context).size.height * _kScannerHeightFraction;
+          return Stack(
+            children: [
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: scannerHeight,
+                child: _buildScannerSection(l10n),
+              ),
+              Positioned(
+                // The panel overlaps the camera by its rounded corner, so the
+                // two read as one surface rather than a seam.
+                top: scannerHeight - 24,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _buildBottomPanel(l10n),
+              ),
+            ],
+          );
+        }),
       ),
       bottomSheet: BlocBuilder<BillingBloc, BillingState>(
         builder: (context, state) {
@@ -541,6 +558,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   },
             icon: Icons.payment,
             label: l10n.reviewOrder,
+            // Tight, not the default page-CTA spacing (Plan 013 #7): the
+            // 24px frame around this button cost about two cart lines on a
+            // small phone, and the cashier needs to see what they scanned.
+            margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            elevation: 4,
           );
         },
       ),
@@ -1191,11 +1213,29 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.product.name,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 14),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis),
+                // The name opens the product for editing (Plan 013 #4). A
+                // wrong price or count is discovered here, at the counter, and
+                // before this the cashier had to leave POS, find the product,
+                // fix it, and come back to a cart they hoped survived.
+                InkWell(
+                  onTap: () => _editProduct(context, item),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(item.product.name,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 14),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(Icons.edit_outlined,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    ],
+                  ),
+                ),
                 if (out) ...[
                   const SizedBox(height: 4),
                   _outOfStockBadge(l10n),
@@ -1330,6 +1370,38 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
         ],
       ),
     );
+  }
+
+  /// Open the edit-product screen for a line already in the cart (Plan 013 #4),
+  /// then re-price that line from whatever was saved.
+  ///
+  /// Reads the fresh product back out of `ProductBloc`'s stream rather than
+  /// trusting a return value: the edit page saves through the repository and
+  /// the list is stream-backed, so the stream is the one place guaranteed to
+  /// hold what actually landed in the database.
+  ///
+  /// The camera is suspended for the round trip, exactly as checkout does —
+  /// leaving it decoding behind a pushed page would keep firing scans into a
+  /// screen the cashier is not looking at.
+  Future<void> _editProduct(BuildContext context, CartItem item) async {
+    final bloc = context.read<BillingBloc>();
+    final productBloc = context.read<ProductBloc>();
+    await _withOverlay(() async {
+      if (!context.mounted) return;
+      await context.push('/products/edit/${item.product.id}',
+          extra: item.product);
+    });
+    if (!mounted) return;
+    final updated = productBloc.state.products
+        .where((p) => p.id == item.product.id)
+        .firstOrNull;
+    // Absent means it was deleted while open. Dropping the line is the honest
+    // outcome — the alternative is selling something the shop just removed.
+    if (updated == null) {
+      bloc.add(RemoveProductFromCartEvent(item.product.id));
+      return;
+    }
+    bloc.add(RefreshCartProductEvent(updated));
   }
 
   /// Clearing the cart **must** confirm (Plan 013 #5).

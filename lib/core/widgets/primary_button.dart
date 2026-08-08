@@ -11,6 +11,12 @@ class PrimaryButton extends StatelessWidget {
   final TextStyle? textStyle;
   final bool isLoading;
 
+  /// Space around the button. Generous by default because most screens use it
+  /// as a page's single call to action — but the POS keeps it tight: every
+  /// pixel here is a cart line the cashier can't see while scanning
+  /// (Plan 013 #7).
+  final EdgeInsetsGeometry margin;
+
   const PrimaryButton({
     super.key,
     required this.onPressed,
@@ -22,6 +28,7 @@ class PrimaryButton extends StatelessWidget {
     this.isFullWidth = true,
     this.textStyle,
     this.isLoading = false,
+    this.margin = const EdgeInsets.all(24.0),
   });
 
   @override
@@ -40,7 +47,7 @@ class PrimaryButton extends StatelessWidget {
 
     if (icon != null) {
       return Padding(
-        padding: const EdgeInsets.all(24.0),
+        padding: margin,
         child: ElevatedButton.icon(
           onPressed: isLoading ? null : onPressed,
           icon: isLoading
@@ -63,7 +70,7 @@ class PrimaryButton extends StatelessWidget {
     }
 
     return Padding(
-      padding: const EdgeInsets.all(24.0),
+      padding: margin,
       child: ElevatedButton(
         onPressed: isLoading ? null : onPressed,
         style: style,

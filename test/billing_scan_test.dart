@@ -257,4 +257,76 @@ void main() {
 
     expect(bloc.state.outOfStockScan, isNull);
   });
+
+  group('editing a product from the cart (Plan 013 #4)', () {
+    Future<void> scanOne() async {
+      products.byBarcode['E'] = _product('e1', 'E'); // price 1000
+      bloc.add(const ScanBarcodeEvent('E'));
+      await bloc.stream.firstWhere((s) => s.cartItems.isNotEmpty).timeout(
+            const Duration(seconds: 2),
+            onTimeout: () => throw StateError('item never reached the cart'),
+          );
+    }
+
+    test('the open line takes the new price', () async {
+      await scanOne();
+      expect(bloc.state.cartItems.single.unitPriceSp, 1000);
+
+      bloc.add(RefreshCartProductEvent(
+          _product('e1', 'E').copyWith(price: 1500)));
+      await bloc.stream
+          .firstWhere((s) => s.cartItems.single.unitPriceSp == 1500);
+
+      // The cashier edited the product *from this cart, to fix this sale*.
+      // Leaving the line at the old price would look exactly like the edit
+      // did not save.
+      expect(bloc.state.cartItems.single.unitPriceSp, 1500);
+    });
+
+    test('the quantity and the line discount survive the edit', () async {
+      await scanOne();
+      bloc.add(const UpdateQuantityEvent('e1', 4));
+      await bloc.stream.firstWhere((s) => s.cartItems.single.quantity == 4);
+      bloc.add(const SetLineDiscountEvent('e1', 250));
+      await bloc.stream.firstWhere((s) => s.cartItems.single.discount == 250);
+
+      bloc.add(RefreshCartProductEvent(
+          _product('e1', 'E').copyWith(price: 1500)));
+      await bloc.stream
+          .firstWhere((s) => s.cartItems.single.unitPriceSp == 1500);
+
+      // The product changed; this sale's line did not. Losing four units or a
+      // negotiated discount would be a silent overcharge.
+      expect(bloc.state.cartItems.single.quantity, 4);
+      expect(bloc.state.cartItems.single.discount, 250);
+    });
+
+    test('other lines are left alone', () async {
+      await scanOne();
+      products.byBarcode['F'] = _product('f1', 'F');
+      bloc.add(const ScanBarcodeEvent('F'));
+      await bloc.stream.firstWhere((s) => s.cartItems.length == 2);
+
+      bloc.add(RefreshCartProductEvent(
+          _product('e1', 'E').copyWith(price: 9999)));
+      await bloc.stream.firstWhere(
+          (s) => s.cartItems.any((i) => i.unitPriceSp == 9999));
+
+      final other =
+          bloc.state.cartItems.firstWhere((i) => i.product.id == 'f1');
+      expect(other.unitPriceSp, 1000);
+    });
+
+    test('a product edited to zero stock updates the warning', () async {
+      await scanOne();
+      bloc.add(RefreshCartProductEvent(_zeroNoAlert('e1', 'E')));
+      await bloc.stream
+          .firstWhere((s) => s.cartItems.single.product.quantity == 0);
+
+      // The cart's stock warnings are derived from the line's product
+      // snapshot, so a stale snapshot would keep claiming stock the shop no
+      // longer has.
+      expect(bloc.state.cartItems.single.product.isOutOfStock, isTrue);
+    });
+  });
 }

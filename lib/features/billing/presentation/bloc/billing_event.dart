@@ -59,6 +59,23 @@ class UpdateQuantityEvent extends BillingEvent {
   List<Object> get props => [productId, quantity];
 }
 
+/// The product behind an open cart line was edited (Plan 013 #4) — re-price the
+/// line from the saved product.
+///
+/// **The open line does pick up the new price.** A cart line is otherwise a
+/// snapshot, deliberately: the price at the moment of adding is what the sale
+/// records. But this edit was made *from the cart, in order to fix this sale* —
+/// the cashier saw a wrong price on the screen and corrected it. Leaving the
+/// line at the old number would look exactly like the edit did not save.
+///
+/// Only affects lines still in the cart; a completed sale is never touched.
+class RefreshCartProductEvent extends BillingEvent {
+  final Product product;
+  const RefreshCartProductEvent(this.product);
+  @override
+  List<Object> get props => [product];
+}
+
 class ClearCartEvent extends BillingEvent {}
 
 /// Set (or clear, with 0) a manual per-line discount in SP on the given product's
