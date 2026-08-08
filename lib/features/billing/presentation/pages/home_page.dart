@@ -332,48 +332,47 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   void _onDetect(BarcodeCapture capture) async {
     final now = DateTime.now();
-    for (final barcode in capture.barcodes) {
-      if (barcode.rawValue != null) {
-        final rawValue = barcode.rawValue!;
 
-        // Multi-frame confirmation: only accept a value seen on
-        // [_kScanConfirmations] consecutive frames. A one-off misread off a
-        // curved/glary surface won't repeat, so it never confirms.
-        if (rawValue == _pendingScan) {
-          _pendingScanCount++;
-        } else {
-          _pendingScan = rawValue;
-          _pendingScanCount = 1;
-        }
-        if (_pendingScanCount < _kScanConfirmations) {
-          break; // wait for the next frame to agree (or disagree)
-        }
+    // One frame can decode a printed barcode AND a QR label off the same
+    // package. Taking `barcodes.first` meant ML Kit chose which one, and the QR
+    // usually won — see [pickRetailBarcode].
+    final picked = pickRetailBarcode(capture.barcodes);
+    if (picked == null) return;
+    final rawValue = picked.rawValue!;
 
-        final lastScan = _lastScanTimes[rawValue];
-        if (lastScan != null && now.difference(lastScan).inSeconds < 2) {
-          break;
-        }
-        _lastScanTimes[rawValue] = now;
-        _pendingScan = null;
-        _pendingScanCount = 0;
-        // Reading anything proves the current polarity works — hide the hint
-        // and restart its countdown.
-        if (_showInvertHint) setState(() => _showInvertHint = false);
-        _armInvertHint();
+    // Multi-frame confirmation: only accept a value seen on
+    // [_kScanConfirmations] consecutive frames. A one-off misread off a
+    // curved/glary surface won't repeat, so it never confirms.
+    if (rawValue == _pendingScan) {
+      _pendingScanCount++;
+    } else {
+      _pendingScan = rawValue;
+      _pendingScanCount = 1;
+    }
+    if (_pendingScanCount < _kScanConfirmations) {
+      return; // wait for the next frame to agree (or disagree)
+    }
 
-        // Beep first, then buzz: the sound is the primary confirmation for a
-        // cashier whose eyes are on the goods, and awaiting `canVibrate` first
-        // would delay it noticeably on some devices.
-        ScanFeedback.beep();
+    final lastScan = _lastScanTimes[rawValue];
+    if (lastScan != null && now.difference(lastScan).inSeconds < 2) return;
+    _lastScanTimes[rawValue] = now;
+    _pendingScan = null;
+    _pendingScanCount = 0;
+    // Reading anything proves the current polarity works — hide the hint
+    // and restart its countdown.
+    if (_showInvertHint) setState(() => _showInvertHint = false);
+    _armInvertHint();
 
-        final canVibrate = await Vibrate.canVibrate;
-        if (canVibrate) Vibrate.feedback(FeedbackType.success);
+    // Beep first, then buzz: the sound is the primary confirmation for a
+    // cashier whose eyes are on the goods, and awaiting `canVibrate` first
+    // would delay it noticeably on some devices.
+    ScanFeedback.beep();
 
-        if (mounted) {
-          context.read<BillingBloc>().add(ScanBarcodeEvent(rawValue));
-        }
-        break;
-      }
+    final canVibrate = await Vibrate.canVibrate;
+    if (canVibrate) Vibrate.feedback(FeedbackType.success);
+
+    if (mounted) {
+      context.read<BillingBloc>().add(ScanBarcodeEvent(rawValue));
     }
   }
 

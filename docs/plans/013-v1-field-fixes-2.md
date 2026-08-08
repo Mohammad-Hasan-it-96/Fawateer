@@ -40,7 +40,7 @@
 | 3 | Delete order + change payment/customer, PIN-gated | **M** | no | → Plan 016 (quantity edit **rejected**) |
 | 4 | "Edit product" straight from the POS scan | S | no | |
 | 5 | Delete button instead of `−`, and clear-cart | S | no | |
-| 6 | **Bug:** QR wins over barcode on the same item | **S — but a real bug** | no | confirmed in code, see below |
+| 6 | **Bug:** QR wins over barcode on the same item | **S — but a real bug** | no | ✅ **SHIPPED** — see below |
 | 7 | Smaller camera window in POS | S | no | pure layout |
 | 8 | Share a customer statement as an image | S | no | infrastructure already exists |
 | 9 | Product categories | **M** | **no** | → Plan 014 (attribute field + tabs + bulk + rename) |
@@ -61,7 +61,7 @@
 
 ---
 
-## #6 — QR is read instead of the barcode (a real bug, confirmed)
+## #6 — QR is read instead of the barcode ✅ SHIPPED
 
 **What happens.** Some products carry a printed barcode *and* a QR code on the
 same label. The app almost always reads the QR.
@@ -80,25 +80,30 @@ that list — we never chose. So which code wins is effectively random per frame
 and in practice the QR wins because a QR decodes from more angles and distances
 than a 1D barcode does.
 
-**Fix.** Inside one capture, prefer a **1D retail symbology** over a 2D one:
+**Fix as shipped.** `pickRetailBarcode(List<Barcode>)` in
+`core/utils/barcode_formats.dart` — the file that already owns format policy —
+picks one code per frame: **the first 1D retail symbology, else the first
+usable code of any kind.** Both scanners (`HomePage._onDetect` and
+`ScannerPage._onDetect`) now call it instead of walking the list.
 
-```dart
-// One frame can hold both a printed barcode and a QR label. Retail 1D codes
-// identify the *product*; a QR on the same package is usually a marketing or
-// warranty link that means nothing to this shop. So 1D wins, always — and
-// only when the frame has no 1D code at all do we fall back to the QR, which
-// is what the app's own printed QR labels need.
-```
+- **QR still works alone** — required, not incidental: the app prints its own
+  product labels as QR (`LabelImage`) and both screens must read them.
+- **Multi-frame confirmation is unchanged**; it runs *after* the pick, on
+  whatever was chosen.
+- `ScannerPage` matters as much as the POS: it captures the barcode for a **new
+  product**, so a wrong pick writes the wrong code into the catalogue
+  permanently.
+- **`unknown` is a fallback, not a 1D code.** If ML Kit cannot name the
+  symbology we cannot claim it identifies a product.
+- **`kLinearRetailFormats` must stay a subset of `kRetailBarcodeFormats`** — a
+  format preferred but never scanned is a preference that can never fire. The
+  test caught exactly that on the first cut (two ITF variants this app does not
+  scan); they were removed rather than widening what the scanner decodes, which
+  is a separate decision Plan 011 #11 made in the other direction.
 
-- Keep the multi-frame confirmation exactly as it is — it runs *after* the pick.
-- QR must still work alone: the app prints its own product QR labels
-  (`LabelImage`), and the sync join code is a QR.
-- Cost: about 10 lines in `_onDetect`, plus the same pick in `ScannerPage` so
-  the add-product scan behaves identically.
-
-**Test:** a fake `BarcodeCapture` holding `[qrCode, ean13]` in that order must
-produce the EAN-13. That ordering is the whole bug, so the list order in the
-fixture is the point of the test.
+**Test** (`test/barcode_pick_test.dart`, 8 cases): the QR is listed **first** in
+every fixture, exactly as the failing frames did — that ordering is the bug, so
+it is the point of the test.
 
 ---
 

@@ -72,32 +72,33 @@ class _ScannerPageState extends State<ScannerPage> {
 
   void _onDetect(BarcodeCapture capture) async {
     if (_isScanned) return;
-    final List<Barcode> barcodes = capture.barcodes;
 
-    for (final barcode in barcodes) {
-      final rawValue = barcode.rawValue;
-      if (rawValue != null) {
-        // Require the same value on consecutive frames before accepting it.
-        if (rawValue == _pendingScan) {
-          _pendingScanCount++;
-        } else {
-          _pendingScan = rawValue;
-          _pendingScanCount = 1;
-        }
-        if (_pendingScanCount < _kScanConfirmations) break;
+    // Same pick as the POS scanner, and for the same reason: a package with
+    // both a printed barcode and a QR label used to hand back whichever ML Kit
+    // listed first. This screen captures the barcode for a *new product*, so
+    // getting it wrong writes the wrong code into the catalogue permanently.
+    final picked = pickRetailBarcode(capture.barcodes);
+    if (picked == null) return;
+    final rawValue = picked.rawValue!;
 
-        _isScanned = true;
-        // Vibrate
-        final canVibrate = await Vibrate.canVibrate;
-        if (canVibrate) {
-          Vibrate.feedback(FeedbackType.success);
-        }
+    // Require the same value on consecutive frames before accepting it.
+    if (rawValue == _pendingScan) {
+      _pendingScanCount++;
+    } else {
+      _pendingScan = rawValue;
+      _pendingScanCount = 1;
+    }
+    if (_pendingScanCount < _kScanConfirmations) return;
 
-        if (mounted) {
-          context.pop(rawValue);
-        }
-        break; // Only take first one
-      }
+    _isScanned = true;
+    // Vibrate
+    final canVibrate = await Vibrate.canVibrate;
+    if (canVibrate) {
+      Vibrate.feedback(FeedbackType.success);
+    }
+
+    if (mounted) {
+      context.pop(rawValue);
     }
   }
 
