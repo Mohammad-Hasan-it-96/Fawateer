@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../../../core/share/cards/customer_statement_share_card.dart';
+import '../../../../core/share/share_card_action.dart';
 import '../../../../core/share/share_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/num_input.dart';
@@ -15,6 +17,9 @@ import '../bloc/ledger_bloc.dart';
 import '../customer_statement.dart';
 import '../ledger_money.dart';
 import 'customers_page.dart' show customerMessageText;
+
+/// Which format the share menu asked for.
+enum _ShareFormat { image, text }
 
 /// Map a [LedgerMessage] to a localized string.
 String ledgerMessageText(LedgerMessage m, AppLocalizations l10n) {
@@ -70,11 +75,38 @@ class CustomerDetailPage extends StatelessWidget {
                           .read<LedgerBloc>()
                           .add(PrintStatement(_statementText(context, state, l10n))),
                 ),
-                IconButton(
+                // Image *and* text (Plan 013 #8). They are different tools, not
+                // two versions of one: an image survives WhatsApp's formatting
+                // and reads as a document the customer can show someone else;
+                // text stays searchable and copyable. Customers ask for both.
+                PopupMenuButton<_ShareFormat>(
                   icon: const Icon(Icons.share_outlined),
                   tooltip: l10n.shareStatement,
-                  onPressed:
-                      disabled ? null : () => _shareStatement(context, state, l10n),
+                  enabled: !disabled,
+                  onSelected: (format) => switch (format) {
+                    _ShareFormat.image =>
+                      _shareStatementImage(context, state, l10n),
+                    _ShareFormat.text =>
+                      _shareStatementText(context, state, l10n),
+                  },
+                  itemBuilder: (_) => [
+                    PopupMenuItem(
+                      value: _ShareFormat.image,
+                      child: Row(children: [
+                        const Icon(Icons.image_outlined, size: 20),
+                        const SizedBox(width: 10),
+                        Text(l10n.shareAsImage),
+                      ]),
+                    ),
+                    PopupMenuItem(
+                      value: _ShareFormat.text,
+                      child: Row(children: [
+                        const Icon(Icons.notes, size: 20),
+                        const SizedBox(width: 10),
+                        Text(l10n.shareAsText),
+                      ]),
+                    ),
+                  ],
                 ),
               ]);
             },
@@ -160,12 +192,83 @@ class CustomerDetailPage extends StatelessWidget {
     );
   }
 
-  void _shareStatement(
+  void _shareStatementText(
       BuildContext context, LedgerState state, AppLocalizations l10n) {
     final shopState = context.read<ShopBloc>().state;
     final shopName = shopState is ShopLoaded ? shopState.shop.name : '';
     ShareService.shareText(_statementText(context, state, l10n),
         subject: l10n.statementHeader(shopName));
+  }
+
+  /// The newest [_kMaxStatementRows] movements, oldest-first within that window.
+  ///
+  /// **Capped because the capture is a real image.** A two-year account can hold
+  /// hundreds of entries, and `captureWidgetToPng` renders at `pixelRatio: 3.0`
+  /// — the PNG becomes tall enough that some apps refuse to attach it, and the
+  /// customer would be squinting at a strip. The **newest** are kept because
+  /// that is what a debt conversation is about, and the count of what was left
+  /// out is printed on the card: a silently truncated financial statement is
+  /// worse than none, since the customer counts the rows and finds money
+  /// missing.
+  static const int _kMaxStatementRows = 30;
+
+  Future<void> _shareStatementImage(
+      BuildContext context, LedgerState state, AppLocalizations l10n) async {
+    final shopState = context.read<ShopBloc>().state;
+    final shopName = shopState is ShopLoaded ? shopState.shop.name : '';
+    final currency = currencyOf(context);
+    final customer = state.customer!;
+    final df = DateFormat('yyyy/MM/dd', 'ar');
+
+    // Oldest-first, matching the text statement — a running account only reads
+    // correctly in the order it happened.
+    final sorted = [...state.entries]
+      ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+    var charges = 0.0;
+    var payments = 0.0;
+    for (final e in sorted) {
+      if (e.type == LedgerEntryType.charge) {
+        charges += e.amount;
+      } else {
+        payments += e.amount;
+      }
+    }
+
+    // Totals above are over EVERY entry, never over the visible window — the
+    // balance on the card must be the real balance.
+    final omitted =
+        sorted.length > _kMaxStatementRows ? sorted.length - _kMaxStatementRows : 0;
+    final visible = sorted.skip(omitted).toList();
+
+    final card = CustomerStatementShareCard(
+      l10n: l10n,
+      currency: currency,
+      shopName: shopName,
+      customerName: customer.name,
+      customerPhone: customer.phone,
+      dateText: df.format(DateTime.now()),
+      omittedCount: omitted,
+      lines: visible
+          .map((e) => StatementShareLine(
+                dateText: df.format(e.createdAt),
+                label: e.type == LedgerEntryType.charge
+                    ? l10n.entryDebt
+                    : l10n.entryPayment,
+                amount: e.amount,
+                isCharge: e.type == LedgerEntryType.charge,
+                note: e.note,
+              ))
+          .toList(),
+      totalCharges: charges,
+      totalPayments: payments,
+      balance: state.balance,
+    );
+
+    await shareCardAsImage(context,
+        card: card,
+        fileName: 'statement_${customer.id}.png',
+        messageText: shopName.isNotEmpty ? shopName : null);
   }
 
   Widget _balanceCard(

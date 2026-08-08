@@ -1238,6 +1238,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shareStatement => 'Share statement';
 
   @override
+  String get statementCardTitle => 'Account statement';
+
+  @override
+  String statementMoreEntries(int count) {
+    return '…and $count earlier entries';
+  }
+
+  @override
+  String get shareAsImage => 'Share as image';
+
+  @override
+  String get shareAsText => 'Share as text';
+
+  @override
   String get printStatement => 'Print statement';
 
   @override

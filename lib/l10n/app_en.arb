@@ -520,6 +520,11 @@
     }
   },
   "shareStatement": "Share statement",
+  "statementCardTitle": "Account statement",
+  "statementMoreEntries": "…and {count} earlier entries",
+  "@statementMoreEntries": {"placeholders": {"count": {"type": "int"}}},
+  "shareAsImage": "Share as image",
+  "shareAsText": "Share as text",
   "printStatement": "Print statement",
   "statementPrinted": "Statement printed",
   "statementHeader": "Account Statement — {shop}",

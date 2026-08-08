@@ -1228,6 +1228,20 @@ class AppLocalizationsAr extends AppLocalizations {
   String get shareStatement => 'مشاركة كشف الحساب';
 
   @override
+  String get statementCardTitle => 'كشف حساب';
+
+  @override
+  String statementMoreEntries(int count) {
+    return '…و$count حركة أقدم';
+  }
+
+  @override
+  String get shareAsImage => 'مشاركة كصورة';
+
+  @override
+  String get shareAsText => 'مشاركة كنص';
+
+  @override
   String get printStatement => 'طباعة كشف الحساب';
 
   @override

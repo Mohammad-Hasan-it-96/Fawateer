@@ -2403,6 +2403,30 @@ abstract class AppLocalizations {
   /// **'Share statement'**
   String get shareStatement;
 
+  /// No description provided for @statementCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account statement'**
+  String get statementCardTitle;
+
+  /// No description provided for @statementMoreEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'…and {count} earlier entries'**
+  String statementMoreEntries(int count);
+
+  /// No description provided for @shareAsImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Share as image'**
+  String get shareAsImage;
+
+  /// No description provided for @shareAsText.
+  ///
+  /// In en, this message translates to:
+  /// **'Share as text'**
+  String get shareAsText;
+
   /// No description provided for @printStatement.
   ///
   /// In en, this message translates to:
