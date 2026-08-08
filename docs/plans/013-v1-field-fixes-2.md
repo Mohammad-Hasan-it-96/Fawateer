@@ -61,7 +61,11 @@
 
 ---
 
-## #6 — QR is read instead of the barcode ✅ SHIPPED
+## #6 — QR is read instead of the barcode ✅ SHIPPED & DEVICE-VERIFIED
+
+> **Verified on a real phone by the owner** — a package with both codes now
+> reads the barcode. This is the check that mattered: the whole bug lives in
+> what ML Kit hands back per frame, which no host test can reproduce.
 
 **What happens.** Some products carry a printed barcode *and* a QR code on the
 same label. The app almost always reads the QR.
