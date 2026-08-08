@@ -18,6 +18,15 @@ enum SyncError {
   /// The device could not produce a stable id (the shared fallback) — sync needs one.
   fallbackDeviceRejected,
 
+  /// This device's seat was revoked by the owner. Terminal, not retryable: the
+  /// server has nulled the credential, so every further call fails the same way.
+  deviceRevoked,
+
+  /// The action needs the owner seat and this device is not it. Normally
+  /// unreachable — owner-only actions are hidden rather than shown and refused —
+  /// so seeing it means the local role and the server's disagree.
+  ownerOnly,
+
   /// The server was unreachable (offline/timeout) — retryable.
   offline,
 
@@ -35,6 +44,11 @@ enum SyncError {
         return SyncError.invalidJoinToken;
       case 'FALLBACK_DEVICE_REJECTED':
         return SyncError.fallbackDeviceRejected;
+      case 'DEVICE_REVOKED':
+        return SyncError.deviceRevoked;
+      case 'OWNER_ONLY':
+      case 'OWNER_SEAT_NOT_REVOCABLE':
+        return SyncError.ownerOnly;
       default:
         return SyncError.server;
     }

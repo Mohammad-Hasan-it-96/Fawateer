@@ -99,6 +99,15 @@ class SyncApiClient {
         () => _client.get(_uri(endpoint), headers: _headers(token)).timeout(timeout));
   }
 
+  Future<Map<String, dynamic>> delete(
+    String endpoint, {
+    String? token,
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
+    return _send(() =>
+        _client.delete(_uri(endpoint), headers: _headers(token)).timeout(timeout));
+  }
+
   /// Upload a file with accompanying form fields.
   ///
   /// Multipart rather than a JSON body with base64: the bootstrap snapshot is

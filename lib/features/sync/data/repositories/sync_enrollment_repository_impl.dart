@@ -7,6 +7,7 @@ import '../../../licensing/data/services/device_identity_service.dart';
 import '../../domain/entities/bootstrap_handoff.dart';
 import '../../domain/entities/enrollment_outcome.dart';
 import '../../domain/entities/join_token.dart';
+import '../../domain/entities/sync_device.dart';
 import '../../domain/entities/sync_seat_role.dart';
 import '../../domain/entities/sync_session.dart';
 import '../../domain/repositories/sync_enrollment_repository.dart';
@@ -68,18 +69,54 @@ class SyncEnrollmentRepositoryImpl implements SyncEnrollmentRepository {
 
   @override
   Future<Either<Failure, JoinToken>> mintJoinToken() async {
-    try {
-      final session = await _store.load();
-      // Guarded locally as well as server-side: without a seat there is no
-      // Bearer credential to send, and an unauthenticated call would come back
-      // as a generic 401 that says nothing useful to the owner.
-      if (session == null) {
-        return const Left(SyncFailure(
-            SyncError.subscriptionRequired, 'not enrolled'));
-      }
+    return _guarded((session) async {
       final json = await _api
           .postJson('sync/enroll/token', const {}, token: session.syncToken);
-      return Right(JoinToken.fromJson(_data(json)));
+      return JoinToken.fromJson(_data(json));
+    });
+  }
+
+  @override
+  Future<Either<Failure, List<SyncDevice>>> listDevices() async {
+    return _guarded((session) async {
+      final json = await _api.getJson('sync/devices', token: session.syncToken);
+      final data = _data(json);
+      // The list may be the envelope's `data` directly or nested under
+      // `devices`; both shapes appear in the platform's other endpoints and
+      // neither is pinned for this one.
+      final raw = data['devices'] ?? json['data'];
+      if (raw is! List) return <SyncDevice>[];
+      return raw
+          .whereType<Map<String, dynamic>>()
+          .map((e) => SyncDevice.fromJson(e, currentSeat: session.seatUuid))
+          .where((d) => d.uuid.isNotEmpty)
+          .toList();
+    });
+  }
+
+  @override
+  Future<Either<Failure, Unit>> revokeDevice(String seatUuid) async {
+    return _guarded((session) async {
+      await _api.delete('sync/devices/$seatUuid', token: session.syncToken);
+      return unit;
+    });
+  }
+
+  /// Run an owner-authenticated call, mapping the failure taxonomy once.
+  ///
+  /// The local no-seat check is not redundant with the server's: without a seat
+  /// there is no Bearer credential to send at all, and the call would come back
+  /// as a bare 401 carrying no typed code — which the owner would see as a
+  /// generic "something went wrong".
+  Future<Either<Failure, T>> _guarded<T>(
+      Future<T> Function(SyncSession session) body) async {
+    try {
+      final session = await _store.load();
+      if (session == null) {
+        return const Left(
+            SyncFailure(SyncError.subscriptionRequired, 'not enrolled'));
+      }
+      return Right(await body(session));
     } on SyncApiException catch (e) {
       if (e.isOffline) return Left(NetworkFailure(e.message));
       return Left(SyncFailure(SyncError.fromCode(e.code), e.message));

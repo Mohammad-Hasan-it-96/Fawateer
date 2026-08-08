@@ -7,6 +7,7 @@ import '../../data/sync_scheduler.dart';
 import '../../data/sync_state_store.dart';
 import '../../domain/entities/enrollment_outcome.dart';
 import '../../domain/entities/join_invite.dart';
+import '../../domain/entities/sync_device.dart';
 import '../../domain/entities/sync_outcome.dart';
 import '../../domain/entities/sync_session.dart';
 import '../../domain/repositories/sync_enrollment_repository.dart';
@@ -43,6 +44,8 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     on<JoinWithToken>(_onJoin);
     on<MintJoinTokenRequested>(_onMintToken);
     on<SyncNowRequested>(_onSyncNow);
+    on<LoadDevicesRequested>(_onLoadDevices);
+    on<RevokeDeviceRequested>(_onRevokeDevice);
     on<LeaveSyncRequested>(_onLeave);
     on<ClearSyncFeedback>(_onClearFeedback);
     on<DismissJoinToken>(_onDismissToken);
@@ -59,6 +62,55 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
       lastSyncAt: await _state.lastSyncAt(),
       outcome: _scheduler.lastOutcome.value,
     ));
+    // The registry needs the network; everything above it does not. Emitting
+    // the seat first means the screen is usable immediately and an offline
+    // owner gets a working page with one section that says it could not load —
+    // rather than a spinner that ends in a blank screen.
+    if (session?.isOwner ?? false) await _loadDevices(emit);
+  }
+
+  Future<void> _onLoadDevices(
+          LoadDevicesRequested event, Emitter<SyncState> emit) =>
+      _loadDevices(emit);
+
+  /// Read the registry into the current handler's [emit].
+  ///
+  /// Called inline rather than by dispatching [LoadDevicesRequested] to
+  /// ourselves: `add` on a BLoC whose event controller has already closed
+  /// throws, and every caller here sits behind a network round trip the
+  /// shopkeeper can walk away from mid-flight.
+  Future<void> _loadDevices(Emitter<SyncState> emit) async {
+    emit(state.copyWith(devicesLoading: true, clearDevicesError: true));
+    final result = await _repository.listDevices();
+    result.match(
+      (failure) => emit(state.copyWith(
+          devicesLoading: false, devicesError: _errorOf(failure))),
+      (devices) => emit(state.copyWith(devicesLoading: false, devices: devices)),
+    );
+  }
+
+  Future<void> _onRevokeDevice(
+      RevokeDeviceRequested event, Emitter<SyncState> emit) async {
+    emit(state.copyWith(revoking: event.seatUuid, clearFeedback: true));
+    final result = await _repository.revokeDevice(event.seatUuid);
+    await result.match(
+      (failure) async => emit(state.copyWith(
+          clearRevoking: true, error: _errorOf(failure))),
+      (_) async {
+        // Drop the row immediately rather than waiting for the re-read: the
+        // owner just watched themselves remove it, and a row that lingers for
+        // the length of a network round trip reads as the button not working.
+        emit(state.copyWith(
+          clearRevoking: true,
+          devices:
+              state.devices.where((d) => d.uuid != event.seatUuid).toList(),
+          message: SyncMessage.deviceRevoked,
+        ));
+        // The server is the authority on what a seat freed — the allowance, and
+        // whether anything else changed with it.
+        await _loadDevices(emit);
+      },
+    );
   }
 
   Future<void> _onEnableAsOwner(
@@ -82,7 +134,10 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     );
     // A device that has just enrolled has a shop's worth of local rows the
     // server has never seen; there is no reason to make it wait for the timer.
-    if (result.isRight()) await _scheduler.start();
+    if (result.isRight()) {
+      await _scheduler.start();
+      await _loadDevices(emit);
+    }
   }
 
   Future<void> _onJoin(JoinWithToken event, Emitter<SyncState> emit) async {
@@ -182,6 +237,14 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
       error: outcome?.error,
       message: outcome != null && outcome.isSuccess ? SyncMessage.synced : null,
     ));
+    // The scheduler has already dropped the dead credential; without this the
+    // screen would keep offering "Sync now" on a seat that no longer exists,
+    // and the shopkeeper would tap it repeatedly to the same red message. The
+    // page flips to the not-enrolled pitch, which is both true and the way back
+    // in — the owner mints a fresh code.
+    if (outcome?.error == SyncError.deviceRevoked) {
+      emit(const SyncState(loaded: true, error: SyncError.deviceRevoked));
+    }
   }
 
   Future<void> _onLeave(

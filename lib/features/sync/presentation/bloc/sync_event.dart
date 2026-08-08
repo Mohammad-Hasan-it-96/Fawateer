@@ -37,6 +37,27 @@ class SyncNowRequested extends SyncEvent {
   const SyncNowRequested();
 }
 
+/// Owner: re-read the device registry. Dispatched automatically after the seat
+/// loads and after a revoke; also available as a retry, because the registry is
+/// the one part of this screen that needs the network to say anything at all.
+class LoadDevicesRequested extends SyncEvent {
+  const LoadDevicesRequested();
+}
+
+/// Owner: revoke another device's seat.
+///
+/// Takes the seat uuid rather than the [SyncDevice] so the event cannot carry a
+/// stale row: the list is re-read after every revoke, and a queued second event
+/// holding an object from the previous list would name a seat that is already
+/// gone.
+class RevokeDeviceRequested extends SyncEvent {
+  final String seatUuid;
+  const RevokeDeviceRequested(this.seatUuid);
+
+  @override
+  List<Object?> get props => [seatUuid];
+}
+
 /// Forget this device's seat locally. Does **not** revoke it server-side —
 /// that is the owner's action from the device registry, and conflating the two
 /// would let a member silently free a seat the owner is paying for.

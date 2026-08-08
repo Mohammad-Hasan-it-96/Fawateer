@@ -641,5 +641,23 @@
   "syncJoinCodePreferScan": "المسح أأمن من كتابة الرمز.",
   "syncRestartTitle": "المحل الآن على هذا الهاتف",
   "syncRestartBody": "أصبحت نسخة المحل على هذا الهاتف، ويلزم فتح التطبيق من جديد لاستخدامها. أغلق التطبيق ثم شغّله مرة أخرى.",
-  "syncRestartConfirm": "إغلاق التطبيق"
+  "syncRestartConfirm": "إغلاق التطبيق",
+
+  "syncDevicesTitle": "الهواتف التي تستخدم هذا المحل",
+  "syncDevicesRetry": "إعادة المحاولة",
+  "syncDevicesUnavailable": "تعذّر عرض قائمة الهواتف الآن",
+  "syncDeviceThis": "هذا الهاتف",
+  "syncDeviceOwnerNote": "لا يمكن إزالته",
+  "syncDeviceSeenNever": "لم يُستخدم بعد",
+  "syncDeviceSeenJustNow": "نشط الآن",
+  "syncDeviceSeenMinutes": "آخر استخدام قبل {minutes} دقيقة",
+  "syncDeviceSeenHours": "آخر استخدام قبل {hours} ساعة",
+  "syncDeviceSeenDays": "آخر استخدام قبل {days} يوم",
+  "syncRevokeAction": "إزالة",
+  "syncRevokeTitle": "إزالة هذا الهاتف؟",
+  "syncRevokeBody": "سيتوقف ذلك الهاتف عن مشاركة هذا المحل، وسيتوقف عن البيع عند تحققه التالي من الاشتراك. وتبقى لديه نسخة المحل الموجودة عليه — هذا الإجراء لا يحذف شيئاً منه.",
+  "syncRevokeConfirm": "إزالة",
+  "syncRevokedMessage": "تمت إزالة ذلك الهاتف",
+  "syncErrorRevoked": "تمت إزالة هذا الهاتف من المحل بواسطة الهاتف الرئيسي",
+  "syncErrorOwnerOnly": "الهاتف الرئيسي وحده يستطيع القيام بذلك"
 }

@@ -5,6 +5,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../../core/database/daos/sync_dao.dart';
 import '../domain/entities/sync_outcome.dart';
+import '../domain/sync_error.dart';
 import 'sync_credential_store.dart';
 import 'sync_engine.dart';
 
@@ -124,6 +125,7 @@ class SyncScheduler with WidgetsBindingObserver {
       // nothing.
       final outcome = await _engine.sync();
       lastOutcome.value = outcome;
+      if (outcome.error == SyncError.deviceRevoked) await _onRevoked();
       return outcome;
     } catch (_) {
       // A trigger must never throw into a Timer callback or a lifecycle
@@ -135,6 +137,27 @@ class SyncScheduler with WidgetsBindingObserver {
     } finally {
       isSyncing.value = false;
     }
+  }
+
+  /// The owner revoked this device's seat. The server has already nulled the
+  /// credential, so every further call would fail identically — drop it locally
+  /// and let the scheduler go inert, exactly as it is for a shop that never
+  /// enrolled.
+  ///
+  /// **Nothing local is deleted, and nothing can be.** The books stay on this
+  /// phone in full (2026-07-29 R2); what stops is syncing, and — once the next
+  /// licence check lands, bounded by the existing 7-day offline grace — selling.
+  /// That is the ONE place the sync and licensing credentials are coupled, and
+  /// it is the server's half, not ours.
+  ///
+  /// Unpushed local sales are stranded by this, which is unavoidable rather than
+  /// chosen: the token they would have been pushed with is already dead. Only
+  /// the explicit `DEVICE_REVOKED` code gets here — a bare 401 maps to
+  /// `SyncError.server` and is retried, so a transient auth blip cannot silently
+  /// unlink a working till.
+  Future<void> _onRevoked() async {
+    await _credentials.clear();
+    _debounce?.cancel();
   }
 }
 

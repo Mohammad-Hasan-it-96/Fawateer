@@ -8,6 +8,7 @@ import '../../../../core/utils/app_snack.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/bootstrap_service.dart';
 import '../../domain/entities/join_invite.dart';
+import '../../domain/entities/sync_device.dart';
 import '../../domain/entities/sync_outcome.dart';
 import '../../domain/sync_error.dart';
 import '../bloc/sync_bloc.dart';
@@ -186,6 +187,8 @@ class _SyncPageState extends State<SyncPage> {
       // Only the main phone can invite another. A linked phone showing this
       // button would be offering something the server will refuse.
       if (session.isOwner) ...[
+        _registry(context, l10n, state),
+        const SizedBox(height: 16),
         if (state.invite != null)
           _JoinCodeCard(invite: state.invite!)
         else
@@ -204,6 +207,135 @@ class _SyncPageState extends State<SyncPage> {
         onPressed: () => _confirmLeave(context, l10n),
       ),
     ];
+  }
+
+  // ── device registry (owner only) ───────────────────────────────────────────
+
+  /// The seats in this business, and the owner's one destructive action.
+  ///
+  /// Rendered inline **above** "add a phone" rather than on a screen of its own:
+  /// the question "can I add another?" is answered by the list, so putting the
+  /// list behind a tap means the owner mints a code, is refused for the
+  /// allowance, and only then goes looking for what is using it.
+  ///
+  /// A failed fetch degrades to a retry line instead of an empty list. Empty and
+  /// unreachable look identical otherwise, and "no phones are using this shop"
+  /// is a lie an offline owner would act on.
+  Widget _registry(
+      BuildContext context, AppLocalizations l10n, SyncState state) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Text(l10n.syncDevicesTitle,
+                      style: theme.textTheme.titleMedium),
+                ),
+                if (state.devicesLoading)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+              ],
+            ),
+          ),
+          if (state.devicesError != null && state.devices.isEmpty)
+            ListTile(
+              subtitle: Text(l10n.syncDevicesUnavailable,
+                  style: theme.textTheme.bodySmall),
+              trailing: TextButton(
+                onPressed: () =>
+                    context.read<SyncBloc>().add(const LoadDevicesRequested()),
+                child: Text(l10n.syncDevicesRetry),
+              ),
+            )
+          else
+            for (final device in state.devices)
+              _deviceTile(context, l10n, state, device),
+        ],
+      ),
+    );
+  }
+
+  Widget _deviceTile(BuildContext context, AppLocalizations l10n,
+      SyncState state, SyncDevice device) {
+    final theme = Theme.of(context);
+    final busy = state.revoking == device.uuid;
+    return ListTile(
+      leading: Icon(device.role.isOwner ? Icons.smartphone : Icons.phonelink),
+      title: Text(device.label ??
+          (device.role.isOwner ? l10n.syncStatusOwner : l10n.syncStatusMember)),
+      // Two identical linked phones are told apart only by this line and the
+      // "this phone" badge — so it is a subtitle, not a tooltip.
+      subtitle: Text(_seenText(l10n, device.lastSeenAt),
+          style: theme.textTheme.bodySmall),
+      trailing: busy
+          ? const SizedBox(
+              width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+          : device.isCurrent
+              // A badge, not a disabled button: the owner is looking for which
+              // row is safe to remove, and greyed-out text still reads as an
+              // action that failed.
+              ? Chip(
+                  label: Text(l10n.syncDeviceThis),
+                  visualDensity: VisualDensity.compact)
+              : device.isRevocable
+                  ? TextButton(
+                      onPressed: state.revoking != null
+                          ? null
+                          : () => _confirmRevoke(context, l10n, device),
+                      child: Text(l10n.syncRevokeAction,
+                          style: TextStyle(color: theme.colorScheme.error)),
+                    )
+                  // The owner seat on another device — refused server-side
+                  // (2026-07-29 R1), so it is never offered here either.
+                  : Text(l10n.syncDeviceOwnerNote,
+                      style: theme.textTheme.bodySmall),
+    );
+  }
+
+  Future<void> _confirmRevoke(BuildContext context, AppLocalizations l10n,
+      SyncDevice device) async {
+    final bloc = context.read<SyncBloc>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.syncRevokeTitle),
+        // States what revoking does *and* what it does not: the other phone
+        // keeps its copy of the books, and nothing here can erase it
+        // (2026-07-29 R2). An owner who believes this wipes a stolen tablet
+        // will not take the other steps that actually protect them.
+        content: Text(l10n.syncRevokeBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: Text(MaterialLocalizations.of(dialogContext).cancelButtonLabel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.syncRevokeConfirm),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) bloc.add(RevokeDeviceRequested(device.uuid));
+  }
+
+  /// Coarse buckets, deliberately. The owner is asking "is this the one that
+  /// left the shop?", which minutes-vs-days answers and a timestamp does not.
+  static String _seenText(AppLocalizations l10n, DateTime? at) {
+    if (at == null) return l10n.syncDeviceSeenNever;
+    final ago = DateTime.now().difference(at);
+    if (ago.inMinutes < 2) return l10n.syncDeviceSeenJustNow;
+    if (ago.inHours < 1) return l10n.syncDeviceSeenMinutes(ago.inMinutes);
+    if (ago.inHours < 24) return l10n.syncDeviceSeenHours(ago.inHours);
+    return l10n.syncDeviceSeenDays(ago.inDays);
   }
 
   Widget? _outcomeLine(AppLocalizations l10n, SyncOutcome? outcome) {
@@ -343,6 +475,7 @@ class _SyncPageState extends State<SyncPage> {
       SyncMessage.enabled => l10n.syncEnabledMessage,
       SyncMessage.joined => l10n.syncJoinedMessage,
       SyncMessage.left => l10n.syncLeftMessage,
+      SyncMessage.deviceRevoked => l10n.syncRevokedMessage,
       SyncMessage.synced => null, // the status line already says what happened
       null => null,
     };
@@ -365,6 +498,8 @@ String syncErrorText(AppLocalizations l10n, SyncError error) =>
       SyncError.allowanceExceeded => l10n.syncErrorAllowance,
       SyncError.invalidJoinToken => l10n.syncErrorJoinToken,
       SyncError.fallbackDeviceRejected => l10n.syncErrorFallbackDevice,
+      SyncError.deviceRevoked => l10n.syncErrorRevoked,
+      SyncError.ownerOnly => l10n.syncErrorOwnerOnly,
       SyncError.offline => l10n.syncErrorOffline,
       SyncError.server => l10n.syncErrorServer,
     };

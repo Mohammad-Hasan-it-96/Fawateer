@@ -1937,4 +1937,64 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncRestartConfirm => 'Close the app';
+
+  @override
+  String get syncDevicesTitle => 'Phones using this shop';
+
+  @override
+  String get syncDevicesRetry => 'Try again';
+
+  @override
+  String get syncDevicesUnavailable =>
+      'Can\'t show the list of phones right now';
+
+  @override
+  String get syncDeviceThis => 'This phone';
+
+  @override
+  String get syncDeviceOwnerNote => 'Can\'t be removed';
+
+  @override
+  String get syncDeviceSeenNever => 'Not seen yet';
+
+  @override
+  String get syncDeviceSeenJustNow => 'Active now';
+
+  @override
+  String syncDeviceSeenMinutes(int minutes) {
+    return 'Last used $minutes minutes ago';
+  }
+
+  @override
+  String syncDeviceSeenHours(int hours) {
+    return 'Last used $hours hours ago';
+  }
+
+  @override
+  String syncDeviceSeenDays(int days) {
+    return 'Last used $days days ago';
+  }
+
+  @override
+  String get syncRevokeAction => 'Remove';
+
+  @override
+  String get syncRevokeTitle => 'Remove this phone?';
+
+  @override
+  String get syncRevokeBody =>
+      'That phone will stop sharing this shop and will stop selling once it next checks its subscription. It keeps the copy of the shop it already has — this does not erase anything on it.';
+
+  @override
+  String get syncRevokeConfirm => 'Remove';
+
+  @override
+  String get syncRevokedMessage => 'That phone was removed';
+
+  @override
+  String get syncErrorRevoked =>
+      'This phone was removed from the shop by the main phone';
+
+  @override
+  String get syncErrorOwnerOnly => 'Only the main phone can do this';
 }

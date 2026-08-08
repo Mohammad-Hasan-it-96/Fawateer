@@ -3698,6 +3698,108 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Close the app'**
   String get syncRestartConfirm;
+
+  /// No description provided for @syncDevicesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Phones using this shop'**
+  String get syncDevicesTitle;
+
+  /// No description provided for @syncDevicesRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Try again'**
+  String get syncDevicesRetry;
+
+  /// No description provided for @syncDevicesUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t show the list of phones right now'**
+  String get syncDevicesUnavailable;
+
+  /// No description provided for @syncDeviceThis.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone'**
+  String get syncDeviceThis;
+
+  /// No description provided for @syncDeviceOwnerNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t be removed'**
+  String get syncDeviceOwnerNote;
+
+  /// No description provided for @syncDeviceSeenNever.
+  ///
+  /// In en, this message translates to:
+  /// **'Not seen yet'**
+  String get syncDeviceSeenNever;
+
+  /// No description provided for @syncDeviceSeenJustNow.
+  ///
+  /// In en, this message translates to:
+  /// **'Active now'**
+  String get syncDeviceSeenJustNow;
+
+  /// No description provided for @syncDeviceSeenMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Last used {minutes} minutes ago'**
+  String syncDeviceSeenMinutes(int minutes);
+
+  /// No description provided for @syncDeviceSeenHours.
+  ///
+  /// In en, this message translates to:
+  /// **'Last used {hours} hours ago'**
+  String syncDeviceSeenHours(int hours);
+
+  /// No description provided for @syncDeviceSeenDays.
+  ///
+  /// In en, this message translates to:
+  /// **'Last used {days} days ago'**
+  String syncDeviceSeenDays(int days);
+
+  /// No description provided for @syncRevokeAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get syncRevokeAction;
+
+  /// No description provided for @syncRevokeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this phone?'**
+  String get syncRevokeTitle;
+
+  /// No description provided for @syncRevokeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'That phone will stop sharing this shop and will stop selling once it next checks its subscription. It keeps the copy of the shop it already has — this does not erase anything on it.'**
+  String get syncRevokeBody;
+
+  /// No description provided for @syncRevokeConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get syncRevokeConfirm;
+
+  /// No description provided for @syncRevokedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'That phone was removed'**
+  String get syncRevokedMessage;
+
+  /// No description provided for @syncErrorRevoked.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone was removed from the shop by the main phone'**
+  String get syncErrorRevoked;
+
+  /// No description provided for @syncErrorOwnerOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the main phone can do this'**
+  String get syncErrorOwnerOnly;
 }
 
 class _AppLocalizationsDelegate

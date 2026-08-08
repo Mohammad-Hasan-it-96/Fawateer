@@ -801,5 +801,26 @@
   "syncJoinCodePreferScan": "Scanning is safer than typing this code.",
   "syncRestartTitle": "The shop is on this phone",
   "syncRestartBody": "This phone now has a copy of the shop and needs to be opened again to use it. Close the app and start it again.",
-  "syncRestartConfirm": "Close the app"
+  "syncRestartConfirm": "Close the app",
+
+  "syncDevicesTitle": "Phones using this shop",
+  "syncDevicesRetry": "Try again",
+  "syncDevicesUnavailable": "Can't show the list of phones right now",
+  "syncDeviceThis": "This phone",
+  "syncDeviceOwnerNote": "Can't be removed",
+  "syncDeviceSeenNever": "Not seen yet",
+  "syncDeviceSeenJustNow": "Active now",
+  "syncDeviceSeenMinutes": "Last used {minutes} minutes ago",
+  "@syncDeviceSeenMinutes": {"placeholders": {"minutes": {"type": "int"}}},
+  "syncDeviceSeenHours": "Last used {hours} hours ago",
+  "@syncDeviceSeenHours": {"placeholders": {"hours": {"type": "int"}}},
+  "syncDeviceSeenDays": "Last used {days} days ago",
+  "@syncDeviceSeenDays": {"placeholders": {"days": {"type": "int"}}},
+  "syncRevokeAction": "Remove",
+  "syncRevokeTitle": "Remove this phone?",
+  "syncRevokeBody": "That phone will stop sharing this shop and will stop selling once it next checks its subscription. It keeps the copy of the shop it already has — this does not erase anything on it.",
+  "syncRevokeConfirm": "Remove",
+  "syncRevokedMessage": "That phone was removed",
+  "syncErrorRevoked": "This phone was removed from the shop by the main phone",
+  "syncErrorOwnerOnly": "Only the main phone can do this"
 }

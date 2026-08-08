@@ -17,6 +17,7 @@ import 'package:billing_app/features/sync/domain/entities/bootstrap_handoff.dart
 import 'package:billing_app/features/sync/domain/entities/enrollment_outcome.dart';
 import 'package:billing_app/features/sync/domain/entities/join_invite.dart';
 import 'package:billing_app/features/sync/domain/entities/join_token.dart';
+import 'package:billing_app/features/sync/domain/entities/sync_device.dart';
 import 'package:billing_app/features/sync/domain/entities/sync_outcome.dart';
 import 'package:billing_app/features/sync/domain/entities/sync_seat_role.dart';
 import 'package:billing_app/features/sync/domain/entities/sync_session.dart';
@@ -49,6 +50,12 @@ class _FakeEnrollment implements SyncEnrollmentRepository {
   int leaveCalls = 0;
   String? lastJoinToken;
 
+  List<SyncDevice> devices = const [];
+  Failure? devicesFailure;
+  Failure? revokeFailure;
+  int listCalls = 0;
+  final List<String> revoked = [];
+
   EnrollmentOutcome _outcome(SyncSession s) => EnrollmentOutcome(
         session: s,
         bootstrap: const BootstrapHandoff(cursor: 0),
@@ -77,6 +84,23 @@ class _FakeEnrollment implements SyncEnrollmentRepository {
     final f = failure;
     if (f != null) return Left(f);
     return Right(token!);
+  }
+
+  @override
+  Future<Either<Failure, List<SyncDevice>>> listDevices() async {
+    listCalls++;
+    final f = devicesFailure;
+    if (f != null) return Left(f);
+    return Right(devices);
+  }
+
+  @override
+  Future<Either<Failure, Unit>> revokeDevice(String seatUuid) async {
+    revoked.add(seatUuid);
+    final f = revokeFailure;
+    if (f != null) return Left(f);
+    devices = devices.where((d) => d.uuid != seatUuid).toList();
+    return const Right(unit);
   }
 
   @override
@@ -162,6 +186,13 @@ class _StubCredentials implements SyncCredentialStore {
 
   @override
   Future<SyncSession?> load() async => session;
+
+  /// Real, not a `noSuchMethod` throw: the scheduler calls this when a pass
+  /// comes back `DEVICE_REVOKED`, and a throwing stub would be swallowed by the
+  /// scheduler's own catch — turning a revocation into a silent no-op the test
+  /// could never see.
+  @override
+  Future<void> clear() async => session = null;
 
   @override
   dynamic noSuchMethod(Invocation i) =>
@@ -456,6 +487,139 @@ void main() {
       await bloc.stream.firstWhere((s) => s.error != null);
 
       expect(bloc.state.error, SyncError.offline);
+      await bloc.close();
+    });
+  });
+
+  group('the device registry', () {
+    const owner = SyncDevice(uuid: 'seat', role: SyncSeatRole.owner);
+    const other = SyncDevice(uuid: 'seat-9', role: SyncSeatRole.member);
+
+    test('loads for the owner, and never for a linked phone', () async {
+      repository.session = _memberSession;
+      repository.devices = const [owner, other];
+      final bloc = build();
+      bloc.add(const LoadSyncStatus());
+      await bloc.stream.firstWhere((s) => s.loaded);
+      // Let a stray fetch land if one were dispatched.
+      await Future<void>.delayed(Duration.zero);
+
+      // The endpoint is owner-only; a member asking would be a guaranteed
+      // refusal, and the error would land on a screen the member can do nothing
+      // about.
+      expect(repository.listCalls, 0);
+      await bloc.close();
+    });
+
+    test('the seat renders before the network answers', () async {
+      repository.session = _ownerSession;
+      repository.devices = const [owner, other];
+      final bloc = build();
+      bloc.add(const LoadSyncStatus());
+
+      final first = await bloc.stream.firstWhere((s) => s.loaded);
+      // The registry needs the network; the rest of the screen does not. If the
+      // fetch were awaited inside the load, an offline owner would sit on a
+      // spinner until it timed out.
+      expect(first.isEnrolled, isTrue);
+      expect(first.devices, isEmpty);
+
+      await bloc.stream.firstWhere((s) => s.devices.isNotEmpty);
+      expect(bloc.state.devices.length, 2);
+      await bloc.close();
+    });
+
+    test('the current seat is flagged and is not revocable', () async {
+      repository.session = _ownerSession;
+      repository.devices = const [
+        SyncDevice(uuid: 'seat', role: SyncSeatRole.owner, isCurrent: true),
+        other,
+      ];
+      final bloc = build();
+      bloc.add(const LoadSyncStatus());
+      await bloc.stream.firstWhere((s) => s.devices.isNotEmpty);
+
+      // Two protections in one row: the owner seat is refused server-side
+      // (2026-07-29 R1), and a phone revoking itself is never what was meant.
+      expect(bloc.state.devices.first.isRevocable, isFalse);
+      expect(bloc.state.devices.last.isRevocable, isTrue);
+      await bloc.close();
+    });
+
+    test('a failed fetch does NOT become a snackbar over the screen', () async {
+      repository.session = _ownerSession;
+      repository.devicesFailure = const NetworkFailure('no route');
+      final bloc = build();
+      bloc.add(const LoadSyncStatus());
+      await bloc.stream.firstWhere((s) => s.devicesError != null);
+
+      // Nobody asked for this fetch. Routing it through `error` would throw a
+      // red snackbar at an owner who merely opened the page — and would also
+      // clear whatever the last real action had to say.
+      expect(bloc.state.devicesError, SyncError.offline);
+      expect(bloc.state.error, isNull);
+      expect(bloc.state.isEnrolled, isTrue, reason: 'the rest of the page works');
+      await bloc.close();
+    });
+
+    test('revoking drops the row immediately and re-reads the list', () async {
+      repository.session = _ownerSession;
+      repository.devices = const [owner, other];
+      final bloc = build();
+      bloc.add(const LoadSyncStatus());
+      await bloc.stream.firstWhere((s) => s.devices.isNotEmpty);
+      final listsBefore = repository.listCalls;
+
+      bloc.add(const RevokeDeviceRequested('seat-9'));
+      await bloc.stream
+          .firstWhere((s) => s.message == SyncMessage.deviceRevoked);
+
+      expect(repository.revoked, ['seat-9']);
+      // Dropped locally rather than waiting on the re-read: the owner just
+      // watched themselves remove it, and a row that lingers for a round trip
+      // reads as the button not working.
+      expect(bloc.state.devices.map((d) => d.uuid), ['seat']);
+      expect(bloc.state.revoking, isNull);
+
+      await bloc.stream.firstWhere((s) => !s.devicesLoading && s.loaded);
+      expect(repository.listCalls, greaterThan(listsBefore),
+          reason: 'the server is the authority on what a freed seat changed');
+      await bloc.close();
+    });
+
+    test('a refused revoke keeps the row and reports the reason', () async {
+      repository.session = _ownerSession;
+      repository.devices = const [owner, other];
+      repository.revokeFailure =
+          const SyncFailure(SyncError.ownerOnly, 'not the owner');
+      final bloc = build();
+      bloc.add(const LoadSyncStatus());
+      await bloc.stream.firstWhere((s) => s.devices.isNotEmpty);
+
+      bloc.add(const RevokeDeviceRequested('seat-9'));
+      await bloc.stream.firstWhere((s) => s.error != null);
+
+      // The optimistic removal must not survive a refusal — a phone that is
+      // still enrolled but missing from the list is one the owner cannot revoke
+      // again without reopening the screen.
+      expect(bloc.state.devices.map((d) => d.uuid), ['seat', 'seat-9']);
+      expect(bloc.state.error, SyncError.ownerOnly);
+      expect(bloc.state.revoking, isNull);
+      await bloc.close();
+    });
+
+    test('a revoked device drops its own seat when it next syncs', () async {
+      repository.session = _memberSession;
+      final bloc = build();
+      engine.result = const SyncOutcome(error: SyncError.deviceRevoked);
+      bloc.add(const SyncNowRequested());
+      await bloc.stream.firstWhere((s) => !s.isEnrolled && s.loaded);
+
+      // The scheduler has already dropped the dead credential. Leaving the
+      // screen on "Sync now" would have the shopkeeper tapping it to the same
+      // red message forever; the pitch is both true and the way back in.
+      expect(bloc.state.isEnrolled, isFalse);
+      expect(bloc.state.error, SyncError.deviceRevoked);
       await bloc.close();
     });
   });

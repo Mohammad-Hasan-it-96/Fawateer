@@ -1918,4 +1918,63 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get syncRestartConfirm => 'إغلاق التطبيق';
+
+  @override
+  String get syncDevicesTitle => 'الهواتف التي تستخدم هذا المحل';
+
+  @override
+  String get syncDevicesRetry => 'إعادة المحاولة';
+
+  @override
+  String get syncDevicesUnavailable => 'تعذّر عرض قائمة الهواتف الآن';
+
+  @override
+  String get syncDeviceThis => 'هذا الهاتف';
+
+  @override
+  String get syncDeviceOwnerNote => 'لا يمكن إزالته';
+
+  @override
+  String get syncDeviceSeenNever => 'لم يُستخدم بعد';
+
+  @override
+  String get syncDeviceSeenJustNow => 'نشط الآن';
+
+  @override
+  String syncDeviceSeenMinutes(int minutes) {
+    return 'آخر استخدام قبل $minutes دقيقة';
+  }
+
+  @override
+  String syncDeviceSeenHours(int hours) {
+    return 'آخر استخدام قبل $hours ساعة';
+  }
+
+  @override
+  String syncDeviceSeenDays(int days) {
+    return 'آخر استخدام قبل $days يوم';
+  }
+
+  @override
+  String get syncRevokeAction => 'إزالة';
+
+  @override
+  String get syncRevokeTitle => 'إزالة هذا الهاتف؟';
+
+  @override
+  String get syncRevokeBody =>
+      'سيتوقف ذلك الهاتف عن مشاركة هذا المحل، وسيتوقف عن البيع عند تحققه التالي من الاشتراك. وتبقى لديه نسخة المحل الموجودة عليه — هذا الإجراء لا يحذف شيئاً منه.';
+
+  @override
+  String get syncRevokeConfirm => 'إزالة';
+
+  @override
+  String get syncRevokedMessage => 'تمت إزالة ذلك الهاتف';
+
+  @override
+  String get syncErrorRevoked =>
+      'تمت إزالة هذا الهاتف من المحل بواسطة الهاتف الرئيسي';
+
+  @override
+  String get syncErrorOwnerOnly => 'الهاتف الرئيسي وحده يستطيع القيام بذلك';
 }
