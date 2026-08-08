@@ -247,8 +247,8 @@ Future<void> init() async {
   sl.registerLazySingleton<SyncApiClient>(() => SyncApiClient());
   sl.registerLazySingleton<SyncCredentialStore>(() => SyncCredentialStore());
   sl.registerLazySingleton<SyncEnrollmentRepository>(() =>
-      SyncEnrollmentRepositoryImpl(
-          sl<SyncApiClient>(), sl<SyncCredentialStore>(), sl<DeviceIdentityService>()));
+      SyncEnrollmentRepositoryImpl(sl<SyncApiClient>(), sl<SyncCredentialStore>(),
+          sl<DeviceIdentityService>(), sl<LicenseLocalStorage>()));
   // Factory, not a singleton: route-scoped, so a fresh one per visit (the
   // BackupBloc/LedgerBloc precedent).
   sl.registerFactory(() => SyncBloc(

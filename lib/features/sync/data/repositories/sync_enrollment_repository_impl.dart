@@ -3,6 +3,7 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/network/api_config.dart';
 import '../../../../core/network/sync_api_client.dart';
+import '../../../licensing/data/datasources/license_local_storage.dart';
 import '../../../licensing/data/services/device_identity_service.dart';
 import '../../domain/entities/bootstrap_handoff.dart';
 import '../../domain/entities/enrollment_outcome.dart';
@@ -26,15 +27,22 @@ class SyncEnrollmentRepositoryImpl implements SyncEnrollmentRepository {
   final SyncCredentialStore _store;
   final DeviceIdentityService _identity;
 
-  const SyncEnrollmentRepositoryImpl(this._api, this._store, this._identity);
+  /// Where the device's current FCM token already lives. Read from licensing
+  /// rather than asking Firebase again, for the same reason the device id is:
+  /// the licensing layer has already established this fact about the device, and
+  /// a second source could disagree with the one the server has on file.
+  final LicenseLocalStorage _push;
+
+  const SyncEnrollmentRepositoryImpl(
+      this._api, this._store, this._identity, this._push);
 
   @override
   Future<Either<Failure, EnrollmentOutcome>> establishAsOwner({String? pushToken}) {
-    return _enroll('sync/business', (deviceId) => {
+    return _enroll('sync/business', (deviceId, fcm) => {
           'app_name': ApiConfig.appName,
           'device_id': deviceId,
-          if (pushToken != null) 'push_token': pushToken,
-        });
+          if (fcm != null) 'fcm_token': fcm,
+        }, pushToken);
   }
 
   @override
@@ -42,20 +50,44 @@ class SyncEnrollmentRepositoryImpl implements SyncEnrollmentRepository {
     String joinToken, {
     String? pushToken,
   }) {
-    return _enroll('sync/enroll', (deviceId) => {
+    return _enroll('sync/enroll', (deviceId, fcm) => {
           'join_token': joinToken,
           'device_id': deviceId,
-          if (pushToken != null) 'push_token': pushToken,
-        });
+          if (fcm != null) 'fcm_token': fcm,
+        }, pushToken);
+  }
+
+  /// The token to enroll with: the caller's, else the one licensing cached.
+  ///
+  /// **Without this the doorbell can never ring.** The receive side has been
+  /// wired since Phase 1, but nothing ever handed the server a way to reach this
+  /// seat — every enrollment went up with the field absent, because the optional
+  /// parameter had no caller. The field name is `fcm_token`, matching the
+  /// contract's `{join_token, device_id, fcm_token, app_version}`.
+  ///
+  /// Null is not a failure: a device with Play Services missing, or one that
+  /// enrolled before its first token arrived, still enrolls and still syncs on
+  /// its own triggers. It just waits for the 5-minute timer instead of being
+  /// told. Licensing's `registerPushToken` writes the same device row on every
+  /// startup, so such a device becomes reachable on its own.
+  Future<String?> _fcmToken(String? explicit) async {
+    if (explicit != null && explicit.isNotEmpty) return explicit;
+    try {
+      final cached = await _push.loadPushToken();
+      return (cached == null || cached.isEmpty) ? null : cached;
+    } catch (_) {
+      return null;
+    }
   }
 
   Future<Either<Failure, EnrollmentOutcome>> _enroll(
     String endpoint,
-    Map<String, dynamic> Function(String deviceId) body,
+    Map<String, dynamic> Function(String deviceId, String? fcmToken) body,
+    String? pushToken,
   ) async {
     try {
       final deviceId = await _identity.getDeviceId();
-      final json = await _api.postJson(endpoint, body(deviceId));
+      final json = await _api.postJson(endpoint, body(deviceId, await _fcmToken(pushToken)));
       final outcome = _outcomeFromData(_data(json));
       await _store.save(outcome.session);
       return Right(outcome);

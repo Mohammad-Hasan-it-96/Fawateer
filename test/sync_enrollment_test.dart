@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:billing_app/core/error/failure.dart';
 import 'package:billing_app/core/network/sync_api_client.dart';
+import 'package:billing_app/features/licensing/data/datasources/license_local_storage.dart';
 import 'package:billing_app/features/licensing/data/services/device_identity_service.dart';
 import 'package:billing_app/features/sync/data/repositories/sync_enrollment_repository_impl.dart';
 import 'package:billing_app/features/sync/data/sync_credential_store.dart';
@@ -41,6 +42,7 @@ void main() {
       SyncApiClient(client: MockClient(handler), baseUrl: 'https://x/api/v1'),
       store,
       const _FakeIdentity(deviceId),
+      LicenseLocalStorage(),
     );
   }
 
@@ -73,7 +75,10 @@ void main() {
       final sent = jsonDecode(captured.body) as Map<String, dynamic>;
       expect(sent['app_name'], 'Fawateer');
       expect(sent['device_id'], deviceId);
-      expect(sent['push_token'], 'fcm-xyz');
+      // `fcm_token`, matching the contract's
+      // `{join_token, device_id, fcm_token, app_version}`. Without this field
+      // the server has no way to reach the seat and the doorbell can never ring.
+      expect(sent['fcm_token'], 'fcm-xyz');
 
       // It returned the owner outcome…
       final outcome = result.getOrElse((_) => throw StateError('expected Right'));
@@ -146,6 +151,80 @@ void main() {
           .swap()
           .getOrElse((_) => throw StateError('expected Left'));
       expect((failure as SyncFailure).error, SyncError.allowanceExceeded);
+    });
+  });
+
+  group('the doorbell needs a token to ring', () {
+    test('enrollment falls back to the token licensing already cached',
+        () async {
+      // Nothing passes `pushToken` — the BLoC does not know about FCM and
+      // should not. Before this fallback the optional parameter had no caller
+      // at all, so every enrollment went up with the field absent and the
+      // server had no way to reach the seat: the receive side was wired and
+      // unreachable.
+      SharedPreferences.setMockInitialValues({'lic_push_token': 'cached-fcm'});
+
+      late http.Request captured;
+      final repo = repoWith((request) async {
+        captured = request;
+        return json({
+          'data': {
+            'sync_token': 't',
+            'seat': {'uuid': 's', 'role': 'member'},
+            'business_uuid': 'b',
+            'bootstrap': {'cursor': 0},
+          }
+        }, 201);
+      });
+
+      await repo.joinBusiness('evojoin_code');
+
+      expect((jsonDecode(captured.body) as Map)['fcm_token'], 'cached-fcm');
+    });
+
+    test('an explicit token wins over the cache', () async {
+      SharedPreferences.setMockInitialValues({'lic_push_token': 'stale'});
+
+      late http.Request captured;
+      final repo = repoWith((request) async {
+        captured = request;
+        return json({
+          'data': {
+            'sync_token': 't',
+            'seat': {'uuid': 's', 'role': 'owner'},
+            'business_uuid': 'b',
+            'bootstrap': {'cursor': 0},
+          }
+        }, 201);
+      });
+
+      await repo.establishAsOwner(pushToken: 'fresh');
+
+      expect((jsonDecode(captured.body) as Map)['fcm_token'], 'fresh');
+    });
+
+    test('no token anywhere still enrolls, without the field', () async {
+      // A device with no Play Services, or one enrolling before its first token
+      // arrives. It syncs on its own triggers and simply waits for the timer
+      // instead of being told — refusing to enroll over a notification channel
+      // would be absurd.
+      late http.Request captured;
+      final repo = repoWith((request) async {
+        captured = request;
+        return json({
+          'data': {
+            'sync_token': 't',
+            'seat': {'uuid': 's', 'role': 'owner'},
+            'business_uuid': 'b',
+            'bootstrap': {'cursor': 0},
+          }
+        }, 201);
+      });
+
+      final result = await repo.establishAsOwner();
+
+      expect(result.isRight(), isTrue);
+      expect((jsonDecode(captured.body) as Map).containsKey('fcm_token'), isFalse);
     });
   });
 

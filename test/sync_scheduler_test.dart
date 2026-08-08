@@ -5,6 +5,8 @@
 // coalesce into one pass, does a doorbell work, and can a trigger firing inside
 // a Timer callback ever throw. Convergence itself is proved on a device by
 // `integration_test/sync_engine_test.dart`.
+import 'dart:async';
+
 import 'package:billing_app/core/database/daos/sync_dao.dart';
 import 'package:billing_app/features/sync/data/sync_credential_store.dart';
 import 'package:billing_app/features/sync/data/sync_engine.dart';
@@ -32,12 +34,26 @@ class _CountingEngine implements SyncEngine {
   SyncOutcome result = const SyncOutcome(pushed: 1);
   Object? throws;
 
+  /// Held open by a test that wants a pass still running when something else
+  /// fires — which is the whole situation the doorbell has to survive.
+  Completer<void>? gate;
+
+  @override
+  bool isSyncing = false;
+
   @override
   Future<SyncOutcome> sync() async {
     passes++;
-    final t = throws;
-    if (t != null) throw t;
-    return result;
+    isSyncing = true;
+    try {
+      final held = gate;
+      if (held != null) await held.future;
+      final t = throws;
+      if (t != null) throw t;
+      return result;
+    } finally {
+      isSyncing = false;
+    }
   }
 
   @override
@@ -115,6 +131,54 @@ void main() {
     await Future<void>.delayed(const Duration(milliseconds: 20));
 
     expect(engine.passes, 2, reason: 'launch + doorbell');
+    scheduler.dispose();
+  });
+
+  test('a doorbell during a pass gets its own pass afterwards', () async {
+    final scheduler = build(session: _session);
+    final gate = Completer<void>();
+    engine.gate = gate;
+
+    final launch = scheduler.start(); // pass 1, held open
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+    expect(engine.passes, 1);
+
+    scheduler.onRemoteChange(); // rings mid-pass
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+    // It must NOT have joined: pass 1 has already read its cursor and cannot
+    // see the change being announced, so joining it would make the ring a
+    // no-op and leave the other till's sale waiting out the 5-minute timer —
+    // exactly the delay the doorbell exists to remove.
+    expect(engine.passes, 1, reason: 'not started, and not joined either');
+
+    engine.gate = null;
+    gate.complete();
+    await launch;
+
+    expect(engine.passes, 2, reason: 'the deferred doorbell pass ran');
+    scheduler.dispose();
+  });
+
+  test('a burst of doorbells during one pass costs one follow-up', () async {
+    final scheduler = build(session: _session);
+    final gate = Completer<void>();
+    engine.gate = gate;
+
+    final launch = scheduler.start();
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+    for (var i = 0; i < 5; i++) {
+      scheduler.onRemoteChange();
+    }
+    await Future<void>.delayed(const Duration(milliseconds: 5));
+
+    engine.gate = null;
+    gate.complete();
+    await launch;
+
+    // Bounded on purpose. A busy shop rings this on every sale the other till
+    // makes; one follow-up catches all of them, and chaining a pass per ring
+    // would put a phone on a shop's mobile data in a loop.
+    expect(engine.passes, 2);
     scheduler.dispose();
   });
 

@@ -25,6 +25,35 @@ const Set<String> _kSyncMessageTypes = {
   'sync_device_revoked',
 };
 
+/// What a push message means to this app.
+enum PushMessageKind {
+  /// Re-check the subscription (and, in the foreground, say so).
+  license,
+
+  /// Run a sync pass. Silent.
+  sync,
+
+  /// Anything else — including a plain notification with no `type` at all,
+  /// which the OS has already displayed and which needs no action from us.
+  ignored,
+}
+
+/// Route one message's data payload. Pure, and separate from the service so it
+/// can be tested without a Firebase project.
+///
+/// **Sync is matched before licence, and that order is load-bearing.** The two
+/// vocabularies are disjoint today, but the licence branch ends in a
+/// subscription re-check and a "subscription activated" banner — so if a sync
+/// type ever fell through to it, every sale the other till made would pop that
+/// banner on this one. Checking the narrower, higher-frequency case first makes
+/// that impossible rather than merely unlikely.
+PushMessageKind classifyPushMessage(Map<String, dynamic> data) {
+  final type = (data['type'] ?? '').toString().trim();
+  if (_kSyncMessageTypes.contains(type)) return PushMessageKind.sync;
+  if (_kLicenseMessageTypes.contains(type)) return PushMessageKind.license;
+  return PushMessageKind.ignored;
+}
+
 /// Background isolate handler. Must be a top-level / static function annotated
 /// with `@pragma('vm:entry-point')`. Fawateer does no background work — the
 /// unlock re-check happens when the app next comes to the foreground (or when
@@ -191,19 +220,14 @@ class PushNotificationService {
   }
 
   void _handleMessage(RemoteMessage message, {required bool foreground}) {
-    final type = (message.data['type'] ?? '').toString().trim();
-
-    // Checked before the licence types so a sync doorbell can never be mistaken
-    // for a licence event and fire a subscription re-check (and, in the
-    // foreground, a "subscription activated" banner) on every sale the other
-    // till makes.
-    if (_kSyncMessageTypes.contains(type)) {
-      _onSyncChanged?.call();
-      return;
+    switch (classifyPushMessage(message.data)) {
+      case PushMessageKind.sync:
+        _onSyncChanged?.call();
+      case PushMessageKind.license:
+        _onLicenseChanged?.call();
+        if (foreground) _onForegroundLicenseChange?.call();
+      case PushMessageKind.ignored:
+        break;
     }
-
-    if (!_kLicenseMessageTypes.contains(type)) return;
-    _onLicenseChanged?.call();
-    if (foreground) _onForegroundLicenseChange?.call();
   }
 }

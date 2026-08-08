@@ -137,12 +137,64 @@ The optional `notification` block shows a system tray banner (needs
 `POST_NOTIFICATIONS`, already in the manifest). The `data.type` is what the app
 keys off — a message without a recognized `type` is ignored.
 
+## The sync doorbell  ⬅️ STILL OWED SERVER-SIDE
+
+Same channel, same `fcm_token`, two more types — both **data-only, with no
+`notification` block**:
+
+- `sync_changes_available` — another device pushed something. Ring after a
+  successful `POST /sync/push` to every *other* live seat in the business.
+- `sync_device_revoked` — this seat was revoked. Ring the revoked device after
+  `DELETE /sync/devices/{uuid}`.
+
+```json
+{
+  "message": {
+    "token": "<seat fcm_token>",
+    "data": { "type": "sync_changes_available" },
+    "android": { "priority": "high" }
+  }
+}
+```
+
+**No `notification` block, ever, on these two.** `send()` currently always emits
+one (see the warning above); until the data-only variant exists, a doorbell pops
+a tray banner at the shopkeeper on every sale the other till makes. That is the
+one remaining server-side blocker for this feature.
+
+**The doorbell carries no data, deliberately** — only "come and look". A change
+delivered inside a notification would arrive out of order relative to the pull
+cursor, could be dropped by battery policy, and would have to merge from a
+background isolate with no database open.
+
+`sync_device_revoked` needs no special client handling: the ring provokes an
+ordinary pass, the pass comes back `DEVICE_REVOKED`, and that is what drops the
+dead seat. The device that was offline when the ring went out finds out the same
+way on its next trigger, so there is only one path to test.
+
+**Where the token comes from.** `POST /sync/business` and `POST /sync/enroll`
+both send `fcm_token` (falling back to the one licensing cached, so the field is
+present even though no caller passes it explicitly). Rotation is covered by
+licensing's `registerPushToken` → `update_my_data`, which writes the same
+`device_subscriptions` row the seat lives on — so there is no second token to
+keep fresh. A device with no token still enrolls and still syncs; it just waits
+for the 5-minute timer instead of being told.
+
+**Dead-token pruning stops being optional here.** Licensing sends a few messages
+a day; a doorbell fires on every change, so an `UNREGISTERED` response that is
+only logged becomes a per-sale error.
+
 ## How it's wired (code map)
 
 - `lib/features/licensing/data/services/push_notification_service.dart` — inits
   Firebase, requests permission, syncs the token, and on a license-typed message
   invokes the `onLicenseChanged` callback. Self-disables if Firebase is absent.
 - `lib/main.dart` — starts the service after `runApp`, wiring `onLicenseChanged`
-  to `LicenseBloc.add(CheckLicenseEvent())` (the shared singleton the gate reads).
+  to `LicenseBloc.add(CheckLicenseEvent())` (the shared singleton the gate reads)
+  and `onSyncChanged` to `SyncScheduler.onRemoteChange()`.
 - `LicenseRepository.registerPushToken` → `update_my_data`; `activate()` also
   attaches the cached token to `create_device`.
+- `classifyPushMessage` (same file) is the pure routing decision — sync matched
+  **before** licence, so a doorbell can never fire a subscription re-check and
+  its "activated" banner. Pinned by `test/push_routing_test.dart`.
+- `SyncEnrollmentRepositoryImpl._fcmToken` — what puts the token on the seat.

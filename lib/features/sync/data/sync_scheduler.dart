@@ -58,6 +58,17 @@ class SyncScheduler with WidgetsBindingObserver {
   StreamSubscription<void>? _changes;
   bool _started = false;
 
+  /// A doorbell rang while a pass was already running.
+  ///
+  /// `SyncEngine.sync()` *joins* an in-flight pass rather than starting a second
+  /// one, which is right for every other trigger and wrong for this one: a pass
+  /// that has already read its cursor cannot see the change the doorbell is
+  /// announcing, so joining it means the ring accomplished nothing and the other
+  /// till's sale waits out the 5-minute timer — the exact delay the doorbell
+  /// exists to remove. Bounded to a single follow-up: a ring during the
+  /// follow-up is dropped, so a busy shop cannot chain passes indefinitely.
+  bool _doorbellPending = false;
+
   /// The last pass's result, for a status UI. A [ValueListenable] rather than a
   /// BLoC because there is no state machine here — every consumer wants the
   /// same single latest value.
@@ -114,25 +125,41 @@ class SyncScheduler with WidgetsBindingObserver {
 
   Future<SyncOutcome?> _trigger(SyncTrigger trigger) async {
     if (!_started && trigger != SyncTrigger.manual) return null;
-    // The gate that keeps this free for single-device shops.
-    final session = await _credentials.load();
-    if (session == null) return null;
 
-    isSyncing.value = true;
+    // Everything is inside the try, including the credential read. A trigger
+    // must never throw into a Timer callback or a lifecycle handler — an
+    // unhandled error there takes down the zone, and this is a background
+    // nicety, not something worth crashing a till over. Most triggers are
+    // fire-and-forget, so there is nobody to catch it either.
     try {
+      // The gate that keeps this free for single-device shops.
+      final session = await _credentials.load();
+      if (session == null) return null;
+
+      // Deferred rather than joined — see [_doorbellPending]. Checked after the
+      // seat gate so an unenrolled device never arms a follow-up.
+      if (trigger == SyncTrigger.doorbell && _engine.isSyncing) {
+        _doorbellPending = true;
+        return null;
+      }
+
+      isSyncing.value = true;
       // `SyncEngine.sync()` joins an in-flight pass rather than starting a
       // second, so overlapping triggers (resume landing on a timer tick) cost
       // nothing.
-      final outcome = await _engine.sync();
+      var outcome = await _engine.sync();
+      if (_doorbellPending) {
+        // Cleared *before* the follow-up, so a ring arriving during it is
+        // dropped rather than arming a third pass.
+        _doorbellPending = false;
+        outcome = await _engine.sync();
+      }
       lastOutcome.value = outcome;
       if (outcome.error == SyncError.deviceRevoked) await _onRevoked();
       return outcome;
     } catch (_) {
-      // A trigger must never throw into a Timer callback or a lifecycle
-      // handler — an unhandled error there takes down the zone, and this is a
-      // background nicety, not something worth crashing a till over. The engine
-      // already converts failures into a SyncOutcome; this catches only what
-      // escapes it.
+      // The engine already converts failures into a SyncOutcome; this catches
+      // only what escapes it.
       return null;
     } finally {
       isSyncing.value = false;
