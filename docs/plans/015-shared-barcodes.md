@@ -1,9 +1,15 @@
 # Plan 015 — Shared Barcodes and Flavour Variants
 
-> **Status:** 🔬 **STUDY — no decision yet.** Source: `docs/v1-fixes-2.txt` #11.
-> The owner's own note: *"this last problem needs study of the best options and
-> suggestions before any decision."* This document is that study. It ends with a
-> recommendation, not an implementation.
+> **Status:** ✅ **DECIDED (owner, this round).** Source: `docs/v1-fixes-2.txt` #11.
+> The study below stands as the record of *why*; the two answers that settled it:
+>
+> | Question | Owner's answer | Consequence |
+> |---|---|---|
+> | Cigarettes — one pile on the shelf or two? | **Two piles** | separate stock ⇒ **Option A1**, two products sharing a barcode. A2 is dead: it shares one stock count. |
+> | Juice — report per flavour or one line? | **One line per flavour** | **Option B2**. Keep separate products, make creating and re-pricing them cheap. **No new table.** |
+>
+> **So the two cases are solved by two different mechanisms, as expected — and
+> only Case A needs a migration.**
 
 ---
 
@@ -171,12 +177,107 @@ want to see "juice: 40" or "orange 12, apple 15, mango 13"?*
 
 ---
 
-## Open questions for the owner
+---
 
-1. Cigarettes: when you count them on the shelf, **one pile or two?**
-2. Cigarettes: is it always exactly **two** prices, or could it be three?
-3. Juice: in the sales report, do you want **one line for juice**, or **one line
-   per flavour**?
-4. Juice: how often does the price of all the flavours change together?
-5. If the app asks "which one?" on every scan of a shared barcode — is one extra
-   tap acceptable at a busy counter?
+# Build plan (after the owner's answers)
+
+## Case A — two products, one barcode (A1)
+
+**Two piles on the shelf means two stock counts, so it must be two product
+rows.** That is the answer the data model has to reflect.
+
+### A1.1 — The index
+
+```sql
+DROP INDEX idx_products_barcode;
+CREATE INDEX idx_products_barcode ON products (barcode) WHERE barcode != '';
+```
+
+Still an index (lookup stays fast), no longer `UNIQUE`.
+
+**The guard does not disappear — it moves.** The unique index was the only thing
+catching the common "I added this product twice" mistake, and dropping it without
+a replacement would trade a rare problem for a frequent one. After this:
+
+- the **add/edit product form still refuses** a barcode that already exists…
+- …**unless** the user arrived through the explicit **"add another price for this
+  product"** action on an existing product's page.
+
+That action is the whole safety story. A duplicate barcode becomes something the
+owner *chose*, never something they *typed by accident*.
+
+### A1.2 — The migration
+
+Additive to the schema, but it **rewrites an index**, so:
+
+- ⚠️ **`_createIndexes()` runs on `onCreate` too** — the `CREATE UNIQUE` line
+  there must change as well, or a fresh install and an upgraded install end up
+  with different schemas.
+- ⚠️ **Leave the de-dup `UPDATE` in place.** It blanks duplicate barcodes on old
+  databases before the index is built. It is harmless once the index is
+  non-unique, and removing it would break upgrades from v1–v3.
+- ⚠️ **The sync branch rewrites this exact index** in its v16→v17 step (narrowed
+  to `deleted_at = ''`). Whoever merges second must redo the change there. **Agree
+  the merge order before writing either migration.**
+
+### A1.3 — The POS chooser
+
+`ProductsDao.getByBarcode` returns one row today. It becomes "get all matches":
+
+- **1 match** → behave exactly as now. No popup, no extra tap. This is 99% of scans
+  and must not get slower.
+- **2+ matches** → a compact bottom sheet: product name + price, big tap targets.
+  The transient `BillingState` pattern (`measuredPrompt`, `outOfStockScan`) is the
+  precedent — **the BLoC never opens UI**, it publishes a prompt and the page
+  reacts.
+- Show **price and on-hand** in each row. "Which cigarette?" is answered by the
+  price, and the count tells the cashier which pile is empty.
+
+### A1.4 — Watch out
+
+- **`getBySerial` fallback** (Plan 012) runs after a barcode miss. Order stays:
+  barcode matches → chooser or direct add → else serial → else not found.
+- **Label printing** (`LabelImage`) prints the barcode. Two products printing the
+  same code is now legal and correct — no change needed, but do not "fix" it.
+- **Reports** already group by product id, so the two rows stay separate
+  naturally. Nothing to do.
+
+## Case B — one line per flavour (B2)
+
+**No schema change at all.** Two UI additions, and the second one matters more
+than it looks.
+
+### B2.1 — "Duplicate this product"
+
+An action on the product list / detail: copy name, price, cost, currency, sale
+type, attributes, `minStockAlert`; ask only for the **new name** and **new
+barcode**; start `quantity` at 0.
+
+Ten flavours become ten quick confirmations instead of ten full forms.
+
+### B2.2 — Bulk price edit (the real fix)
+
+The owner accepted per-flavour rows knowing the cost: **changing the price means
+changing ten products.** That cost has to be paid down, or B2 becomes a daily
+annoyance.
+
+Add **multi-select on the product list** → *set price* / *set cost* for all
+selected, with a preview of how many rows will change.
+
+> 🔗 **This is the same multi-select mechanism Plan 014 needs for bulk category
+> assign.** Build it once, use it for both. Doing it twice would be the mistake.
+
+### B2.3 — Watch out
+
+- Multi-select must not fight the existing search/filter. Selecting *while
+  filtered* then clearing the filter should keep the selection — or explicitly
+  drop it and say so.
+- A bulk price change on the sync branch stamps every touched row with a new HLC
+  and pushes them all. Correct, but it means "change 200 prices" is a 200-row
+  push. Fine at this scale; worth knowing.
+
+## Order of work
+
+1. **B2.1 duplicate product** — no schema, immediate relief, zero risk.
+2. **B2.2 multi-select + bulk price** — shared with Plan 014.
+3. **A1** — after the branch-merge order is agreed, because of the index.

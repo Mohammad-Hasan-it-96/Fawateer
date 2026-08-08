@@ -1,6 +1,17 @@
 # Plan 014 — Product Categories
 
-> **Status:** 🔬 **STUDY + PROPOSAL.** Source: `docs/v1-fixes-2.txt` #9 —
+> **Status:** ✅ **DECIDED (owner, this round) — Option 2.**
+>
+> | Question | Owner's answer | Consequence |
+> |---|---|---|
+> | Does a product need **two** categories at once? | **No — one category** | Option 4 (multi-select attribute) is not needed. A plain `select` field is enough. |
+> | Renaming a category | **Products must follow the rename** | The sharp edge below is **in scope**, not a warning. It has to be built. |
+>
+> One category per product means the existing attribute engine already holds the
+> data correctly. The work is the **tab UI**, **bulk assign**, and **rename
+> propagation** — see the build plan at the end.
+
+> **Original study.** Source: `docs/v1-fixes-2.txt` #9 —
 > *"study the possibility of adding categories on the products page … two tabs at
 > the top (all / by category) … and an easy way to add an existing product to
 > certain categories."*
@@ -116,20 +127,79 @@ to merge and every new table means new sync plumbing.
   still find the other 260.
 - **Do not put the category on the receipt** unless asked — `showOnReceipt` is
   already a per-field flag, so this is just a matter of leaving it off by default.
-- **Renaming a category.** Values are stored as strings in each product's JSON
-  bag. Renaming the option in the definition does **not** rewrite the products —
-  they would silently fall out of the category. Either block renaming, or write a
-  migration pass over the products. **This is the sharpest edge in Option 1/2 and
-  must be handled before shipping.**
 - **Arabic sorting.** Category chips should be in the owner's chosen order, not
   alphabetical — Arabic alphabetical order will not match how they think about
   their shelves.
 
-## Open questions for the owner
+---
 
-1. Does one product ever need to be in **two** categories at once? (This single
-   answer decides Option 2 vs Option 4.)
-2. Roughly how many categories — 5, 20, 100?
-3. Do you want to see **sales by category** in reports later? (If yes, that
-   pushes towards a real table sooner.)
-4. Should the category appear on the printed receipt?
+# Build plan (after the owner's answers)
+
+## Step 1 — a seeded "القسم" field + the two tabs
+
+Ship a ready-made `select` definition so the feature is not invisible on a fresh
+install (`data/business_templates.dart` is where the curated seeds live). Then the
+products page gets **الكل / حسب التصنيف**, the second tab showing the field's
+options as chips.
+
+Uncategorised products get an **"أخرى"** chip. A shop with 300 products will
+categorise 40 and must still be able to find the other 260.
+
+## Step 2 — bulk assign (multi-select)
+
+Select many products → set their category in one go. This is the part that saves
+the owner an afternoon, and doing it product-by-product through the edit form is
+what makes people give up on categories.
+
+> 🔗 **The same multi-select is needed by Plan 015 for bulk price editing** (the
+> owner chose one product per juice flavour, so a price change touches ten rows).
+> **Build the selection mechanism once and give it two actions**: *set category*
+> and *set price/cost*.
+
+## Step 3 — rename propagation ⬅️ **required, not optional**
+
+The owner asked for this explicitly, so it is a feature now.
+
+**The problem.** A category value lives as a **string inside each product's JSON
+bag** (`products.attributes`). Renaming the option in the definition changes only
+the definition. Every product still holds the old string, so they silently leave
+the category — the products are not lost, but they vanish from the tab, which
+looks exactly like data loss.
+
+**The fix.** Renaming an option becomes one transaction:
+
+1. update the option in the `attribute_definitions` row, **and**
+2. rewrite every product whose bag holds the old value.
+
+SQLite has JSON1 bundled (the report group-by already relies on it), so the
+rewrite can be a single statement using `json_set` / `json_extract` with the JSON
+path as a **bound parameter** — the rule `DashboardDao.salesByAttribute` already
+follows. Do it in a transaction with the definition update: a half-done rename is
+worse than no rename.
+
+**Watch out:**
+
+- **It is a bulk write.** On the sync branch every touched product gets a new HLC
+  stamp and is pushed. Renaming a category on a 300-product shop is a 300-row
+  push. Correct, but the owner should not be surprised by the delay.
+- **Deleting an option** is the same problem wearing a different hat. Decide:
+  block it while products still use it, or move those products to "أخرى". **Do
+  not silently orphan them** — that is the failure this step exists to prevent.
+- **Merging two categories** (rename "مشروبات" to an existing "عصائر") must work,
+  not create a duplicate option.
+- This applies to **every `select` field**, not just the category one. Build it in
+  the attribute layer and all custom choice-lists get it for free.
+
+## Not doing
+
+- No `categories` table, no join table. One category per product means the
+  attribute bag is the right home, and a new table would mean new sync plumbing.
+- No `AttributeType.multiSelect`. Not needed by the answer.
+- Category **not** on the receipt (`showOnReceipt` stays off by default).
+
+## Still open (small)
+
+- Roughly how many categories — 5, 20, 100? Only affects whether the chips row
+  needs to scroll or wrap.
+- **Sales by category** in reports? It already works: the Reports "sales by field"
+  section groups by any custom field, so choosing القسم gives it with no new code.

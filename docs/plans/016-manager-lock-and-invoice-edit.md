@@ -151,19 +151,92 @@ anything.
 
 ---
 
-## Suggested order
+---
 
-1. **A** — delete button + honest confirmation (verify the ledger reversal first).
-2. **B** — PIN guard behind `ManagerGuard`, applied to delete.
-3. Ask the owner *why* they want edit; if it is the customer/payment case, scope
-   a narrow action for it.
-4. **C2** only if the answer justifies it. **C3 never.**
+# Decision (after the owner's answer)
 
-## Open questions for the owner
+> **Asked:** when you want to edit an order, what is usually wrong?
+> **Answered:** **the quantity**, or **the customer / cash-vs-credit**.
 
-1. When you want to "edit an order", what is usually wrong — the price, the
-   quantity, or the customer / cash-vs-credit?
-2. Is it acceptable that fixing a mistake **deletes** the old invoice and makes a
-   new one with a new number?
-3. Besides deleting an order, what else should the password protect?
-4. If someone forgets the password, what should happen?
+Those two are not the same size, and the split is the whole decision.
+
+## C-a — customer / cash-vs-credit → **build it, as a narrow action** ✅
+
+This one is genuinely painful to fix by re-entering (the cashier must retype
+every line), and — importantly — **it does not touch a single snapshot column**.
+
+What actually changes:
+
+| | Cash → Credit | Credit → Cash |
+|---|---|---|
+| `sales_items` | untouched | untouched |
+| `totalAmount`, discounts | untouched | untouched |
+| Reprint | **identical** | **identical** |
+| Stock / units | untouched | untouched |
+| Cashbox | reverse the `cashSale` inflow | post a `cashSale` inflow |
+| Ledger | post a `charge` for the customer | reverse the `charge` |
+
+So the money *record* is corrected while the *sale* stays exactly what it was.
+No history is rewritten, no receipt changes, and the invoice number survives —
+which is what the customer is holding.
+
+**Build it as one transaction** in `SalesDao` / `InvoiceRepository`, reusing the
+pieces that already exist (`CashboxDao.deleteByRelatedId`, the ledger `charge`
+companion the sale path already builds). Changing the *customer* on an existing
+credit sale is the same shape: reverse one charge, post another.
+
+⚠️ **Under multi-device this is an invoice-row edit**, so it is last-write-wins
+like any other row. Two devices changing payment type on the same invoice is
+vanishingly rare and LWW is an acceptable answer — but the linked cashbox/ledger
+rows are *separate* rows, so a badly-timed merge could leave both. Worth a note in
+the sync tables registry when the branches meet.
+
+## C-b — wrong quantity → **delete and re-enter** ❌ (do not edit)
+
+Changing a quantity is a different animal, because it changes the **total**, and
+the total is the root of everything downstream:
+
+- the cashbox inflow amount, or the customer's debt,
+- the stock deducted (and the stock-movement row on the sync branch),
+- profit in every report,
+- **the printed receipt no longer matches the paper the customer holds.**
+
+All the reversal code for a full delete already exists and is tested. A partial
+edit path would be new, and it would be the one path that can silently
+de-synchronise the books.
+
+**In practice this is fine:** a wrong quantity is almost always caught within
+seconds, at the counter, before the queue moves. Deleting and re-ringing is
+seconds too.
+
+**If it turns out to be a daily cost**, the honest feature is **not** editing —
+it is a **partial return**: a new, separate event that returns N units, gives
+money back, and restores stock. That keeps history true (the sale happened, then
+part came back) and `StockMovementReason.saleReturn` is already reserved for it
+on the sync branch. Revisit only with real evidence.
+
+## Final shape
+
+| Ask | Answer |
+|---|---|
+| Delete an invoice | ✅ build (UI only — the reversal exists) |
+| Change customer / cash↔credit | ✅ build (narrow, safe, no snapshot touched) |
+| Change quantity or price | ❌ delete + re-enter |
+| Free-form line editing | ❌ never |
+
+## Order of work
+
+1. **A** — delete button + honest confirmation. **First verify the ledger
+   reversal**: the cashbox reversal is documented, the `charge` reversal for a
+   credit sale must be confirmed before this button ships, or deleting a credit
+   invoice leaves the customer owing money for a sale that no longer exists.
+2. **C-a** — change payment type / customer.
+3. **B** — the PIN guard, applied to both. See the PIN-reset note below.
+
+## PIN reset — see Plan 017
+
+The owner raised **email accounts** as the way to reset a forgotten PIN. That is a
+much larger question than a PIN (it changes how the whole app identifies a shop),
+so it is its own study: **[017 — Accounts and PIN Reset](017-accounts-and-pin-reset.md)**.
+The short version: **do not build accounts for this**; use the operator channel
+that activation already uses.

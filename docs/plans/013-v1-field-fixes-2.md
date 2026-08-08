@@ -7,14 +7,27 @@
 > **But three items are not papercuts** and each has its own plan, because each
 > one changes a rule the rest of the app is built on:
 >
-> | Item | Why it needs its own plan | Plan |
-> |---|---|---|
-> | #3 delete/edit an order, manager-gated | Invoices are **immutable** today, and half the app depends on that | [016](016-manager-lock-and-invoice-edit.md) |
-> | #9 product categories | New data shape; may or may not need a table | [014](014-product-categories.md) |
-> | #11 shared barcodes / flavour variants | Removes a **UNIQUE index** the schema relies on | [015](015-shared-barcodes.md) |
+> | Item | Why it needs its own plan | Plan | Status |
+> |---|---|---|---|
+> | #3 delete/edit an order, manager-gated | Invoices are **immutable** today, and half the app depends on that | [016](016-manager-lock-and-invoice-edit.md) | ✅ decided |
+> | #9 product categories | New data shape; may or may not need a table | [014](014-product-categories.md) | ✅ decided |
+> | #11 shared barcodes / flavour variants | Removes a **UNIQUE index** the schema relies on | [015](015-shared-barcodes.md) | ✅ decided |
+> | — PIN reset / email accounts | Raised while reviewing #3; changes how a shop is identified | [017](017-accounts-and-pin-reset.md) | 🔬 study |
 >
-> The owner's own note on #11 — *"this last problem needs study of the best
-> options and suggestions before any decision"* — applies to all three.
+> **Owner's answers (this round), which settled all three:**
+> 1. Cigarettes are **two piles** on the shelf → two products sharing a barcode.
+> 2. Reports should show **one line per flavour** → separate products, made cheap
+>    to create and re-price.
+> 3. "Edit order" means **wrong quantity**, or **wrong customer / cash-vs-credit**
+>    → build the second as a narrow action; delete-and-re-enter for the first.
+> 4. **One category** per product, but **renaming a category must move the
+>    products with it**.
+> 5. PIN reset → studied in 017; **accounts are not the answer**.
+>
+> **One shared building block came out of it:** #9 needs multi-select on the
+> product list for *bulk category assign*, and #11 needs the same thing for *bulk
+> price edit* (ten juice flavours, one price change). **Build the selection once,
+> give it two actions.**
 
 ---
 
@@ -24,19 +37,27 @@
 |---|---|---|---|---|
 | 1 | Reports: "show all low stock" + status filters | S | no | `lowStockProducts` is already capped at 5 |
 | 2 | Search box on the Customers page | S | no | page has no search at all today |
-| 3 | Delete / edit an order, manager-gated | **L** | maybe | → Plan 016 |
+| 3 | Delete order + change payment/customer, PIN-gated | **M** | no | → Plan 016 (quantity edit **rejected**) |
 | 4 | "Edit product" straight from the POS scan | S | no | |
 | 5 | Delete button instead of `−`, and clear-cart | S | no | |
 | 6 | **Bug:** QR wins over barcode on the same item | **S — but a real bug** | no | confirmed in code, see below |
 | 7 | Smaller camera window in POS | S | no | pure layout |
 | 8 | Share a customer statement as an image | S | no | infrastructure already exists |
-| 9 | Product categories | **M/L** | likely | → Plan 014 |
+| 9 | Product categories | **M** | **no** | → Plan 014 (attribute field + tabs + bulk + rename) |
 | 10 | Low-stock notifications | M | no | **cannot fire while the app is closed** — see below |
-| 11 | Two prices/one barcode; many barcodes/one price | **L** | **yes** | → Plan 015 |
+| 11 | Two prices/one barcode; many barcodes/one price | **M/L** | **yes (index only)** | → Plan 015 |
 
-Suggested order: **#6 first** (it is a bug, and it makes the shop distrust every
-scan), then the small UX batch (1, 2, 4, 5, 7, 8), then 10, then the three
-design items.
+**Suggested order**
+
+1. **#6** — it is a bug, and a wrong scan makes the shop distrust everything else.
+2. **Small UX batch** — #2, #5, #7, #8, #1, #4. No schema, no decisions left.
+3. **Multi-select on the product list** — the shared building block for #9 and #11.
+4. **#9 categories** (seeded field → tabs → bulk assign → rename propagation).
+5. **#11 Case B** (duplicate product + bulk price) — no schema.
+6. **#3** delete invoice → change payment/customer → PIN guard.
+7. **#10** notifications, once the "app must be open" limit is agreed.
+8. **#11 Case A** (drop the UNIQUE barcode index) — **last**, and only after the
+   branch-merge order with `feat/multi-device-sync` is agreed.
 
 ---
 
