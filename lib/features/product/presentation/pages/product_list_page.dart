@@ -681,7 +681,7 @@ class _ProductListPageState extends State<ProductListPage> {
                         left: 16, right: 16, top: 8, bottom: 100),
                     itemCount: filteredProducts.length,
                     separatorBuilder: (context, index) =>
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 8),
                     itemBuilder: (context, index) {
                       final product = filteredProducts[index];
                       final selected = _selectedIds.contains(product.id);
@@ -712,7 +712,7 @@ class _ProductListPageState extends State<ProductListPage> {
                                   offset: const Offset(0, 2))
                             ],
                           ),
-                          padding: const EdgeInsets.all(16),
+                          padding: const EdgeInsets.all(12),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -804,83 +804,31 @@ class _ProductListPageState extends State<ProductListPage> {
                                     // Only for serialized SKUs (Plan 012) — the vast
                                     // majority of shops never opt in, and an always-on
                                     // button would just crowd the row.
-                                    if (product.isSerialized) ...[
-                                      Container(
-                                        decoration: BoxDecoration(
-                                          color: AppTheme.primaryColor
-                                              .withValues(alpha: 0.1),
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                        ),
-                                        child: IconButton(
-                                          icon: const Icon(
-                                              Icons.qr_code_2_rounded,
-                                              color: AppTheme.primaryColor,
-                                              size: 22),
-                                          tooltip: l10n.productUnitsAction,
-                                          constraints: const BoxConstraints(
-                                              minWidth: 48, minHeight: 48),
-                                          onPressed: () => context.push(
-                                              '/products/units/${product.id}',
-                                              extra: product),
-                                        ),
+                                    if (product.isSerialized)
+                                      _rowAction(
+                                        icon: Icons.qr_code_2_rounded,
+                                        tooltip: l10n.productUnitsAction,
+                                        onPressed: () => context.push(
+                                            '/products/units/${product.id}',
+                                            extra: product),
                                       ),
-                                      const SizedBox(width: 12),
-                                    ],
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primaryColor
-                                            .withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: IconButton(
-                                        icon: const Icon(Icons.print_rounded,
-                                            color: AppTheme.primaryColor,
-                                            size: 22),
-                                        tooltip: l10n.printLabelTitle,
-                                        constraints: const BoxConstraints(
-                                            minWidth: 48, minHeight: 48),
-                                        onPressed: () =>
-                                            _printLabel(context, product),
-                                      ),
+                                    _rowAction(
+                                      icon: Icons.print_rounded,
+                                      tooltip: l10n.printLabelTitle,
+                                      onPressed: () =>
+                                          _printLabel(context, product),
                                     ),
-                                    const SizedBox(width: 12),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primaryColor
-                                            .withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: IconButton(
-                                        icon: const Icon(Icons.edit_rounded,
-                                            color: AppTheme.primaryColor,
-                                            size: 22),
-                                        constraints: const BoxConstraints(
-                                            minWidth: 48, minHeight: 48),
-                                        onPressed: () {
-                                          context.push(
-                                              '/products/edit/${product.id}',
-                                              extra: product);
-                                        },
-                                      ),
+                                    _rowAction(
+                                      icon: Icons.edit_rounded,
+                                      onPressed: () => context.push(
+                                          '/products/edit/${product.id}',
+                                          extra: product),
                                     ),
-                                    const SizedBox(width: 12),
-                                    Container(
-                                      decoration: BoxDecoration(
-                                        color:
-                                            Colors.red.withValues(alpha: 0.1),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: IconButton(
-                                        icon: const Icon(
-                                            Icons.delete_outline_rounded,
-                                            color: Colors.red,
-                                            size: 22),
-                                        constraints: const BoxConstraints(
-                                            minWidth: 48, minHeight: 48),
-                                        onPressed: () =>
-                                            _confirmDelete(context, product),
-                                      ),
+                                    _rowAction(
+                                      icon: Icons.delete_outline_rounded,
+                                      color: Colors.red,
+                                      onPressed: () =>
+                                          _confirmDelete(context, product),
                                     ),
                                   ],
                                 )
@@ -1137,6 +1085,37 @@ class _ProductListPageState extends State<ProductListPage> {
           ),
         );
       },
+    );
+  }
+
+  /// One action button on a product row.
+  ///
+  /// Four of these used to be written out longhand at 48dp with 12dp gaps,
+  /// which is most of a phone's width spent on chrome for a row whose job is to
+  /// show a name, a price and a stock count. 40dp with 6dp gaps gives that
+  /// width back and is still a comfortable target.
+  Widget _rowAction({
+    required IconData icon,
+    required VoidCallback onPressed,
+    String? tooltip,
+    Color color = AppTheme.primaryColor,
+  }) {
+    return Padding(
+      padding: const EdgeInsetsDirectional.only(start: 6),
+      child: Container(
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: IconButton(
+          icon: Icon(icon, color: color, size: 19),
+          tooltip: tooltip,
+          padding: EdgeInsets.zero,
+          visualDensity: VisualDensity.compact,
+          constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+          onPressed: onPressed,
+        ),
+      ),
     );
   }
 

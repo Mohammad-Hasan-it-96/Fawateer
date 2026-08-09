@@ -1242,7 +1242,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               offset: const Offset(0, 2))
         ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -1319,9 +1319,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   onTap: () => _editMeasured(context, item),
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    constraints: const BoxConstraints(minHeight: 44),
+                    constraints: const BoxConstraints(minHeight: 40),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                        horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: AppTheme.primaryColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
@@ -1331,10 +1331,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       children: [
                         Text('${formatQty(item.quantity)} ${l10n.unitKg}',
                             style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 15)),
+                                fontWeight: FontWeight.bold, fontSize: 14)),
                         const SizedBox(width: 6),
                         const Icon(Icons.edit,
-                            size: 16, color: AppTheme.primaryColor),
+                            size: 15, color: AppTheme.primaryColor),
                       ],
                     ),
                   ),
@@ -1353,7 +1353,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(2),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1374,14 +1374,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     borderRadius: BorderRadius.circular(6),
                     child: Container(
                       constraints:
-                          const BoxConstraints(minWidth: 48, minHeight: 44),
+                          const BoxConstraints(minWidth: 40, minHeight: 40),
                       alignment: Alignment.center,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 6),
+                          horizontal: 6, vertical: 4),
                       child: Text(formatQty(item.quantity),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
+                              fontWeight: FontWeight.bold, fontSize: 15)),
                     ),
                   ),
                   _qtyButton(
@@ -1475,6 +1475,12 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
     if (confirmed == true) bloc.add(ClearCartEvent());
   }
 
+  /// A cart-line button (+ / − / delete).
+  ///
+  /// 40dp, down from 44. These are the most-tapped controls in the app, so
+  /// this is the floor: 40 is still a comfortable target, and anything below it
+  /// starts costing the cashier mis-taps in the middle of a sale — which would
+  /// be a bad trade for a few pixels of list.
   Widget _qtyButton({
     required IconData icon,
     required VoidCallback onPressed,
@@ -1484,11 +1490,11 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
       onTap: onPressed,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        width: 44,
-        height: 44,
+        width: 40,
+        height: 40,
         alignment: Alignment.center,
         child: Icon(icon,
-            size: 24,
+            size: 21,
             color: color ?? Theme.of(context).colorScheme.onSurfaceVariant),
       ),
     );
@@ -1755,9 +1761,12 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
-                          childAspectRatio: 1.6,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
+                          // Shorter tiles: this sheet is a picker, and a tile
+                          // holds two lines of text — the extra height was
+                          // costing a row of products on a small phone.
+                          childAspectRatio: 1.9,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
                         ),
                         itemCount: filtered.length,
                         itemBuilder: (context, i) => _ProductTile(
@@ -1780,7 +1789,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
 /// product-picker tile so a finished item reads the same everywhere.
 Widget _outOfStockBadge(AppLocalizations l10n) {
   return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
     decoration: BoxDecoration(
       color: Colors.red.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(8),
@@ -1853,7 +1862,7 @@ class _ProductTileState extends State<_ProductTile> {
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: highlighted
                     ? AppTheme.primaryColor.withValues(alpha: 0.06)
@@ -1879,11 +1888,18 @@ class _ProductTileState extends State<_ProductTile> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(widget.product.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 14)),
+                  Padding(
+                    // Keep clear of the out-of-stock chip pinned to this
+                    // corner: without the gap a short name sits underneath it
+                    // and both become unreadable.
+                    padding:
+                        EdgeInsetsDirectional.only(end: out ? 78 : 0),
+                    child: Text(widget.product.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13)),
+                  ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1894,11 +1910,12 @@ class _ProductTileState extends State<_ProductTile> {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                               fontWeight: FontWeight.bold,
+                              fontSize: 13,
                               color: AppTheme.primaryColor),
                         ),
                       ),
                       const Icon(Icons.add_circle,
-                          color: AppTheme.primaryColor, size: 24),
+                          color: AppTheme.primaryColor, size: 21),
                     ],
                   ),
                 ],
