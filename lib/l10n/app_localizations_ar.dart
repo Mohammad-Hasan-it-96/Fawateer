@@ -1986,4 +1986,35 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get newBarcodeLabel => 'الباركود (اختياري)';
+
+  @override
+  String get deleteInvoiceAction => 'حذف الفاتورة';
+
+  @override
+  String get deleteInvoiceTitle => 'حذف هذه الفاتورة؟';
+
+  @override
+  String get deleteInvoiceIntro =>
+      'لن يُحذف الورق فقط، بل تُلغى عملية البيع بالكامل:';
+
+  @override
+  String get deleteInvoiceStock => 'ترجع الأصناف إلى المخزون';
+
+  @override
+  String get deleteInvoiceCash => 'يخرج المبلغ من الصندوق';
+
+  @override
+  String deleteInvoiceDebt(String name) {
+    return 'ينقص دين $name بهذا المبلغ';
+  }
+
+  @override
+  String get deleteInvoiceIrreversible =>
+      'لا يمكن التراجع. لتصحيح الفاتورة أعد تسجيلها من جديد.';
+
+  @override
+  String get invoiceDeleted => 'تم حذف الفاتورة';
+
+  @override
+  String get invoiceDeleteFailed => 'تعذّر حذف الفاتورة';
 }

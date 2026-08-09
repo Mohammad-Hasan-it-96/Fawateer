@@ -68,7 +68,7 @@ void main() {
   });
 
   group('name uniqueness', () {
-    final catalogue = [
+    const catalogue = [
       Product(id: 'a', name: 'Cola', barcode: '', price: 1),
       Product(id: 'b', name: 'عصير برتقال', barcode: '', price: 1),
     ];
@@ -92,7 +92,7 @@ void main() {
   });
 
   group('barcode uniqueness', () {
-    final catalogue = [
+    const catalogue = [
       Product(id: 'a', name: 'Cola', barcode: '6221031492', price: 1),
       Product(id: 'b', name: 'Loose apples', barcode: '', price: 1),
       Product(id: 'c', name: 'Bread', barcode: '', price: 1),

@@ -43,6 +43,7 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
     on<LoadMoreEvent>(_onLoadMore);
     on<LoadInvoiceDetailsEvent>(_onLoadInvoiceDetails);
     on<ReprintInvoiceEvent>(_onReprint);
+    on<DeleteInvoiceEvent>(_onDelete);
     on<_InvoicesUpdated>(_onInvoicesUpdated);
     on<_SummaryUpdated>(_onSummaryUpdated);
     on<_StreamFailed>(_onStreamFailed);
@@ -137,6 +138,31 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
     } catch (_) {
       return const [];
     }
+  }
+
+  /// Undo a sale (Plan 016 A). The repository reverses stock, the cash entry
+  /// and any customer debt in one transaction; there is nothing to re-fetch
+  /// here because the list and the summary are both stream-backed and drop the
+  /// row on their own.
+  ///
+  /// The cached line items go with it. Leaving them would mean a stale detail
+  /// page could still render an invoice that no longer exists.
+  Future<void> _onDelete(
+      DeleteInvoiceEvent event, Emitter<HistoryState> emit) async {
+    if (state.deleteStatus == DeleteStatus.deleting) return;
+    emit(state.copyWith(deleteStatus: DeleteStatus.deleting));
+
+    final result = await repository.deleteInvoice(event.invoiceId);
+    result.fold(
+      (_) => emit(state.copyWith(deleteStatus: DeleteStatus.failed)),
+      (_) => emit(state.copyWith(
+        deleteStatus: DeleteStatus.done,
+        itemsCache: Map.of(state.itemsCache)..remove(event.invoiceId),
+        failedItems: Set.of(state.failedItems)..remove(event.invoiceId),
+      )),
+    );
+    // Back to idle so the outcome can't re-fire on the next unrelated rebuild.
+    emit(state.copyWith(deleteStatus: DeleteStatus.idle));
   }
 
   /// Reprint a stored invoice. Loads its line items, maps them to

@@ -652,5 +652,15 @@
   "duplicateProductTitle": "نسخ «{name}»",
   "duplicateProductHint": "يُنسخ السعر والتكلفة والقسم وبقية الحقول. المخزون يبدأ من صفر.",
   "newProductNameLabel": "اسم المنتج الجديد",
-  "newBarcodeLabel": "الباركود (اختياري)"
+  "newBarcodeLabel": "الباركود (اختياري)",
+
+  "deleteInvoiceAction": "حذف الفاتورة",
+  "deleteInvoiceTitle": "حذف هذه الفاتورة؟",
+  "deleteInvoiceIntro": "لن يُحذف الورق فقط، بل تُلغى عملية البيع بالكامل:",
+  "deleteInvoiceStock": "ترجع الأصناف إلى المخزون",
+  "deleteInvoiceCash": "يخرج المبلغ من الصندوق",
+  "deleteInvoiceDebt": "ينقص دين {name} بهذا المبلغ",
+  "deleteInvoiceIrreversible": "لا يمكن التراجع. لتصحيح الفاتورة أعد تسجيلها من جديد.",
+  "invoiceDeleted": "تم حذف الفاتورة",
+  "invoiceDeleteFailed": "تعذّر حذف الفاتورة"
 }

@@ -238,25 +238,65 @@ $whereSql''';
         }
       });
 
-  /// Delete an invoice together with its line items in one transaction, so no
-  /// orphaned `sales_items` rows are left behind. Also reverses the invoice's
-  /// cashbox entry (if it was a cash sale) so the cash-on-hand balance stays
-  /// honest; no-op for a credit sale (nothing was posted there).
+  /// Undo a sale completely, in one transaction (Plan 016 A).
   ///
-  /// **Incomplete for credit sales — do not wire this to a UI as-is.** A credit
-  /// sale also writes a `charge` row to `ledger_entries` (see the ledger
-  /// section of CLAUDE.md), and this does not remove it. Deleting a credit
-  /// invoice today would leave the customer still owing money for a sale that
-  /// no longer exists, and the debt is derived from those rows, so the error is
-  /// permanent and invisible. Nothing calls this yet; whoever adds "delete
-  /// invoice" must delete the matching `ledger_entries` row (by `invoiceId`) in
-  /// this same transaction.
+  /// A sale is never only a piece of paper: it moved stock, and it put money
+  /// either in the drawer or on a customer's account. Deleting it has to undo
+  /// **all** of that or the books quietly stop adding up, so this reverses, in
+  /// order:
+  ///
+  /// 1. **stock** — the line quantities go back on the shelf (ordinary
+  ///    products here; serialized SKUs are rebuilt from their unit count in
+  ///    step 5);
+  /// 2. the **line items** and the **invoice** itself, so nothing is orphaned;
+  /// 3. the **cashbox** inflow a cash sale posted;
+  /// 4. the **ledger charge** a credit sale posted — without this the customer
+  ///    kept owing money for a sale that no longer existed, and since the
+  ///    balance is derived from those rows the error was permanent and
+  ///    invisible. This method carried a "do not wire to a UI as-is" warning
+  ///    for exactly that reason until the delete button was built;
+  /// 5. **serialized units**, released back to stock.
   Future<void> deleteInvoice(String id) => transaction(() async {
+        // Put the goods back on the shelf, before the lines are gone.
+        //
+        // The sale deducted stock; deleting it has to undo that, or a shop's
+        // counts drift down by one basket every time a mis-rung sale is
+        // removed. Serialized SKUs are excluded here on purpose — their
+        // quantity is rebuilt from the authoritative unit count further down,
+        // and adding here as well would double it.
+        //
+        // Known asymmetry: the deduction floors at zero (overselling is
+        // allowed), so a line that sold 5 with 1 on hand only took 1 — and this
+        // gives back 5. That over-credits in the rare oversell case; not
+        // restoring at all would under-credit in *every* case, which is the
+        // worse trade.
+        final lines =
+            await (select(salesItems)..where((i) => i.invoiceId.equals(id)))
+                .get();
+        for (final line in lines) {
+          await customUpdate(
+            'UPDATE products SET quantity = quantity + ? '
+            'WHERE id = ? AND is_serialized = 0',
+            variables: [
+              Variable<double>(line.quantity),
+              Variable<String>(line.productId),
+            ],
+            updates: {products},
+          );
+        }
         await (delete(salesItems)..where((i) => i.invoiceId.equals(id))).go();
         await (delete(salesInvoices)..where((i) => i.id.equals(id))).go();
         await (delete(cashboxTransactions)
               ..where((c) => c.relatedId.equals(id)))
             .go();
+        // Reverse the debt a credit sale created. `ledger_entries.invoiceId` is
+        // set only by that path (null for manual charges and payments), so this
+        // removes exactly the one `charge` this invoice posted.
+        //
+        // Without it, deleting a credit invoice left the customer owing money
+        // for a sale that no longer exists — a balance the shop could not
+        // explain and could only fix by hand.
+        await (delete(ledgerEntries)..where((e) => e.invoiceId.equals(id))).go();
         // Release any serialized units this invoice consumed back to stock
         // (Plan 012) — the same "reverse what the source posted" rule the
         // cashbox line above follows. Their SKUs' cached quantities are then

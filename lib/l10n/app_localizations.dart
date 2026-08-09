@@ -3788,6 +3788,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Barcode (optional)'**
   String get newBarcodeLabel;
+
+  /// No description provided for @deleteInvoiceAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete sale'**
+  String get deleteInvoiceAction;
+
+  /// No description provided for @deleteInvoiceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this sale?'**
+  String get deleteInvoiceTitle;
+
+  /// No description provided for @deleteInvoiceIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'This does not only remove the paper. It undoes the whole sale:'**
+  String get deleteInvoiceIntro;
+
+  /// No description provided for @deleteInvoiceStock.
+  ///
+  /// In en, this message translates to:
+  /// **'The items go back into stock'**
+  String get deleteInvoiceStock;
+
+  /// No description provided for @deleteInvoiceCash.
+  ///
+  /// In en, this message translates to:
+  /// **'The cash comes out of the drawer'**
+  String get deleteInvoiceCash;
+
+  /// No description provided for @deleteInvoiceDebt.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s debt goes down by this amount'**
+  String deleteInvoiceDebt(String name);
+
+  /// No description provided for @deleteInvoiceIrreversible.
+  ///
+  /// In en, this message translates to:
+  /// **'This cannot be undone. Ring the sale again to correct it.'**
+  String get deleteInvoiceIrreversible;
+
+  /// No description provided for @invoiceDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale deleted'**
+  String get invoiceDeleted;
+
+  /// No description provided for @invoiceDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete the sale'**
+  String get invoiceDeleteFailed;
 }
 
 class _AppLocalizationsDelegate

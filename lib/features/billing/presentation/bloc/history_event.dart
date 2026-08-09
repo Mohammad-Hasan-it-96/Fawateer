@@ -34,6 +34,16 @@ class LoadInvoiceDetailsEvent extends HistoryEvent {
 /// Reprint a stored invoice's receipt. Carries the shop header/footer (from
 /// `ShopBloc` in the UI) and the invoice total, mirroring checkout's
 /// `PrintReceiptEvent`.
+/// Undo a sale completely (Plan 016 A) — stock, cash drawer and customer debt
+/// all reverse with it. The list is stream-backed, so the row disappears on its
+/// own; this only reports the outcome.
+class DeleteInvoiceEvent extends HistoryEvent {
+  final String invoiceId;
+  const DeleteInvoiceEvent(this.invoiceId);
+  @override
+  List<Object?> get props => [invoiceId];
+}
+
 class ReprintInvoiceEvent extends HistoryEvent {
   final String invoiceId;
   final double total;

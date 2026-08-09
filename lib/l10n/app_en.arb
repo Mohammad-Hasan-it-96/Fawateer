@@ -918,5 +918,22 @@
   },
   "duplicateProductHint": "Price, cost, category and the other fields are copied. Stock starts at zero.",
   "newProductNameLabel": "New product name",
-  "newBarcodeLabel": "Barcode (optional)"
+  "newBarcodeLabel": "Barcode (optional)",
+
+  "deleteInvoiceAction": "Delete sale",
+  "deleteInvoiceTitle": "Delete this sale?",
+  "deleteInvoiceIntro": "This does not only remove the paper. It undoes the whole sale:",
+  "deleteInvoiceStock": "The items go back into stock",
+  "deleteInvoiceCash": "The cash comes out of the drawer",
+  "deleteInvoiceDebt": "{name}'s debt goes down by this amount",
+  "@deleteInvoiceDebt": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteInvoiceIrreversible": "This cannot be undone. Ring the sale again to correct it.",
+  "invoiceDeleted": "Sale deleted",
+  "invoiceDeleteFailed": "Couldn't delete the sale"
 }

@@ -1,6 +1,29 @@
 # Plan 016 — Manager Lock, Invoice Delete, and the Invoice-Edit Question
 
-> **Status:** 🔬 **STUDY + PROPOSAL.** Source: `docs/v1-fixes-2.txt` #3 —
+> **Status:** 🚧 **IN PROGRESS.** ✅ **Step 1 (A — delete an invoice) is built.**
+> Remaining: **C-a** (change customer / cash↔credit) and **B** (the PIN guard).
+>
+> **The "verify the ledger reversal first" warning below was right, and it was
+> worse than written.** `SalesDao.deleteInvoice` reversed the cashbox entry and
+> released serialized units, but it did **neither** of these:
+>
+> - it never removed the credit sale's `charge`, so the customer kept owing
+>   money for a sale that no longer existed — the balance is derived from those
+>   rows, so the error was permanent and invisible (the DAO carried an explicit
+>   "do not wire this to a UI as-is" warning for exactly this);
+> - it never gave **ordinary stock** back. Only serialized SKUs were restored.
+>   Every deleted sale silently walked the shop's counts down by one basket.
+>
+> Both are fixed inside the one transaction, and pinned by
+> `integration_test/invoice_delete_test.dart` (7 tests, verified against the
+> host's SQLite; still owed a device run).
+>
+> **Known asymmetry, accepted:** the sale's deduction floors at zero because
+> overselling is allowed, so a line that sold 5 with 1 on hand only took 1 —
+> and the restore gives back 5. That over-credits in the rare oversell case;
+> restoring nothing under-credits in *every* case.
+
+> **Original study.** Source: `docs/v1-fixes-2.txt` #3 —
 > *"add delete order + edit order, only from the main device, or with a password
 > the main device chooses."*
 >
@@ -226,10 +249,12 @@ on the sync branch. Revisit only with real evidence.
 
 ## Order of work
 
-1. **A** — delete button + honest confirmation. **First verify the ledger
-   reversal**: the cashbox reversal is documented, the `charge` reversal for a
-   credit sale must be confirmed before this button ships, or deleting a credit
-   invoice leaves the customer owing money for a sale that no longer exists.
+1. ✅ **A** — delete button + honest confirmation. **Done.** The ledger reversal
+   was indeed missing (and so was ordinary stock restore); both are fixed. The
+   confirmation lists the consequences per invoice — stock always, then either
+   the cash drawer or the named customer's debt — because a shopkeeper who
+   expects only the paper to vanish finds the drawer short at closing time and
+   concludes the app lost their money.
 2. **C-a** — change payment type / customer.
 3. **B** — the PIN guard, applied to both. See the PIN-reset note below.
 

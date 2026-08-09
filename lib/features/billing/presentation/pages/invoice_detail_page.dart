@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/share/cards/invoice_share_card.dart';
 import '../../../../core/share/share_card_action.dart';
@@ -66,23 +67,51 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            tooltip: l10n.deleteInvoiceAction,
+            onPressed: () => _confirmDelete(context, l10n, inv, currency),
+          ),
         ],
       ),
-      body: BlocListener<HistoryBloc, HistoryState>(
-        listenWhen: (prev, curr) =>
-            prev.reprintStatus != curr.reprintStatus &&
-            (curr.reprintStatus == ReprintStatus.done ||
-                curr.reprintStatus == ReprintStatus.failed),
-        listener: (context, state) {
-          final ok = state.reprintStatus == ReprintStatus.done;
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(SnackBar(
-              content:
-                  Text(ok ? l10n.printedSuccessfully : l10n.printFailed),
-              backgroundColor: ok ? Colors.green : Colors.red,
-            ));
-        },
+      body: MultiBlocListener(
+        listeners: [
+          BlocListener<HistoryBloc, HistoryState>(
+            listenWhen: (prev, curr) =>
+                prev.reprintStatus != curr.reprintStatus &&
+                (curr.reprintStatus == ReprintStatus.done ||
+                    curr.reprintStatus == ReprintStatus.failed),
+            listener: (context, state) {
+              final ok = state.reprintStatus == ReprintStatus.done;
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(SnackBar(
+                  content:
+                      Text(ok ? l10n.printedSuccessfully : l10n.printFailed),
+                  backgroundColor: ok ? Colors.green : Colors.red,
+                ));
+            },
+          ),
+          BlocListener<HistoryBloc, HistoryState>(
+            listenWhen: (prev, curr) =>
+                prev.deleteStatus != curr.deleteStatus &&
+                (curr.deleteStatus == DeleteStatus.done ||
+                    curr.deleteStatus == DeleteStatus.failed),
+            listener: (context, state) {
+              final ok = state.deleteStatus == DeleteStatus.done;
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(SnackBar(
+                  content: Text(
+                      ok ? l10n.invoiceDeleted : l10n.invoiceDeleteFailed),
+                  backgroundColor: ok ? Colors.green : Colors.red,
+                ));
+              // The invoice this page is showing no longer exists — staying
+              // here would leave the shop reading a sale that has been undone.
+              if (ok && context.canPop()) context.pop();
+            },
+          ),
+        ],
         child: BlocBuilder<HistoryBloc, HistoryState>(
           builder: (context, state) {
             final items = state.itemsCache[inv.id];
@@ -400,6 +429,84 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
   /// Share this stored invoice as a styled PNG receipt (Plan 007). The discount
   /// is derived from the snapshotted items vs. the stored total, exactly like
   /// the footer breakdown.
+  /// Confirm deleting a sale (Plan 016 A).
+  ///
+  /// **The dialog lists the consequences, one line each, and it is not
+  /// decoration.** Deleting a sale is not deleting a piece of paper: the goods
+  /// go back into stock, the cash comes out of the drawer, and on a credit sale
+  /// the customer's debt drops. A shopkeeper who expects only the invoice to
+  /// disappear finds the drawer short at closing time and concludes the app
+  /// lost their money — which is a far worse outcome than one extra dialog.
+  ///
+  /// Which lines show is decided per invoice: cash and credit undo different
+  /// things, and naming the customer makes the debt line concrete.
+  void _confirmDelete(BuildContext context, AppLocalizations l10n,
+      InvoiceListItem inv, String currency) {
+    final bloc = context.read<HistoryBloc>();
+    final customer = inv.customerName?.isNotEmpty == true
+        ? inv.customerName!
+        : l10n.paymentCredit;
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text(l10n.deleteInvoiceTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.deleteInvoiceIntro),
+            const SizedBox(height: 12),
+            _consequence(dialogCtx, Icons.inventory_2_outlined,
+                l10n.deleteInvoiceStock),
+            if (inv.isCredit)
+              _consequence(dialogCtx, Icons.account_balance_wallet_outlined,
+                  l10n.deleteInvoiceDebt(customer))
+            else
+              _consequence(dialogCtx, Icons.point_of_sale_outlined,
+                  l10n.deleteInvoiceCash),
+            const SizedBox(height: 12),
+            Text(l10n.deleteInvoiceIrreversible,
+                style: Theme.of(dialogCtx)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(dialogCtx).colorScheme.error),
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              bloc.add(DeleteInvoiceEvent(inv.id));
+            },
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _consequence(BuildContext context, IconData icon, String text) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon,
+                size: 18,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            const SizedBox(width: 8),
+            Expanded(child: Text(text)),
+          ],
+        ),
+      );
+
   Future<void> _shareInvoice(BuildContext context, AppLocalizations l10n,
       String locale, String currency, InvoiceListItem inv,
       List<InvoiceItem> items) async {

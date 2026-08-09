@@ -2001,4 +2001,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get newBarcodeLabel => 'Barcode (optional)';
+
+  @override
+  String get deleteInvoiceAction => 'Delete sale';
+
+  @override
+  String get deleteInvoiceTitle => 'Delete this sale?';
+
+  @override
+  String get deleteInvoiceIntro =>
+      'This does not only remove the paper. It undoes the whole sale:';
+
+  @override
+  String get deleteInvoiceStock => 'The items go back into stock';
+
+  @override
+  String get deleteInvoiceCash => 'The cash comes out of the drawer';
+
+  @override
+  String deleteInvoiceDebt(String name) {
+    return '$name\'s debt goes down by this amount';
+  }
+
+  @override
+  String get deleteInvoiceIrreversible =>
+      'This cannot be undone. Ring the sale again to correct it.';
+
+  @override
+  String get invoiceDeleted => 'Sale deleted';
+
+  @override
+  String get invoiceDeleteFailed => 'Couldn\'t delete the sale';
 }

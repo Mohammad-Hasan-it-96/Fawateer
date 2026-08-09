@@ -9,6 +9,10 @@ enum HistoryError { loadFailed }
 /// One-shot outcome of a reprint, mapped to an ARB string in the page.
 enum ReprintStatus { idle, printing, done, failed }
 
+/// Outcome of a delete (Plan 016 A). `done` is what tells the detail page to
+/// close itself — the invoice it is showing no longer exists.
+enum DeleteStatus { idle, deleting, done, failed }
+
 class HistoryState extends Equatable {
   final HistoryStatus status;
 
@@ -39,6 +43,9 @@ class HistoryState extends Equatable {
   final ReprintStatus reprintStatus;
   final String? reprintingId;
 
+  /// Transient delete outcome.
+  final DeleteStatus deleteStatus;
+
   const HistoryState({
     this.status = HistoryStatus.initial,
     required this.filter,
@@ -51,6 +58,7 @@ class HistoryState extends Equatable {
     this.error,
     this.reprintStatus = ReprintStatus.idle,
     this.reprintingId,
+    this.deleteStatus = DeleteStatus.idle,
   });
 
   HistoryState copyWith({
@@ -67,6 +75,7 @@ class HistoryState extends Equatable {
     ReprintStatus? reprintStatus,
     String? reprintingId,
     bool clearReprintingId = false,
+    DeleteStatus? deleteStatus,
   }) {
     return HistoryState(
       status: status ?? this.status,
@@ -80,6 +89,7 @@ class HistoryState extends Equatable {
       error: clearError ? null : (error ?? this.error),
       reprintStatus: reprintStatus ?? this.reprintStatus,
       reprintingId: clearReprintingId ? null : (reprintingId ?? this.reprintingId),
+      deleteStatus: deleteStatus ?? this.deleteStatus,
     );
   }
 
@@ -96,5 +106,6 @@ class HistoryState extends Equatable {
         error,
         reprintStatus,
         reprintingId,
+        deleteStatus,
       ];
 }
