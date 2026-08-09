@@ -1882,4 +1882,102 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get bulkPricesUnchanged => 'No price changed';
+
+  @override
+  String get tabAllProducts => 'All';
+
+  @override
+  String get tabByCategory => 'By category';
+
+  @override
+  String get categoryUncategorized => 'Other';
+
+  @override
+  String get categoryAllChip => 'All';
+
+  @override
+  String get noCategoriesTitle => 'No categories yet';
+
+  @override
+  String get noCategoriesHint =>
+      'Create a few sections for your shop — drinks, dairy, cleaning. You can change them later from Settings → Product fields.';
+
+  @override
+  String get createCategoriesBtn => 'Create categories';
+
+  @override
+  String get categoriesDialogTitle => 'Shop categories';
+
+  @override
+  String get categoriesDialogHint => 'Category names, separated by a comma';
+
+  @override
+  String get manageCategoriesTooltip => 'Manage categories';
+
+  @override
+  String get setCategoryAction => 'Set category';
+
+  @override
+  String chooseCategoryTitle(int count) {
+    return 'Category for $count products';
+  }
+
+  @override
+  String get newCategoryHint => 'New category';
+
+  @override
+  String get categoryClearOption => 'No category';
+
+  @override
+  String bulkCategorySet(int count) {
+    return '$count products moved';
+  }
+
+  @override
+  String optionRenameTitle(String value) {
+    return 'Rename \"$value\"';
+  }
+
+  @override
+  String optionRenameMergeWarning(String value) {
+    return '\"$value\" already exists — the two will be merged into one.';
+  }
+
+  @override
+  String get optionRenameAction => 'Rename';
+
+  @override
+  String optionRemoveTitle(String value) {
+    return 'Delete \"$value\"?';
+  }
+
+  @override
+  String optionRemoveBody(int count) {
+    return '$count products use it. They will keep everything else and simply have no value for this field.';
+  }
+
+  @override
+  String optionInUseCount(int count) {
+    return 'Used by $count products';
+  }
+
+  @override
+  String optionRenamedMsg(int count) {
+    return 'Renamed — $count products moved with it';
+  }
+
+  @override
+  String optionRemovedMsg(int count) {
+    return 'Deleted — $count products cleared';
+  }
+
+  @override
+  String get addOptionHint => 'Add an option';
+
+  @override
+  String get optionsSectionTitle => 'Options';
+
+  @override
+  String get optionsLiveNote =>
+      'Changes to the options are saved right away, and your products move with them.';
 }

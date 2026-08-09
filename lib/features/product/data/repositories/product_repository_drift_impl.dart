@@ -4,6 +4,7 @@ import '../../../../core/attributes/product_attributes.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/daos/products_dao.dart';
 import '../../../../core/error/failure.dart';
+import '../../../attributes/domain/product_category.dart';
 import '../../domain/entities/price_currency.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/product_sale_type.dart';
@@ -118,6 +119,25 @@ class ProductRepositoryDriftImpl implements ProductRepository {
       await _dao.updatePriceAndCost([
         for (final p in products) (id: p.id, price: p.price, cost: p.cost),
       ]);
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> setAttributeOnProducts({
+    required List<String> productIds,
+    required String definitionId,
+    required String value,
+  }) async {
+    if (productIds.isEmpty) return const Right(null);
+    try {
+      await _dao.setAttributeOnProducts(
+        ids: productIds,
+        jsonPath: attributeJsonPath(definitionId),
+        value: value,
+      );
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));

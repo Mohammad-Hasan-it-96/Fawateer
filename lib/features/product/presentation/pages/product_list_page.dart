@@ -3,6 +3,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../bloc/product_bloc.dart';
 import '../../domain/entities/product.dart';
+import '../../../attributes/domain/attribute_options.dart';
+import '../../../attributes/domain/product_category.dart';
 import '../../domain/bulk_price_edit.dart';
 import '../../domain/product_search.dart';
 import '../../domain/product_stock_filter.dart';
@@ -52,8 +54,15 @@ String _productMessageText(ProductMessage m, AppLocalizations l10n,
       return l10n.labelPrinted;
     case ProductMessage.labelPrintFailed:
       return l10n.labelPrintFailed;
+    case ProductMessage.bulkCategorySet:
+      return l10n.bulkCategorySet(count);
   }
 }
+
+/// The two tabs the owner asked for (Plan 014). Not a `TabBar`: this page's
+/// header is already search + filters + chips, and a real tab bar would add a
+/// third band of chrome above a list that needs the room.
+enum _ProductView { all, byCategory }
 
 class _ProductListPageState extends State<ProductListPage> {
   final TextEditingController _searchController = TextEditingController();
@@ -73,6 +82,17 @@ class _ProductListPageState extends State<ProductListPage> {
 
   int get _activeFilterCount =>
       _attrFilters.values.fold(0, (n, s) => n + s.length);
+
+  /// Which tab is showing, and — in the category tab — which category is
+  /// picked. `null` means "all categories"; `''` is the **أخرى** bucket, which
+  /// needs no sentinel because `ProductAttributes` never stores a blank value
+  /// (see `isUncategorized`).
+  _ProductView _view = _ProductView.all;
+  String? _category;
+
+  /// The shop's category field, or null if it has not been created yet.
+  AttributeDefinition? _categoryField(BuildContext context) => categoryFieldOf(
+      context.watch<AttributeDefinitionBloc>().state.active);
 
   /// Multi-select (Plan 013's shared building block). One selection mechanism,
   /// meant to grow several actions: bulk price/cost today (Plan 015 B2.2), bulk
@@ -143,10 +163,16 @@ class _ProductListPageState extends State<ProductListPage> {
     }
   }
 
-  bool _matchesFilters(Product product) =>
-      _stockFilter.matches(product) &&
-      productMatchesSearch(product,
-          query: _searchQuery, attrFilters: _attrFilters);
+  bool _matchesFilters(Product product) {
+    if (!_stockFilter.matches(product)) return false;
+    if (_view == _ProductView.byCategory && _category != null) {
+      if ((product.attributes[kCategoryFieldId] ?? '') != _category) {
+        return false;
+      }
+    }
+    return productMatchesSearch(product,
+        query: _searchQuery, attrFilters: _attrFilters);
+  }
 
   /// The stock-status chips.
   ///
@@ -173,6 +199,169 @@ class _ProductListPageState extends State<ProductListPage> {
       ),
     );
   }
+
+  /// الكل / حسب التصنيف. Switching back to "all" drops the picked category —
+  /// otherwise the list stays silently filtered by a chip that is no longer on
+  /// screen, which reads as "half my products disappeared".
+  Widget _viewToggle(AppLocalizations l10n) {
+    return SegmentedButton<_ProductView>(
+      showSelectedIcon: false,
+      segments: [
+        ButtonSegment(
+            value: _ProductView.all, label: Text(l10n.tabAllProducts)),
+        ButtonSegment(
+            value: _ProductView.byCategory, label: Text(l10n.tabByCategory)),
+      ],
+      selected: {_view},
+      onSelectionChanged: (s) => setState(() {
+        _view = s.first;
+        if (_view == _ProductView.all) _category = null;
+      }),
+    );
+  }
+
+  /// The category chips: **all**, one per option in the owner's order, then
+  /// **أخرى**.
+  ///
+  /// Two things this must not do. It must not sort the options alphabetically —
+  /// Arabic alphabetical order has nothing to do with how a shopkeeper thinks
+  /// about their shelves, so the owner's own order stands. And it must not hide
+  /// the uncategorised products: a shop of 300 items will categorise 40, and
+  /// the other 260 have to stay reachable.
+  Widget _categoryChips(AttributeDefinition field, AppLocalizations l10n) {
+    return SizedBox(
+      height: 40,
+      child: Row(
+        children: [
+          Expanded(
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: [
+                for (final entry in <(String?, String)>[
+                  (null, l10n.categoryAllChip),
+                  ...field.options.map((o) => (o, o)),
+                  ('', l10n.categoryUncategorized),
+                ])
+                  Padding(
+                    padding: const EdgeInsetsDirectional.only(end: 8),
+                    child: ChoiceChip(
+                      label: Text(entry.$2),
+                      selected: _category == entry.$1,
+                      onSelected: (_) =>
+                          setState(() => _category = entry.$1),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.edit_outlined, size: 20),
+            tooltip: l10n.manageCategoriesTooltip,
+            // `go`, not `push`: this route lives in the Settings branch, and
+            // pushing it from the Products branch would build it in a navigator
+            // that is not on screen. Same precedent as the Reports card's
+            // jump to /products.
+            onPressed: () => context.go('/settings/product-fields'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Shown in the category tab before the shop has any categories.
+  ///
+  /// A tab that is simply empty reads as broken, so this both explains and
+  /// creates. The categories are **typed by the owner** rather than seeded from
+  /// a guess: a phone shop and a grocery share no sections, and starting
+  /// someone with six wrong ones means six deletions before any use.
+  Widget _noCategoriesState(AppLocalizations l10n) {
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              minHeight: (constraints.maxHeight - 32).clamp(0.0, 4000.0)),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.category_outlined,
+                  size: 56,
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.4)),
+              const SizedBox(height: 12),
+              Text(l10n.noCategoriesTitle,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.titleMedium),
+              const SizedBox(height: 8),
+              Text(l10n.noCategoriesHint,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 20),
+              FilledButton.icon(
+                onPressed: () => _openCreateCategories(l10n),
+                icon: const Icon(Icons.add),
+                label: Text(l10n.createCategoriesBtn),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// One dialog that creates the category field and its first options, so the
+  /// feature starts working without a trip to Settings.
+  void _openCreateCategories(AppLocalizations l10n) {
+    final bloc = context.read<AttributeDefinitionBloc>();
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) {
+        var typed = '';
+        return StatefulBuilder(
+          builder: (dialogCtx, setDialog) => AlertDialog(
+            title: Text(l10n.categoriesDialogTitle),
+            content: TextField(
+              autofocus: true,
+              maxLines: 2,
+              decoration: InputDecoration(
+                labelText: l10n.categoriesDialogHint,
+                hintText: 'مشروبات، ألبان، تنظيف',
+              ),
+              onChanged: (v) => setDialog(() => typed = v),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogCtx),
+                child: Text(l10n.cancel),
+              ),
+              FilledButton(
+                onPressed: _splitOptions(typed).isEmpty
+                    ? null
+                    : () {
+                        bloc.add(SaveDefinition(
+                            newCategoryField(_splitOptions(typed))));
+                        Navigator.pop(dialogCtx);
+                      },
+                child: Text(l10n.saveChangesBtn),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// Split a comma-separated list, accepting both the Arabic comma (،) and the
+  /// Latin one — the same rule the field editor in Settings uses, because a
+  /// shopkeeper's keyboard produces whichever one it feels like.
+  static List<String> _splitOptions(String raw) => raw
+      .split(RegExp(r'[,،]'))
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toList();
 
   void _openFilterSheet(
       List<AttributeDefinition> selectDefs, AppLocalizations l10n) {
@@ -307,6 +496,8 @@ class _ProductListPageState extends State<ProductListPage> {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    SizedBox(width: double.infinity, child: _viewToggle(l10n)),
+                    const SizedBox(height: 8),
                     Row(
                       children: [
                         Expanded(
@@ -401,14 +592,27 @@ class _ProductListPageState extends State<ProductListPage> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    _stockFilterChips(l10n),
-                    const SizedBox(height: 6),
-                    Text(l10n.tapToScan,
-                        style: TextStyle(
-                            fontSize: 12,
-                            color: Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant)),
+                    // One chip row, not two. In the category tab the categories
+                    // *are* the filter on show; stacking the stock chips under
+                    // them would push the first product off a small screen —
+                    // the header is already four bands deep.
+                    if (_view == _ProductView.byCategory)
+                      Builder(builder: (context) {
+                        final field = _categoryField(context);
+                        return field == null
+                            ? const SizedBox.shrink()
+                            : _categoryChips(field, l10n);
+                      })
+                    else ...[
+                      _stockFilterChips(l10n),
+                      const SizedBox(height: 6),
+                      Text(l10n.tapToScan,
+                          style: TextStyle(
+                              fontSize: 12,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant)),
+                    ],
                   ],
                 );
               }),
@@ -428,6 +632,12 @@ class _ProductListPageState extends State<ProductListPage> {
                   );
                 },
                 builder: (context, state) {
+                  // The category tab with no categories yet: explain and offer
+                  // to create them, rather than showing an unexplained list.
+                  if (_view == _ProductView.byCategory &&
+                      _categoryField(context) == null) {
+                    return _noCategoriesState(l10n);
+                  }
                   if (state.status == ProductStatus.loading &&
                       state.products.isEmpty) {
                     return const Center(child: CircularProgressIndicator());
@@ -751,38 +961,163 @@ class _ProductListPageState extends State<ProductListPage> {
         top: false,
         child: Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
-          child: Row(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(l10n.selectedCount(selected.length),
-                        style: const TextStyle(fontWeight: FontWeight.bold)),
-                    if (hidden > 0)
-                      Text(
-                        l10n.selectionHiddenByFilter(hidden),
-                        style: TextStyle(
-                            fontSize: 12,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant),
-                      ),
-                  ],
+              Text(l10n.selectedCount(selected.length),
+                  style: const TextStyle(fontWeight: FontWeight.bold)),
+              if (hidden > 0)
+                Text(
+                  l10n.selectionHiddenByFilter(hidden),
+                  style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
-              ),
-              const SizedBox(width: 8),
-              FilledButton.icon(
-                onPressed: selected.isEmpty
-                    ? null
-                    : () => _openBulkPriceDialog(selected, l10n),
-                icon: const Icon(Icons.sell_outlined, size: 18),
-                label: Text(l10n.bulkEditPricesAction),
-              ),
+              const SizedBox(height: 8),
+              _selectionActions(selected, l10n),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  /// The action row. Two buttons today (category, price); a third would go here
+  /// rather than into a new mode.
+  Widget _selectionActions(List<Product> selected, AppLocalizations l10n) {
+    final categoryField = _categoryField(context);
+    return Row(
+      children: [
+        // Only offered once the shop has a category field — otherwise the
+        // button would open a sheet with nothing to choose.
+        if (categoryField != null) ...[
+          Expanded(
+            child: OutlinedButton.icon(
+              onPressed: selected.isEmpty
+                  ? null
+                  : () => _openBulkCategorySheet(categoryField, selected, l10n),
+              icon: const Icon(Icons.category_outlined, size: 18),
+              label: Text(l10n.setCategoryAction,
+                  overflow: TextOverflow.ellipsis),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
+        Expanded(
+          child: FilledButton.icon(
+            onPressed: selected.isEmpty
+                ? null
+                : () => _openBulkPriceDialog(selected, l10n),
+            icon: const Icon(Icons.sell_outlined, size: 18),
+            label: Text(l10n.bulkEditPricesAction,
+                overflow: TextOverflow.ellipsis),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Pick a category for the selection — an existing one, "no category", or a
+  /// brand-new one typed right here.
+  ///
+  /// Creating from this sheet is deliberate: the moment an owner notices a
+  /// missing section is while they are sorting products into sections, and
+  /// sending them to Settings to add it would lose the selection they just
+  /// built.
+  void _openBulkCategorySheet(
+      AttributeDefinition field, List<Product> selected, AppLocalizations l10n) {
+    final defBloc = context.read<AttributeDefinitionBloc>();
+    final productBloc = context.read<ProductBloc>();
+    final ids = {..._selectedIds};
+
+    void apply(String value) {
+      productBloc.add(BulkSetAttribute(
+          productIds: ids, definitionId: field.id, value: value));
+      _exitSelection();
+    }
+
+    showModalBottomSheet<void>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetCtx) {
+        var typed = '';
+        return StatefulBuilder(
+          builder: (sheetCtx, setSheet) => SafeArea(
+            child: Padding(
+              padding: EdgeInsets.only(
+                  left: 20,
+                  right: 20,
+                  bottom: 20 + MediaQuery.of(sheetCtx).viewInsets.bottom),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(l10n.chooseCategoryTitle(selected.length),
+                      style: Theme.of(sheetCtx).textTheme.titleMedium),
+                  const SizedBox(height: 12),
+                  Flexible(
+                    child: SingleChildScrollView(
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 4,
+                        children: [
+                          for (final option in field.options)
+                            ActionChip(
+                              label: Text(option),
+                              onPressed: () {
+                                Navigator.pop(sheetCtx);
+                                apply(option);
+                              },
+                            ),
+                          ActionChip(
+                            avatar: const Icon(Icons.block, size: 16),
+                            label: Text(l10n.categoryClearOption),
+                            onPressed: () {
+                              Navigator.pop(sheetCtx);
+                              apply('');
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          decoration:
+                              InputDecoration(labelText: l10n.newCategoryHint),
+                          onChanged: (v) => setSheet(() => typed = v),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      FilledButton(
+                        onPressed: typed.trim().isEmpty
+                            ? null
+                            : () {
+                                final value = typed.trim();
+                                // Add the option to the field first, then
+                                // assign — otherwise the products would hold a
+                                // value the category chips never show.
+                                defBloc.add(SaveDefinition(field.copyWith(
+                                    options: addOptionToList(
+                                        field.options, value))));
+                                Navigator.pop(sheetCtx);
+                                apply(value);
+                              },
+                        child: Text(l10n.bulkApplyAction),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

@@ -1867,4 +1867,102 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get bulkPricesUnchanged => 'لم يتغيّر أي سعر';
+
+  @override
+  String get tabAllProducts => 'الكل';
+
+  @override
+  String get tabByCategory => 'حسب التصنيف';
+
+  @override
+  String get categoryUncategorized => 'أخرى';
+
+  @override
+  String get categoryAllChip => 'الكل';
+
+  @override
+  String get noCategoriesTitle => 'لا توجد أقسام بعد';
+
+  @override
+  String get noCategoriesHint =>
+      'أنشئ أقسامًا لمتجرك — مشروبات، ألبان، تنظيف. يمكنك تعديلها لاحقًا من الإعدادات ← حقول المنتجات.';
+
+  @override
+  String get createCategoriesBtn => 'إنشاء الأقسام';
+
+  @override
+  String get categoriesDialogTitle => 'أقسام المتجر';
+
+  @override
+  String get categoriesDialogHint => 'أسماء الأقسام، مفصولة بفاصلة';
+
+  @override
+  String get manageCategoriesTooltip => 'إدارة الأقسام';
+
+  @override
+  String get setCategoryAction => 'تعيين القسم';
+
+  @override
+  String chooseCategoryTitle(int count) {
+    return 'القسم لـ $count منتج';
+  }
+
+  @override
+  String get newCategoryHint => 'قسم جديد';
+
+  @override
+  String get categoryClearOption => 'بدون قسم';
+
+  @override
+  String bulkCategorySet(int count) {
+    return 'تم نقل $count منتج';
+  }
+
+  @override
+  String optionRenameTitle(String value) {
+    return 'إعادة تسمية «$value»';
+  }
+
+  @override
+  String optionRenameMergeWarning(String value) {
+    return '«$value» موجود مسبقًا — سيتم دمج الاثنين في واحد.';
+  }
+
+  @override
+  String get optionRenameAction => 'إعادة تسمية';
+
+  @override
+  String optionRemoveTitle(String value) {
+    return 'حذف «$value»؟';
+  }
+
+  @override
+  String optionRemoveBody(int count) {
+    return '$count منتج يستخدمه. ستبقى كل بياناته الأخرى، وسيصبح بلا قيمة لهذا الحقل فقط.';
+  }
+
+  @override
+  String optionInUseCount(int count) {
+    return 'يستخدمه $count منتج';
+  }
+
+  @override
+  String optionRenamedMsg(int count) {
+    return 'تمت إعادة التسمية — انتقل معها $count منتج';
+  }
+
+  @override
+  String optionRemovedMsg(int count) {
+    return 'تم الحذف — $count منتج بلا قيمة الآن';
+  }
+
+  @override
+  String get addOptionHint => 'أضف خيارًا';
+
+  @override
+  String get optionsSectionTitle => 'الخيارات';
+
+  @override
+  String get optionsLiveNote =>
+      'التغييرات على الخيارات تُحفظ فورًا، وتنتقل معها المنتجات.';
 }

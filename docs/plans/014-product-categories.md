@@ -1,6 +1,35 @@
 # Plan 014 — Product Categories
 
-> **Status:** ✅ **DECIDED (owner, this round) — Option 2.**
+> **Status:** ✅ **BUILT — all three steps.** Option 2 as decided: the category is
+> a `select` attribute with the well-known id `category`, two tabs on the
+> products page, bulk assign on the existing multi-select, and rename/delete that
+> carry the products with them. **No schema change, no migration.**
+>
+> **Decisions taken while building, that were not in the study:**
+>
+> - **The categories are typed by the owner, not seeded from a guess.** The
+>   study said "ship a ready-made القسم field"; shipping ready-made *options*
+>   would have meant a phone shop deleting six grocery sections before any use.
+>   So the empty tab creates the field **and asks for the names** in one dialog.
+> - **The option editor for an existing `select` field is no longer free text.**
+>   A comma-separated box cannot tell a rename from a delete-plus-add, and that
+>   difference decides whether the products come along. Options are now chips
+>   with explicit rename/delete — for **every** choice-list field, as the study
+>   asked.
+> - **Deleting an option clears it from its products** (they fall into the "no
+>   category" bucket) rather than being blocked. Blocking would strand an owner
+>   with a section they no longer use and cannot remove; the products stay
+>   findable either way because أخرى is a real chip.
+> - **The rename mirrors into the form's local list.** Rename writes to the
+>   database immediately, but the field editor's own Save also writes the
+>   definition — without mirroring, Save would restore the old option name while
+>   the products had already moved.
+>
+> Covered by `test/attribute_options_test.dart` (12 pure tests) and
+> `integration_test/category_propagation_test.dart` (8 SQL tests, **verified on
+> the host's SQLite; still owed a device run**).
+
+> **Original decision.** ✅ **DECIDED (owner, this round) — Option 2.**
 >
 > | Question | Owner's answer | Consequence |
 > |---|---|---|

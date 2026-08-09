@@ -61,6 +61,55 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
         }
       });
 
+  /// Set (or clear) one custom-field value on many products at once — bulk
+  /// category assign, Plan 014 step 2. A blank [value] clears the field, which
+  /// is how a product is put back into the "no category" bucket.
+  ///
+  /// Two details that would each be a silent data loss if skipped:
+  ///
+  /// - `json_set` on a **non-JSON** column returns NULL, and the `attributes`
+  ///   default is `''` for every product that has never had one. Without the
+  ///   `CASE`, categorising an untouched product would blank its bag.
+  /// - Ids go in **chunks of 200**: SQLite caps bound variables (999 by
+  ///   default), and "select all" on a 300-product shop is a realistic thing to
+  ///   do.
+  ///
+  /// One transaction, and `customUpdate(updates: {products})` so the product
+  /// stream re-runs — the rule `SalesDao` learned the hard way.
+  Future<int> setAttributeOnProducts({
+    required List<String> ids,
+    required String jsonPath,
+    required String value,
+  }) {
+    if (ids.isEmpty) return Future.value(0);
+    final clearing = value.trim().isEmpty;
+    return transaction(() async {
+      var changed = 0;
+      for (var i = 0; i < ids.length; i += 200) {
+        final chunk = ids.sublist(i, i + 200 > ids.length ? ids.length : i + 200);
+        final holes = List.filled(chunk.length, '?').join(', ');
+        changed += await customUpdate(
+          clearing
+              ? "UPDATE products SET attributes = "
+                  "CASE WHEN NOT json_valid(attributes) THEN attributes "
+                  "     WHEN json_remove(attributes, ?) = '{}' THEN '' "
+                  '     ELSE json_remove(attributes, ?) END '
+                  'WHERE id IN ($holes)'
+              : 'UPDATE products SET attributes = json_set('
+                  "CASE WHEN json_valid(attributes) THEN attributes ELSE '{}' END, ?, ?) "
+                  'WHERE id IN ($holes)',
+          variables: [
+            Variable.withString(jsonPath),
+            Variable.withString(clearing ? jsonPath : value),
+            for (final id in chunk) Variable.withString(id),
+          ],
+          updates: {products},
+        );
+      }
+      return changed;
+    });
+  }
+
   /// Delete a product by its [id]. Returns the number of deleted rows.
   Future<int> deleteProduct(String id) =>
       (delete(products)..where((p) => p.id.equals(id))).go();

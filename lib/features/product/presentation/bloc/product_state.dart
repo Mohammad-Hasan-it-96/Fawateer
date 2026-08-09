@@ -23,6 +23,10 @@ enum ProductMessage {
   /// message: a green "done" after nothing happened is how a shop ends up
   /// believing a price change was saved when it was not.
   bulkPricesUnchanged,
+
+  /// A bulk category assign landed; [ProductState.messageCount] holds how many
+  /// products moved.
+  bulkCategorySet,
 }
 
 class ProductState extends Equatable {

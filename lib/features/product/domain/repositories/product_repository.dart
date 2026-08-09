@@ -22,4 +22,13 @@ abstract class ProductRepository {
   /// cost**; nothing else on the passed products is written, so a stale name or
   /// quantity in the caller's copy cannot overwrite the real row.
   Future<Either<Failure, void>> updatePrices(List<Product> products);
+
+  /// Set one custom-field value on many products in a single transaction —
+  /// bulk category assign (Plan 014 step 2). A blank [value] clears the field,
+  /// which is how products are moved back to the "no category" bucket.
+  Future<Either<Failure, void>> setAttributeOnProducts({
+    required List<String> productIds,
+    required String definitionId,
+    required String value,
+  });
 }

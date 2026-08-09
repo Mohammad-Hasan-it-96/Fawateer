@@ -3596,6 +3596,162 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No price changed'**
   String get bulkPricesUnchanged;
+
+  /// No description provided for @tabAllProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get tabAllProducts;
+
+  /// No description provided for @tabByCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'By category'**
+  String get tabByCategory;
+
+  /// No description provided for @categoryUncategorized.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get categoryUncategorized;
+
+  /// No description provided for @categoryAllChip.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get categoryAllChip;
+
+  /// No description provided for @noCategoriesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No categories yet'**
+  String get noCategoriesTitle;
+
+  /// No description provided for @noCategoriesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a few sections for your shop — drinks, dairy, cleaning. You can change them later from Settings → Product fields.'**
+  String get noCategoriesHint;
+
+  /// No description provided for @createCategoriesBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Create categories'**
+  String get createCategoriesBtn;
+
+  /// No description provided for @categoriesDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop categories'**
+  String get categoriesDialogTitle;
+
+  /// No description provided for @categoriesDialogHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Category names, separated by a comma'**
+  String get categoriesDialogHint;
+
+  /// No description provided for @manageCategoriesTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage categories'**
+  String get manageCategoriesTooltip;
+
+  /// No description provided for @setCategoryAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Set category'**
+  String get setCategoryAction;
+
+  /// No description provided for @chooseCategoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Category for {count} products'**
+  String chooseCategoryTitle(int count);
+
+  /// No description provided for @newCategoryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'New category'**
+  String get newCategoryHint;
+
+  /// No description provided for @categoryClearOption.
+  ///
+  /// In en, this message translates to:
+  /// **'No category'**
+  String get categoryClearOption;
+
+  /// No description provided for @bulkCategorySet.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} products moved'**
+  String bulkCategorySet(int count);
+
+  /// No description provided for @optionRenameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename \"{value}\"'**
+  String optionRenameTitle(String value);
+
+  /// No description provided for @optionRenameMergeWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{value}\" already exists — the two will be merged into one.'**
+  String optionRenameMergeWarning(String value);
+
+  /// No description provided for @optionRenameAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get optionRenameAction;
+
+  /// No description provided for @optionRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{value}\"?'**
+  String optionRemoveTitle(String value);
+
+  /// No description provided for @optionRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} products use it. They will keep everything else and simply have no value for this field.'**
+  String optionRemoveBody(int count);
+
+  /// No description provided for @optionInUseCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Used by {count} products'**
+  String optionInUseCount(int count);
+
+  /// No description provided for @optionRenamedMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Renamed — {count} products moved with it'**
+  String optionRenamedMsg(int count);
+
+  /// No description provided for @optionRemovedMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted — {count} products cleared'**
+  String optionRemovedMsg(int count);
+
+  /// No description provided for @addOptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an option'**
+  String get addOptionHint;
+
+  /// No description provided for @optionsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get optionsSectionTitle;
+
+  /// No description provided for @optionsLiveNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes to the options are saved right away, and your products move with them.'**
+  String get optionsLiveNote;
 }
 
 class _AppLocalizationsDelegate

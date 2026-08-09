@@ -3,8 +3,9 @@
 > **Status:** 🚧 **IN PROGRESS.** ✅ Wave A shipped and device-verified — items
 > **1, 2, 4, 5, 6, 7, 8**. ✅ The **multi-select building block** is shipped too,
 > with its first action (bulk price/cost = Plan 015 B2.2); the second action
-> (bulk category = Plan 014 step 2) plugs into the same bar. Remaining: #9, #11,
-> #3, #10. Source:
+> (bulk category = Plan 014 step 2) plugs into the same bar. ✅ **#9 categories
+> is built** — all three steps of Plan 014, no schema change. Remaining: #11
+> (duplicate product, then the barcode index), #3, #10. Source:
 > `docs/v1-fixes-2.txt`, 11 items from the shop after more real use. Successor to
 > Plan 011 (round 1), same spirit: **mostly papercuts, not new features.**
 >
@@ -47,7 +48,7 @@
 | 6 | **Bug:** QR wins over barcode on the same item | **S — but a real bug** | no | ✅ **SHIPPED** — see below |
 | 7 | Smaller camera window in POS | S | no | ✅ **SHIPPED** (0.40 → 0.32) |
 | 8 | Share a customer statement as an image | S | no | ✅ **SHIPPED** (image *and* text) |
-| 9 | Product categories | **M** | **no** | → Plan 014 (attribute field + tabs + bulk + rename) |
+| 9 | Product categories | **M** | **no** | ✅ **SHIPPED** — Plan 014, all three steps |
 | 10 | Low-stock notifications | M | no | **cannot fire while the app is closed** — see below |
 | 11 | Two prices/one barcode; many barcodes/one price | **M/L** | **yes (index only)** | → Plan 015 |
 
@@ -71,7 +72,9 @@
    - Writes go through a real SQL `UPDATE`, not the usual insert-or-replace:
      replace mints a new rowid, and the list is ordered by rowid, so a bulk edit
      would have shuffled every touched product to the top mid-task.
-4. **#9 categories** (seeded field → tabs → bulk assign → rename propagation).
+4. ✅ **#9 categories** (field → tabs → bulk assign → rename propagation) —
+   **shipped**; see Plan 014's header for the four decisions taken while
+   building that the study had left open.
 5. **#11 Case B** (duplicate product + bulk price) — no schema.
 6. **#3** delete invoice → change payment/customer → PIN guard.
 7. **#10** notifications, once the "app must be open" limit is agreed.

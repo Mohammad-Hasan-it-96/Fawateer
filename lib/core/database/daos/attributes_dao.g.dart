@@ -6,6 +6,7 @@ part of 'attributes_dao.dart';
 mixin _$AttributesDaoMixin on DatabaseAccessor<AppDatabase> {
   $AttributeDefinitionsTable get attributeDefinitions =>
       attachedDatabase.attributeDefinitions;
+  $ProductsTable get products => attachedDatabase.products;
   AttributesDaoManager get managers => AttributesDaoManager(this);
 }
 
@@ -15,4 +16,6 @@ class AttributesDaoManager {
   $$AttributeDefinitionsTableTableManager get attributeDefinitions =>
       $$AttributeDefinitionsTableTableManager(
           _db.attachedDatabase, _db.attributeDefinitions);
+  $$ProductsTableTableManager get products =>
+      $$ProductsTableTableManager(_db.attachedDatabase, _db.products);
 }

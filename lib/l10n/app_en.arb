@@ -814,5 +814,95 @@
       }
     }
   },
-  "bulkPricesUnchanged": "No price changed"
+  "bulkPricesUnchanged": "No price changed",
+
+  "tabAllProducts": "All",
+  "tabByCategory": "By category",
+  "categoryUncategorized": "Other",
+  "categoryAllChip": "All",
+  "noCategoriesTitle": "No categories yet",
+  "noCategoriesHint": "Create a few sections for your shop — drinks, dairy, cleaning. You can change them later from Settings → Product fields.",
+  "createCategoriesBtn": "Create categories",
+  "categoriesDialogTitle": "Shop categories",
+  "categoriesDialogHint": "Category names, separated by a comma",
+  "manageCategoriesTooltip": "Manage categories",
+  "setCategoryAction": "Set category",
+  "chooseCategoryTitle": "Category for {count} products",
+  "@chooseCategoryTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "newCategoryHint": "New category",
+  "categoryClearOption": "No category",
+  "bulkCategorySet": "{count} products moved",
+  "@bulkCategorySet": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "optionRenameTitle": "Rename \"{value}\"",
+  "@optionRenameTitle": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "optionRenameMergeWarning": "\"{value}\" already exists — the two will be merged into one.",
+  "@optionRenameMergeWarning": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "optionRenameAction": "Rename",
+  "optionRemoveTitle": "Delete \"{value}\"?",
+  "@optionRemoveTitle": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "optionRemoveBody": "{count} products use it. They will keep everything else and simply have no value for this field.",
+  "@optionRemoveBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "optionInUseCount": "Used by {count} products",
+  "@optionInUseCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "optionRenamedMsg": "Renamed — {count} products moved with it",
+  "@optionRenamedMsg": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "optionRemovedMsg": "Deleted — {count} products cleared",
+  "@optionRemovedMsg": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addOptionHint": "Add an option",
+  "optionsSectionTitle": "Options",
+  "optionsLiveNote": "Changes to the options are saved right away, and your products move with them."
 }

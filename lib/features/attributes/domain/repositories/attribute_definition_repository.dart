@@ -22,4 +22,24 @@ abstract class AttributeDefinitionRepository {
 
   /// Whether any definition exists yet (drives one-time onboarding).
   Future<Either<Failure, bool>> hasAny();
+
+  /// Rename one `select` option **and move every product holding it**
+  /// (Plan 014 step 3). Returns how many products moved.
+  ///
+  /// Renaming onto an option that already exists is a **merge**, not a
+  /// duplicate: the owner tidying "مشروبات" into an existing "عصائر" means the
+  /// two become one, which is exactly what they intended.
+  Future<Either<Failure, int>> renameOption({
+    required String definitionId,
+    required String from,
+    required String to,
+  });
+
+  /// Delete one `select` option **and clear it from every product holding it**.
+  /// Those products fall into the "no value" bucket rather than keeping a value
+  /// that is no longer offered. Returns how many products were cleared.
+  Future<Either<Failure, int>> removeOption({
+    required String definitionId,
+    required String value,
+  });
 }

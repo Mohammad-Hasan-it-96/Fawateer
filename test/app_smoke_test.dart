@@ -151,6 +151,13 @@ class _FakeProductRepository implements ProductRepository {
   @override
   Future<Either<Failure, void>> updatePrices(List<Product> products) async =>
       const Right(null);
+  @override
+  Future<Either<Failure, void>> setAttributeOnProducts({
+    required List<String> productIds,
+    required String definitionId,
+    required String value,
+  }) async =>
+      const Right(null);
 }
 
 class _FakeInvoiceRepository implements InvoiceRepository {
