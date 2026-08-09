@@ -755,6 +755,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   String _fontScaleLabel(AppFontScale scale, AppLocalizations l10n) =>
       switch (scale) {
+        AppFontScale.tiny => l10n.fontSizeTiny,
         AppFontScale.small => l10n.fontSizeSmall,
         AppFontScale.normal => l10n.fontSizeNormal,
         AppFontScale.large => l10n.fontSizeLarge,

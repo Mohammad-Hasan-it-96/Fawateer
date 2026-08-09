@@ -1382,6 +1382,12 @@ abstract class AppLocalizations {
   /// **'Font size'**
   String get fontSizeTitle;
 
+  /// No description provided for @fontSizeTiny.
+  ///
+  /// In en, this message translates to:
+  /// **'Tiny'**
+  String get fontSizeTiny;
+
   /// No description provided for @fontSizeSmall.
   ///
   /// In en, this message translates to:

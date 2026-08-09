@@ -249,6 +249,7 @@
   "themeDark": "Dark",
   "themeSystem": "Follow system",
   "fontSizeTitle": "Font size",
+  "fontSizeTiny": "Tiny",
   "fontSizeSmall": "Small",
   "fontSizeNormal": "Normal",
   "fontSizeLarge": "Large",

@@ -983,35 +983,42 @@ class _ProductListPageState extends State<ProductListPage> {
     );
   }
 
-  /// The action row. Two buttons today (category, price); a third would go here
+  /// The action buttons. Two today (category, price); a third would go here
   /// rather than into a new mode.
+  ///
+  /// **Stacked, not side by side.** Two half-width buttons truncated
+  /// "تعديل الأسعار" to "تعديل الأس…" on a normal phone even at the *small*
+  /// text setting — and a half-read verb on a button that changes prices in
+  /// bulk is not something a smaller font should be papering over. Full width
+  /// each holds every label at every text size, including the largest.
   Widget _selectionActions(List<Product> selected, AppLocalizations l10n) {
     final categoryField = _categoryField(context);
-    return Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         // Only offered once the shop has a category field — otherwise the
         // button would open a sheet with nothing to choose.
         if (categoryField != null) ...[
-          Expanded(
+          SizedBox(
+            width: double.infinity,
             child: OutlinedButton.icon(
               onPressed: selected.isEmpty
                   ? null
                   : () => _openBulkCategorySheet(categoryField, selected, l10n),
               icon: const Icon(Icons.category_outlined, size: 18),
-              label: Text(l10n.setCategoryAction,
-                  overflow: TextOverflow.ellipsis),
+              label: Text(l10n.setCategoryAction),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(height: 8),
         ],
-        Expanded(
+        SizedBox(
+          width: double.infinity,
           child: FilledButton.icon(
             onPressed: selected.isEmpty
                 ? null
                 : () => _openBulkPriceDialog(selected, l10n),
             icon: const Icon(Icons.sell_outlined, size: 18),
-            label: Text(l10n.bulkEditPricesAction,
-                overflow: TextOverflow.ellipsis),
+            label: Text(l10n.bulkEditPricesAction),
           ),
         ),
       ],

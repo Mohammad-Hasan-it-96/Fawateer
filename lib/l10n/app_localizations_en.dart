@@ -674,6 +674,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fontSizeTitle => 'Font size';
 
   @override
+  String get fontSizeTiny => 'Tiny';
+
+  @override
   String get fontSizeSmall => 'Small';
 
   @override

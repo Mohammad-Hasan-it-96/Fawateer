@@ -670,6 +670,9 @@ class AppLocalizationsAr extends AppLocalizations {
   String get fontSizeTitle => 'حجم الخط';
 
   @override
+  String get fontSizeTiny => 'صغير جدًا';
+
+  @override
   String get fontSizeSmall => 'صغير';
 
   @override

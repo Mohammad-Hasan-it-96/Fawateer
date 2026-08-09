@@ -6,6 +6,11 @@ import '../database/daos/settings_dao.dart';
 /// so reordering can't remap a stored choice) in one [AppSettings] row — same
 /// treatment as the theme mode.
 enum AppFontScale {
+  /// Added after a shop reported action labels still running out of room at
+  /// [small] on a narrow phone. **0.8 is the floor**, not a step on the way
+  /// down: below it the shop's own product names stop being readable across a
+  /// counter, and the fix for a cramped screen becomes a screen nobody can use.
+  tiny(0.8),
   small(0.9),
   normal(1.0),
   large(1.15),
