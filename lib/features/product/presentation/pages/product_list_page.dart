@@ -993,6 +993,16 @@ class _ProductListPageState extends State<ProductListPage> {
   /// each holds every label at every text size, including the largest.
   Widget _selectionActions(List<Product> selected, AppLocalizations l10n) {
     final categoryField = _categoryField(context);
+    // Short buttons: this bar covers the bottom of the product list while the
+    // owner is still picking rows, so it should take the least height that
+    // still reads as a button. 40dp is the floor for a reliable tap, not a
+    // number to keep shaving.
+    final style = ButtonStyle(
+      minimumSize: WidgetStateProperty.all(const Size.fromHeight(40)),
+      padding: WidgetStateProperty.all(
+          const EdgeInsets.symmetric(horizontal: 12)),
+      visualDensity: VisualDensity.compact,
+    );
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -1002,6 +1012,7 @@ class _ProductListPageState extends State<ProductListPage> {
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
+              style: style,
               onPressed: selected.isEmpty
                   ? null
                   : () => _openBulkCategorySheet(categoryField, selected, l10n),
@@ -1009,11 +1020,12 @@ class _ProductListPageState extends State<ProductListPage> {
               label: Text(l10n.setCategoryAction),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
         ],
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
+            style: style,
             onPressed: selected.isEmpty
                 ? null
                 : () => _openBulkPriceDialog(selected, l10n),

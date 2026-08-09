@@ -568,7 +568,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             // Tight, not the default page-CTA spacing (Plan 013 #7): the
             // 24px frame around this button cost about two cart lines on a
             // small phone, and the cashier needs to see what they scanned.
-            margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            // `dense` trims the button itself for the same reason — the tap
+            // target stays 44dp.
+            dense: true,
+            margin: const EdgeInsets.fromLTRB(16, 6, 16, 8),
             elevation: 4,
           );
         },

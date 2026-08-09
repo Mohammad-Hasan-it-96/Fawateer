@@ -17,6 +17,13 @@ class PrimaryButton extends StatelessWidget {
   /// (Plan 013 #7).
   final EdgeInsetsGeometry margin;
 
+  /// A shorter button for screens where it shares space with a list.
+  ///
+  /// Only the *chrome* shrinks — height and padding. The tap target stays at
+  /// 44dp, above the 40dp floor a finger can reliably hit, because the button
+  /// that takes the cashier to checkout is the last one that should need aiming.
+  final bool dense;
+
   const PrimaryButton({
     super.key,
     required this.onPressed,
@@ -29,6 +36,7 @@ class PrimaryButton extends StatelessWidget {
     this.textStyle,
     this.isLoading = false,
     this.margin = const EdgeInsets.all(24.0),
+    this.dense = false,
   });
 
   @override
@@ -36,13 +44,14 @@ class PrimaryButton extends StatelessWidget {
     final style = ElevatedButton.styleFrom(
       backgroundColor: Theme.of(context).primaryColor,
       foregroundColor: Colors.white,
-      padding: padding,
+      padding: dense ? const EdgeInsets.symmetric(vertical: 8) : padding,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       elevation: elevation,
       shadowColor: Theme.of(context).primaryColor.withValues(alpha: 0.4),
-      minimumSize: isFullWidth ? const Size.fromHeight(50) : null,
+      minimumSize:
+          isFullWidth ? Size.fromHeight(dense ? 44 : 50) : null,
     );
 
     if (icon != null) {

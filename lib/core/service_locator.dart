@@ -17,6 +17,7 @@ import 'database/daos/product_units_dao.dart';
 import 'network/api_client.dart';
 import 'config/remote_config_service.dart';
 import 'currency/exchange_rate_service.dart';
+import 'settings/device_preferences.dart';
 import 'settings/inventory_settings_service.dart';
 import 'settings/print_settings_service.dart';
 import 'theme/font_scale_controller.dart';
@@ -115,12 +116,15 @@ Future<void> init() async {
       () => InventorySettingsService(sl<SettingsDao>()));
   sl.registerLazySingleton<PrintSettingsService>(
       () => PrintSettingsService(sl<SettingsDao>()));
+  // Phone-local display settings, kept out of the shop's database — see
+  // `DevicePreferences`.
+  sl.registerLazySingleton<DevicePreferences>(() => DevicePreferences());
   // Singleton, not a factory: `MyApp` listens to this instance and the settings
   // page writes to it — two copies would leave the UI out of sync.
   sl.registerLazySingleton<ThemeController>(
-      () => ThemeController(sl<SettingsDao>()));
+      () => ThemeController(sl<SettingsDao>(), sl<DevicePreferences>()));
   sl.registerLazySingleton<FontScaleController>(
-      () => FontScaleController(sl<SettingsDao>()));
+      () => FontScaleController(sl<SettingsDao>(), sl<DevicePreferences>()));
 
   // ── Repositories ─────────────────────────────────────────────────────────
   sl.registerLazySingleton<ProductRepository>(
