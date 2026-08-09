@@ -734,33 +734,49 @@ class _EmptyState extends StatelessWidget {
     final narrowed = filter.search.isNotEmpty ||
         filter.payment != PaymentFilter.all ||
         filter.preset != DatePreset.today;
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              shape: BoxShape.circle,
-            ),
-            alignment: Alignment.center,
-            child: Icon(Icons.receipt_long,
-                size: 40, color: Theme.of(context).colorScheme.outlineVariant),
+    // Scroll-and-center, never a bare Center: the search field, the filter
+    // chips and the summary cards above this can leave under 150px on a small
+    // phone, and a fixed Column then overflows (reported from a device: "bottom
+    // overflowed by 43 pixels" striped over the empty sales list). Centered
+    // while it fits, scrollable the moment it doesn't.
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+              minHeight: (constraints.maxHeight - 24).clamp(0.0, double.infinity)),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                  shape: BoxShape.circle,
+                ),
+                alignment: Alignment.center,
+                child: Icon(Icons.receipt_long,
+                    size: 40,
+                    color: Theme.of(context).colorScheme.outlineVariant),
+              ),
+              const SizedBox(height: 16),
+              Text(narrowed ? l10n.noSalesMatch : l10n.noSalesYet,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 18)),
+              if (!narrowed) ...[
+                const SizedBox(height: 8),
+                Text(l10n.noSalesHint,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        fontSize: 14)),
+              ],
+            ],
           ),
-          const SizedBox(height: 16),
-          Text(narrowed ? l10n.noSalesMatch : l10n.noSalesYet,
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
-          if (!narrowed) ...[
-            const SizedBox(height: 8),
-            Text(l10n.noSalesHint,
-                style: TextStyle(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    fontSize: 14)),
-          ],
-        ],
+        ),
       ),
     );
   }

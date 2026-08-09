@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -157,10 +158,16 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   /// so a cashier scanning a ten-item basket could not see what they had
   /// already scanned, which is exactly when a double-scan goes unnoticed.
   ///
-  /// Not smaller than this: the preview is also the aiming window, and the
-  /// live rectangle has to stay big enough to hold a wholesale carton's label
-  /// at arm's length. This is the balance point, not a free dial.
-  static const double _kScannerHeightFraction = 0.32;
+  /// Then `0.32`, now `0.26`: what the preview has to hold is a **barcode**,
+  /// which is wide and short. Height was buying nothing — a taller preview
+  /// shows more shelf above and below the label, not more label. The width
+  /// (full screen) is the dimension that decides how close the cashier has to
+  /// hold a wholesale carton, and it is untouched.
+  ///
+  /// Not smaller than this: below ~0.24 the preview stops reading as a live
+  /// camera and starts looking like a stuck image, and the aiming frame no
+  /// longer clears the overlay buttons.
+  static const double _kScannerHeightFraction = 0.26;
 
   // "Try inverted mode" hint (Plan 011 #11 follow-up).
   //
@@ -670,7 +677,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             ),
           ),
 
-          // Scan target corners. IgnorePointer is load-bearing: a Container
+          // Scan target corners — a wide, short rectangle, shaped like the
+          // thing it is aiming at. A square frame told the cashier to centre a
+          // barcode in a box twice as tall as the code, so they backed away to
+          // "fill" it and lost the resolution the decode needs.
+          //
+          // It is a **hint, not a scan window**: no `scanWindow` is set, so ML
+          // Kit still decodes the whole frame. That is deliberate — the app
+          // prints its own product labels as QR (LabelImage), and a letterbox
+          // scan window would refuse the square codes we ourselves produce.
+          //
+          // IgnorePointer is load-bearing: a Container
           // with a BoxDecoration hit-tests as solid inside its rounded rect
           // even with no fill, so without it this box swallows every tap in
           // the center of the screen — exactly where the error state's
@@ -684,21 +701,38 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 valueListenable: _scannerController,
                 builder: (context, value, _) {
                   if (value.error != null) return const SizedBox.shrink();
-                  return Center(
-                    child: Container(
-                      width: 220,
-                      height: 220,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white24, width: 2),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Stack(children: [
-                        _buildCorner(Alignment.topLeft),
-                        _buildCorner(Alignment.topRight),
-                        _buildCorner(Alignment.bottomLeft),
-                        _buildCorner(Alignment.bottomRight),
-                      ]),
-                    ),
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Keep clear of the status bar and the overlay button row
+                      // above, and of the cart panel that laps over the bottom
+                      // 24px of the preview.
+                      final topInset =
+                          MediaQuery.of(context).padding.top + 64;
+                      final width = constraints.maxWidth * 0.82;
+                      final room = constraints.maxHeight - topInset - 28;
+                      final height =
+                          math.min(width / 2.6, room).clamp(56.0, 200.0);
+                      return Padding(
+                        padding: EdgeInsets.only(top: topInset, bottom: 28),
+                        child: Center(
+                          child: Container(
+                            width: width,
+                            height: height,
+                            decoration: BoxDecoration(
+                              border:
+                                  Border.all(color: Colors.white24, width: 2),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Stack(children: [
+                              _buildCorner(Alignment.topLeft),
+                              _buildCorner(Alignment.topRight),
+                              _buildCorner(Alignment.bottomLeft),
+                              _buildCorner(Alignment.bottomRight),
+                            ]),
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
