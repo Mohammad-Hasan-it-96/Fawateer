@@ -23,7 +23,30 @@
 >   rather than surprising. It also keeps a bulk edit from becoming a pointless
 >   200-row push on the sync branch.
 >
-> Still open in B2: **B2.1 "duplicate this product"**.
+> ✅ **B2.1 "duplicate this product" is shipped too**, so **Case B is complete**.
+> It lives as an app-bar action on the *edit* page, not on the product row —
+> the row already carries four buttons, and "I want another one like this" is a
+> thought that happens while looking at the product. Decisions worth keeping:
+>
+> - **The barcode is not copied**, it is asked for. Copying it could only ever
+>   fail the unique index — sharing a barcode is Case A, which has to drop that
+>   index first.
+> - **Stock starts at 0.** Inheriting the original's count would invent
+>   inventory, and on a serialized SKU it would claim units that physically
+>   belong to the other product.
+> - The name opens as the original's and is therefore **invalid on open** — on
+>   purpose. The edit is usually one word (برتقال → تفاح), and the "name already
+>   used" line showing from the first frame reads as an instruction.
+> - The scanner is reached by **closing the dialog and reopening it** with the
+>   result. GoRouter drives that Navigator declaratively, and a route pushed
+>   while an imperative dialog is open can land underneath it.
+>
+> The name/barcode uniqueness rules were written out longhand in the add form
+> and the edit form; they are now one pair of pure functions
+> (`product_uniqueness.dart`) shared by all three call sites and under test.
+>
+> **Remaining in this plan: only Case A**, which is gated on the branch-merge
+> order with `feat/multi-device-sync`.
 
 ---
 

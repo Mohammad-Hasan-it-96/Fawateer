@@ -3758,6 +3758,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Changes to the options are saved right away, and your products move with them.'**
   String get optionsLiveNote;
+
+  /// No description provided for @duplicateProductAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate'**
+  String get duplicateProductAction;
+
+  /// No description provided for @duplicateProductTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate \"{name}\"'**
+  String duplicateProductTitle(String name);
+
+  /// No description provided for @duplicateProductHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Price, cost, category and the other fields are copied. Stock starts at zero.'**
+  String get duplicateProductHint;
+
+  /// No description provided for @newProductNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New product name'**
+  String get newProductNameLabel;
+
+  /// No description provided for @newBarcodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Barcode (optional)'**
+  String get newBarcodeLabel;
 }
 
 class _AppLocalizationsDelegate

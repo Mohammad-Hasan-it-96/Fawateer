@@ -1983,4 +1983,22 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get optionsLiveNote =>
       'Changes to the options are saved right away, and your products move with them.';
+
+  @override
+  String get duplicateProductAction => 'Duplicate';
+
+  @override
+  String duplicateProductTitle(String name) {
+    return 'Duplicate \"$name\"';
+  }
+
+  @override
+  String get duplicateProductHint =>
+      'Price, cost, category and the other fields are copied. Stock starts at zero.';
+
+  @override
+  String get newProductNameLabel => 'New product name';
+
+  @override
+  String get newBarcodeLabel => 'Barcode (optional)';
 }

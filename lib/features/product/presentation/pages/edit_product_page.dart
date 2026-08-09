@@ -3,8 +3,11 @@ import 'package:billing_app/core/widgets/primary_button.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:uuid/uuid.dart';
 
 import '../bloc/product_bloc.dart';
+import '../../domain/product_duplicate.dart';
+import '../../domain/product_uniqueness.dart';
 import '../widgets/currency_field.dart';
 import '../widgets/price_currency_selector.dart';
 import '../widgets/sale_type_selector.dart';
@@ -64,10 +67,8 @@ class _EditProductPageState extends State<EditProductPage> {
       // Product names must stay unique (case-insensitive), excluding this same
       // product — so renaming can't collide with another existing product.
       final products = context.read<ProductBloc>().state.products;
-      final nameExists = products.any((p) =>
-          p.id != widget.product.id &&
-          p.name.trim().toLowerCase() == _name.trim().toLowerCase());
-      if (nameExists) {
+      if (productNameTaken(products, _name,
+          excludingId: widget.product.id)) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(AppLocalizations.of(context)!.productNameExistsError),
@@ -93,6 +94,54 @@ class _EditProductPageState extends State<EditProductPage> {
       context.read<ProductBloc>().add(UpdateProduct(updatedProduct));
       context.pop();
     }
+  }
+
+
+  /// "Another one like this" (Plan 015 B2.1) — ten juice flavours as ten quick
+  /// confirmations instead of ten full forms.
+  ///
+  /// Reopens itself after a scan rather than pushing the scanner from inside
+  /// the dialog. That is not squeamishness: GoRouter drives this Navigator
+  /// declaratively, and a route pushed while an imperative dialog is open can
+  /// land *underneath* it — leaving the cashier looking at a dialog with an
+  /// invisible camera behind it. Closing first is deterministic, and the typed
+  /// name is carried back in so nothing is lost.
+  Future<void> _openDuplicateDialog({String? name, String? barcode}) async {
+    final productBloc = context.read<ProductBloc>();
+    final source = widget.product;
+
+    final result = await showDialog<_DuplicateResult>(
+      context: context,
+      builder: (dialogCtx) => _DuplicateDialog(
+        source: source,
+        products: productBloc.state.products,
+        initialName: name ?? source.name,
+        initialBarcode: barcode ?? '',
+      ),
+    );
+    if (result == null || !mounted) return;
+
+    if (result.scanRequested) {
+      final scanned = await context.push<String>('/scanner');
+      if (!mounted) return;
+      return _openDuplicateDialog(
+        name: result.name,
+        barcode: (scanned != null && scanned.isNotEmpty)
+            ? scanned
+            : result.barcode,
+      );
+    }
+
+    productBloc.add(AddProduct(duplicateProduct(
+      source,
+      id: const Uuid().v4(),
+      name: result.name,
+      barcode: result.barcode,
+    )));
+    // Leave the edit page too: the owner is now looking at the *old* product's
+    // form, and staying there is a good way to save the original's fields over
+    // a copy they think they are editing.
+    if (mounted) context.pop();
   }
 
   /// Opt-in per-unit identity (Plan 012). Deliberately a switch on the normal
@@ -121,6 +170,16 @@ class _EditProductPageState extends State<EditProductPage> {
           title: Text(l10n.editProductTitle,
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
           centerTitle: true,
+          actions: [
+            // Duplicating lives here, not on the product row: the row already
+            // carries four actions, and "I want another one like this" is a
+            // thought that happens while looking at the product itself.
+            IconButton(
+              icon: const Icon(Icons.copy_all_outlined),
+              tooltip: l10n.duplicateProductAction,
+              onPressed: () => _openDuplicateDialog(),
+            ),
+          ],
         ),
         body: SafeArea(
           child: SingleChildScrollView(
@@ -293,5 +352,135 @@ class _EditProductPageState extends State<EditProductPage> {
           icon: Icons.save,
           label: l10n.saveChangesBtn,
         ));
+  }
+}
+
+/// What the duplicate dialog hands back: either a product to create, or a
+/// request to go and scan a barcode and come straight back.
+class _DuplicateResult {
+  final String name;
+  final String barcode;
+  final bool scanRequested;
+  const _DuplicateResult({
+    required this.name,
+    required this.barcode,
+    this.scanRequested = false,
+  });
+}
+
+/// Asks for the only two things a copy needs: a new name and (optionally) a new
+/// barcode.
+///
+/// Both are validated **while typing**, not on submit. The add form lets you
+/// fill in nine fields and then refuses with a red snackbar; with two fields
+/// there is no excuse for not saying which one is wrong before the owner
+/// commits to it.
+///
+/// The name opens as the original's, because the edit is usually one word
+/// (برتقال → تفاح) and retyping the rest is exactly the tax this feature exists
+/// to remove. So it opens *invalid*, on purpose: the "name already used" line
+/// is showing from the first frame, which reads as an instruction rather than a
+/// rejection.
+class _DuplicateDialog extends StatefulWidget {
+  final Product source;
+  final List<Product> products;
+  final String initialName;
+  final String initialBarcode;
+
+  const _DuplicateDialog({
+    required this.source,
+    required this.products,
+    required this.initialName,
+    required this.initialBarcode,
+  });
+
+  @override
+  State<_DuplicateDialog> createState() => _DuplicateDialogState();
+}
+
+class _DuplicateDialogState extends State<_DuplicateDialog> {
+  late final TextEditingController _name =
+      TextEditingController(text: widget.initialName);
+  late final TextEditingController _barcode =
+      TextEditingController(text: widget.initialBarcode);
+
+  @override
+  void dispose() {
+    _name.dispose();
+    _barcode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final name = _name.text;
+    final barcode = _barcode.text;
+    final nameError = name.trim().isEmpty
+        ? l10n.fieldRequired
+        : productNameTaken(widget.products, name)
+            ? l10n.productNameExistsError
+            : null;
+    final barcodeError = productBarcodeTaken(widget.products, barcode)
+        ? l10n.barcodeExistsError
+        : null;
+
+    return AlertDialog(
+      title: Text(l10n.duplicateProductTitle(widget.source.name)),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.duplicateProductHint,
+                style: Theme.of(context).textTheme.bodySmall),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _name,
+              autofocus: true,
+              textCapitalization: TextCapitalization.words,
+              decoration: InputDecoration(
+                labelText: l10n.newProductNameLabel,
+                errorText: nameError,
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _barcode,
+              decoration: InputDecoration(
+                labelText: l10n.newBarcodeLabel,
+                errorText: barcodeError,
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.qr_code_scanner),
+                  tooltip: l10n.unknownBarcodeSearch,
+                  // Hands back to the page, which scans and reopens this
+                  // dialog — see [_openDuplicateDialog].
+                  onPressed: () => Navigator.pop(
+                    context,
+                    _DuplicateResult(
+                        name: name, barcode: barcode, scanRequested: true),
+                  ),
+                ),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l10n.cancel),
+        ),
+        FilledButton(
+          onPressed: nameError != null || barcodeError != null
+              ? null
+              : () => Navigator.pop(
+                  context, _DuplicateResult(name: name, barcode: barcode)),
+          child: Text(l10n.duplicateProductAction),
+        ),
+      ],
+    );
   }
 }

@@ -646,5 +646,11 @@
   "optionRemovedMsg": "تم الحذف — {count} منتج بلا قيمة الآن",
   "addOptionHint": "أضف خيارًا",
   "optionsSectionTitle": "الخيارات",
-  "optionsLiveNote": "التغييرات على الخيارات تُحفظ فورًا، وتنتقل معها المنتجات."
+  "optionsLiveNote": "التغييرات على الخيارات تُحفظ فورًا، وتنتقل معها المنتجات.",
+
+  "duplicateProductAction": "نسخ",
+  "duplicateProductTitle": "نسخ «{name}»",
+  "duplicateProductHint": "يُنسخ السعر والتكلفة والقسم وبقية الحقول. المخزون يبدأ من صفر.",
+  "newProductNameLabel": "اسم المنتج الجديد",
+  "newBarcodeLabel": "الباركود (اختياري)"
 }

@@ -4,8 +4,10 @@
 > **1, 2, 4, 5, 6, 7, 8**. ✅ The **multi-select building block** is shipped too,
 > with its first action (bulk price/cost = Plan 015 B2.2); the second action
 > (bulk category = Plan 014 step 2) plugs into the same bar. ✅ **#9 categories
-> is built** — all three steps of Plan 014, no schema change. Remaining: #11
-> (duplicate product, then the barcode index), #3, #10. Source:
+> is built** — all three steps of Plan 014, no schema change. ✅ **#11 Case B is
+> complete** (duplicate product + bulk price). Remaining: #3, #10, and #11
+> **Case A** — the barcode index, still gated on the branch-merge order.
+> Source:
 > `docs/v1-fixes-2.txt`, 11 items from the shop after more real use. Successor to
 > Plan 011 (round 1), same spirit: **mostly papercuts, not new features.**
 >
@@ -50,7 +52,7 @@
 | 8 | Share a customer statement as an image | S | no | ✅ **SHIPPED** (image *and* text) |
 | 9 | Product categories | **M** | **no** | ✅ **SHIPPED** — Plan 014, all three steps |
 | 10 | Low-stock notifications | M | no | **cannot fire while the app is closed** — see below |
-| 11 | Two prices/one barcode; many barcodes/one price | **M/L** | **yes (index only)** | → Plan 015 |
+| 11 | Two prices/one barcode; many barcodes/one price | **M/L** | **yes (index only)** | Plan 015 — ✅ **Case B shipped**; Case A (index) pending merge order |
 
 **Suggested order**
 
@@ -75,7 +77,7 @@
 4. ✅ **#9 categories** (field → tabs → bulk assign → rename propagation) —
    **shipped**; see Plan 014's header for the four decisions taken while
    building that the study had left open.
-5. **#11 Case B** (duplicate product + bulk price) — no schema.
+5. ✅ **#11 Case B** (duplicate product + bulk price) — **shipped**, no schema.
 6. **#3** delete invoice → change payment/customer → PIN guard.
 7. **#10** notifications, once the "app must be open" limit is agreed.
 8. **#11 Case A** (drop the UNIQUE barcode index) — **last**, and only after the

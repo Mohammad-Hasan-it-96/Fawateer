@@ -1968,4 +1968,22 @@ class AppLocalizationsAr extends AppLocalizations {
   @override
   String get optionsLiveNote =>
       'التغييرات على الخيارات تُحفظ فورًا، وتنتقل معها المنتجات.';
+
+  @override
+  String get duplicateProductAction => 'نسخ';
+
+  @override
+  String duplicateProductTitle(String name) {
+    return 'نسخ «$name»';
+  }
+
+  @override
+  String get duplicateProductHint =>
+      'يُنسخ السعر والتكلفة والقسم وبقية الحقول. المخزون يبدأ من صفر.';
+
+  @override
+  String get newProductNameLabel => 'اسم المنتج الجديد';
+
+  @override
+  String get newBarcodeLabel => 'الباركود (اختياري)';
 }

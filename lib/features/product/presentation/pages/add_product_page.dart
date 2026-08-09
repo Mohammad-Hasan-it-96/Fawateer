@@ -12,6 +12,7 @@ import '../widgets/sale_type_selector.dart';
 import '../../domain/entities/price_currency.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/entities/product_sale_type.dart';
+import '../../domain/product_uniqueness.dart';
 import '../../../attributes/presentation/bloc/attribute_definition_bloc.dart';
 import '../../../attributes/presentation/widgets/attribute_form_fields.dart';
 import '../../../../core/attributes/product_attributes.dart';
@@ -69,10 +70,7 @@ class _AddProductPageState extends State<AddProductPage> {
 
       // Only non-empty barcodes must be unique; many items legitimately have no
       // barcode (loose produce, bakery), so blank barcodes are always allowed.
-      final isDuplicate = _barcode.isNotEmpty &&
-          productState.products.any((p) => p.barcode == _barcode);
-
-      if (isDuplicate) {
+      if (productBarcodeTaken(productState.products, _barcode)) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.barcodeExistsError),
@@ -84,9 +82,7 @@ class _AddProductPageState extends State<AddProductPage> {
 
       // Product names must be unique (case-insensitive) so a misread barcode
       // can't spawn a second "same" product the cashier then can't tell apart.
-      final nameExists = productState.products.any(
-          (p) => p.name.trim().toLowerCase() == _name.trim().toLowerCase());
-      if (nameExists) {
+      if (productNameTaken(productState.products, _name)) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.productNameExistsError),

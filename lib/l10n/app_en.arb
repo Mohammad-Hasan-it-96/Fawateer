@@ -905,5 +905,18 @@
   },
   "addOptionHint": "Add an option",
   "optionsSectionTitle": "Options",
-  "optionsLiveNote": "Changes to the options are saved right away, and your products move with them."
+  "optionsLiveNote": "Changes to the options are saved right away, and your products move with them.",
+
+  "duplicateProductAction": "Duplicate",
+  "duplicateProductTitle": "Duplicate \"{name}\"",
+  "@duplicateProductTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "duplicateProductHint": "Price, cost, category and the other fields are copied. Stock starts at zero.",
+  "newProductNameLabel": "New product name",
+  "newBarcodeLabel": "Barcode (optional)"
 }
