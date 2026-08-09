@@ -10,6 +10,20 @@
 >
 > **So the two cases are solved by two different mechanisms, as expected — and
 > only Case A needs a migration.**
+>
+> **Progress:** ✅ **B2.2 (multi-select + bulk price/cost) is shipped.** Two
+> things were decided while building it that the rest of B2 inherits:
+>
+> - **"Set to one amount" is blocked on a mixed-currency selection**; a
+>   percentage is not. "All of these are now 5000" is meaningless across SP and
+>   USD products, and guessing which was meant is the wrong kind of helpful. See
+>   `mixesCurrencies` in `features/product/domain/bulk_price_edit.dart`.
+> - **Only products the edit actually moves are written**, and the dialog shows
+>   that count *before* Apply — so "12 selected" with "3 will change" is visible
+>   rather than surprising. It also keeps a bulk edit from becoming a pointless
+>   200-row push on the sync branch.
+>
+> Still open in B2: **B2.1 "duplicate this product"**.
 
 ---
 

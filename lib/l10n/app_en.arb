@@ -757,5 +757,62 @@
   "labelPrinted": "Label sent to the printer",
   "labelPrintFailed": "Couldn't print — check the printer connection",
   "unknownBarcodeSearch": "Search",
-  "productNameExistsError": "A product with this name already exists"
+  "productNameExistsError": "A product with this name already exists",
+
+  "selectAction": "Select",
+  "selectedCount": "{count} selected",
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "selectAllAction": "Select all",
+  "clearSelectionAction": "Clear",
+  "selectionHiddenByFilter": "{count} of them are hidden by the current filter",
+  "@selectionHiddenByFilter": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bulkEditPricesAction": "Edit prices",
+  "bulkPriceTitle": "Change price for {count} products",
+  "@bulkPriceTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bulkFieldPrice": "Selling price",
+  "bulkFieldCost": "Purchase cost",
+  "bulkModeSetTo": "Set amount",
+  "bulkModePercent": "Percentage",
+  "bulkPercentIncrease": "Increase",
+  "bulkPercentDecrease": "Decrease",
+  "bulkAmountLabel": "New amount",
+  "bulkPercentLabel": "Percentage %",
+  "bulkPreviewCount": "{count} products will change",
+  "@bulkPreviewCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bulkPreviewNoChange": "Nothing will change with these numbers",
+  "bulkMixedCurrency": "The selection has products priced in different currencies. Use a percentage, or select products of one currency only.",
+  "bulkApplyAction": "Apply",
+  "bulkPricesUpdated": "{count} products updated",
+  "@bulkPricesUpdated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bulkPricesUnchanged": "No price changed"
 }

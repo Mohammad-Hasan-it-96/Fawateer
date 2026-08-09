@@ -1808,4 +1808,78 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get productNameExistsError =>
       'A product with this name already exists';
+
+  @override
+  String get selectAction => 'Select';
+
+  @override
+  String selectedCount(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get selectAllAction => 'Select all';
+
+  @override
+  String get clearSelectionAction => 'Clear';
+
+  @override
+  String selectionHiddenByFilter(int count) {
+    return '$count of them are hidden by the current filter';
+  }
+
+  @override
+  String get bulkEditPricesAction => 'Edit prices';
+
+  @override
+  String bulkPriceTitle(int count) {
+    return 'Change price for $count products';
+  }
+
+  @override
+  String get bulkFieldPrice => 'Selling price';
+
+  @override
+  String get bulkFieldCost => 'Purchase cost';
+
+  @override
+  String get bulkModeSetTo => 'Set amount';
+
+  @override
+  String get bulkModePercent => 'Percentage';
+
+  @override
+  String get bulkPercentIncrease => 'Increase';
+
+  @override
+  String get bulkPercentDecrease => 'Decrease';
+
+  @override
+  String get bulkAmountLabel => 'New amount';
+
+  @override
+  String get bulkPercentLabel => 'Percentage %';
+
+  @override
+  String bulkPreviewCount(int count) {
+    return '$count products will change';
+  }
+
+  @override
+  String get bulkPreviewNoChange => 'Nothing will change with these numbers';
+
+  @override
+  String get bulkMixedCurrency =>
+      'The selection has products priced in different currencies. Use a percentage, or select products of one currency only.';
+
+  @override
+  String get bulkApplyAction => 'Apply';
+
+  @override
+  String bulkPricesUpdated(int count) {
+    return '$count products updated';
+  }
+
+  @override
+  String get bulkPricesUnchanged => 'No price changed';
 }

@@ -112,6 +112,19 @@ class ProductRepositoryDriftImpl implements ProductRepository {
   }
 
   @override
+  Future<Either<Failure, void>> updatePrices(List<Product> products) async {
+    if (products.isEmpty) return const Right(null);
+    try {
+      await _dao.updatePriceAndCost([
+        for (final p in products) (id: p.id, price: p.price, cost: p.cost),
+      ]);
+      return const Right(null);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> deleteProduct(String id) async {
     try {
       await _dao.deleteProduct(id);

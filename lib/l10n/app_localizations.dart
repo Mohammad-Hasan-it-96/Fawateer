@@ -3470,6 +3470,132 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'A product with this name already exists'**
   String get productNameExistsError;
+
+  /// No description provided for @selectAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get selectAction;
+
+  /// No description provided for @selectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String selectedCount(int count);
+
+  /// No description provided for @selectAllAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get selectAllAction;
+
+  /// No description provided for @clearSelectionAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clearSelectionAction;
+
+  /// No description provided for @selectionHiddenByFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of them are hidden by the current filter'**
+  String selectionHiddenByFilter(int count);
+
+  /// No description provided for @bulkEditPricesAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit prices'**
+  String get bulkEditPricesAction;
+
+  /// No description provided for @bulkPriceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change price for {count} products'**
+  String bulkPriceTitle(int count);
+
+  /// No description provided for @bulkFieldPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Selling price'**
+  String get bulkFieldPrice;
+
+  /// No description provided for @bulkFieldCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase cost'**
+  String get bulkFieldCost;
+
+  /// No description provided for @bulkModeSetTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Set amount'**
+  String get bulkModeSetTo;
+
+  /// No description provided for @bulkModePercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Percentage'**
+  String get bulkModePercent;
+
+  /// No description provided for @bulkPercentIncrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase'**
+  String get bulkPercentIncrease;
+
+  /// No description provided for @bulkPercentDecrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrease'**
+  String get bulkPercentDecrease;
+
+  /// No description provided for @bulkAmountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New amount'**
+  String get bulkAmountLabel;
+
+  /// No description provided for @bulkPercentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Percentage %'**
+  String get bulkPercentLabel;
+
+  /// No description provided for @bulkPreviewCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} products will change'**
+  String bulkPreviewCount(int count);
+
+  /// No description provided for @bulkPreviewNoChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing will change with these numbers'**
+  String get bulkPreviewNoChange;
+
+  /// No description provided for @bulkMixedCurrency.
+  ///
+  /// In en, this message translates to:
+  /// **'The selection has products priced in different currencies. Use a percentage, or select products of one currency only.'**
+  String get bulkMixedCurrency;
+
+  /// No description provided for @bulkApplyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get bulkApplyAction;
+
+  /// No description provided for @bulkPricesUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} products updated'**
+  String bulkPricesUpdated(int count);
+
+  /// No description provided for @bulkPricesUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'No price changed'**
+  String get bulkPricesUnchanged;
 }
 
 class _AppLocalizationsDelegate

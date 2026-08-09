@@ -13,6 +13,16 @@ enum ProductMessage {
   loadFailed,
   labelPrinted,
   labelPrintFailed,
+
+  /// A bulk price/cost edit landed; [ProductState.messageCount] holds how many
+  /// products actually changed.
+  bulkPricesUpdated,
+
+  /// The bulk edit resolved to no change at all (everything was already at that
+  /// price, or every selected product had been deleted). Deliberately its own
+  /// message: a green "done" after nothing happened is how a shop ends up
+  /// believing a price change was saved when it was not.
+  bulkPricesUnchanged,
 }
 
 class ProductState extends Equatable {
@@ -23,24 +33,31 @@ class ProductState extends Equatable {
   /// unless explicitly set, so it can't re-trigger a snackbar.
   final ProductMessage? message;
 
+  /// How many rows a bulk action touched, for the message that reports it.
+  /// Transient like [message] — cleared on the next emit.
+  final int messageCount;
+
   const ProductState({
     this.status = ProductStatus.initial,
     this.products = const [],
     this.message,
+    this.messageCount = 0,
   });
 
   ProductState copyWith({
     ProductStatus? status,
     List<Product>? products,
     ProductMessage? message,
+    int messageCount = 0,
   }) {
     return ProductState(
       status: status ?? this.status,
       products: products ?? this.products,
       message: message,
+      messageCount: messageCount,
     );
   }
 
   @override
-  List<Object?> get props => [status, products, message];
+  List<Object?> get props => [status, products, message, messageCount];
 }

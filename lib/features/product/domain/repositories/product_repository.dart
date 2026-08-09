@@ -16,4 +16,10 @@ abstract class ProductRepository {
   Future<Either<Failure, void>> addProduct(Product product);
   Future<Either<Failure, void>> updateProduct(Product product);
   Future<Either<Failure, void>> deleteProduct(String id);
+
+  /// Write the price and cost of many products in one transaction (Plan 015
+  /// B2.2 — bulk price edit). Takes whole entities but **saves only price and
+  /// cost**; nothing else on the passed products is written, so a stale name or
+  /// quantity in the caller's copy cannot overwrite the real row.
+  Future<Either<Failure, void>> updatePrices(List<Product> products);
 }

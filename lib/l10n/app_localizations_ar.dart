@@ -1793,4 +1793,78 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get productNameExistsError => 'يوجد منتج بهذا الاسم بالفعل';
+
+  @override
+  String get selectAction => 'تحديد';
+
+  @override
+  String selectedCount(int count) {
+    return '$count محدّد';
+  }
+
+  @override
+  String get selectAllAction => 'تحديد الكل';
+
+  @override
+  String get clearSelectionAction => 'إلغاء التحديد';
+
+  @override
+  String selectionHiddenByFilter(int count) {
+    return '$count منها مخفي بالفلتر الحالي';
+  }
+
+  @override
+  String get bulkEditPricesAction => 'تعديل الأسعار';
+
+  @override
+  String bulkPriceTitle(int count) {
+    return 'تعديل سعر $count منتج';
+  }
+
+  @override
+  String get bulkFieldPrice => 'سعر البيع';
+
+  @override
+  String get bulkFieldCost => 'سعر الشراء';
+
+  @override
+  String get bulkModeSetTo => 'تعيين مبلغ';
+
+  @override
+  String get bulkModePercent => 'نسبة مئوية';
+
+  @override
+  String get bulkPercentIncrease => 'زيادة';
+
+  @override
+  String get bulkPercentDecrease => 'خفض';
+
+  @override
+  String get bulkAmountLabel => 'المبلغ الجديد';
+
+  @override
+  String get bulkPercentLabel => 'النسبة %';
+
+  @override
+  String bulkPreviewCount(int count) {
+    return 'سيتغيّر $count منتج';
+  }
+
+  @override
+  String get bulkPreviewNoChange => 'لن يتغيّر شيء بهذه الأرقام';
+
+  @override
+  String get bulkMixedCurrency =>
+      'التحديد يضمّ منتجات بعملات مختلفة. استخدم النسبة المئوية، أو حدّد منتجات بعملة واحدة فقط.';
+
+  @override
+  String get bulkApplyAction => 'تطبيق';
+
+  @override
+  String bulkPricesUpdated(int count) {
+    return 'تم تحديث $count منتج';
+  }
+
+  @override
+  String get bulkPricesUnchanged => 'لم يتغيّر أي سعر';
 }

@@ -151,10 +151,20 @@ Select many products → set their category in one go. This is the part that sav
 the owner an afternoon, and doing it product-by-product through the edit form is
 what makes people give up on categories.
 
-> 🔗 **The same multi-select is needed by Plan 015 for bulk price editing** (the
-> owner chose one product per juice flavour, so a price change touches ten rows).
-> **Build the selection mechanism once and give it two actions**: *set category*
-> and *set price/cost*.
+> ✅ **The selection mechanism already exists** — it shipped with Plan 015 B2.2
+> (bulk price/cost) in `product_list_page.dart`. This step is **one more button
+> in the existing action bar**, not a new mode:
+>
+> - `_selectedIds` + `_selectionMode` hold the selection; `_selectionBar` is the
+>   bottom bar to add the button to.
+> - The selection is a set of **ids** that survives search/filter changes, and
+>   the bar already reports how many selected rows are hidden by the filter.
+> - Follow the write rule the price edit set: go through a **real `UPDATE`**
+>   (`ProductsDao.updatePriceAndCost` is the precedent), not insert-or-replace —
+>   replace mints a new rowid and the list is ordered by rowid, so the products
+>   you just categorised would jump to the top of the list.
+> - Setting a category writes into the **JSON bag**, so it needs its own DAO
+>   method rather than reusing the price one.
 
 ## Step 3 — rename propagation ⬅️ **required, not optional**
 

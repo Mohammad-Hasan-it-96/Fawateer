@@ -596,5 +596,27 @@
   "labelPrinted": "تم إرسال الملصق إلى الطابعة",
   "labelPrintFailed": "تعذّرت الطباعة — تحقّق من اتصال الطابعة",
   "unknownBarcodeSearch": "بحث",
-  "productNameExistsError": "يوجد منتج بهذا الاسم بالفعل"
+  "productNameExistsError": "يوجد منتج بهذا الاسم بالفعل",
+
+  "selectAction": "تحديد",
+  "selectedCount": "{count} محدّد",
+  "selectAllAction": "تحديد الكل",
+  "clearSelectionAction": "إلغاء التحديد",
+  "selectionHiddenByFilter": "{count} منها مخفي بالفلتر الحالي",
+  "bulkEditPricesAction": "تعديل الأسعار",
+  "bulkPriceTitle": "تعديل سعر {count} منتج",
+  "bulkFieldPrice": "سعر البيع",
+  "bulkFieldCost": "سعر الشراء",
+  "bulkModeSetTo": "تعيين مبلغ",
+  "bulkModePercent": "نسبة مئوية",
+  "bulkPercentIncrease": "زيادة",
+  "bulkPercentDecrease": "خفض",
+  "bulkAmountLabel": "المبلغ الجديد",
+  "bulkPercentLabel": "النسبة %",
+  "bulkPreviewCount": "سيتغيّر {count} منتج",
+  "bulkPreviewNoChange": "لن يتغيّر شيء بهذه الأرقام",
+  "bulkMixedCurrency": "التحديد يضمّ منتجات بعملات مختلفة. استخدم النسبة المئوية، أو حدّد منتجات بعملة واحدة فقط.",
+  "bulkApplyAction": "تطبيق",
+  "bulkPricesUpdated": "تم تحديث {count} منتج",
+  "bulkPricesUnchanged": "لم يتغيّر أي سعر"
 }

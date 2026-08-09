@@ -39,8 +39,29 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
   Future<void> insertProduct(ProductsCompanion product) =>
       into(products).insert(product, mode: InsertMode.insertOrReplace);
 
+  /// Write a new price + cost onto many products at once (Plan 015 B2.2).
+  ///
+  /// A real `UPDATE`, deliberately **not** [insertProduct]'s insert-or-replace:
+  /// replace deletes and re-inserts the row, which mints a new rowid — and
+  /// `watchAllProducts` orders by rowid, so a bulk edit would shuffle every
+  /// touched product to the top of the list under the owner's finger, looking
+  /// like they had just been added.
+  ///
+  /// Drift runs a batch inside one transaction, so a failure part-way leaves no
+  /// half-priced catalogue.
+  Future<void> updatePriceAndCost(
+          List<({String id, double price, double cost})> edits) =>
+      batch((b) {
+        for (final e in edits) {
+          b.update(
+            products,
+            ProductsCompanion(price: Value(e.price), cost: Value(e.cost)),
+            where: (p) => p.id.equals(e.id),
+          );
+        }
+      });
+
   /// Delete a product by its [id]. Returns the number of deleted rows.
   Future<int> deleteProduct(String id) =>
       (delete(products)..where((p) => p.id.equals(id))).go();
 }
-

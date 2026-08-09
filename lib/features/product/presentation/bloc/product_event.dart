@@ -30,6 +30,20 @@ class DeleteProduct extends ProductEvent {
   List<Object> get props => [id];
 }
 
+/// Apply one price/cost change to many products at once (Plan 015 B2.2).
+///
+/// Carries the **ids**, not the product objects: the list is stream-backed, so
+/// by the time this runs the page's copies may be a frame or two old. The BLoC
+/// resolves the ids against its own current products and silently skips any
+/// that were deleted meanwhile.
+class BulkUpdatePrices extends ProductEvent {
+  final Set<String> productIds;
+  final BulkPriceEdit edit;
+  const BulkUpdatePrices({required this.productIds, required this.edit});
+  @override
+  List<Object> get props => [productIds, edit.field, edit.mode, edit.value];
+}
+
 /// Print one or more thermal labels for a product (Plan 010). The page resolves
 /// the display price string (currency-aware) and the code type/copies.
 class PrintProductLabel extends ProductEvent {

@@ -1,8 +1,10 @@
 # Plan 013 — V1 Field-Feedback Fixes, Round 2
 
-> **Status:** 🚧 **IN PROGRESS.** ✅ Wave A shipped — items **1, 2, 4, 5, 6, 7, 8**
-> (#6 device-verified by the owner). Remaining: the multi-select building block,
-> then #9, #11, #3, #10. Source:
+> **Status:** 🚧 **IN PROGRESS.** ✅ Wave A shipped and device-verified — items
+> **1, 2, 4, 5, 6, 7, 8**. ✅ The **multi-select building block** is shipped too,
+> with its first action (bulk price/cost = Plan 015 B2.2); the second action
+> (bulk category = Plan 014 step 2) plugs into the same bar. Remaining: #9, #11,
+> #3, #10. Source:
 > `docs/v1-fixes-2.txt`, 11 items from the shop after more real use. Successor to
 > Plan 011 (round 1), same spirit: **mostly papercuts, not new features.**
 >
@@ -53,7 +55,22 @@
 
 1. **#6** — it is a bug, and a wrong scan makes the shop distrust everything else.
 2. **Small UX batch** — #2, #5, #7, #8, #1, #4. No schema, no decisions left.
-3. **Multi-select on the product list** — the shared building block for #9 and #11.
+3. ✅ **Multi-select on the product list** — the shared building block for #9 and
+   #11. **Shipped** with bulk price/cost as its first action. Decisions made
+   while building it, so #9 inherits them rather than re-arguing:
+   - **Selection is a set of ids, and it survives search/filter changes**
+     (Plan 015 B2.3 left this open). Picking six juices under one search and
+     four under another is the real job. The cost is that selected rows can be
+     off-screen, so the action bar reports how many are hidden.
+   - **Select-all means "everything currently visible"**, never the whole
+     catalogue — the owner filtered for a reason.
+   - Two ways in: long-press (the habit) *and* an app-bar button (long-press is
+     invisible to someone who has never tried it).
+   - The row's own print/edit/**delete** buttons are hidden while selecting;
+     they sit exactly where a finger lands to tick a box.
+   - Writes go through a real SQL `UPDATE`, not the usual insert-or-replace:
+     replace mints a new rowid, and the list is ordered by rowid, so a bulk edit
+     would have shuffled every touched product to the top mid-task.
 4. **#9 categories** (seeded field → tabs → bulk assign → rename propagation).
 5. **#11 Case B** (duplicate product + bulk price) — no schema.
 6. **#3** delete invoice → change payment/customer → PIN guard.

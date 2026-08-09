@@ -2,6 +2,7 @@ import 'package:bloc/bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:fpdart/fpdart.dart';
 import '../../../../core/error/failure.dart';
+import '../../domain/bulk_price_edit.dart';
 import '../../domain/entities/product.dart';
 import '../../domain/repositories/product_repository.dart';
 import '../../../settings/domain/repositories/printer_repository.dart';
@@ -20,16 +21,45 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
   ProductBloc({required this.repository, required this.printerRepository})
       : super(const ProductState()) {
     on<LoadProducts>(_onLoadProducts);
-    on<AddProduct>((e, emit) =>
-        _runMutation(emit, () => repository.addProduct(e.product),
-            ProductMessage.added));
-    on<UpdateProduct>((e, emit) =>
-        _runMutation(emit, () => repository.updateProduct(e.product),
-            ProductMessage.updated));
-    on<DeleteProduct>((e, emit) =>
-        _runMutation(emit, () => repository.deleteProduct(e.id),
-            ProductMessage.deleted));
+    on<AddProduct>((e, emit) => _runMutation(
+        emit, () => repository.addProduct(e.product), ProductMessage.added));
+    on<UpdateProduct>((e, emit) => _runMutation(emit,
+        () => repository.updateProduct(e.product), ProductMessage.updated));
+    on<DeleteProduct>((e, emit) => _runMutation(
+        emit, () => repository.deleteProduct(e.id), ProductMessage.deleted));
     on<PrintProductLabel>(_onPrintLabel);
+    on<BulkUpdatePrices>(_onBulkUpdatePrices);
+  }
+
+  /// Apply one price/cost change across a selection (Plan 015 B2.2).
+  ///
+  /// Only the products the edit actually moves are written. That is not just an
+  /// optimisation: on the sync branch every touched row gets a fresh HLC stamp
+  /// and is pushed, so re-writing 200 unchanged prices would be 200 pointless
+  /// rows over the wire.
+  Future<void> _onBulkUpdatePrices(
+      BulkUpdatePrices event, Emitter<ProductState> emit) async {
+    final updated = [
+      for (final p in state.products)
+        if (event.productIds.contains(p.id) && event.edit.changes(p))
+          event.edit.applyTo(p),
+    ];
+    if (updated.isEmpty) {
+      emit(state.copyWith(
+          status: ProductStatus.success,
+          message: ProductMessage.bulkPricesUnchanged));
+      return;
+    }
+    final result = await repository.updatePrices(updated);
+    result.fold(
+      (_) => emit(state.copyWith(
+          status: ProductStatus.error, message: ProductMessage.saveFailed)),
+      (_) => emit(state.copyWith(
+        status: ProductStatus.success,
+        message: ProductMessage.bulkPricesUpdated,
+        messageCount: updated.length,
+      )),
+    );
   }
 
   /// Print product label(s) via the printer (best-effort, like a receipt).
@@ -45,7 +75,8 @@ class ProductBloc extends Bloc<ProductEvent, ProductState> {
     );
     emit(state.copyWith(
       status: ok ? ProductStatus.success : ProductStatus.error,
-      message: ok ? ProductMessage.labelPrinted : ProductMessage.labelPrintFailed,
+      message:
+          ok ? ProductMessage.labelPrinted : ProductMessage.labelPrintFailed,
     ));
   }
 
