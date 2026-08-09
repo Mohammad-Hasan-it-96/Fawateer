@@ -13,6 +13,12 @@ import '../bloc/license_bloc.dart';
 /// retries the server check on the spot.
 ///
 /// Renders nothing when recently synced (the overwhelmingly common case).
+/// Whether [OfflineWarningBanner] will paint anything right now. Same contract
+/// as [trialBannerVisible] — see there for why the shell needs to know.
+bool offlineBannerVisible(LicenseState state, DateTime now) =>
+    state.license.isActive &&
+    LicenseGuards.isOfflineWarning(state.license.lastServerSync, now);
+
 class OfflineWarningBanner extends StatelessWidget {
   const OfflineWarningBanner({super.key});
 
@@ -23,8 +29,7 @@ class OfflineWarningBanner extends StatelessWidget {
       builder: (context, state) {
         final lic = state.license;
         final now = DateTime.now();
-        if (!lic.isActive ||
-            !LicenseGuards.isOfflineWarning(lic.lastServerSync, now)) {
+        if (!offlineBannerVisible(state, now)) {
           return const SizedBox.shrink();
         }
         final days = LicenseGuards.daysOffline(lic.lastServerSync, now) ?? 0;

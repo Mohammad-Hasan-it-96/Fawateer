@@ -636,14 +636,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           // Quick currency-rate chip (top-start): tap to set/update the USD→SP
           // exchange rate without leaving the POS.
           Positioned(
-            top: MediaQuery.of(context).padding.top + 12,
+            top: MediaQuery.of(context).padding.top + 8,
             left: 12,
             child: _buildRateChip(l10n),
           ),
 
           // Two overlay buttons (flash + camera toggle) — top-right horizontal row
           Positioned(
-            top: MediaQuery.of(context).padding.top + 12,
+            top: MediaQuery.of(context).padding.top + 8,
             right: 12,
             child: Row(
               children: [
@@ -710,7 +710,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       // above, and of the cart panel that laps over the bottom
                       // 24px of the preview.
                       final topInset =
-                          MediaQuery.of(context).padding.top + 64;
+                          MediaQuery.of(context).padding.top + 56;
                       final width = constraints.maxWidth * 0.82;
                       final room = constraints.maxHeight - topInset - 28;
                       final height =
