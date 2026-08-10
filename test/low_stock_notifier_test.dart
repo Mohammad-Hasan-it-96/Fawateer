@@ -71,9 +71,14 @@ class _FakeSettingsDao implements SettingsDao {
 class _RecordingNotifier extends LocalNotifier {
   final List<({String? title, String? body})> shown = [];
 
+  /// What the OS is pretending to answer. False models a phone that refuses
+  /// the notification, which is a state the settings screen has to report.
+  bool accepts = true;
+
   @override
-  Future<void> show({required int id, String? title, String? body}) async {
+  Future<bool> show({required int id, String? title, String? body}) async {
     shown.add((title: title, body: body));
+    return accepts;
   }
 }
 
@@ -107,18 +112,60 @@ void main() {
     expect(notifier.shown, isEmpty);
   });
 
-  test('turning them on does not replay the existing backlog', () async {
-    // "Tell me when something runs low" is a request about the future. A shop
-    // with thirty already-low items must not be handed thirty notifications
-    // for agreeing to it — the Reports page is where the current list lives.
+  test('turning them on reports what is already low — once', () async {
+    // This was silent at first, on the reasoning that the request is about the
+    // future. Wrong twice over: the grouping means a backlog of thirty is
+    // still ONE notification, so there is no spam to avoid — and silence right
+    // after switching a feature on is indistinguishable from it being broken,
+    // which is exactly how it was reported from a real phone.
     repo.current = [_p('sugar', qty: 1), _p('tea', qty: 2)];
 
     await service.setEnabled(true);
     await settle();
 
-    expect(notifier.shown, isEmpty);
+    expect(notifier.shown.length, 1);
     expect(jsonDecode(dao.values[LowStockNotifier.announcedKey]!),
         containsAll(['sugar', 'tea']));
+  });
+
+  test('the backlog is reported once, not again on the next sale', () async {
+    repo.current = [_p('sugar', qty: 1)];
+    await service.setEnabled(true);
+    await settle();
+
+    repo.emit([_p('sugar', qty: 1)]);
+    await settle();
+
+    expect(notifier.shown.length, 1);
+  });
+
+  test('turning them on with nothing low says nothing', () async {
+    repo.current = [_p('sugar', qty: 50)];
+
+    final delivered = await service.setEnabled(true);
+    await settle();
+
+    expect(notifier.shown, isEmpty);
+    // Reported as fine: there was nothing to deliver, which is not a failure.
+    expect(delivered, isTrue);
+  });
+
+  test('a phone that refuses the notification is reported, not hidden',
+      () async {
+    // The settings screen turns this into "the phone did not accept it", so a
+    // blocked channel stops looking like a feature that does nothing.
+    repo.current = [_p('sugar', qty: 1)];
+    notifier.accepts = false;
+
+    expect(await service.setEnabled(true), isFalse);
+  });
+
+  test('the test alert reports whether it was accepted', () async {
+    expect(await service.sendTestAlert(), isTrue);
+    expect(notifier.shown.length, 1);
+
+    notifier.accepts = false;
+    expect(await service.sendTestAlert(), isFalse);
   });
 
   test('a product crossing the line raises one alert', () async {

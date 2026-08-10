@@ -2148,11 +2148,31 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lowStockAlertsSubtitle =>
-      'Notify me when a product reaches its alert level. Works only while the app is open.';
+      'Notify me when a product reaches its alert level. Needs an alert level on the product, and works only while the app is open.';
 
   @override
   String get lowStockAlertsDenied =>
       'Notifications are turned off for this app in the phone settings';
+
+  @override
+  String get lowStockTestAction => 'Send a test alert';
+
+  @override
+  String get lowStockTestSubtitle =>
+      'Check that notifications reach this phone';
+
+  @override
+  String get lowStockTestTitle => 'Test alert';
+
+  @override
+  String get lowStockTestBody =>
+      'If you can see this, low stock alerts are working.';
+
+  @override
+  String get lowStockTestSent => 'Sent — check your notifications';
+
+  @override
+  String get lowStockTestFailed => 'The phone did not accept the notification';
 
   @override
   String lowStockAlertOne(String name) {

@@ -4050,7 +4050,7 @@ abstract class AppLocalizations {
   /// No description provided for @lowStockAlertsSubtitle.
   ///
   /// In en, this message translates to:
-  /// **'Notify me when a product reaches its alert level. Works only while the app is open.'**
+  /// **'Notify me when a product reaches its alert level. Needs an alert level on the product, and works only while the app is open.'**
   String get lowStockAlertsSubtitle;
 
   /// No description provided for @lowStockAlertsDenied.
@@ -4058,6 +4058,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Notifications are turned off for this app in the phone settings'**
   String get lowStockAlertsDenied;
+
+  /// No description provided for @lowStockTestAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a test alert'**
+  String get lowStockTestAction;
+
+  /// No description provided for @lowStockTestSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check that notifications reach this phone'**
+  String get lowStockTestSubtitle;
+
+  /// No description provided for @lowStockTestTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Test alert'**
+  String get lowStockTestTitle;
+
+  /// No description provided for @lowStockTestBody.
+  ///
+  /// In en, this message translates to:
+  /// **'If you can see this, low stock alerts are working.'**
+  String get lowStockTestBody;
+
+  /// No description provided for @lowStockTestSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent — check your notifications'**
+  String get lowStockTestSent;
+
+  /// No description provided for @lowStockTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The phone did not accept the notification'**
+  String get lowStockTestFailed;
 
   /// No description provided for @lowStockAlertOne.
   ///

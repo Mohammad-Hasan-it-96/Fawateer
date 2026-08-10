@@ -979,8 +979,14 @@
   "managerPinResetWrong": "This code is not right for this device today",
   "managerPinResetDone": "The PIN was removed. Set a new one from Settings.",
   "lowStockAlertsTitle": "Low stock alerts",
-  "lowStockAlertsSubtitle": "Notify me when a product reaches its alert level. Works only while the app is open.",
+  "lowStockAlertsSubtitle": "Notify me when a product reaches its alert level. Needs an alert level on the product, and works only while the app is open.",
   "lowStockAlertsDenied": "Notifications are turned off for this app in the phone settings",
+  "lowStockTestAction": "Send a test alert",
+  "lowStockTestSubtitle": "Check that notifications reach this phone",
+  "lowStockTestTitle": "Test alert",
+  "lowStockTestBody": "If you can see this, low stock alerts are working.",
+  "lowStockTestSent": "Sent — check your notifications",
+  "lowStockTestFailed": "The phone did not accept the notification",
   "lowStockAlertOne": "{name} is running low",
   "@lowStockAlertOne": {
     "placeholders": {

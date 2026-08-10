@@ -57,21 +57,45 @@ class LowStockNotifier {
   Future<bool> isEnabled() async =>
       await _settings.getValue(enabledKey) == 'true';
 
-  /// Turn alerts on or off.
+  /// Turn alerts on or off. Returns whether the confirming notification
+  /// actually reached the OS, so Settings can say so if it didn't.
   ///
-  /// Switching **on** seeds the baseline with whatever is already low and does
-  /// not announce it. "Tell me when something runs low" is a request about the
-  /// future; replaying the current backlog as a notification would be a list,
-  /// and the Reports page already has that (Plan 013 #1).
-  Future<void> setEnabled(bool value) async {
+  /// Switching **on** reports whatever is already low, once.
+  ///
+  /// This started out seeding the baseline in silence, on the reasoning that
+  /// "tell me when something runs low" is a request about the future. That was
+  /// wrong for two reasons found the first time it was used on a real phone:
+  /// the grouping below already collapses any backlog into a **single**
+  /// notification, so the spam it was avoiding cannot happen — and silence
+  /// after switching a feature on is indistinguishable from the feature being
+  /// broken. The first alert now doubles as proof that alerts work.
+  Future<bool> setEnabled(bool value) async {
     await _settings.setValue(enabledKey, value.toString());
-    if (value) {
-      final products = await _repository.watchProducts().first;
-      await _writeAnnounced(lowStockIds(products));
-      start();
-    } else {
+    if (!value) {
       await stop();
+      return true;
     }
+    final products = await _repository.watchProducts().first;
+    final low = lowStockIds(products);
+    await _writeAnnounced(low);
+    start();
+    if (low.isEmpty) return true;
+    return _show(products.where((p) => low.contains(p.id)).toList());
+  }
+
+  /// Post a sample alert on demand.
+  ///
+  /// Exists because "I didn't get a notification" has three very different
+  /// causes — nothing was due, the OS is blocking us, or the pipe is broken —
+  /// and from outside the app they look the same. One tap separates them, for
+  /// the shop and for anyone supporting them.
+  Future<bool> sendTestAlert() async {
+    final l10n = await AppLocalizations.delegate.load(_locale);
+    return _notifier.show(
+      id: _notificationId,
+      title: l10n.lowStockTestTitle,
+      body: l10n.lowStockTestBody,
+    );
   }
 
   /// Begin watching. Safe to call repeatedly; does nothing while disabled.
@@ -93,8 +117,9 @@ class LowStockNotifier {
   Future<void> _onProducts(List<Product> products) async {
     final raw = await _settings.getValue(announcedKey);
     if (raw == null) {
-      // First run after the feature landed: take the current state as the
-      // baseline rather than announcing a catalogue's worth of history.
+      // Not normally reachable — switching alerts on always writes this — so
+      // arriving here means a half-written state. Seed quietly rather than
+      // announcing a catalogue's worth of history out of nowhere.
       await _writeAnnounced(lowStockIds(products));
       return;
     }
@@ -113,21 +138,20 @@ class LowStockNotifier {
     await _show(justLow);
   }
 
-  Future<void> _show(List<Product> justLow) async {
+  Future<bool> _show(List<Product> justLow) async {
     // Loaded without a BuildContext — a service has none, and the alert must
     // still speak the app's language.
     final l10n = await AppLocalizations.delegate.load(_locale);
     final names = justLow.map((p) => p.name).toList();
     if (justLow.length == 1) {
       final p = justLow.first;
-      await _notifier.show(
+      return _notifier.show(
         id: _notificationId,
         title: l10n.lowStockAlertOne(p.name),
         body: l10n.lowStockAlertRemaining(formatQty(p.quantity)),
       );
-      return;
     }
-    await _notifier.show(
+    return _notifier.show(
       id: _notificationId,
       title: l10n.lowStockAlertMany(justLow.length),
       // Three names is enough to recognise the situation; a tray notice that

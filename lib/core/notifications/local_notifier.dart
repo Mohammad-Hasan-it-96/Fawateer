@@ -68,14 +68,19 @@ class LocalNotifier {
 
   /// Post a notification. [id] replaces any earlier notification with the same
   /// id, which is how a caller updates one in place instead of stacking.
-  Future<void> show({
+  ///
+  /// Returns whether it reached the OS. The result exists because the silent
+  /// version was untestable in the field: "no notification appeared" could mean
+  /// the plugin refused, the permission was withheld, or nothing was due — and
+  /// from outside the app those look identical.
+  Future<bool> show({
     required int id,
     String? title,
     String? body,
   }) async {
-    if (!await ensureReady()) return;
+    if (!await ensureReady()) return false;
     if ((title == null || title.isEmpty) && (body == null || body.isEmpty)) {
-      return;
+      return false;
     }
     try {
       await _plugin.show(
@@ -94,8 +99,28 @@ class LocalNotifier {
           iOS: const DarwinNotificationDetails(),
         ),
       );
+      return true;
     } catch (_) {
-      // Nothing a caller can do about it, and nothing worth crashing for.
+      // Never worth crashing for — but the caller is told, so a settings screen
+      // can say "that didn't work" instead of leaving the shop guessing.
+      return false;
+    }
+  }
+
+  /// Whether the OS will currently deliver anything we post.
+  ///
+  /// Distinct from [requestPermission]: this only *asks*, so it is safe to call
+  /// when reporting state. A shop that turned notifications off for the app in
+  /// the phone's own settings looks exactly like a broken feature otherwise.
+  Future<bool> areNotificationsEnabled() async {
+    if (!await ensureReady()) return false;
+    try {
+      final android = _plugin.resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>();
+      if (android == null) return true;
+      return await android.areNotificationsEnabled() ?? false;
+    } catch (_) {
+      return false;
     }
   }
 }

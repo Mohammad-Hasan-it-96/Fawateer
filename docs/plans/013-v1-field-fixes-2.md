@@ -262,10 +262,14 @@ paginate.
 >   surprise. The toggle is also the one honest moment to request the Android 13
 >   notification permission — and a refusal leaves the switch **off**, never
 >   on-but-silent.
-> - **Turning it on seeds the baseline silently.** "Tell me when something runs
->   low" is about the future; a shop with thirty already-low items must not be
->   handed thirty notifications for agreeing. The current list already lives on
->   the Reports page (#1).
+> - ~~**Turning it on seeds the baseline silently.**~~ **Reversed after the
+>   first real-phone test**, which reported "I didn't get a notification". The
+>   reasoning was that "tell me when something runs low" is about the future and
+>   a backlog shouldn't be replayed — but the grouping below already collapses
+>   any backlog into **one** notification, so the spam being avoided could not
+>   happen, and silence right after switching a feature on is indistinguishable
+>   from the feature being broken. Switching on now reports what is already low,
+>   once, and that first alert doubles as proof the pipe works.
 > - **One notification, reused id.** Several products crossing at once give a
 >   single "3 أصناف أوشكت على النفاد" rather than three tray entries, and a
 >   later alert *replaces* the earlier one. Three separate notices per delivery
@@ -281,8 +285,19 @@ paginate.
 > one push** after this change — the behaviour is identical by construction, but
 > that path is device-only.
 >
+> **Diagnosability was the other lesson.** "I didn't get a notification" has
+> three unrelated causes — nothing was due, the phone is blocking the app, or
+> the pipe is broken — and from outside they look identical. So `LocalNotifier.
+> show` now **returns whether the OS accepted it** (it used to fail silently),
+> `areNotificationsEnabled()` exists for reporting state, a denied permission
+> offers the phone's notification settings via `app_settings`, and Settings has
+> a **"Send a test alert"** row while alerts are on. The subtitle also now says
+> an alert level must be set on the product — a shop with no thresholds can
+> never be alerted, and nothing said so.
+>
 > Pinned by `test/low_stock_alert_test.dart` (12 — the pure decision) and
-> `test/low_stock_notifier_test.dart` (11 — the wiring).
+> `test/low_stock_notifier_test.dart` (16 — the wiring, incl. a phone that
+> refuses the post).
 
 **Set expectations first: this app does no background work, on purpose.** No
 `WorkManager`, no background service — the same decision as `AutoBackupService`

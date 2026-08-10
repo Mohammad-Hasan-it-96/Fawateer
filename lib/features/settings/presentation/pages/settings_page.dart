@@ -186,21 +186,52 @@ class _SettingsPageState extends State<SettingsPage> {
   ///
   /// Switching on asks for the notification permission at that exact moment —
   /// the one time the request explains itself. A refusal leaves the switch off
-  /// rather than on-but-silent, which would be a setting that lies.
+  /// rather than on-but-silent, which would be a setting that lies, and offers
+  /// the phone's own notification settings, because that is where a permission
+  /// the OS has stopped asking about can only be fixed.
   Future<void> _setLowStockAlerts(bool value) async {
     final l10n = AppLocalizations.of(context)!;
     if (value) {
-      final granted = await di.sl<LocalNotifier>().requestPermission();
+      final notifier = di.sl<LocalNotifier>();
+      final granted = await notifier.requestPermission() ||
+          await notifier.areNotificationsEnabled();
       if (!mounted) return;
       if (!granted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-            content: Text(l10n.lowStockAlertsDenied),
-            backgroundColor: Colors.red));
+          content: Text(l10n.lowStockAlertsDenied),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 6),
+          action: SnackBarAction(
+            label: l10n.openSettings,
+            textColor: Colors.white,
+            onPressed: () => AppSettings.openAppSettings(
+                type: AppSettingsType.notification),
+          ),
+        ));
         return;
       }
     }
     setState(() => _lowStockAlerts = value);
-    await di.sl<LowStockNotifier>().setEnabled(value);
+    final delivered = await di.sl<LowStockNotifier>().setEnabled(value);
+    if (!mounted || !value || delivered) return;
+    // Switched on, something was already low, and the phone still refused it.
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(l10n.lowStockTestFailed),
+        backgroundColor: Colors.red));
+  }
+
+  /// Post a sample alert on demand.
+  ///
+  /// "I didn't get a notification" has three very different causes — nothing
+  /// was due, the phone is blocking us, or the pipe is broken — and from
+  /// outside the app they look identical. This separates them in one tap.
+  Future<void> _sendTestAlert() async {
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await di.sl<LowStockNotifier>().sendTestAlert();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(ok ? l10n.lowStockTestSent : l10n.lowStockTestFailed),
+        backgroundColor: ok ? Colors.green : Colors.red));
   }
 
   /// Persist the strict-inventory flag and push it into the app-wide
@@ -455,6 +486,13 @@ class _SettingsPageState extends State<SettingsPage> {
                   trailingIcon: null,
                   onTap: () => _setLowStockAlerts(!_lowStockAlerts),
                 ),
+                if (_lowStockAlerts)
+                  _buildListItem(
+                    icon: Icons.notifications_none,
+                    title: l10n.lowStockTestAction,
+                    subtitle: l10n.lowStockTestSubtitle,
+                    onTap: _sendTestAlert,
+                  ),
               ],
             ),
 

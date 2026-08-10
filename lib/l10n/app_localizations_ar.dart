@@ -2131,11 +2131,30 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get lowStockAlertsSubtitle =>
-      'نبّهني عندما يصل صنف إلى حدّ التنبيه. يعمل فقط أثناء فتح التطبيق.';
+      'نبّهني عندما يصل صنف إلى حدّ التنبيه. يحتاج ضبط حدّ تنبيه على الصنف، ويعمل فقط أثناء فتح التطبيق.';
 
   @override
   String get lowStockAlertsDenied =>
       'الإشعارات مغلقة لهذا التطبيق من إعدادات الهاتف';
+
+  @override
+  String get lowStockTestAction => 'إرسال تنبيه تجريبي';
+
+  @override
+  String get lowStockTestSubtitle => 'تأكّد من وصول الإشعارات إلى هذا الهاتف';
+
+  @override
+  String get lowStockTestTitle => 'تنبيه تجريبي';
+
+  @override
+  String get lowStockTestBody =>
+      'إذا ظهر هذا الإشعار فتنبيهات قرب النفاد تعمل.';
+
+  @override
+  String get lowStockTestSent => 'تم الإرسال — تحقّق من الإشعارات';
+
+  @override
+  String get lowStockTestFailed => 'لم يقبل الهاتف الإشعار';
 
   @override
   String lowStockAlertOne(String name) {
