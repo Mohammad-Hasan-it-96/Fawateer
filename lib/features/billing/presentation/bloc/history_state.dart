@@ -13,6 +13,11 @@ enum ReprintStatus { idle, printing, done, failed }
 /// close itself — the invoice it is showing no longer exists.
 enum DeleteStatus { idle, deleting, done, failed }
 
+/// Outcome of a payment-type/customer correction (Plan 016 C-a). Unlike a
+/// delete, `done` does **not** close the detail page — the sale is still there,
+/// only the way it was paid has been fixed.
+enum PaymentChangeStatus { idle, saving, done, failed }
+
 class HistoryState extends Equatable {
   final HistoryStatus status;
 
@@ -46,6 +51,9 @@ class HistoryState extends Equatable {
   /// Transient delete outcome.
   final DeleteStatus deleteStatus;
 
+  /// Transient payment-correction outcome.
+  final PaymentChangeStatus paymentChangeStatus;
+
   const HistoryState({
     this.status = HistoryStatus.initial,
     required this.filter,
@@ -59,6 +67,7 @@ class HistoryState extends Equatable {
     this.reprintStatus = ReprintStatus.idle,
     this.reprintingId,
     this.deleteStatus = DeleteStatus.idle,
+    this.paymentChangeStatus = PaymentChangeStatus.idle,
   });
 
   HistoryState copyWith({
@@ -76,6 +85,7 @@ class HistoryState extends Equatable {
     String? reprintingId,
     bool clearReprintingId = false,
     DeleteStatus? deleteStatus,
+    PaymentChangeStatus? paymentChangeStatus,
   }) {
     return HistoryState(
       status: status ?? this.status,
@@ -90,6 +100,7 @@ class HistoryState extends Equatable {
       reprintStatus: reprintStatus ?? this.reprintStatus,
       reprintingId: clearReprintingId ? null : (reprintingId ?? this.reprintingId),
       deleteStatus: deleteStatus ?? this.deleteStatus,
+      paymentChangeStatus: paymentChangeStatus ?? this.paymentChangeStatus,
     );
   }
 
@@ -107,5 +118,6 @@ class HistoryState extends Equatable {
         reprintStatus,
         reprintingId,
         deleteStatus,
+        paymentChangeStatus,
       ];
 }

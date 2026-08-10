@@ -44,6 +44,7 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
     on<LoadInvoiceDetailsEvent>(_onLoadInvoiceDetails);
     on<ReprintInvoiceEvent>(_onReprint);
     on<DeleteInvoiceEvent>(_onDelete);
+    on<ChangeInvoicePaymentEvent>(_onChangePayment);
     on<_InvoicesUpdated>(_onInvoicesUpdated);
     on<_SummaryUpdated>(_onSummaryUpdated);
     on<_StreamFailed>(_onStreamFailed);
@@ -163,6 +164,27 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
     );
     // Back to idle so the outcome can't re-fire on the next unrelated rebuild.
     emit(state.copyWith(deleteStatus: DeleteStatus.idle));
+  }
+
+  /// Correct how a sale was paid (Plan 016 C-a). The repository swaps the cash
+  /// entry for a customer debt, or the other way round, in one transaction.
+  ///
+  /// Nothing is evicted from [HistoryState.itemsCache] here, unlike a delete:
+  /// the line items did not change, because the sale did not change. The audit
+  /// list re-derives cash-vs-credit from the ledger, so the row updates itself.
+  Future<void> _onChangePayment(
+      ChangeInvoicePaymentEvent event, Emitter<HistoryState> emit) async {
+    if (state.paymentChangeStatus == PaymentChangeStatus.saving) return;
+    emit(state.copyWith(paymentChangeStatus: PaymentChangeStatus.saving));
+
+    final result = await repository.changeInvoicePayment(event.invoiceId,
+        customerId: event.customerId);
+    emit(state.copyWith(
+        paymentChangeStatus: result.isLeft()
+            ? PaymentChangeStatus.failed
+            : PaymentChangeStatus.done));
+    // Back to idle so the outcome can't re-fire on the next unrelated rebuild.
+    emit(state.copyWith(paymentChangeStatus: PaymentChangeStatus.idle));
   }
 
   /// Reprint a stored invoice. Loads its line items, maps them to

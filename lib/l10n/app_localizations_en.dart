@@ -2032,4 +2032,34 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get invoiceDeleteFailed => 'Couldn\'t delete the sale';
+
+  @override
+  String get changePaymentAction => 'Change payment';
+
+  @override
+  String get changePaymentTitle => 'How was this sale paid?';
+
+  @override
+  String get changePaymentIntro =>
+      'Only the payment record changes. The items, the total and the receipt stay exactly as they are.';
+
+  @override
+  String get changePaymentCashHint => 'The amount goes into the cash drawer';
+
+  @override
+  String get changePaymentCreditHint =>
+      'The amount is added to a customer\'s debt';
+
+  @override
+  String get changePaymentChooseCustomer => 'Choose customer';
+
+  @override
+  String get changePaymentNotRepayment =>
+      'Use this to fix a mistake. If the customer is paying off a debt, record a payment on their account instead.';
+
+  @override
+  String get paymentChanged => 'Payment updated';
+
+  @override
+  String get paymentChangeFailed => 'Couldn\'t update the payment';
 }

@@ -1,8 +1,34 @@
 # Plan 016 — Manager Lock, Invoice Delete, and the Invoice-Edit Question
 
-> **Status:** 🚧 **IN PROGRESS.** ✅ **Step 1 (A — delete an invoice) is built.**
-> Remaining: **C-a** (change customer / cash↔credit) and **B** (the PIN guard).
+> **Status:** 🚧 **IN PROGRESS.** ✅ **A (delete a sale)** and ✅ **C-a (change
+> customer / cash↔credit)** are built. Remaining: **B** (the PIN guard).
 >
+> **C-a landed as designed — it touches no snapshot column.** `SalesDao.
+> setInvoicePayment` clears whatever money record the sale posted and writes
+> exactly one row for the payment type now being asked for, in one transaction.
+> Three details were decided while building it:
+>
+> - **It re-derives instead of diffing.** Every direction — cash→credit,
+>   credit→cash, customer A→B — is the same code path, and re-applying the same
+>   choice is a no-op rather than a second charge.
+> - **The new row is dated at the sale, not at today.** This corrects something
+>   that already happened; dating it now would leave the sale's own day short
+>   *and* make today's cash report wrong. A customer actually paying a debt is
+>   a ledger `payment`, and the sheet says so.
+> - **`InvoiceListItem` gained `customerId`.** The audit query already joined
+>   the customer for their name, but a correction has to pre-select *that row*,
+>   and two customers can share a name.
+>
+> The customer picker (search + inline quick-add) was **extracted out of
+> checkout** into `ledger/presentation/widgets/customer_picker.dart` and is now
+> shared: booking a credit sale and correcting one ask the same question, and a
+> shop with eighty customers needs the same search box either way.
+>
+> Pinned by `integration_test/invoice_payment_change_test.dart` (11 tests,
+> verified against the host's SQLite; still owed a device run) and
+> `test/history_payment_change_test.dart` (8).
+>
+
 > **The "verify the ledger reversal first" warning below was right, and it was
 > worse than written.** `SalesDao.deleteInvoice` reversed the cashbox entry and
 > released serialized units, but it did **neither** of these:
@@ -255,7 +281,12 @@ on the sync branch. Revisit only with real evidence.
    the cash drawer or the named customer's debt — because a shopkeeper who
    expects only the paper to vanish finds the drawer short at closing time and
    concludes the app lost their money.
-2. **C-a** — change payment type / customer.
+2. ✅ **C-a** — change payment type / customer. **Done.** One transaction that
+   swaps the cash entry for a customer debt or back; the invoice, its lines,
+   the total, the stock and the reprint are all untouched, which is exactly why
+   this action exists instead of delete-and-re-enter. The sheet leads with that
+   promise, because "will this change the receipt my customer is holding?" is
+   the first thing a shopkeeper asks.
 3. **B** — the PIN guard, applied to both. See the PIN-reset note below.
 
 ## PIN reset — see Plan 017

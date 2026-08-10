@@ -3842,6 +3842,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t delete the sale'**
   String get invoiceDeleteFailed;
+
+  /// No description provided for @changePaymentAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Change payment'**
+  String get changePaymentAction;
+
+  /// No description provided for @changePaymentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How was this sale paid?'**
+  String get changePaymentTitle;
+
+  /// No description provided for @changePaymentIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the payment record changes. The items, the total and the receipt stay exactly as they are.'**
+  String get changePaymentIntro;
+
+  /// No description provided for @changePaymentCashHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The amount goes into the cash drawer'**
+  String get changePaymentCashHint;
+
+  /// No description provided for @changePaymentCreditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The amount is added to a customer\'s debt'**
+  String get changePaymentCreditHint;
+
+  /// No description provided for @changePaymentChooseCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose customer'**
+  String get changePaymentChooseCustomer;
+
+  /// No description provided for @changePaymentNotRepayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this to fix a mistake. If the customer is paying off a debt, record a payment on their account instead.'**
+  String get changePaymentNotRepayment;
+
+  /// No description provided for @paymentChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment updated'**
+  String get paymentChanged;
+
+  /// No description provided for @paymentChangeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the payment'**
+  String get paymentChangeFailed;
 }
 
 class _AppLocalizationsDelegate

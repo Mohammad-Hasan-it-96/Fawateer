@@ -2017,4 +2017,33 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get invoiceDeleteFailed => 'تعذّر حذف الفاتورة';
+
+  @override
+  String get changePaymentAction => 'تعديل طريقة الدفع';
+
+  @override
+  String get changePaymentTitle => 'كيف تم دفع هذه الفاتورة؟';
+
+  @override
+  String get changePaymentIntro =>
+      'يتغيّر تسجيل الدفع فقط. الأصناف والإجمالي والفاتورة المطبوعة تبقى كما هي تمامًا.';
+
+  @override
+  String get changePaymentCashHint => 'يدخل المبلغ إلى الصندوق';
+
+  @override
+  String get changePaymentCreditHint => 'يُضاف المبلغ إلى دين العميل';
+
+  @override
+  String get changePaymentChooseCustomer => 'اختر العميل';
+
+  @override
+  String get changePaymentNotRepayment =>
+      'استخدم هذا لتصحيح خطأ. أمّا إذا كان العميل يسدّد دينه فسجّل دفعة على حسابه بدلًا من ذلك.';
+
+  @override
+  String get paymentChanged => 'تم تعديل طريقة الدفع';
+
+  @override
+  String get paymentChangeFailed => 'تعذّر تعديل طريقة الدفع';
 }

@@ -253,6 +253,10 @@ class _FakeInvoiceRepository implements InvoiceRepository {
   @override
   Future<Either<Failure, void>> deleteInvoice(String id) async =>
       const Right(null);
+  @override
+  Future<Either<Failure, void>> changeInvoicePayment(String invoiceId,
+          {required String? customerId}) async =>
+      const Right(null);
 }
 
 class _FakePrinterRepository implements PrinterRepository {

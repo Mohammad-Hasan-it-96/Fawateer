@@ -153,6 +153,7 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
                   itemCount: r.itemCount,
                   isCredit: r.isCredit,
                   customerName: r.customerName,
+                  customerId: r.customerId,
                 ))
             .toList());
   }
@@ -198,6 +199,33 @@ class InvoiceRepositoryDriftImpl implements InvoiceRepository {
                 serialSnapshot: r.serialSnapshot,
               ))
           .toList());
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> changeInvoicePayment(
+    String invoiceId, {
+    required String? customerId,
+  }) async {
+    try {
+      // The uuid is minted here, matching `saveInvoice` above — the DAO stays
+      // free of id generation, and the row it writes (cash entry or ledger
+      // charge) is decided by `customerId` exactly as it is on the sale path.
+      final result = await _dao.setInvoicePayment(
+        invoiceId: invoiceId,
+        customerId: customerId,
+        newRowId: const Uuid().v4(),
+      );
+      switch (result) {
+        case PaymentChangeResult.ok:
+          return const Right(null);
+        case PaymentChangeResult.invoiceMissing:
+          return const Left(NotFoundFailure('invoice not found'));
+        case PaymentChangeResult.customerMissing:
+          return const Left(NotFoundFailure('customer not found'));
+      }
     } catch (e) {
       return Left(CacheFailure(e.toString()));
     }

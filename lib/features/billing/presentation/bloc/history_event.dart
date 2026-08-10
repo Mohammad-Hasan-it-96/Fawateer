@@ -44,6 +44,20 @@ class DeleteInvoiceEvent extends HistoryEvent {
   List<Object?> get props => [invoiceId];
 }
 
+/// Correct how a recorded sale was paid (Plan 016 C-a). [customerId] null =
+/// cash, otherwise credit for that customer. The sale itself is untouched, so
+/// there is nothing to reload beyond what the streams already push.
+class ChangeInvoicePaymentEvent extends HistoryEvent {
+  final String invoiceId;
+  final String? customerId;
+  const ChangeInvoicePaymentEvent({
+    required this.invoiceId,
+    required this.customerId,
+  });
+  @override
+  List<Object?> get props => [invoiceId, customerId];
+}
+
 class ReprintInvoiceEvent extends HistoryEvent {
   final String invoiceId;
   final double total;

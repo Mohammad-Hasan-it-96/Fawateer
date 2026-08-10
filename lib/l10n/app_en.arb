@@ -935,5 +935,15 @@
   },
   "deleteInvoiceIrreversible": "This cannot be undone. Ring the sale again to correct it.",
   "invoiceDeleted": "Sale deleted",
-  "invoiceDeleteFailed": "Couldn't delete the sale"
+  "invoiceDeleteFailed": "Couldn't delete the sale",
+
+  "changePaymentAction": "Change payment",
+  "changePaymentTitle": "How was this sale paid?",
+  "changePaymentIntro": "Only the payment record changes. The items, the total and the receipt stay exactly as they are.",
+  "changePaymentCashHint": "The amount goes into the cash drawer",
+  "changePaymentCreditHint": "The amount is added to a customer's debt",
+  "changePaymentChooseCustomer": "Choose customer",
+  "changePaymentNotRepayment": "Use this to fix a mistake. If the customer is paying off a debt, record a payment on their account instead.",
+  "paymentChanged": "Payment updated",
+  "paymentChangeFailed": "Couldn't update the payment"
 }

@@ -662,5 +662,15 @@
   "deleteInvoiceDebt": "ينقص دين {name} بهذا المبلغ",
   "deleteInvoiceIrreversible": "لا يمكن التراجع. لتصحيح الفاتورة أعد تسجيلها من جديد.",
   "invoiceDeleted": "تم حذف الفاتورة",
-  "invoiceDeleteFailed": "تعذّر حذف الفاتورة"
+  "invoiceDeleteFailed": "تعذّر حذف الفاتورة",
+
+  "changePaymentAction": "تعديل طريقة الدفع",
+  "changePaymentTitle": "كيف تم دفع هذه الفاتورة؟",
+  "changePaymentIntro": "يتغيّر تسجيل الدفع فقط. الأصناف والإجمالي والفاتورة المطبوعة تبقى كما هي تمامًا.",
+  "changePaymentCashHint": "يدخل المبلغ إلى الصندوق",
+  "changePaymentCreditHint": "يُضاف المبلغ إلى دين العميل",
+  "changePaymentChooseCustomer": "اختر العميل",
+  "changePaymentNotRepayment": "استخدم هذا لتصحيح خطأ. أمّا إذا كان العميل يسدّد دينه فسجّل دفعة على حسابه بدلًا من ذلك.",
+  "paymentChanged": "تم تعديل طريقة الدفع",
+  "paymentChangeFailed": "تعذّر تعديل طريقة الدفع"
 }
