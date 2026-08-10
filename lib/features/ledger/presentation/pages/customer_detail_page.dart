@@ -8,8 +8,11 @@ import '../../../../core/share/cards/customer_statement_share_card.dart';
 import '../../../../core/share/share_card_action.dart';
 import '../../../../core/share/share_service.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/utils/format.dart';
 import '../../../../core/utils/num_input.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../billing/presentation/bloc/history_bloc.dart';
+import '../../../shop/domain/entities/shop.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../domain/entities/ledger_entry.dart';
 import '../bloc/customer_bloc.dart';
@@ -345,48 +348,12 @@ class CustomerDetailPage extends StatelessWidget {
   }
 
   Widget _entryTile(
-      BuildContext context, AppLocalizations l10n, LedgerEntry e) {
-    final isPayment = e.type == LedgerEntryType.payment;
-    final color = isPayment ? Colors.green.shade600 : Colors.red.shade600;
-    final sign = isPayment ? '-' : '+';
-    final date = DateFormat.yMMMd('ar').add_jm().format(e.createdAt);
-
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: color.withValues(alpha: 0.12),
-        child: Icon(isPayment ? Icons.south_west : Icons.north_east,
-            color: color, size: 20),
-      ),
-      title: Row(
-        children: [
-          Text(isPayment ? l10n.entryPayment : l10n.entryDebt,
-              style: const TextStyle(fontWeight: FontWeight.w600)),
-          if (e.isFromSale) ...[
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(l10n.creditSaleTag,
-                  style: const TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.primaryColor)),
-            ),
-          ],
-        ],
-      ),
-      subtitle: Text(
-        e.note.isEmpty ? date : '$date · ${e.note}',
-        style: TextStyle(fontSize: 11, color: Theme.of(context).colorScheme.onSurfaceVariant),
-      ),
-      trailing: Text('$sign${moneyText(context, e.amount)}',
-          style: TextStyle(fontWeight: FontWeight.bold, color: color)),
-      onLongPress: () => _confirmDelete(context, l10n, e),
-    );
-  }
+          BuildContext context, AppLocalizations l10n, LedgerEntry e) =>
+      _EntryTile(
+        entry: e,
+        l10n: l10n,
+        onDelete: () => _confirmDelete(context, l10n, e),
+      );
 
   Future<void> _confirmDelete(
       BuildContext context, AppLocalizations l10n, LedgerEntry e) async {
@@ -538,5 +505,236 @@ class CustomerDetailPage extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// One row of a customer's account.
+///
+/// A **credit sale expands to show what was actually sold** (Plan 019 #1).
+/// Before this, the account read "بيع آجل · 5,000" and stopped there: the shop
+/// could see that someone owed 5,000 but not what for, and neither could the
+/// customer standing at the counter. The link has always existed in the data
+/// (`ledger_entries.invoiceId`) — it was simply never surfaced, so this costs
+/// no schema and no new query.
+///
+/// Manual charges and payments have no invoice behind them and stay exactly as
+/// they were, without a chevron promising something that cannot open.
+class _EntryTile extends StatefulWidget {
+  final LedgerEntry entry;
+  final AppLocalizations l10n;
+  final VoidCallback onDelete;
+
+  const _EntryTile({
+    required this.entry,
+    required this.l10n,
+    required this.onDelete,
+  });
+
+  @override
+  State<_EntryTile> createState() => _EntryTileState();
+}
+
+class _EntryTileState extends State<_EntryTile> {
+  bool _open = false;
+
+  /// The lines are lazy-loaded and cached by the app-wide [HistoryBloc] — the
+  /// same cache the invoice detail page fills. Sharing it means an invoice
+  /// opened here is already loaded there, and a deleted sale drops out of both
+  /// at once, because `_onDelete` evicts it.
+  void _toggle() {
+    final invoiceId = widget.entry.invoiceId;
+    if (invoiceId == null) return;
+    setState(() => _open = !_open);
+    if (_open) {
+      context.read<HistoryBloc>().add(LoadInvoiceDetailsEvent(invoiceId));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final e = widget.entry;
+    final l10n = widget.l10n;
+    final isPayment = e.type == LedgerEntryType.payment;
+    final color = isPayment ? Colors.green.shade600 : Colors.red.shade600;
+    final sign = isPayment ? '-' : '+';
+    final date = DateFormat.yMMMd('ar').add_jm().format(e.createdAt);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ListTile(
+          leading: CircleAvatar(
+            backgroundColor: color.withValues(alpha: 0.12),
+            child: Icon(isPayment ? Icons.south_west : Icons.north_east,
+                color: color, size: 20),
+          ),
+          title: Row(
+            children: [
+              Text(isPayment ? l10n.entryPayment : l10n.entryDebt,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
+              if (e.isFromSale) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(l10n.creditSaleTag,
+                      style: const TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.primaryColor)),
+                ),
+              ],
+            ],
+          ),
+          subtitle: Text(
+            e.note.isEmpty ? date : '$date · ${e.note}',
+            style: TextStyle(
+                fontSize: 11,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+          ),
+          trailing: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('$sign${moneyText(context, e.amount)}',
+                  style: TextStyle(fontWeight: FontWeight.bold, color: color)),
+              // Only where there is something behind it. A chevron on a manual
+              // charge would invite a tap that can lead nowhere.
+              if (e.isFromSale)
+                Icon(_open ? Icons.expand_less : Icons.expand_more,
+                    size: 20,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
+            ],
+          ),
+          onTap: e.isFromSale ? _toggle : null,
+          onLongPress: widget.onDelete,
+        ),
+        if (_open && e.invoiceId != null) _items(context, e.invoiceId!),
+      ],
+    );
+  }
+
+  Widget _items(BuildContext context, String invoiceId) {
+    final l10n = widget.l10n;
+    return BlocBuilder<HistoryBloc, HistoryState>(
+      buildWhen: (p, c) =>
+          p.itemsCache[invoiceId] != c.itemsCache[invoiceId] ||
+          p.failedItems.contains(invoiceId) !=
+              c.failedItems.contains(invoiceId),
+      builder: (context, state) {
+        final items = state.itemsCache[invoiceId];
+        final failed = state.failedItems.contains(invoiceId);
+
+        Widget body;
+        if (items == null) {
+          // Tapping retries: a failed load is recorded but never cached, so
+          // re-requesting genuinely re-runs it.
+          body = failed
+              ? InkWell(
+                  onTap: () => context
+                      .read<HistoryBloc>()
+                      .add(LoadInvoiceDetailsEvent(invoiceId)),
+                  child: Text(l10n.itemsLoadFailed,
+                      style: const TextStyle(fontSize: 12, color: Colors.red)),
+                )
+              : const Center(
+                  child: SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2)),
+                );
+        } else if (items.isEmpty) {
+          body = Text(l10n.noItems,
+              style: TextStyle(
+                  fontSize: 12,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant));
+        } else {
+          body = Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final item in items)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 3),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(item.productName,
+                            style: const TextStyle(fontSize: 12.5)),
+                      ),
+                      const SizedBox(width: 8),
+                      // Quantity × unit price, so a disputed line can be
+                      // checked against the shelf price without opening the
+                      // invoice itself.
+                      Text(
+                        '${formatQty(item.quantity)} × '
+                        '${moneyText(context, item.price)}',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(moneyText(context, item.total),
+                          style: const TextStyle(
+                              fontSize: 12.5, fontWeight: FontWeight.w600)),
+                    ],
+                  ),
+                ),
+            ],
+          );
+        }
+
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+          color: Theme.of(context).colorScheme.surfaceContainerHighest,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              body,
+              if (items != null && items.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                // Reprint without leaving the account — this is the moment it
+                // is wanted: the customer is disputing the amount, and the
+                // answer is the original receipt.
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton.icon(
+                    onPressed: () => _reprint(context, invoiceId),
+                    icon: const Icon(Icons.print_outlined, size: 16),
+                    label:
+                        Text(l10n.reprint, style: const TextStyle(fontSize: 12)),
+                    style: TextButton.styleFrom(
+                        visualDensity: VisualDensity.compact,
+                        padding: const EdgeInsets.symmetric(horizontal: 8)),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _reprint(BuildContext context, String invoiceId) {
+    final shopState = context.read<ShopBloc>().state;
+    final shop = shopState is ShopLoaded ? shopState.shop : const Shop();
+    context.read<HistoryBloc>().add(ReprintInvoiceEvent(
+          invoiceId: invoiceId,
+          // The charge's amount IS the invoice total — the sale path books it
+          // as `amount = invoice total`. Re-summing the lines here would print
+          // a pre-discount figure and disagree with the original receipt.
+          total: widget.entry.amount,
+          shopName: shop.name,
+          address1: shop.addressLine1,
+          address2: shop.addressLine2,
+          phone: shop.phoneNumber,
+          footer: shop.footerText,
+          currency: currencyOf(context),
+        ));
   }
 }
