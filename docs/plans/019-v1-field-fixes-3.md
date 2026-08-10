@@ -10,7 +10,7 @@
 
 ---
 
-## #1 — A credit sale on the account does not say what was sold ✅ SHIPPED
+## #1 — A credit sale on the account does not say what was sold ✅ SHIPPED & DEVICE-VERIFIED
 
 > **The shop's words:** reviewing a customer's account shows a credit sale of,
 > say, 5,000 — but not *which products* made up that 5,000.
