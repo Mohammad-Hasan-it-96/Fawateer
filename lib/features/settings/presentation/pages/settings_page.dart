@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/config/remote_config_service.dart';
 import '../../../../core/config/update_dialog.dart';
+import '../../../../core/security/biometric_service.dart';
 import '../../../../core/security/manager_guard.dart';
 import '../../../../core/security/manager_pin_service.dart';
 import '../../../../core/service_locator.dart' as di;
@@ -79,14 +80,54 @@ class _SettingsPageState extends State<SettingsPage> {
     _loadPinState();
   }
 
-  /// Best-effort read of whether the manager lock is on; leaves it off on error.
+  /// Whether the fingerprint shortcut is on, and whether this phone can offer
+  /// it at all. Both off until [_loadPinState] resolves.
+  bool _biometricOn = false;
+  bool _biometricAvailable = false;
+
+  /// Best-effort read of the manager-lock state; leaves everything off on error.
   Future<void> _loadPinState() async {
     var set = false;
+    var bioOn = false;
+    var bioAvailable = false;
     try {
       set = await di.sl<ManagerPinService>().isPinSet();
+      final biometric = di.sl<BiometricService>();
+      bioOn = await biometric.isEnabled();
+      bioAvailable = await biometric.isAvailable();
     } catch (_) {/* leave off */}
     if (!mounted) return;
-    setState(() => _pinSet = set);
+    setState(() {
+      _pinSet = set;
+      _biometricOn = bioOn;
+      _biometricAvailable = bioAvailable;
+    });
+  }
+
+  /// Turn the fingerprint shortcut on or off.
+  ///
+  /// Turning it **on** asks for the current PIN and then for the fingerprint
+  /// itself: the switch should only flip once the sensor has actually worked
+  /// once on this phone, or the owner learns it doesn't at the moment they are
+  /// relying on it. Turning it **off** needs only the PIN — losing a shortcut
+  /// can never lock anyone out.
+  Future<void> _setBiometric(bool value) async {
+    if (!await requireManager(context) || !mounted) return;
+    final biometric = di.sl<BiometricService>();
+    if (value) {
+      final l10n = AppLocalizations.of(context)!;
+      final ok = await biometric.authenticate(l10n.managerBiometricReason);
+      if (!mounted) return;
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(l10n.managerBiometricFailed),
+            backgroundColor: Colors.red));
+        return;
+      }
+    }
+    await biometric.setEnabled(value);
+    if (!mounted) return;
+    setState(() => _biometricOn = value);
   }
 
   /// Set a first PIN, or change an existing one.
@@ -388,6 +429,29 @@ class _SettingsPageState extends State<SettingsPage> {
                       : l10n.managerPinOffSubtitle,
                   onTap: _openPinSetup,
                 ),
+                // Only meaningful once a PIN exists — the fingerprint is a
+                // shortcut past it, never a lock of its own.
+                if (_pinSet)
+                  _buildListItem(
+                    icon: Icons.fingerprint,
+                    title: l10n.managerBiometricTitle,
+                    subtitle: !_biometricAvailable
+                        ? l10n.managerBiometricUnavailable
+                        : (_biometricOn
+                            ? l10n.managerBiometricOn
+                            : l10n.managerBiometricOff),
+                    trailingWidget: Switch(
+                      value: _biometricOn && _biometricAvailable,
+                      // Shown but disabled when the phone has nothing enrolled,
+                      // rather than hidden: a missing row looks like a missing
+                      // feature, while a greyed one explains itself.
+                      onChanged: _biometricAvailable ? _setBiometric : null,
+                    ),
+                    trailingIcon: null,
+                    onTap: _biometricAvailable
+                        ? () => _setBiometric(!_biometricOn)
+                        : null,
+                  ),
                 if (_pinSet)
                   _buildListItem(
                     icon: Icons.lock_reset_outlined,

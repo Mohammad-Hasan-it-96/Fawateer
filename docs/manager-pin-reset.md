@@ -60,6 +60,21 @@ The app accepts **yesterday, today and tomorrow**, so you and the shop being on
 opposite sides of midnight — or in different time zones — does not produce a
 code that stops working while you are reading it out.
 
+## Fingerprint
+
+The owner can turn on **الفتح بالبصمة** in the same Settings section, once a PIN
+exists. It is a shortcut, not a second lock: the prompt appears when a guarded
+action is tapped, and the PIN keypad is right there behind it. Wet fingers, a
+removed enrolment or a new phone all just mean typing the PIN.
+
+**The phone's own unlock code does not open it.** That is on purpose: staff who
+run the till have to know the handset's unlock code, so accepting it would give
+them exactly the key this lock is meant to withhold. A fingerprint cannot be
+passed across a counter.
+
+Nothing about the reset flow changes — the PIN is still what the reset code
+clears, and the fingerprint follows whatever the PIN does.
+
 ## What this does and does not protect
 
 Say this plainly to shops who ask, because they will otherwise assume more:

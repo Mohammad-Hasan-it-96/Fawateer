@@ -6,6 +6,7 @@ import '../../features/licensing/presentation/widgets/device_id_card.dart';
 import '../../l10n/app_localizations.dart';
 import '../service_locator.dart' as di;
 import '../utils/support_launcher.dart';
+import 'biometric_service.dart';
 import 'manager_pin.dart';
 import 'manager_pin_service.dart';
 
@@ -46,6 +47,48 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
   final _controller = TextEditingController();
   String? _error;
   bool _checking = false;
+
+  /// Whether to show the fingerprint button. Resolved once, asynchronously —
+  /// the dialog opens immediately with the PIN field either way rather than
+  /// waiting on a platform channel to decide what to draw.
+  bool _biometricReady = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _offerBiometric();
+  }
+
+  /// Offer the fingerprint straight away, so the common case is one touch and
+  /// the keypad is never reached.
+  ///
+  /// Not offered while a cooldown is running: the wait after repeated wrong
+  /// PINs would otherwise be walked around by whoever's finger is enrolled —
+  /// which is fine — but more importantly a prompt appearing over a "wait 30
+  /// seconds" message reads as the app contradicting itself.
+  Future<void> _offerBiometric() async {
+    final biometric = di.sl<BiometricService>();
+    if (!await biometric.isReady()) return;
+    if (!mounted) return;
+    setState(() => _biometricReady = true);
+    if (di.sl<ManagerPinService>().cooldownRemaining != null) return;
+    await _tryBiometric();
+  }
+
+  Future<void> _tryBiometric() async {
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await di
+        .sl<BiometricService>()
+        .authenticate(l10n.managerBiometricReason);
+    if (!mounted) return;
+    if (ok) {
+      Navigator.pop(context, true);
+      return;
+    }
+    // Deliberately silent on failure: cancelling the system prompt is the
+    // normal way to say "I'll type it instead", and an error message for that
+    // would be noise. The PIN field is already focused and waiting.
+  }
 
   @override
   void dispose() {
@@ -111,16 +154,32 @@ class _PinPromptDialogState extends State<_PinPromptDialog> {
             Text(_error!,
                 style: const TextStyle(color: Colors.red, fontSize: 12.5)),
           ],
-          Align(
-            alignment: AlignmentDirectional.centerStart,
-            child: TextButton(
-              onPressed: _forgot,
-              style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  visualDensity: VisualDensity.compact),
-              child: Text(l10n.managerPinForgot,
-                  style: const TextStyle(fontSize: 12.5)),
-            ),
+          Row(
+            children: [
+              Expanded(
+                child: Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: TextButton(
+                    onPressed: _forgot,
+                    style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        visualDensity: VisualDensity.compact),
+                    child: Text(l10n.managerPinForgot,
+                        style: const TextStyle(fontSize: 12.5)),
+                  ),
+                ),
+              ),
+              // Retry: the automatic prompt on open is one-shot, and a finger
+              // that didn't read the first time needs a way back to it that
+              // isn't "close the dialog and start again".
+              if (_biometricReady)
+                IconButton(
+                  onPressed: _tryBiometric,
+                  icon: const Icon(Icons.fingerprint),
+                  tooltip: l10n.managerBiometricTitle,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+            ],
           ),
         ],
       ),

@@ -4041,6 +4041,42 @@ abstract class AppLocalizations {
   /// **'The PIN was removed. Set a new one from Settings.'**
   String get managerPinResetDone;
 
+  /// No description provided for @managerBiometricTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock with fingerprint'**
+  String get managerBiometricTitle;
+
+  /// No description provided for @managerBiometricOn.
+  ///
+  /// In en, this message translates to:
+  /// **'On — your fingerprint or face opens the lock'**
+  String get managerBiometricOn;
+
+  /// No description provided for @managerBiometricOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off — the PIN is asked every time'**
+  String get managerBiometricOff;
+
+  /// No description provided for @managerBiometricUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No fingerprint or face is set up on this phone'**
+  String get managerBiometricUnavailable;
+
+  /// No description provided for @managerBiometricReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm it is you to unlock the manager actions'**
+  String get managerBiometricReason;
+
+  /// No description provided for @managerBiometricFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Fingerprint not recognised — the PIN still works'**
+  String get managerBiometricFailed;
+
   /// No description provided for @managerPinResetMessage.
   ///
   /// In en, this message translates to:

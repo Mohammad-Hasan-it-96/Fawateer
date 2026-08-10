@@ -978,6 +978,13 @@
   "managerPinResetCodeLabel": "Reset code",
   "managerPinResetWrong": "This code is not right for this device today",
   "managerPinResetDone": "The PIN was removed. Set a new one from Settings.",
+  "managerBiometricTitle": "Unlock with fingerprint",
+  "managerBiometricOn": "On — your fingerprint or face opens the lock",
+  "managerBiometricOff": "Off — the PIN is asked every time",
+  "managerBiometricUnavailable": "No fingerprint or face is set up on this phone",
+  "managerBiometricReason": "Confirm it is you to unlock the manager actions",
+  "managerBiometricFailed": "Fingerprint not recognised — the PIN still works",
+
   "managerPinResetMessage": "I forgot the manager PIN of my Fawateer app. My device number: {id}",
   "@managerPinResetMessage": {
     "placeholders": {

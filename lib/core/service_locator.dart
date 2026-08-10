@@ -19,6 +19,7 @@ import 'config/remote_config_service.dart';
 import 'currency/exchange_rate_service.dart';
 import 'settings/device_preferences.dart';
 import 'settings/inventory_settings_service.dart';
+import 'security/biometric_service.dart';
 import 'security/manager_pin_service.dart';
 import 'settings/print_settings_service.dart';
 import 'theme/font_scale_controller.dart';
@@ -124,6 +125,10 @@ Future<void> init() async {
   // Phone-local display settings, kept out of the shop's database — see
   // `DevicePreferences`.
   sl.registerLazySingleton<DevicePreferences>(() => DevicePreferences());
+  // Reads its on/off flag from the phone, not the shop's database — an enrolled
+  // fingerprint is a fact about this handset, not about the books.
+  sl.registerLazySingleton<BiometricService>(
+      () => BiometricService(sl<DevicePreferences>()));
   // Singleton, not a factory: `MyApp` listens to this instance and the settings
   // page writes to it — two copies would leave the UI out of sync.
   sl.registerLazySingleton<ThemeController>(

@@ -698,5 +698,12 @@
   "managerPinResetCodeLabel": "رمز الاستعادة",
   "managerPinResetWrong": "هذا الرمز غير صحيح لهذا الجهاز اليوم",
   "managerPinResetDone": "تمت إزالة الرمز. عيّن رمزًا جديدًا من الإعدادات.",
+  "managerBiometricTitle": "الفتح بالبصمة",
+  "managerBiometricOn": "مفعّل — بصمتك أو وجهك يفتح القفل",
+  "managerBiometricOff": "معطّل — يُطلب الرمز في كل مرة",
+  "managerBiometricUnavailable": "لا توجد بصمة أو تعرّف على الوجه مضبوط على هذا الهاتف",
+  "managerBiometricReason": "أكّد هويتك لفتح إجراءات المدير",
+  "managerBiometricFailed": "لم يتم التعرّف على البصمة — الرمز ما زال يعمل",
+
   "managerPinResetMessage": "نسيت رمز المدير في تطبيق فواتير. رقم جهازي: {id}"
 }

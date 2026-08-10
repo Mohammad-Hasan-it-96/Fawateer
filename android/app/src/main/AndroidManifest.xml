@@ -6,6 +6,11 @@
     <!-- Android 13+ runtime permission for the FCM live-unlock notification.
          Harmless when Firebase isn't configured (no notifications are posted). -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- Fingerprint / face as a shortcut past the manager PIN (Plan 016 B).
+         Not a feature requirement: a phone with no sensor simply always asks
+         for the PIN, so no <uses-feature> is declared and the app stays
+         installable everywhere. -->
+    <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
     <uses-feature android:name="android.hardware.camera" android:required="false"/>
     <application
         android:label="فواتير"

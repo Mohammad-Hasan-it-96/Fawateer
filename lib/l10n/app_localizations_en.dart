@@ -2144,6 +2144,28 @@ class AppLocalizationsEn extends AppLocalizations {
       'The PIN was removed. Set a new one from Settings.';
 
   @override
+  String get managerBiometricTitle => 'Unlock with fingerprint';
+
+  @override
+  String get managerBiometricOn =>
+      'On — your fingerprint or face opens the lock';
+
+  @override
+  String get managerBiometricOff => 'Off — the PIN is asked every time';
+
+  @override
+  String get managerBiometricUnavailable =>
+      'No fingerprint or face is set up on this phone';
+
+  @override
+  String get managerBiometricReason =>
+      'Confirm it is you to unlock the manager actions';
+
+  @override
+  String get managerBiometricFailed =>
+      'Fingerprint not recognised — the PIN still works';
+
+  @override
   String managerPinResetMessage(String id) {
     return 'I forgot the manager PIN of my Fawateer app. My device number: $id';
   }

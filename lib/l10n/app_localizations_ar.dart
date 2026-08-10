@@ -2127,6 +2127,26 @@ class AppLocalizationsAr extends AppLocalizations {
       'تمت إزالة الرمز. عيّن رمزًا جديدًا من الإعدادات.';
 
   @override
+  String get managerBiometricTitle => 'الفتح بالبصمة';
+
+  @override
+  String get managerBiometricOn => 'مفعّل — بصمتك أو وجهك يفتح القفل';
+
+  @override
+  String get managerBiometricOff => 'معطّل — يُطلب الرمز في كل مرة';
+
+  @override
+  String get managerBiometricUnavailable =>
+      'لا توجد بصمة أو تعرّف على الوجه مضبوط على هذا الهاتف';
+
+  @override
+  String get managerBiometricReason => 'أكّد هويتك لفتح إجراءات المدير';
+
+  @override
+  String get managerBiometricFailed =>
+      'لم يتم التعرّف على البصمة — الرمز ما زال يعمل';
+
+  @override
   String managerPinResetMessage(String id) {
     return 'نسيت رمز المدير في تطبيق فواتير. رقم جهازي: $id';
   }

@@ -26,8 +26,29 @@
 >   `docs/manager-pin-reset.md` gives support the formula; without it they
 >   cannot help anyone.
 >
-> Pinned by `test/manager_pin_test.dart` (20) and
-> `test/manager_pin_service_test.dart` (11).
+> **Fingerprint / face was added after the owner tested the PIN** (they asked
+> for it, pointing at the Accounting Book app as the reference — same
+> `local_auth` approach, same `FlutterFragmentActivity` requirement).
+>
+> - **It is a shortcut past the PIN, not a second lock.** The PIN never goes
+>   away: sensors fail on wet fingers, faces fail in the dark, enrolments are
+>   removed and phones get replaced. A lock whose only key can stop working
+>   eventually strands the owner.
+> - **`biometricOnly: true` — the phone's own unlock code is refused.** This is
+>   the one decision worth defending. The lock exists to stop someone *already
+>   holding the unlocked phone*, and shop staff necessarily know the handset's
+>   unlock code in order to run the till. Accepting it would hand them the key
+>   to the thing being guarded. A fingerprint belongs to a person and cannot be
+>   passed across the counter. (The owner's wording included "or mobile lock" —
+>   flagged back to them as a deliberate exclusion, one flag to change if they
+>   disagree.)
+> - Turning the shortcut on needs the PIN **and** one successful fingerprint,
+>   so the sensor is proven to work before anyone relies on it.
+>
+> Pinned by `test/manager_pin_test.dart` (20),
+> `test/manager_pin_service_test.dart` (11) and
+> `test/biometric_service_test.dart` (7 — the fail-safe paths; the system
+> prompt itself is device-only).
 >
 
 > **C-a landed as designed — it touches no snapshot column.** `SalesDao.
