@@ -19,6 +19,7 @@ import 'config/remote_config_service.dart';
 import 'currency/exchange_rate_service.dart';
 import 'settings/device_preferences.dart';
 import 'settings/inventory_settings_service.dart';
+import 'security/manager_pin_service.dart';
 import 'settings/print_settings_service.dart';
 import 'theme/font_scale_controller.dart';
 import 'theme/theme_controller.dart';
@@ -116,6 +117,10 @@ Future<void> init() async {
       () => InventorySettingsService(sl<SettingsDao>()));
   sl.registerLazySingleton<PrintSettingsService>(
       () => PrintSettingsService(sl<SettingsDao>()));
+  // Singleton, not a factory: it holds the wrong-attempt counter in memory, and
+  // a fresh instance per guard call would reset the cooldown on every try.
+  sl.registerLazySingleton<ManagerPinService>(
+      () => ManagerPinService(sl<SettingsDao>()));
   // Phone-local display settings, kept out of the shop's database — see
   // `DevicePreferences`.
   sl.registerLazySingleton<DevicePreferences>(() => DevicePreferences());

@@ -945,5 +945,45 @@
   "changePaymentChooseCustomer": "Choose customer",
   "changePaymentNotRepayment": "Use this to fix a mistake. If the customer is paying off a debt, record a payment on their account instead.",
   "paymentChanged": "Payment updated",
-  "paymentChangeFailed": "Couldn't update the payment"
+  "paymentChangeFailed": "Couldn't update the payment",
+
+  "managerLockSection": "Manager lock",
+  "managerPinTitle": "Manager PIN",
+  "managerPinOffSubtitle": "Off — anyone can delete or change a sale",
+  "managerPinOnSubtitle": "On — asked before deleting or changing a sale",
+  "managerPinSet": "Set a PIN",
+  "managerPinChange": "Change the PIN",
+  "managerPinRemove": "Remove the PIN",
+  "managerPinNote": "A short code asked before a sale is deleted, or its payment is changed. It is a speed bump, not a login — it will not stop someone who keeps the phone.",
+  "managerPinNew": "New PIN (4 to 6 digits)",
+  "managerPinConfirm": "Repeat the new PIN",
+  "managerPinEnter": "Enter the manager PIN",
+  "managerPinUnlock": "Unlock",
+  "managerPinInvalid": "Use 4 to 6 digits",
+  "managerPinMismatch": "The two PINs are not the same",
+  "managerPinWrong": "Wrong PIN",
+  "managerPinLocked": "Too many tries. Wait {seconds} seconds.",
+  "@managerPinLocked": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "managerPinSaved": "Manager PIN saved",
+  "managerPinRemoved": "Manager PIN removed",
+  "managerPinForgot": "Forgot the PIN?",
+  "managerPinResetTitle": "Reset the manager PIN",
+  "managerPinResetIntro": "Send your device number to support. They will give you a code that works today only. This works without internet.",
+  "managerPinResetCodeLabel": "Reset code",
+  "managerPinResetWrong": "This code is not right for this device today",
+  "managerPinResetDone": "The PIN was removed. Set a new one from Settings.",
+  "managerPinResetMessage": "I forgot the manager PIN of my Fawateer app. My device number: {id}",
+  "@managerPinResetMessage": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  }
 }

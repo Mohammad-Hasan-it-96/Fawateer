@@ -8,6 +8,8 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/config/remote_config_service.dart';
 import '../../../../core/config/update_dialog.dart';
+import '../../../../core/security/manager_guard.dart';
+import '../../../../core/security/manager_pin_service.dart';
 import '../../../../core/service_locator.dart' as di;
 import '../../../../core/settings/inventory_settings_service.dart';
 import '../../../../core/settings/print_settings_service.dart';
@@ -64,6 +66,9 @@ class _SettingsPageState extends State<SettingsPage> {
   /// True while a manual "check for updates" (tap on the version row) runs.
   bool _checkingUpdate = false;
 
+  /// Whether a manager PIN is set (Plan 016 B). Off by default.
+  bool _pinSet = false;
+
   @override
   void initState() {
     super.initState();
@@ -71,6 +76,48 @@ class _SettingsPageState extends State<SettingsPage> {
     _loadAbout();
     _loadInventory();
     _loadPrintSetting();
+    _loadPinState();
+  }
+
+  /// Best-effort read of whether the manager lock is on; leaves it off on error.
+  Future<void> _loadPinState() async {
+    var set = false;
+    try {
+      set = await di.sl<ManagerPinService>().isPinSet();
+    } catch (_) {/* leave off */}
+    if (!mounted) return;
+    setState(() => _pinSet = set);
+  }
+
+  /// Set a first PIN, or change an existing one.
+  ///
+  /// Changing an existing PIN asks for the current one first. Without that the
+  /// lock would protect the sales but not itself — anyone could simply set a
+  /// new PIN and walk in through the front door.
+  Future<void> _openPinSetup() async {
+    if (_pinSet) {
+      if (!await requireManager(context) || !mounted) return;
+    }
+    if (!mounted) return;
+    final saved = await showManagerPinSetup(context);
+    if (!mounted) return;
+    await _loadPinState();
+    if (!saved || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(AppLocalizations.of(context)!.managerPinSaved),
+        backgroundColor: Colors.green));
+  }
+
+  /// Turn the lock off. Also gated by the current PIN, for the same reason.
+  Future<void> _removePin() async {
+    if (!await requireManager(context) || !mounted) return;
+    await di.sl<ManagerPinService>().clear();
+    if (!mounted) return;
+    await _loadPinState();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(AppLocalizations.of(context)!.managerPinRemoved),
+        backgroundColor: Colors.green));
   }
 
   /// Best-effort read of the strict-inventory flag; leaves it off on error.
@@ -325,6 +372,29 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   onTap: () => _setBlockOversell(!_blockOversell),
                 ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            _buildSectionHeader(l10n.managerLockSection),
+            _buildListGroup(
+              children: [
+                _buildListItem(
+                  icon: _pinSet ? Icons.lock_outline : Icons.lock_open_outlined,
+                  title: l10n.managerPinTitle,
+                  subtitle: _pinSet
+                      ? l10n.managerPinOnSubtitle
+                      : l10n.managerPinOffSubtitle,
+                  onTap: _openPinSetup,
+                ),
+                if (_pinSet)
+                  _buildListItem(
+                    icon: Icons.lock_reset_outlined,
+                    title: l10n.managerPinRemove,
+                    subtitle: l10n.managerPinOffSubtitle,
+                    onTap: _removePin,
+                  ),
               ],
             ),
 

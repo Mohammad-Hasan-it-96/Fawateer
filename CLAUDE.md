@@ -283,6 +283,17 @@ Plan 007. `core/share/` turns a Flutter widget into a shareable PNG — used for
 
 **Android release signing**: release builds are signed with an owned keystore whose secrets live in `android/key.properties` (gitignored, pointing at a keystore stored **outside** the repo). A release build without it **fails loudly by design** rather than silently falling back to the debug key — a debug-signed APK can't update a real install. **Losing the keystore is unrecoverable**: Android refuses updates signed with a different key. Setup and distribution (per-ABI APKs) are documented in `docs/android-release-signing.md` and `docs/android-release-distribution.md`.
 
+### Manager lock (PIN — Plan 016 B)
+
+An **opt-in** 4–6 digit PIN asked before a destructive action. Off by default; a shop that never sets one sees exactly the old behaviour. Lives in `core/security/`: `manager_pin.dart` (pure — format, hashing, salt, reset code), `manager_pin_service.dart` (storage + verify + cooldown), `manager_guard.dart` (the `requireManager(context)` entry point and all PIN UI).
+
+- **`requireManager(BuildContext)` is the single place the question is asked** — it returns `true` when no PIN is set. Protecting one more action is one `if (!await requireManager(context)) return;`, and it is also where `SyncSession.isOwner` lands when `feat/multi-device-sync` merges ("main device only" becomes one check inside it, not a change at every call site). **Currently guards exactly two actions**: delete a sale and change its payment type (Plan 016's "applied to both"). Delete-product / edit-price / restore-backup were listed as candidates but are the owner's call, not assumed.
+- **Never stores the PIN** — `sha256(salt|pin)` with a per-install salt. `AppSettings` keys `manager_pin_hash` + `manager_pin_salt` (no table, no migration). Both live **in the database, not `DevicePreferences`**, deliberately: a Drive restore onto a new phone must still open with the shop's own PIN. Hashing is what makes it safe for a row that travels inside an unencrypted backup.
+- **Changing or removing the PIN goes through `requireManager` first** — otherwise the lock protects the sales but not itself.
+- **Cooldown**: 30 s after 5 wrong tries, **in memory only**. Persisting it would let a wrong-PIN streak lock the *owner* out across restarts, which is worse than what it prevents. Don't "fix" this into a persisted counter.
+- **Forgot-PIN is Plan 017 R1, and it is offline by design**: `pinResetCode = first 6 digits of SHA-256(deviceId | ApiConfig.pinResetSecret | YYYY-MM-DD)`, accepted for **±1 day** (support and shop can straddle midnight or time zones). A locked-out shop usually has no internet — that's why this is derived, not fetched, and why `pinResetSecret` is `const` rather than remote-configurable. Support computes the same value; the formula and a Python snippet are in `docs/manager-pin-reset.md`. **Changing that secret breaks every support tool** — bump it only with a release and update the doc in the same commit.
+- ASCII digits only (`isValidPin`); Arabic-Indic digits are **not** normalised, so a PIN can't be set with one keyboard and become untypeable with the other.
+
 ### Navigation (GoRouter)
 
 Routing uses a `StatefulShellRoute.indexedStack` (`AppShell`) with five tab branches; `initialLocation` is `/pos`.

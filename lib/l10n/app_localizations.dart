@@ -3896,6 +3896,156 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Couldn\'t update the payment'**
   String get paymentChangeFailed;
+
+  /// No description provided for @managerLockSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager lock'**
+  String get managerLockSection;
+
+  /// No description provided for @managerPinTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager PIN'**
+  String get managerPinTitle;
+
+  /// No description provided for @managerPinOffSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Off — anyone can delete or change a sale'**
+  String get managerPinOffSubtitle;
+
+  /// No description provided for @managerPinOnSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'On — asked before deleting or changing a sale'**
+  String get managerPinOnSubtitle;
+
+  /// No description provided for @managerPinSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a PIN'**
+  String get managerPinSet;
+
+  /// No description provided for @managerPinChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change the PIN'**
+  String get managerPinChange;
+
+  /// No description provided for @managerPinRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the PIN'**
+  String get managerPinRemove;
+
+  /// No description provided for @managerPinNote.
+  ///
+  /// In en, this message translates to:
+  /// **'A short code asked before a sale is deleted, or its payment is changed. It is a speed bump, not a login — it will not stop someone who keeps the phone.'**
+  String get managerPinNote;
+
+  /// No description provided for @managerPinNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New PIN (4 to 6 digits)'**
+  String get managerPinNew;
+
+  /// No description provided for @managerPinConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat the new PIN'**
+  String get managerPinConfirm;
+
+  /// No description provided for @managerPinEnter.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the manager PIN'**
+  String get managerPinEnter;
+
+  /// No description provided for @managerPinUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get managerPinUnlock;
+
+  /// No description provided for @managerPinInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Use 4 to 6 digits'**
+  String get managerPinInvalid;
+
+  /// No description provided for @managerPinMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The two PINs are not the same'**
+  String get managerPinMismatch;
+
+  /// No description provided for @managerPinWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong PIN'**
+  String get managerPinWrong;
+
+  /// No description provided for @managerPinLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many tries. Wait {seconds} seconds.'**
+  String managerPinLocked(int seconds);
+
+  /// No description provided for @managerPinSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager PIN saved'**
+  String get managerPinSaved;
+
+  /// No description provided for @managerPinRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager PIN removed'**
+  String get managerPinRemoved;
+
+  /// No description provided for @managerPinForgot.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot the PIN?'**
+  String get managerPinForgot;
+
+  /// No description provided for @managerPinResetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset the manager PIN'**
+  String get managerPinResetTitle;
+
+  /// No description provided for @managerPinResetIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Send your device number to support. They will give you a code that works today only. This works without internet.'**
+  String get managerPinResetIntro;
+
+  /// No description provided for @managerPinResetCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset code'**
+  String get managerPinResetCodeLabel;
+
+  /// No description provided for @managerPinResetWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'This code is not right for this device today'**
+  String get managerPinResetWrong;
+
+  /// No description provided for @managerPinResetDone.
+  ///
+  /// In en, this message translates to:
+  /// **'The PIN was removed. Set a new one from Settings.'**
+  String get managerPinResetDone;
+
+  /// No description provided for @managerPinResetMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'I forgot the manager PIN of my Fawateer app. My device number: {id}'**
+  String managerPinResetMessage(String id);
 }
 
 class _AppLocalizationsDelegate

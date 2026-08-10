@@ -2062,4 +2062,89 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get paymentChangeFailed => 'Couldn\'t update the payment';
+
+  @override
+  String get managerLockSection => 'Manager lock';
+
+  @override
+  String get managerPinTitle => 'Manager PIN';
+
+  @override
+  String get managerPinOffSubtitle =>
+      'Off — anyone can delete or change a sale';
+
+  @override
+  String get managerPinOnSubtitle =>
+      'On — asked before deleting or changing a sale';
+
+  @override
+  String get managerPinSet => 'Set a PIN';
+
+  @override
+  String get managerPinChange => 'Change the PIN';
+
+  @override
+  String get managerPinRemove => 'Remove the PIN';
+
+  @override
+  String get managerPinNote =>
+      'A short code asked before a sale is deleted, or its payment is changed. It is a speed bump, not a login — it will not stop someone who keeps the phone.';
+
+  @override
+  String get managerPinNew => 'New PIN (4 to 6 digits)';
+
+  @override
+  String get managerPinConfirm => 'Repeat the new PIN';
+
+  @override
+  String get managerPinEnter => 'Enter the manager PIN';
+
+  @override
+  String get managerPinUnlock => 'Unlock';
+
+  @override
+  String get managerPinInvalid => 'Use 4 to 6 digits';
+
+  @override
+  String get managerPinMismatch => 'The two PINs are not the same';
+
+  @override
+  String get managerPinWrong => 'Wrong PIN';
+
+  @override
+  String managerPinLocked(int seconds) {
+    return 'Too many tries. Wait $seconds seconds.';
+  }
+
+  @override
+  String get managerPinSaved => 'Manager PIN saved';
+
+  @override
+  String get managerPinRemoved => 'Manager PIN removed';
+
+  @override
+  String get managerPinForgot => 'Forgot the PIN?';
+
+  @override
+  String get managerPinResetTitle => 'Reset the manager PIN';
+
+  @override
+  String get managerPinResetIntro =>
+      'Send your device number to support. They will give you a code that works today only. This works without internet.';
+
+  @override
+  String get managerPinResetCodeLabel => 'Reset code';
+
+  @override
+  String get managerPinResetWrong =>
+      'This code is not right for this device today';
+
+  @override
+  String get managerPinResetDone =>
+      'The PIN was removed. Set a new one from Settings.';
+
+  @override
+  String managerPinResetMessage(String id) {
+    return 'I forgot the manager PIN of my Fawateer app. My device number: $id';
+  }
 }

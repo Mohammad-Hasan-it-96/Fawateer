@@ -2046,4 +2046,88 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get paymentChangeFailed => 'تعذّر تعديل طريقة الدفع';
+
+  @override
+  String get managerLockSection => 'قفل المدير';
+
+  @override
+  String get managerPinTitle => 'رمز المدير';
+
+  @override
+  String get managerPinOffSubtitle =>
+      'معطّل — يستطيع أي شخص حذف الفاتورة أو تعديلها';
+
+  @override
+  String get managerPinOnSubtitle =>
+      'مفعّل — يُطلب قبل حذف الفاتورة أو تعديل دفعها';
+
+  @override
+  String get managerPinSet => 'تعيين رمز';
+
+  @override
+  String get managerPinChange => 'تغيير الرمز';
+
+  @override
+  String get managerPinRemove => 'إزالة الرمز';
+
+  @override
+  String get managerPinNote =>
+      'رمز قصير يُطلب قبل حذف فاتورة أو تعديل طريقة دفعها. هو عائق بسيط وليس تسجيل دخول — لن يوقف من يبقى الهاتف بين يديه.';
+
+  @override
+  String get managerPinNew => 'الرمز الجديد (٤ إلى ٦ أرقام)';
+
+  @override
+  String get managerPinConfirm => 'أعد كتابة الرمز الجديد';
+
+  @override
+  String get managerPinEnter => 'أدخل رمز المدير';
+
+  @override
+  String get managerPinUnlock => 'فتح';
+
+  @override
+  String get managerPinInvalid => 'استخدم من ٤ إلى ٦ أرقام';
+
+  @override
+  String get managerPinMismatch => 'الرمزان غير متطابقين';
+
+  @override
+  String get managerPinWrong => 'الرمز غير صحيح';
+
+  @override
+  String managerPinLocked(int seconds) {
+    return 'محاولات كثيرة. انتظر $seconds ثانية.';
+  }
+
+  @override
+  String get managerPinSaved => 'تم حفظ رمز المدير';
+
+  @override
+  String get managerPinRemoved => 'تمت إزالة رمز المدير';
+
+  @override
+  String get managerPinForgot => 'نسيت الرمز؟';
+
+  @override
+  String get managerPinResetTitle => 'استعادة رمز المدير';
+
+  @override
+  String get managerPinResetIntro =>
+      'أرسل رقم جهازك إلى الدعم، وسيعطيك رمزًا يعمل اليوم فقط. هذه الطريقة تعمل بدون إنترنت.';
+
+  @override
+  String get managerPinResetCodeLabel => 'رمز الاستعادة';
+
+  @override
+  String get managerPinResetWrong => 'هذا الرمز غير صحيح لهذا الجهاز اليوم';
+
+  @override
+  String get managerPinResetDone =>
+      'تمت إزالة الرمز. عيّن رمزًا جديدًا من الإعدادات.';
+
+  @override
+  String managerPinResetMessage(String id) {
+    return 'نسيت رمز المدير في تطبيق فواتير. رقم جهازي: $id';
+  }
 }

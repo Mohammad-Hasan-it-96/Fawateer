@@ -1,8 +1,35 @@
 # Plan 016 — Manager Lock, Invoice Delete, and the Invoice-Edit Question
 
-> **Status:** 🚧 **IN PROGRESS.** ✅ **A (delete a sale)** and ✅ **C-a (change
-> customer / cash↔credit)** are built. Remaining: **B** (the PIN guard).
+> **Status:** ✅ **DONE.** A (delete a sale), C-a (change customer /
+> cash↔credit) and B (the manager PIN) are all built.
 >
+> **B shipped guarding the two actions above, and nothing else** — the plan's
+> own "applied to both". The owner was asked which further actions to protect
+> and hadn't answered when the work started, so the shortest defensible list
+> was taken. Adding *delete product*, *edit price* or *restore backup* later is
+> one `if (!await requireManager(context)) return;` each, exactly as intended.
+>
+> Decisions made while building it:
+>
+> - **Hash + per-install salt in `AppSettings`**, both rows together. A plain
+>   PIN would travel readable inside every (unencrypted) Drive backup; keeping
+>   the salt in the *database* rather than on the phone means a restore onto a
+>   new handset still opens with the shop's own PIN.
+> - **Changing or removing the PIN asks for the current one.** Without that the
+>   lock guards the sales but not itself, which is the obvious way round it.
+> - **A 30-second wait after 5 wrong tries**, in memory only. Persisting it
+>   would let a wrong-PIN streak lock the *owner* out across restarts — a worse
+>   failure than the one it prevents. Documented as what it is.
+> - **PIN reset is Plan 017 R1**, built: device id → operator → a six-digit code
+>   derived from `SHA-256(device_id | secret | date)`, valid ±1 day, checked
+>   **offline** — because a locked-out shop usually has no internet either.
+>   `docs/manager-pin-reset.md` gives support the formula; without it they
+>   cannot help anyone.
+>
+> Pinned by `test/manager_pin_test.dart` (20) and
+> `test/manager_pin_service_test.dart` (11).
+>
+
 > **C-a landed as designed — it touches no snapshot column.** `SalesDao.
 > setInvoicePayment` clears whatever money record the sale posted and writes
 > exactly one row for the payment type now being asked for, in one transaction.
@@ -287,7 +314,11 @@ on the sync branch. Revisit only with real evidence.
    this action exists instead of delete-and-re-enter. The sheet leads with that
    promise, because "will this change the receipt my customer is holding?" is
    the first thing a shopkeeper asks.
-3. **B** — the PIN guard, applied to both. See the PIN-reset note below.
+3. ✅ **B** — the PIN guard, applied to both. **Done.** One `requireManager`
+   call site per protected action, and that function is also where
+   `SyncSession.isOwner` lands when the sync branch merges — "main device only"
+   becomes one extra check inside it, not a change at every call site, which is
+   what this shape was chosen for.
 
 ## PIN reset — see Plan 017
 

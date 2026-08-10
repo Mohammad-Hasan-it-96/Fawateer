@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/security/manager_guard.dart';
 import '../../../../core/share/cards/invoice_share_card.dart';
 import '../../../../core/share/share_card_action.dart';
 import '../../../../core/utils/format.dart';
@@ -242,6 +243,11 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
   Future<void> _openChangePayment(
       BuildContext context, AppLocalizations l10n) async {
     final bloc = context.read<HistoryBloc>();
+    // Manager lock (Plan 016 B). Asked *before* the sheet, not after it: making
+    // the shop fill in a correction and only then refusing it wastes the work
+    // and reads as a bug.
+    if (!await requireManager(context) || !mounted) return;
+    if (!context.mounted) return;
     final choice = await showModalBottomSheet<_PaymentChoice>(
       context: context,
       isScrollControlled: true,
@@ -520,12 +526,18 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
   ///
   /// Which lines show is decided per invoice: cash and credit undo different
   /// things, and naming the customer makes the debt line concrete.
-  void _confirmDelete(BuildContext context, AppLocalizations l10n,
-      InvoiceListItem inv, String currency) {
+  Future<void> _confirmDelete(BuildContext context, AppLocalizations l10n,
+      InvoiceListItem inv, String currency) async {
     final bloc = context.read<HistoryBloc>();
     final customer = inv.customerName?.isNotEmpty == true
         ? inv.customerName!
         : l10n.paymentCredit;
+
+    // Manager lock (Plan 016 B) — before the consequences dialog, so a helper
+    // without the PIN is told "no" straight away rather than after reading a
+    // warning they were never able to act on.
+    if (!await requireManager(context) || !mounted) return;
+    if (!context.mounted) return;
 
     showDialog<void>(
       context: context,
