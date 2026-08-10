@@ -2127,6 +2127,32 @@ class AppLocalizationsAr extends AppLocalizations {
       'تمت إزالة الرمز. عيّن رمزًا جديدًا من الإعدادات.';
 
   @override
+  String get lowStockAlertsTitle => 'تنبيهات قرب النفاد';
+
+  @override
+  String get lowStockAlertsSubtitle =>
+      'نبّهني عندما يصل صنف إلى حدّ التنبيه. يعمل فقط أثناء فتح التطبيق.';
+
+  @override
+  String get lowStockAlertsDenied =>
+      'الإشعارات مغلقة لهذا التطبيق من إعدادات الهاتف';
+
+  @override
+  String lowStockAlertOne(String name) {
+    return '$name أوشك على النفاد';
+  }
+
+  @override
+  String lowStockAlertRemaining(String qty) {
+    return 'المتبقّي: $qty';
+  }
+
+  @override
+  String lowStockAlertMany(int count) {
+    return '$count أصناف أوشكت على النفاد';
+  }
+
+  @override
   String get managerBiometricTitle => 'الفتح بالبصمة';
 
   @override

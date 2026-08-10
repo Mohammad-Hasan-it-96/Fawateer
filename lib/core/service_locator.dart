@@ -1,5 +1,9 @@
 import 'package:get_it/get_it.dart';
 
+import 'app_locale.dart';
+import 'notifications/local_notifier.dart';
+import '../features/product/data/low_stock_notifier.dart';
+
 // Core — Database
 import 'database/app_database.dart';
 import 'database/daos/products_dao.dart';
@@ -129,6 +133,7 @@ Future<void> init() async {
   // fingerprint is a fact about this handset, not about the books.
   sl.registerLazySingleton<BiometricService>(
       () => BiometricService(sl<DevicePreferences>()));
+  sl.registerLazySingleton<LocalNotifier>(() => LocalNotifier());
   // Singleton, not a factory: `MyApp` listens to this instance and the settings
   // page writes to it — two copies would leave the UI out of sync.
   sl.registerLazySingleton<ThemeController>(
@@ -173,6 +178,17 @@ Future<void> init() async {
           sl<LicenseRepository>()));
   sl.registerLazySingleton<AutoBackupService>(
       () => AutoBackupService(sl<BackupRepository>(), sl<SettingsDao>()));
+  // Watches the product stream for products crossing their alert level
+  // (Plan 013 #10). Singleton: it holds the stream subscription, and a second
+  // instance would double every alert.
+  sl.registerLazySingleton<LowStockNotifier>(() => LowStockNotifier(
+        sl<ProductRepository>(),
+        sl<SettingsDao>(),
+        sl<LocalNotifier>(),
+        // The app pins its locale in `main.dart`; the notifier has no
+        // BuildContext to read one from, so it is handed the same value.
+        locale: kAppLocale,
+      ));
 
   // ── Licensing (network-backed; no DAO) ───────────────────────────────────
   sl.registerLazySingleton<DeviceIdentityService>(

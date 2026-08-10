@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/config/remote_config_service.dart';
 import '../../../../core/config/update_dialog.dart';
+import '../../../../core/notifications/local_notifier.dart';
 import '../../../../core/security/biometric_service.dart';
 import '../../../../core/security/manager_guard.dart';
 import '../../../../core/security/manager_pin_service.dart';
@@ -20,6 +21,7 @@ import '../../../../core/theme/theme_controller.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../billing/presentation/bloc/billing_bloc.dart';
 import '../../../licensing/domain/repositories/license_repository.dart';
+import '../../../product/data/low_stock_notifier.dart';
 import '../../../licensing/presentation/bloc/license_bloc.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/printer_bloc.dart';
@@ -161,15 +163,44 @@ class _SettingsPageState extends State<SettingsPage> {
         backgroundColor: Colors.green));
   }
 
-  /// Best-effort read of the strict-inventory flag; leaves it off on error.
+  /// Low-stock alerts (Plan 013 #10). Off by default.
+  bool _lowStockAlerts = false;
+
+  /// Best-effort read of the inventory flags; leaves them off on error.
   Future<void> _loadInventory() async {
     var blocked = false;
+    var alerts = false;
     try {
       blocked =
           await di.sl<InventorySettingsService>().isBlockOversellEnabled();
+      alerts = await di.sl<LowStockNotifier>().isEnabled();
     } catch (_) {/* leave off */}
     if (!mounted) return;
-    setState(() => _blockOversell = blocked);
+    setState(() {
+      _blockOversell = blocked;
+      _lowStockAlerts = alerts;
+    });
+  }
+
+  /// Turn low-stock alerts on or off.
+  ///
+  /// Switching on asks for the notification permission at that exact moment —
+  /// the one time the request explains itself. A refusal leaves the switch off
+  /// rather than on-but-silent, which would be a setting that lies.
+  Future<void> _setLowStockAlerts(bool value) async {
+    final l10n = AppLocalizations.of(context)!;
+    if (value) {
+      final granted = await di.sl<LocalNotifier>().requestPermission();
+      if (!mounted) return;
+      if (!granted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(l10n.lowStockAlertsDenied),
+            backgroundColor: Colors.red));
+        return;
+      }
+    }
+    setState(() => _lowStockAlerts = value);
+    await di.sl<LowStockNotifier>().setEnabled(value);
   }
 
   /// Persist the strict-inventory flag and push it into the app-wide
@@ -412,6 +443,17 @@ class _SettingsPageState extends State<SettingsPage> {
                     onChanged: _setBlockOversell,
                   ),
                   onTap: () => _setBlockOversell(!_blockOversell),
+                ),
+                _buildListItem(
+                  icon: Icons.notifications_active_outlined,
+                  title: l10n.lowStockAlertsTitle,
+                  subtitle: l10n.lowStockAlertsSubtitle,
+                  trailingWidget: Switch(
+                    value: _lowStockAlerts,
+                    onChanged: _setLowStockAlerts,
+                  ),
+                  trailingIcon: null,
+                  onTap: () => _setLowStockAlerts(!_lowStockAlerts),
                 ),
               ],
             ),

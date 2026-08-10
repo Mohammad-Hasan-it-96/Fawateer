@@ -283,6 +283,19 @@ Plan 007. `core/share/` turns a Flutter widget into a shareable PNG — used for
 
 **Android release signing**: release builds are signed with an owned keystore whose secrets live in `android/key.properties` (gitignored, pointing at a keystore stored **outside** the repo). A release build without it **fails loudly by design** rather than silently falling back to the debug key — a debug-signed APK can't update a real install. **Losing the keystore is unrecoverable**: Android refuses updates signed with a different key. Setup and distribution (per-ABI APKs) are documented in `docs/android-release-signing.md` and `docs/android-release-distribution.md`.
 
+### Notifications & low-stock alerts (Plan 013 #10)
+
+`core/notifications/local_notifier.dart` is the app's **one** local-notification pipe — the `fawateer_general` Android channel is defined there and nowhere else, because FCM's foreground display and low-stock alerts both post to it and two definitions of one channel id drift apart with no error to notice. `PushNotificationService` posts through it too. Everything fails silently: no plugin, denied permission or a refusing platform means no notification, never a throw.
+
+`LowStockNotifier` (`features/product/data/`) watches `watchProducts()` and alerts when a product **crosses** its `minStockAlert` line.
+
+- **The app does no background work** — same decision as `AutoBackupService` and the sync scheduler. **An alert can only appear while the app is open.** That's acceptable here because stock only ever moves *inside* this app, so nothing is missed, only delayed. The limitation is stated in the setting's own subtitle. Don't "fix" this with `WorkManager` without a decision — the honest alternatives (server push via the sync branch, or a background service) are both much larger.
+- **Fire on the transition, never the state.** The product stream re-emits after **every sale**, so alerting on "is low" would notify on every scan of an already-low item. `newlyLowIds` (pure, in `domain/low_stock_alert.dart`) diffs against an announced set persisted as JSON in `AppSettings` (`low_stock_announced`); what's remembered is simply `lowStockIds` of the latest list, so a restocked product drops out and can legitimately alert again.
+- **Off by default**, `AppSettings` key `low_stock_alerts_enabled`, toggled at Settings → Inventory. The threshold alone is *not* treated as consent to notifications (it's also what colours the product-list chip). Enabling requests the Android 13+ permission at that moment — the one time the request explains itself — and a refusal leaves the switch **off**, not on-but-silent.
+- **Enabling seeds the baseline silently** (writes the current low set without announcing). A missing `low_stock_announced` key likewise seeds rather than announcing — otherwise the first run dumps the whole backlog. Absent ≠ empty here.
+- **One notification with a fixed id** (`91001`): several products crossing at once give one grouped "N أصناف…" and a later alert *replaces* the earlier one. The announced set is written back **only when it actually changed**, or the listener would do a DB write per scan.
+- The service has no `BuildContext`, so it localizes via `AppLocalizations.delegate.load(kAppLocale)` — `kAppLocale` (`core/app_locale.dart`) is the single source for the pinned `ar` locale that `main.dart` also uses.
+
 ### Manager lock (PIN — Plan 016 B)
 
 An **opt-in** 4–6 digit PIN asked before a destructive action. Off by default; a shop that never sets one sees exactly the old behaviour. Lives in `core/security/`: `manager_pin.dart` (pure — format, hashing, salt, reset code), `manager_pin_service.dart` (storage + verify + cooldown), `manager_guard.dart` (the `requireManager(context)` entry point and all PIN UI).

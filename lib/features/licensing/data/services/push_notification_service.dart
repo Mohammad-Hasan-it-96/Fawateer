@@ -1,7 +1,6 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
+import '../../../../core/notifications/local_notifier.dart';
 import '../../domain/repositories/license_repository.dart';
 
 /// Data-message payload types the server sends when a device's subscription
@@ -38,17 +37,11 @@ class PushNotificationService {
   /// Foreground display of notification-type FCM messages. The OS only
   /// auto-displays those while the app is in the **background**; in the
   /// foreground they'd be silently swallowed unless we render one ourselves.
-  final _localNotifications = FlutterLocalNotificationsPlugin();
-  bool _localNotificationsReady = false;
-
-  /// Created explicitly before first use — on Android 8+ a notification posted
-  /// to a non-existent channel is dropped without error.
-  static const _channel = AndroidNotificationChannel(
-    'fawateer_general',
-    'إشعارات فواتير',
-    description: 'إشعارات عامة من تطبيق فواتير',
-    importance: Importance.high,
-  );
+  ///
+  /// Shared with low-stock alerts (Plan 013 #10) rather than owning a private
+  /// copy: both post to the same Android channel, and two definitions of one
+  /// channel id drift apart without any error to notice.
+  final _localNotifier = LocalNotifier();
 
   /// Called when a license-related push arrives — the app wires this to a
   /// `CheckLicenseEvent` so the router gate flips to active automatically.
@@ -90,7 +83,7 @@ class PushNotificationService {
       // Permission prompt can fail on devices without Play Services; ignore.
     }
 
-    await _initLocalNotifications();
+    await _localNotifier.ensureReady();
 
     // Sync the current token on EVERY startup (the repository skips the
     // network call when the server already confirmed this exact token), and
@@ -124,49 +117,20 @@ class PushNotificationService {
     }
   }
 
-  Future<void> _initLocalNotifications() async {
-    try {
-      await _localNotifications.initialize(
-        settings: const InitializationSettings(
-          android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-          iOS: DarwinInitializationSettings(),
-        ),
-      );
-      await _localNotifications
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(_channel);
-      _localNotificationsReady = true;
-    } catch (_) {
-      // Plugin unavailable (e.g. tests) → foreground pushes just don't render.
-    }
-  }
-
   /// Render a notification-type FCM message received in the foreground.
   /// Data-only messages (the license live-unlock) carry no `notification`
   /// payload and are skipped — they surface via the in-app banner instead.
   void _showForegroundNotification(RemoteMessage message) {
-    if (!_localNotificationsReady) return;
     final n = message.notification;
     if (n == null) return;
     final title = n.title ?? '';
     final body = n.body ?? '';
-    if (title.isEmpty && body.isEmpty) return;
-    _localNotifications.show(
+    // Message hash as the id, so two different pushes stack rather than
+    // replacing each other (unlike low-stock, which deliberately reuses one).
+    _localNotifier.show(
       id: message.hashCode,
       title: title.isEmpty ? null : title,
       body: body.isEmpty ? null : body,
-      notificationDetails: NotificationDetails(
-        android: AndroidNotificationDetails(
-          _channel.id,
-          _channel.name,
-          channelDescription: _channel.description,
-          importance: Importance.high,
-          priority: Priority.high,
-          icon: '@mipmap/ic_launcher',
-        ),
-        iOS: const DarwinNotificationDetails(),
-      ),
     );
   }
 

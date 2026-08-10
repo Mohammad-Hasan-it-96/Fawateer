@@ -248,7 +248,41 @@ paginate.
 
 ---
 
-## #10 — Low-stock notifications
+## #10 — Low-stock notifications ✅ SHIPPED
+
+> **The owner accepted the "app must be open" limit and asked for it to be
+> built.** It is stated in the setting's own subtitle, not buried in a doc, so
+> nobody discovers it by missing an alert.
+>
+> Built as designed, plus four decisions the study left open:
+>
+> - **Off by default, with its own toggle** (Settings → Inventory). The study
+>   said `minStockAlert > 0` *is* the opt-in, but a shop sets that threshold to
+>   colour the product list; inheriting notifications from it would be a
+>   surprise. The toggle is also the one honest moment to request the Android 13
+>   notification permission — and a refusal leaves the switch **off**, never
+>   on-but-silent.
+> - **Turning it on seeds the baseline silently.** "Tell me when something runs
+>   low" is about the future; a shop with thirty already-low items must not be
+>   handed thirty notifications for agreeing. The current list already lives on
+>   the Reports page (#1).
+> - **One notification, reused id.** Several products crossing at once give a
+>   single "3 أصناف أوشكت على النفاد" rather than three tray entries, and a
+>   later alert *replaces* the earlier one. Three separate notices per delivery
+>   shortfall is how a channel gets muted at the OS level.
+> - **The announced set is only rewritten when it actually changes.** That
+>   listener runs on every product write in the app, so persisting an identical
+>   set would be a database write per scan.
+>
+> `LocalNotifier` (`core/notifications/`) was extracted while doing this:
+> FCM's foreground display and these alerts post to the **same** Android
+> channel, and two definitions of one channel id drift apart with no error to
+> notice. `PushNotificationService` now posts through it. ⚠️ **Worth re-testing
+> one push** after this change — the behaviour is identical by construction, but
+> that path is device-only.
+>
+> Pinned by `test/low_stock_alert_test.dart` (12 — the pure decision) and
+> `test/low_stock_notifier_test.dart` (11 — the wiring).
 
 **Set expectations first: this app does no background work, on purpose.** No
 `WorkManager`, no background service — the same decision as `AutoBackupService`

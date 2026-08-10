@@ -2144,6 +2144,32 @@ class AppLocalizationsEn extends AppLocalizations {
       'The PIN was removed. Set a new one from Settings.';
 
   @override
+  String get lowStockAlertsTitle => 'Low stock alerts';
+
+  @override
+  String get lowStockAlertsSubtitle =>
+      'Notify me when a product reaches its alert level. Works only while the app is open.';
+
+  @override
+  String get lowStockAlertsDenied =>
+      'Notifications are turned off for this app in the phone settings';
+
+  @override
+  String lowStockAlertOne(String name) {
+    return '$name is running low';
+  }
+
+  @override
+  String lowStockAlertRemaining(String qty) {
+    return 'Only $qty left';
+  }
+
+  @override
+  String lowStockAlertMany(int count) {
+    return '$count products are running low';
+  }
+
+  @override
   String get managerBiometricTitle => 'Unlock with fingerprint';
 
   @override

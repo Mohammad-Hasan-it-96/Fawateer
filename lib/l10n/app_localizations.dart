@@ -4041,6 +4041,42 @@ abstract class AppLocalizations {
   /// **'The PIN was removed. Set a new one from Settings.'**
   String get managerPinResetDone;
 
+  /// No description provided for @lowStockAlertsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Low stock alerts'**
+  String get lowStockAlertsTitle;
+
+  /// No description provided for @lowStockAlertsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notify me when a product reaches its alert level. Works only while the app is open.'**
+  String get lowStockAlertsSubtitle;
+
+  /// No description provided for @lowStockAlertsDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are turned off for this app in the phone settings'**
+  String get lowStockAlertsDenied;
+
+  /// No description provided for @lowStockAlertOne.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is running low'**
+  String lowStockAlertOne(String name);
+
+  /// No description provided for @lowStockAlertRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Only {qty} left'**
+  String lowStockAlertRemaining(String qty);
+
+  /// No description provided for @lowStockAlertMany.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} products are running low'**
+  String lowStockAlertMany(int count);
+
   /// No description provided for @managerBiometricTitle.
   ///
   /// In en, this message translates to:

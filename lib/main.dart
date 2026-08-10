@@ -6,6 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'config/routes/app_routes.dart';
+import 'core/app_locale.dart';
 import 'core/config/remote_config_service.dart';
 import 'core/config/update_dialog.dart';
 import 'core/service_locator.dart' as di;
@@ -15,6 +16,7 @@ import 'core/theme/theme_controller.dart';
 import 'features/backup/data/auto_backup_service.dart';
 import 'features/billing/presentation/bloc/billing_bloc.dart';
 import 'features/billing/presentation/bloc/history_bloc.dart';
+import 'features/product/data/low_stock_notifier.dart';
 import 'features/product/presentation/bloc/product_bloc.dart';
 import 'features/attributes/presentation/bloc/attribute_definition_bloc.dart';
 import 'features/shop/presentation/bloc/shop_bloc.dart';
@@ -71,6 +73,11 @@ void main() async {
         onLicenseChanged: () => di.sl<LicenseBloc>().add(CheckLicenseEvent()),
         onForegroundLicenseChange: _showSubscriptionActivatedBanner,
       );
+
+  // Watch stock for products crossing their alert level (Plan 013 #10).
+  // No-ops unless the shop turned alerts on. Fire-and-forget: an alert that
+  // fails to start must never delay or break the till.
+  di.sl<LowStockNotifier>().start();
 }
 
 void _showSubscriptionActivatedBanner() {
@@ -267,7 +274,7 @@ class _ThemedApp extends StatelessWidget {
         scaffoldMessengerKey: rootMessengerKey,
         routerConfig: router,
         debugShowCheckedModeBanner: false,
-        locale: const Locale('ar'),
+        locale: kAppLocale,
         supportedLocales: const [Locale('ar'), Locale('en')],
         localizationsDelegates: const [
           AppLocalizations.delegate,

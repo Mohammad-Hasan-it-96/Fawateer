@@ -978,6 +978,34 @@
   "managerPinResetCodeLabel": "Reset code",
   "managerPinResetWrong": "This code is not right for this device today",
   "managerPinResetDone": "The PIN was removed. Set a new one from Settings.",
+  "lowStockAlertsTitle": "Low stock alerts",
+  "lowStockAlertsSubtitle": "Notify me when a product reaches its alert level. Works only while the app is open.",
+  "lowStockAlertsDenied": "Notifications are turned off for this app in the phone settings",
+  "lowStockAlertOne": "{name} is running low",
+  "@lowStockAlertOne": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "lowStockAlertRemaining": "Only {qty} left",
+  "@lowStockAlertRemaining": {
+    "placeholders": {
+      "qty": {
+        "type": "String"
+      }
+    }
+  },
+  "lowStockAlertMany": "{count} products are running low",
+  "@lowStockAlertMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
   "managerBiometricTitle": "Unlock with fingerprint",
   "managerBiometricOn": "On — your fingerprint or face opens the lock",
   "managerBiometricOff": "Off — the PIN is asked every time",
