@@ -1,12 +1,18 @@
 # Plan 013 — V1 Field-Feedback Fixes, Round 2
 
-> **Status:** 🚧 **IN PROGRESS.** ✅ Wave A shipped and device-verified — items
-> **1, 2, 4, 5, 6, 7, 8**. ✅ The **multi-select building block** is shipped too,
-> with its first action (bulk price/cost = Plan 015 B2.2); the second action
-> (bulk category = Plan 014 step 2) plugs into the same bar. ✅ **#9 categories
-> is built** — all three steps of Plan 014, no schema change. ✅ **#11 Case B is
-> complete** (duplicate product + bulk price). Remaining: #3, #10, and #11
-> **Case A** — the barcode index, still gated on the branch-merge order.
+> **Status:** 🚧 **NEARLY DONE — one item left.** ✅ Wave A shipped and
+> device-verified — items **1, 2, 4, 5, 6, 7, 8**. ✅ The **multi-select building
+> block** is shipped too, with its first action (bulk price/cost = Plan 015
+> B2.2); the second action (bulk category = Plan 014 step 2) plugs into the same
+> bar. ✅ **#9 categories is built** — all three steps of Plan 014, no schema
+> change. ✅ **#11 Case B is complete** (duplicate product + bulk price).
+> ✅ **#3 is complete** — all three steps of Plan 016 (delete a sale, change
+> payment/customer, the manager PIN + fingerprint), device-verified.
+> ✅ **#10 low-stock alerts** shipped and device-verified.
+>
+> **Remaining: #11 Case A only** — dropping the UNIQUE barcode index, still
+> gated on agreeing the branch-merge order with `feat/multi-device-sync`
+> (schema v15 here vs v18 there).
 > Source:
 > `docs/v1-fixes-2.txt`, 11 items from the shop after more real use. Successor to
 > Plan 011 (round 1), same spirit: **mostly papercuts, not new features.**
@@ -44,14 +50,14 @@
 |---|---|---|---|---|
 | 1 | Reports: "show all low stock" + status filters | S | no | ✅ **SHIPPED** |
 | 2 | Search box on the Customers page | S | no | ✅ **SHIPPED** (+ Arabic-aware matching) |
-| 3 | Delete order + change payment/customer, PIN-gated | **M** | no | → Plan 016 (quantity edit **rejected**) |
+| 3 | Delete order + change payment/customer, PIN-gated | **M** | no | ✅ **SHIPPED** — Plan 016, all three steps (quantity edit **rejected**) |
 | 4 | "Edit product" straight from the POS scan | S | no | ✅ **SHIPPED** |
 | 5 | Delete button instead of `−`, and clear-cart | S | no | ✅ **SHIPPED** (`−` kept, trash added) |
 | 6 | **Bug:** QR wins over barcode on the same item | **S — but a real bug** | no | ✅ **SHIPPED** — see below |
 | 7 | Smaller camera window in POS | S | no | ✅ **SHIPPED** (0.40 → 0.32) |
 | 8 | Share a customer statement as an image | S | no | ✅ **SHIPPED** (image *and* text) |
 | 9 | Product categories | **M** | **no** | ✅ **SHIPPED** — Plan 014, all three steps |
-| 10 | Low-stock notifications | M | no | **cannot fire while the app is closed** — see below |
+| 10 | Low-stock notifications | M | no | ✅ **SHIPPED** — **cannot fire while the app is closed**, agreed; see below |
 | 11 | Two prices/one barcode; many barcodes/one price | **M/L** | **yes (index only)** | Plan 015 — ✅ **Case B shipped**; Case A (index) pending merge order |
 
 **Suggested order**
@@ -78,10 +84,14 @@
    **shipped**; see Plan 014's header for the four decisions taken while
    building that the study had left open.
 5. ✅ **#11 Case B** (duplicate product + bulk price) — **shipped**, no schema.
-6. **#3** delete invoice → change payment/customer → PIN guard.
-7. **#10** notifications, once the "app must be open" limit is agreed.
+6. ✅ **#3** delete invoice → change payment/customer → PIN guard — **shipped**,
+   in that order; the fingerprint shortcut was added after the owner tested the
+   PIN. See Plan 016's header.
+7. ✅ **#10** notifications — **shipped**; the "app must be open" limit was
+   agreed and is now stated in the setting itself.
 8. **#11 Case A** (drop the UNIQUE barcode index) — **last**, and only after the
-   branch-merge order with `feat/multi-device-sync` is agreed.
+   branch-merge order with `feat/multi-device-sync` is agreed. ← **the only
+   item left in this plan**
 
 ---
 
@@ -248,8 +258,11 @@ paginate.
 
 ---
 
-## #10 — Low-stock notifications ✅ SHIPPED
+## #10 — Low-stock notifications ✅ SHIPPED & DEVICE-VERIFIED
 
+> **Verified on a real phone by the owner** — after one fix round, see the
+> reversed decision below.
+>
 > **The owner accepted the "app must be open" limit and asked for it to be
 > built.** It is stated in the setting's own subtitle, not buried in a doc, so
 > nobody discovers it by missing an alert.
