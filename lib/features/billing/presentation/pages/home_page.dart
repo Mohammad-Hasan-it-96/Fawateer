@@ -10,6 +10,7 @@ import 'package:app_settings/app_settings.dart';
 import 'package:intl/intl.dart' hide TextDirection;
 
 import '../../../settings/presentation/widgets/exchange_rate_sheet.dart';
+import '../widgets/barcode_choice_sheet.dart';
 import '../widgets/discount_dialog.dart';
 
 import '../../../../core/utils/num_input.dart';
@@ -488,6 +489,33 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               } else {
                 bloc.add(const ClearMeasuredPromptEvent());
               }
+            },
+          ),
+          // One barcode, two products (Plan 015 Case A). Ask which, then feed
+          // the answer back through the normal scan path so a measured or
+          // out-of-stock variant still behaves exactly as it would alone.
+          BlocListener<BillingBloc, BillingState>(
+            listenWhen: (prev, curr) =>
+                prev.barcodeChoices != curr.barcodeChoices &&
+                curr.barcodeChoices.isNotEmpty,
+            listener: (context, state) async {
+              final bloc = context.read<BillingBloc>();
+              final choices = state.barcodeChoices;
+              final picked = await showBarcodeChoiceSheet(context, choices);
+              // `context.mounted`, not the State's `mounted`: the gap that
+              // matters is the one this listener's context just crossed.
+              if (!context.mounted) return;
+              // Cleared either way — a cancelled chooser must not leave the
+              // sheet armed to reopen on the next unrelated rebuild.
+              bloc.add(const ClearBarcodeChoicesEvent());
+              if (picked == null) return;
+              if (picked.saleType.isMeasured) {
+                final weight = await _promptMeasuredEntry(context, picked);
+                if (weight == null) return;
+                bloc.add(AddProductToCartEvent(picked, quantity: weight));
+                return;
+              }
+              bloc.add(AddProductToCartEvent(picked));
             },
           ),
           // A stock-tracked product that has run out was scanned (Plan 011 #8).

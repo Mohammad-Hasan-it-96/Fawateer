@@ -1000,6 +1000,11 @@
   "optionsSectionTitle": "Options",
   "optionsLiveNote": "Changes to the options are saved right away, and your products move with them.",
 
+  "barcodeChoiceTitle": "Which one?",
+  "barcodeChoiceHint": "Two products share this barcode. Pick the price you are selling.",
+  "addPriceVariantAction": "Add another price",
+  "addPriceVariantHint": "Creates a second product with the same barcode, for stock sold at a different price. The POS will ask which one on every scan.",
+  "addPriceVariantBanner": "Second price for the same barcode — it keeps its own stock and cost.",
   "duplicateProductAction": "Duplicate",
   "duplicateProductTitle": "Duplicate \"{name}\"",
   "@duplicateProductTitle": {

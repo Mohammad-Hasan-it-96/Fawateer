@@ -106,6 +106,34 @@ class _EditProductPageState extends State<EditProductPage> {
   /// land *underneath* it — leaving the cashier looking at a dialog with an
   /// invisible camera behind it. Closing first is deterministic, and the typed
   /// name is carried back in so nothing is lost.
+  /// Open the add form as a **second price for this product** (Plan 015 Case A).
+  ///
+  /// Confirmed first, because the consequence is not obvious from the button:
+  /// after this, every scan of that barcode asks the cashier which one — for
+  /// ever, on a code they may scan fifty times a day. That is the right trade
+  /// when the shelf genuinely holds two piles, and a bad one made by accident.
+  Future<void> _openPriceVariant(AppLocalizations l10n) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text(l10n.addPriceVariantAction),
+        content: Text(l10n.addPriceVariantHint),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            child: Text(l10n.addPriceVariantAction),
+          ),
+        ],
+      ),
+    );
+    if (ok != true || !mounted) return;
+    await context.push('/products/add', extra: widget.product);
+  }
+
   Future<void> _openDuplicateDialog({String? name, String? barcode}) async {
     final productBloc = context.read<ProductBloc>();
     final source = widget.product;
@@ -179,6 +207,17 @@ class _EditProductPageState extends State<EditProductPage> {
               tooltip: l10n.duplicateProductAction,
               onPressed: () => _openDuplicateDialog(),
             ),
+            // "Add another price" (Plan 015 Case A) — only offered on a product
+            // that HAS a barcode, since the whole action is about two products
+            // sharing one code. Sits beside Duplicate because they are the same
+            // shape of thought ("I want another row like this"), and differ in
+            // exactly one way: this one keeps the barcode on purpose.
+            if (widget.product.barcode.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.price_change_outlined),
+                tooltip: l10n.addPriceVariantAction,
+                onPressed: () => _openPriceVariant(l10n),
+              ),
           ],
         ),
         body: SafeArea(

@@ -42,6 +42,7 @@ void main() {
     await db.customStatement(
         "INSERT INTO product_units (id,product_id,serial,created_at) "
         "VALUES ('u1','p2','IMEI-1',1000)");
+    await stripV19(db);
     await stripV18(db);
     await stripV17(db);
     await db.customStatement('PRAGMA user_version = 16');

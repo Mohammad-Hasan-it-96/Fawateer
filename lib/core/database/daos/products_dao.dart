@@ -29,13 +29,25 @@ class ProductsDao extends DatabaseAccessor<AppDatabase>
       (select(products)..where((p) => p.id.equals(id) & p.deletedAt.equals('')))
           .getSingleOrNull();
 
-  Future<ProductRow?> getByBarcode(String barcode) => (select(products)
-        ..where((p) => p.barcode.equals(barcode) & p.deletedAt.equals('')))
-      .getSingleOrNull();
+  /// Every live product carrying [barcode].
+  ///
+  /// A list, not a row: since v19 a barcode may legitimately identify more than
+  /// one product (Plan 015 Case A — the same packet at two prices, from two
+  /// piles on the shelf). `getSingleOrNull` would have thrown the moment the
+  /// feature was used.
+  ///
+  /// Ordered by rowid so the answer is **stable**: the chooser sheet must list
+  /// the two prices in the same order every scan, or the cashier learns the
+  /// wrong muscle memory and eventually taps the wrong one in a hurry.
+  Future<List<ProductRow>> getAllByBarcode(String barcode) => (select(products)
+        ..where((p) => p.barcode.equals(barcode) & p.deletedAt.equals(''))
+        ..orderBy([(p) => OrderingTerm.asc(p.rowId)]))
+      .get();
 
-  /// Insert a brand-new product. Throws on a duplicate barcode (the partial-
-  /// unique index) instead of silently replacing the existing row — unlike
-  /// [insertProduct]'s insert-or-replace. Use this for "add".
+  /// Insert a brand-new product. Unlike [insertProduct]'s insert-or-replace it
+  /// never silently overwrites an existing row. Since v19 the barcode index is
+  /// no longer unique, so a duplicate barcode is refused by the add/edit form
+  /// rather than by the database — see `productBarcodeTaken`.
   Future<void> createProduct(ProductsCompanion product) =>
       into(products).insert(product);
 

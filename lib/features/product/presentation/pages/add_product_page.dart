@@ -27,7 +27,21 @@ class AddProductPage extends StatefulWidget {
   /// read the digits off the screen and retype them.
   final String? initialBarcode;
 
-  const AddProductPage({super.key, this.initialBarcode});
+  /// The product this one is a **second price for** (Plan 015 Case A).
+  ///
+  /// When set, the barcode is pre-filled from it and the duplicate-barcode
+  /// guard is deliberately waived — this is the one flow where sharing a code
+  /// is intended. Everything else about the form is unchanged: the new product
+  /// gets its own price, cost, stock and sales history, which is the whole
+  /// point (two piles on the shelf, counted separately).
+  ///
+  /// **The guard moved here from the database.** Since v19 the barcode index is
+  /// no longer unique, so nothing below this line stops a typo except the form
+  /// — which is why the waiver is an explicit route in, never a checkbox
+  /// someone can leave ticked.
+  final Product? variantOf;
+
+  const AddProductPage({super.key, this.initialBarcode, this.variantOf});
 
   @override
   State<AddProductPage> createState() => _AddProductPageState();
@@ -49,7 +63,19 @@ class _AddProductPageState extends State<AddProductPage> {
   @override
   void initState() {
     super.initState();
-    _barcode = widget.initialBarcode ?? '';
+    // A second price starts from the original's barcode — that shared code is
+    // the entire reason this flow exists, so it is not something to retype.
+    _barcode = widget.variantOf?.barcode ?? widget.initialBarcode ?? '';
+    final source = widget.variantOf;
+    if (source != null) {
+      // Everything except price, stock and name is carried over: the two rows
+      // describe the same physical goods, so making the shop re-enter the unit,
+      // currency and custom fields would only invite them to differ.
+      _saleType = source.saleType;
+      _priceCurrency = source.priceCurrency;
+      _minStockAlert = source.minStockAlert;
+      _attributes = Map.of(source.attributes.values);
+    }
   }
 
   void _scanBarcode() async {
@@ -70,7 +96,13 @@ class _AddProductPageState extends State<AddProductPage> {
 
       // Only non-empty barcodes must be unique; many items legitimately have no
       // barcode (loose produce, bakery), so blank barcodes are always allowed.
-      if (productBarcodeTaken(productState.products, _barcode)) {
+      //
+      // Waived for a deliberate second price (Plan 015 Case A). This is now the
+      // ONLY thing standing between the shop and an accidental duplicate — the
+      // database index stopped being unique in v19 — so the waiver is tied to
+      // arriving through "add another price", not to a toggle on this form.
+      if (widget.variantOf == null &&
+          productBarcodeTaken(productState.products, _barcode)) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(l10n.barcodeExistsError),
@@ -136,6 +168,33 @@ class _AddProductPageState extends State<AddProductPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Says which form this is. Without it the pre-filled barcode
+                  // looks like a bug — the shop has been told for a year that
+                  // two products cannot share one.
+                  if (widget.variantOf != null)
+                    Container(
+                      width: double.infinity,
+                      margin: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                        border:
+                            Border.all(color: AppTheme.primaryColor, width: 1),
+                      ),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.price_change_outlined,
+                              size: 18, color: AppTheme.primaryColor),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(l10n.addPriceVariantBanner,
+                                style: const TextStyle(fontSize: 12.5)),
+                          ),
+                        ],
+                      ),
+                    ),
                   InputLabel(text: l10n.productNameLabel),
                   TextFormField(
                     decoration: InputDecoration(

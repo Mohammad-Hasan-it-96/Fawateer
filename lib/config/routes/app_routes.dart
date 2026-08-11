@@ -196,10 +196,19 @@ final router = GoRouter(
               routes: [
                 GoRoute(
                   path: 'add',
-                  // `extra` carries a barcode when the POS sends the user here
-                  // after scanning one that isn't registered yet.
-                  builder: (context, state) =>
-                      AddProductPage(initialBarcode: state.extra as String?),
+                  // `extra` carries either a barcode (the POS sends the user
+                  // here after scanning one that isn't registered yet) or the
+                  // product this one is a second price for (Plan 015 Case A).
+                  // Two types on one `extra` rather than two routes: it is the
+                  // same page and the same form, differing only in what it
+                  // starts from.
+                  builder: (context, state) => AddProductPage(
+                    initialBarcode: state.extra is String
+                        ? state.extra as String
+                        : null,
+                    variantOf:
+                        state.extra is Product ? state.extra as Product : null,
+                  ),
                 ),
                 GoRoute(
                   path: 'edit/:id',

@@ -45,8 +45,42 @@
 > and the edit form; they are now one pair of pure functions
 > (`product_uniqueness.dart`) shared by all three call sites and under test.
 >
-> **Remaining in this plan: only Case A**, which is gated on the branch-merge
-> order with `feat/multi-device-sync`.
+> ✅ **Case A is shipped too** (schema **v19**, on `feat/multi-device-sync`
+> after the branches were merged — so the migration was written once, in the
+> branch that owns the index, with nothing to renumber later).
+>
+> Built as **A1**, the owner's own proposal, because they answered "two piles on
+> the shelf": separate stock, separate cost, separate history. Decisions taken
+> while building:
+>
+> - **The de-dup statement went with the index.** `_createIndexes` used to blank
+>   the barcode on all but the earliest row per code, because building a UNIQUE
+>   index over a legacy v1–v3 database holding duplicates throws mid-migration
+>   and bricks the DB. With a plain index nothing can throw — and keeping that
+>   statement would now destroy exactly the data the feature exists to hold.
+> - **The migration drops before it creates.** `CREATE INDEX IF NOT EXISTS`
+>   would silently leave the *unique* index in place: the upgrade would look
+>   like it worked and every second price would be refused with a constraint
+>   error that reads like a bug in the form.
+> - **The guard moved into the flow, as the study demanded.** A duplicate
+>   barcode is still refused by the add form — waived only when the page was
+>   opened through *"add another price"* on an existing product, never by a
+>   checkbox that can be left ticked. That waiver is now the **only** thing
+>   between the shop and an accidental duplicate.
+> - **The POS asks, and never guesses.** A shared code emits
+>   `BillingState.barcodeChoices` and the page opens a chooser; the BLoC still
+>   opens no UI. The sheet leads with **price**, because that is the only reason
+>   the two rows exist, and shows stock underneath — "which pile is this?" and
+>   "which pile has any left?" are one question at the counter.
+> - **A single match is untouched.** Only a genuinely ambiguous code costs a
+>   tap; every other product in the shop scans exactly as before.
+> - Offered only on products that **have** a barcode, and confirmed first: the
+>   consequence is a chooser on every scan of that code, for ever, which is
+>   right for two piles and wrong by accident.
+>
+> Pinned by `integration_test/migration_v19_test.dart` (6 — real SQLite, incl.
+> the shop still opening and the index surviving as a non-unique index) and four
+> new cases in `test/billing_scan_test.dart`.
 
 ---
 

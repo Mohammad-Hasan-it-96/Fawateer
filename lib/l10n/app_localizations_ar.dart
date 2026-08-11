@@ -2237,6 +2237,24 @@ class AppLocalizationsAr extends AppLocalizations {
       'التغييرات على الخيارات تُحفظ فورًا، وتنتقل معها المنتجات.';
 
   @override
+  String get barcodeChoiceTitle => 'أي واحد؟';
+
+  @override
+  String get barcodeChoiceHint =>
+      'يوجد منتجان بنفس الباركود. اختر السعر الذي تبيع به.';
+
+  @override
+  String get addPriceVariantAction => 'إضافة سعر آخر';
+
+  @override
+  String get addPriceVariantHint =>
+      'ينشئ منتجاً ثانياً بنفس الباركود، للبضاعة المباعة بسعر مختلف. سيسأل البرنامج عن أيّهما عند كل قراءة.';
+
+  @override
+  String get addPriceVariantBanner =>
+      'سعر ثانٍ لنفس الباركود — له مخزونه وتكلفته المستقلة.';
+
+  @override
   String get duplicateProductAction => 'نسخ';
 
   @override

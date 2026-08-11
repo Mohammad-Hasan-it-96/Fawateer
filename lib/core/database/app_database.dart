@@ -68,7 +68,7 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -334,6 +334,23 @@ class AppDatabase extends _$AppDatabase {
             'FROM products '
             "WHERE deleted_at = '' AND is_serialized = 0 AND quantity != 0");
       }
+      if (from < 19) {
+        // Shared barcodes (Plan 015 Case A). One packet, two prices, two piles
+        // on the shelf — so `idx_products_barcode` stops being UNIQUE.
+        //
+        // **Index only. No column, no table, no data touched.** Nothing about
+        // an existing shop changes on upgrade: every product keeps its barcode
+        // and its stock, and a shop that never adds a second price never sees
+        // a difference. The only thing that becomes possible is a second
+        // product deliberately created against the same code.
+        //
+        // Dropped and recreated because SQLite has no ALTER INDEX, and because
+        // `CREATE INDEX IF NOT EXISTS` would silently leave the *unique* one in
+        // place — the upgrade would appear to work and the feature would refuse
+        // every variant with a constraint error.
+        await customStatement('DROP INDEX IF EXISTS idx_products_barcode');
+        await _createIndexes();
+      }
     },
   );
 
@@ -414,22 +431,28 @@ class AppDatabase extends _$AppDatabase {
   /// v3→v4 / v5→v6 upgrades (the latter rebuilds sales_items, dropping its
   /// indexes). Names use Drift's snake_case for tables/columns.
   Future<void> _createIndexes() async {
-    // A legacy v1–v3 DB had no unique barcode index, so a shop could hold two
-    // products sharing a non-empty barcode. Creating the partial-unique index
-    // over such data throws mid-migration and bricks the DB on every launch, so
-    // de-dup FIRST: keep the earliest row per barcode, blank the rest (the
-    // product stays; only its now-ambiguous barcode is cleared). No-op on a
-    // fresh/clean DB.
+    // **Not unique any more** (v19, Plan 015 Case A). The shop sells the same
+    // packet of cigarettes at two prices from two piles on the shelf, and the
+    // factory gave both the same code — so one barcode legitimately resolves to
+    // two products, each with its own stock, cost and sales history.
+    //
+    // The de-dup that used to run here is gone with it. It blanked the barcode
+    // on all but the earliest row per code, because creating a UNIQUE index
+    // over a legacy v1–v3 database holding duplicates throws mid-migration and
+    // bricks the DB on every launch. With a plain index nothing can throw, and
+    // keeping that statement would now destroy exactly the data this feature
+    // exists to hold.
+    //
+    // **The guard moved rather than disappearing.** A mistyped duplicate is
+    // still a common mistake and is still refused — by the add/edit form,
+    // unless the user came through "add another price for this product". See
+    // `productBarcodeTaken` and `AddProductPage.variantOf`. Uniqueness is now a
+    // property of the flow that creates products, not of the table.
+    //
+    // Still scoped to LIVE rows (v17): a tombstoned product keeps its barcode
+    // because the row is history and must stay readable.
     await customStatement(
-        "UPDATE products SET barcode = '' "
-        "WHERE barcode != '' AND deleted_at = '' AND rowid NOT IN ("
-        "SELECT MIN(rowid) FROM products WHERE barcode != '' AND deleted_at = ''"
-        ' GROUP BY barcode)');
-    // Scoped to LIVE rows (v17). A tombstoned product keeps its barcode — the
-    // row is history and must stay readable — but it must not reserve that
-    // barcode forever, or deleting a product would permanently burn its code.
-    await customStatement(
-        'CREATE UNIQUE INDEX IF NOT EXISTS idx_products_barcode '
+        'CREATE INDEX IF NOT EXISTS idx_products_barcode '
         "ON products (barcode) WHERE barcode != '' AND deleted_at = ''");
     await customStatement(
         'CREATE INDEX IF NOT EXISTS idx_sales_invoices_created_at ON sales_invoices (created_at)');

@@ -86,13 +86,14 @@ class ProductRepositoryDriftImpl implements ProductRepository {
   }
 
   @override
-  Future<Either<Failure, Product>> getProductByBarcode(String barcode) async {
+  Future<Either<Failure, List<Product>>> getProductsByBarcode(
+      String barcode) async {
     try {
-      final row = await _dao.getByBarcode(barcode);
-      if (row == null) {
+      final rows = await _dao.getAllByBarcode(barcode);
+      if (rows.isEmpty) {
         return Left(NotFoundFailure('No product for barcode: $barcode'));
       }
-      return Right(_toEntity(row));
+      return Right(rows.map(_toEntity).toList());
     } catch (e) {
       return Left(CacheFailure(e.toString()));
     }

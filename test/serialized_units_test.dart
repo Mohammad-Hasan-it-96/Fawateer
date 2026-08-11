@@ -38,9 +38,10 @@ class _FakeProductRepository implements ProductRepository {
   _FakeProductRepository({this.byBarcode = const {}, this.byId = const {}});
 
   @override
-  Future<Either<Failure, Product>> getProductByBarcode(String barcode) async {
+  Future<Either<Failure, List<Product>>> getProductsByBarcode(
+      String barcode) async {
     final p = byBarcode[barcode];
-    return p == null ? Left(NotFoundFailure('no $barcode')) : Right(p);
+    return p == null ? Left(NotFoundFailure('no $barcode')) : Right([p]);
   }
 
   @override

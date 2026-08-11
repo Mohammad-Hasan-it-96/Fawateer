@@ -52,6 +52,15 @@ class BillingState extends Equatable {
   /// POS page consumes it and clears it. Null otherwise.
   final Product? outOfStockScan;
 
+  /// Set for one transition when a scanned barcode matches **more than one**
+  /// product (Plan 015 Case A — the same packet sold at two prices from two
+  /// piles). The POS opens a chooser, adds the picked product, then clears it.
+  /// Empty otherwise.
+  ///
+  /// The BLoC never opens UI, so this follows `measuredPrompt`'s shape exactly:
+  /// state carries the question, the page asks it.
+  final List<Product> barcodeChoices;
+
   /// Current USD→SP rate (SP per 1 USD), or null if the owner hasn't set one.
   /// Used to price USD products into SP as they enter the cart.
   final double? exchangeRate;
@@ -85,6 +94,7 @@ class BillingState extends Equatable {
     this.lowStockWarnings = const [],
     this.measuredPrompt,
     this.outOfStockScan,
+    this.barcodeChoices = const [],
     this.exchangeRate,
     this.rateUpdatedAt,
     this.invoiceDiscount = 0,
@@ -148,6 +158,8 @@ class BillingState extends Equatable {
     bool clearMeasuredPrompt = false,
     Product? outOfStockScan,
     bool clearOutOfStockScan = false,
+    List<Product>? barcodeChoices,
+    bool clearBarcodeChoices = false,
     Object? exchangeRate = _unset,
     Object? rateUpdatedAt = _unset,
     double? invoiceDiscount,
@@ -170,6 +182,9 @@ class BillingState extends Equatable {
       outOfStockScan: clearOutOfStockScan
           ? null
           : (outOfStockScan ?? this.outOfStockScan),
+      barcodeChoices: clearBarcodeChoices
+          ? const []
+          : (barcodeChoices ?? this.barcodeChoices),
       exchangeRate: identical(exchangeRate, _unset)
           ? this.exchangeRate
           : exchangeRate as double?,
@@ -195,6 +210,7 @@ class BillingState extends Equatable {
         lowStockWarnings,
         measuredPrompt,
         outOfStockScan,
+        barcodeChoices,
         exchangeRate,
         rateUpdatedAt,
         invoiceDiscount,

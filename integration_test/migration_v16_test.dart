@@ -68,6 +68,7 @@ void main() {
     // Downwards from the current version: v17 first (it rescoped the unique
     // indexes to reference deleted_at, and SQLite refuses to drop a column any
     // index mentions), then v16.
+    await stripV19(db);
     await stripV18(db);
     await stripV17(db);
     await stripV16(db);

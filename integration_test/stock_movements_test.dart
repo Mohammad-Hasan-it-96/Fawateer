@@ -298,6 +298,7 @@ void main() {
       await old.customStatement(
           "INSERT INTO products (id,name,price,quantity,is_serialized) "
           "VALUES ('p3','هاتف',5000000,1,1)");
+      await stripV19(old);
       await stripV18(old);
       await old.customStatement('PRAGMA user_version = 17');
       await old.close();

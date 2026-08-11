@@ -8,7 +8,10 @@ abstract class ProductRepository {
   /// Reactive stream of all products, updated on every write (incl. stock
   /// changes from a sale).
   Stream<List<Product>> watchProducts();
-  Future<Either<Failure, Product>> getProductByBarcode(String barcode);
+  /// Every product carrying [barcode] — usually one, but since Plan 015 Case A
+  /// a shop may deliberately hold two at different prices. An empty list is a
+  /// [NotFoundFailure]; the caller decides what to do with more than one.
+  Future<Either<Failure, List<Product>>> getProductsByBarcode(String barcode);
 
   /// Single product by id — used to resolve the SKU behind a scanned serial
   /// (Plan 012). Returns [NotFoundFailure] when the id is unknown.

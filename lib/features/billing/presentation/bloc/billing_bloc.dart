@@ -67,6 +67,8 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         emit(state.copyWith(clearMeasuredPrompt: true)));
     on<ClearOutOfStockScanEvent>((event, emit) =>
         emit(state.copyWith(clearOutOfStockScan: true)));
+    on<ClearBarcodeChoicesEvent>((event, emit) =>
+        emit(state.copyWith(clearBarcodeChoices: true)));
     on<RefreshCartProductEvent>(_onRefreshCartProduct);
     on<ClearCartEvent>(_onClearCart);
     on<PrintReceiptEvent>(_onPrintReceipt);
@@ -170,7 +172,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
 
   Future<void> _onScanBarcode(
       ScanBarcodeEvent event, Emitter<BillingState> emit) async {
-    final result = await productRepository.getProductByBarcode(event.barcode);
+    final result = await productRepository.getProductsByBarcode(event.barcode);
     if (result.isLeft()) {
       // Second scan path (Plan 012 D6): barcode first — overwhelmingly the
       // common case and already indexed — then fall through to a serial lookup,
@@ -191,7 +193,19 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         emit(state.copyWith(
             error: BillingError.productNotFound, errorBarcode: event.barcode));
       },
-      (product) {
+      (matches) {
+        // One barcode, two products — the same packet at two prices, from two
+        // piles on the shelf (Plan 015 Case A). The BLoC never opens UI, so it
+        // surfaces the candidates and the POS asks which one.
+        //
+        // Deliberately NOT auto-picked: guessing here would silently ring up
+        // the wrong price, and the shop would only find it when the till
+        // disagreed with the shelf at closing time.
+        if (matches.length > 1) {
+          emit(state.copyWith(barcodeChoices: matches, clearError: true));
+          return;
+        }
+        final product = matches.first;
         // A measured product (e.g. sold by weight) needs a weight/amount entry
         // first — surface it to the UI instead of auto-adding one unit.
         if (product.saleType.isMeasured) {

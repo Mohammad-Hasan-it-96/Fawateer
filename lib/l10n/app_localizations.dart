@@ -4221,6 +4221,36 @@ abstract class AppLocalizations {
   /// **'Changes to the options are saved right away, and your products move with them.'**
   String get optionsLiveNote;
 
+  /// No description provided for @barcodeChoiceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Which one?'**
+  String get barcodeChoiceTitle;
+
+  /// No description provided for @barcodeChoiceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Two products share this barcode. Pick the price you are selling.'**
+  String get barcodeChoiceHint;
+
+  /// No description provided for @addPriceVariantAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Add another price'**
+  String get addPriceVariantAction;
+
+  /// No description provided for @addPriceVariantHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Creates a second product with the same barcode, for stock sold at a different price. The POS will ask which one on every scan.'**
+  String get addPriceVariantHint;
+
+  /// No description provided for @addPriceVariantBanner.
+  ///
+  /// In en, this message translates to:
+  /// **'Second price for the same barcode — it keeps its own stock and cost.'**
+  String get addPriceVariantBanner;
+
   /// No description provided for @duplicateProductAction.
   ///
   /// In en, this message translates to:

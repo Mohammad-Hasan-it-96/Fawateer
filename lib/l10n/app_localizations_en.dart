@@ -2257,6 +2257,24 @@ class AppLocalizationsEn extends AppLocalizations {
       'Changes to the options are saved right away, and your products move with them.';
 
   @override
+  String get barcodeChoiceTitle => 'Which one?';
+
+  @override
+  String get barcodeChoiceHint =>
+      'Two products share this barcode. Pick the price you are selling.';
+
+  @override
+  String get addPriceVariantAction => 'Add another price';
+
+  @override
+  String get addPriceVariantHint =>
+      'Creates a second product with the same barcode, for stock sold at a different price. The POS will ask which one on every scan.';
+
+  @override
+  String get addPriceVariantBanner =>
+      'Second price for the same barcode — it keeps its own stock and cost.';
+
+  @override
   String get duplicateProductAction => 'Duplicate';
 
   @override

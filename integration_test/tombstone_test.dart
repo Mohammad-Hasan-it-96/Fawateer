@@ -59,7 +59,7 @@ void main() {
 
       expect((await db.productsDao.getAllProducts()).map((p) => p.id), ['p2']);
       expect(await db.productsDao.getById('p1'), isNull);
-      expect(await db.productsDao.getByBarcode('BR-1'), isNull,
+      expect(await db.productsDao.getAllByBarcode('BR-1'), isEmpty,
           reason: 'scanning a deleted product must not resurrect it');
       expect((await db.productsDao.watchAllProducts().first).length, 1);
     });
@@ -102,8 +102,8 @@ void main() {
       await db.productsDao.softDeleteProduct('p1', await clock.stamp());
       await seedProduct('p3', 'BR-1');
 
-      final found = await db.productsDao.getByBarcode('BR-1');
-      expect(found?.id, 'p3');
+      final found = await db.productsDao.getAllByBarcode('BR-1');
+      expect(found.single.id, 'p3');
     });
 
     test('deleted stock leaves the inventory aggregates', () async {

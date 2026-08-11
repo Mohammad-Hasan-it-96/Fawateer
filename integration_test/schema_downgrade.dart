@@ -28,6 +28,19 @@ const kSyncedTables = [
   'attribute_definitions',
 ];
 
+/// Undo v19 (Plan 015 Case A — the barcode index stops being UNIQUE).
+///
+/// v19 added no columns and no tables; it only swapped one index. So undoing it
+/// means putting the **unique** one back, which is what makes the v18→v19 test
+/// meaningful: the fixture has to start with an index that genuinely refuses a
+/// second product on the same barcode, or the test proves nothing.
+Future<void> stripV19(AppDatabase db) async {
+  await db.customStatement('DROP INDEX IF EXISTS idx_products_barcode');
+  await db.customStatement(
+      'CREATE UNIQUE INDEX idx_products_barcode '
+      "ON products (barcode) WHERE barcode != '' AND deleted_at = ''");
+}
+
 /// Undo v18 (Plan 002 Phase 0 — the stock movement log).
 ///
 /// Dropping the table takes its indexes with it, so they need no separate

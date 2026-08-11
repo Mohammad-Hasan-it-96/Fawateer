@@ -732,6 +732,11 @@
   "optionsSectionTitle": "الخيارات",
   "optionsLiveNote": "التغييرات على الخيارات تُحفظ فورًا، وتنتقل معها المنتجات.",
 
+  "barcodeChoiceTitle": "أي واحد؟",
+  "barcodeChoiceHint": "يوجد منتجان بنفس الباركود. اختر السعر الذي تبيع به.",
+  "addPriceVariantAction": "إضافة سعر آخر",
+  "addPriceVariantHint": "ينشئ منتجاً ثانياً بنفس الباركود، للبضاعة المباعة بسعر مختلف. سيسأل البرنامج عن أيّهما عند كل قراءة.",
+  "addPriceVariantBanner": "سعر ثانٍ لنفس الباركود — له مخزونه وتكلفته المستقلة.",
   "duplicateProductAction": "نسخ",
   "duplicateProductTitle": "نسخ «{name}»",
   "duplicateProductHint": "يُنسخ السعر والتكلفة والقسم وبقية الحقول. المخزون يبدأ من صفر.",

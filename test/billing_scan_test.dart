@@ -19,13 +19,20 @@ import 'package:fpdart/fpdart.dart';
 class _FakeProductRepository implements ProductRepository {
   final Map<String, Product> byBarcode = {};
 
+  /// Barcodes the shop deliberately shares between two products (Plan 015
+  /// Case A). Takes precedence over [byBarcode] when set.
+  final Map<String, List<Product>> sharedBarcodes = {};
+
   @override
-  Future<Either<Failure, Product>> getProductByBarcode(String barcode) async {
+  Future<Either<Failure, List<Product>>> getProductsByBarcode(
+      String barcode) async {
+    final shared = sharedBarcodes[barcode];
+    if (shared != null) return Right(shared);
     final product = byBarcode[barcode];
     if (product == null) {
       return Left(NotFoundFailure('no product for $barcode'));
     }
-    return Right(product);
+    return Right([product]);
   }
 
   @override
@@ -327,6 +334,65 @@ void main() {
       // snapshot, so a stale snapshot would keep claiming stock the shop no
       // longer has.
       expect(bloc.state.cartItems.single.product.isOutOfStock, isTrue);
+    });
+  });
+
+  group('one barcode, two products (Plan 015 Case A)', () {
+    Product priced(String id, double price) => Product(
+          id: id,
+          name: 'دخان',
+          price: price,
+          quantity: 5,
+          barcode: 'CIG',
+        );
+
+    test('a shared barcode asks instead of guessing', () async {
+      // Guessing would silently ring the wrong price, and the shop would only
+      // find out when the till disagreed with the shelf at closing time.
+      products.sharedBarcodes['CIG'] = [priced('a', 5000), priced('b', 6000)];
+
+      bloc.add(const ScanBarcodeEvent('CIG'));
+      await bloc.stream.firstWhere((s) => s.barcodeChoices.isNotEmpty);
+
+      expect(bloc.state.barcodeChoices.map((p) => p.id), ['a', 'b']);
+      // Nothing is added until the cashier answers.
+      expect(bloc.state.cartItems, isEmpty);
+    });
+
+    test('a single match still adds straight away', () async {
+      // The common case must not grow a tap. Only a genuinely ambiguous code
+      // asks; every other product in the shop behaves exactly as before.
+      products.byBarcode['ONE'] = priced('c', 1000);
+
+      bloc.add(const ScanBarcodeEvent('ONE'));
+      await bloc.stream.firstWhere((s) => s.cartItems.isNotEmpty);
+
+      expect(bloc.state.barcodeChoices, isEmpty);
+      expect(bloc.state.cartItems.single.product.id, 'c');
+    });
+
+    test('the chooser clears, so it cannot reopen on the next rebuild',
+        () async {
+      products.sharedBarcodes['CIG'] = [priced('a', 5000), priced('b', 6000)];
+      bloc.add(const ScanBarcodeEvent('CIG'));
+      await bloc.stream.firstWhere((s) => s.barcodeChoices.isNotEmpty);
+
+      bloc.add(const ClearBarcodeChoicesEvent());
+      await bloc.stream.firstWhere((s) => s.barcodeChoices.isEmpty);
+
+      expect(bloc.state.barcodeChoices, isEmpty);
+    });
+
+    test('a shared barcode never reports "product not found"', () async {
+      // The serial fallback runs only when the barcode lookup fails; two
+      // matches is a success, so it must not fall through to the not-found
+      // path and send the cashier hunting a shelf.
+      products.sharedBarcodes['CIG'] = [priced('a', 5000), priced('b', 6000)];
+
+      bloc.add(const ScanBarcodeEvent('CIG'));
+      await bloc.stream.firstWhere((s) => s.barcodeChoices.isNotEmpty);
+
+      expect(bloc.state.error, isNull);
     });
   });
 }

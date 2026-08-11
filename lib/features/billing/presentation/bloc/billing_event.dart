@@ -44,6 +44,12 @@ class ClearOutOfStockScanEvent extends BillingEvent {
   const ClearOutOfStockScanEvent();
 }
 
+/// Dismisses a pending "which one?" chooser (see [BillingState.barcodeChoices])
+/// once the POS has asked — whether the cashier picked a product or cancelled.
+class ClearBarcodeChoicesEvent extends BillingEvent {
+  const ClearBarcodeChoicesEvent();
+}
+
 class RemoveProductFromCartEvent extends BillingEvent {
   final String productId;
   const RemoveProductFromCartEvent(this.productId);
