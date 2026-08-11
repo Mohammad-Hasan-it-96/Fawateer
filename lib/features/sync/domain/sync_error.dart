@@ -27,6 +27,22 @@ enum SyncError {
   /// so seeing it means the local role and the server's disagree.
   ownerOnly,
 
+  /// This device asked for changes from a position the server has already
+  /// pruned — it has been away longer than the change-log retention window
+  /// (60 days in production, confirmed 2026-08-11).
+  ///
+  /// **Terminal for the cursor, not for the device.** Retrying can never
+  /// succeed: the rows below the pruned watermark are gone, and the server's
+  /// watermark only rises. The phone has to be re-seeded from a fresh snapshot,
+  /// which only the main phone can mint — so this is one of the few errors that
+  /// needs the shopkeeper, not a longer timeout.
+  ///
+  /// **Pushing still works**, and that matters: pull is what breaks, so sales
+  /// made on this phone still reach the shop while it waits to be re-linked.
+  /// Before this case existed it fell through to [server] and was retried
+  /// forever — the phone never caught up, and nothing said why.
+  cursorTooOld,
+
   /// The server was unreachable (offline/timeout) — retryable.
   offline,
 
@@ -49,6 +65,8 @@ enum SyncError {
       case 'OWNER_ONLY':
       case 'OWNER_SEAT_NOT_REVOCABLE':
         return SyncError.ownerOnly;
+      case 'CURSOR_TOO_OLD':
+        return SyncError.cursorTooOld;
       default:
         return SyncError.server;
     }

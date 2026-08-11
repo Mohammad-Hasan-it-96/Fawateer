@@ -563,6 +563,7 @@ String syncErrorText(AppLocalizations l10n, SyncError error) =>
       SyncError.fallbackDeviceRejected => l10n.syncErrorFallbackDevice,
       SyncError.deviceRevoked => l10n.syncErrorRevoked,
       SyncError.ownerOnly => l10n.syncErrorOwnerOnly,
+      SyncError.cursorTooOld => l10n.syncErrorTooFarBehind,
       SyncError.offline => l10n.syncErrorOffline,
       SyncError.server => l10n.syncErrorServer,
     };

@@ -41,6 +41,26 @@ class SyncEngine {
 
   Future<SyncOutcome>? _inFlight;
 
+  /// Set once the server has told us our pull cursor is below its pruned
+  /// watermark (`CURSOR_TOO_OLD`). Pull is skipped while it holds, because the
+  /// rows it wants no longer exist and the server's watermark only rises — the
+  /// request cannot start succeeding. A busy till fires a pass on every local
+  /// write, so without this the shop pays for a doomed round trip every few
+  /// seconds on mobile data.
+  ///
+  /// **Push is deliberately unaffected.** Only receiving is broken; the sales
+  /// rung on this phone still reach the rest of the shop while it waits to be
+  /// re-linked, and stranding them would turn a stale device into a lost day.
+  ///
+  /// **In memory, not persisted.** A restart costs one wasted request and buys
+  /// self-healing: if the window is ever widened server-side, the phone
+  /// recovers on its own instead of staying blocked on a fact that has expired.
+  bool _pullBlocked = false;
+
+  /// True when this device can no longer catch up and needs re-seeding from a
+  /// fresh snapshot — the state the sync screen explains to the shopkeeper.
+  bool get needsReseed => _pullBlocked;
+
   SyncEngine({
     required SyncDao dao,
     required SyncTransport transport,
@@ -136,11 +156,28 @@ class SyncEngine {
   }
 
   Future<SyncOutcome> _pull(SyncOutcome outcome) async {
+    // Still reported as an error every pass, not quietly skipped: the phone IS
+    // out of date, and a screen that goes back to saying "up to date" because
+    // we stopped asking would be the same silence this replaced.
+    if (_pullBlocked) {
+      return outcome.copyWith(error: SyncError.cursorTooOld);
+    }
     var applied = 0;
 
     for (var page = 0; page < maxPullPages; page++) {
       final since = await _state.pullCursor();
-      final result = await _transport.pull(since: since, limit: batchSize);
+      final PullPage result;
+      try {
+        result = await _transport.pull(since: since, limit: batchSize);
+      } on SyncApiException catch (e) {
+        // Latch here rather than in `_run`'s catch-all, so the flag is set only
+        // by an actual pull refusal — a push that failed with the same code
+        // (it cannot today) must not disable pulling.
+        if (SyncError.fromCode(e.code) == SyncError.cursorTooOld) {
+          _pullBlocked = true;
+        }
+        rethrow;
+      }
 
       if (result.changes.isNotEmpty) {
         // Fold every remote stamp into our clock BEFORE applying, so anything
@@ -182,5 +219,11 @@ class SyncEngine {
   /// moving the watermark past them means they are never pushed. The shop's first
   /// device establishing a business is exactly that case, so it would have
   /// silently declined to upload the entire shop.
-  Future<void> adoptBootstrap(int cursor) => _state.resetPullCursor(cursor);
+  Future<void> adoptBootstrap(int cursor) async {
+    // A fresh snapshot is exactly the recovery `CURSOR_TOO_OLD` demands, so
+    // adopting one clears the block. Without this a re-seeded phone would sit
+    // there refusing to pull, holding a cursor that is now perfectly valid.
+    _pullBlocked = false;
+    await _state.resetPullCursor(cursor);
+  }
 }

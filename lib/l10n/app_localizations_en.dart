@@ -1995,6 +1995,10 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncErrorServer => 'Something went wrong. Please try again';
 
   @override
+  String get syncErrorTooFarBehind =>
+      'This phone has been away too long to catch up. Ask the main phone for a new link code, then unlink and join again. Sales made here are still being sent.';
+
+  @override
   String get syncCopyCode => 'Copy';
 
   @override

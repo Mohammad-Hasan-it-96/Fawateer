@@ -1977,6 +1977,10 @@ class AppLocalizationsAr extends AppLocalizations {
   String get syncErrorServer => 'حدث خطأ. حاول مرة أخرى';
 
   @override
+  String get syncErrorTooFarBehind =>
+      'هذا الهاتف انقطع مدة طويلة ولم يعد قادراً على اللحاق. اطلب رمز ربط جديد من الهاتف الرئيسي، ثم افصل هذا الهاتف واربطه من جديد. المبيعات التي تمت هنا ما زالت تُرسل.';
+
+  @override
   String get syncCopyCode => 'نسخ';
 
   @override

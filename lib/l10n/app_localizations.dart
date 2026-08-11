@@ -3783,6 +3783,12 @@ abstract class AppLocalizations {
   /// **'Something went wrong. Please try again'**
   String get syncErrorServer;
 
+  /// No description provided for @syncErrorTooFarBehind.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone has been away too long to catch up. Ask the main phone for a new link code, then unlink and join again. Sales made here are still being sent.'**
+  String get syncErrorTooFarBehind;
+
   /// No description provided for @syncCopyCode.
   ///
   /// In en, this message translates to:

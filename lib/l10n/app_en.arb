@@ -821,6 +821,7 @@
   "syncErrorFallbackDevice": "This phone can't be identified reliably, so it can't be linked",
   "syncErrorOffline": "No connection — it will try again on its own",
   "syncErrorServer": "Something went wrong. Please try again",
+  "syncErrorTooFarBehind": "This phone has been away too long to catch up. Ask the main phone for a new link code, then unlink and join again. Sales made here are still being sent.",
   "syncCopyCode": "Copy",
 
   "syncStepSyncing": "Catching up with the other phones…",
