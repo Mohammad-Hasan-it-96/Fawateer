@@ -40,5 +40,16 @@ abstract class InvoiceRepository {
 
   Future<Either<Failure, List<InvoiceItem>>> getInvoiceItems(String invoiceId);
   Future<Either<Failure, void>> deleteInvoice(String id);
+
+  /// Correct how an existing sale was paid (Plan 016 C-a): pass [customerId]
+  /// to book it as credit for that customer, or null to book it as cash.
+  ///
+  /// Only the money record moves — the invoice, its lines, the total and the
+  /// stock are untouched, so the receipt still reprints exactly as printed.
+  /// Fails with [NotFoundFailure] if the invoice or the customer is gone.
+  Future<Either<Failure, void>> changeInvoicePayment(
+    String invoiceId, {
+    required String? customerId,
+  });
 }
 

@@ -1,5 +1,9 @@
 import 'package:get_it/get_it.dart';
 
+import 'app_locale.dart';
+import 'notifications/local_notifier.dart';
+import '../features/product/data/low_stock_notifier.dart';
+
 // Core — Database
 import 'database/app_database.dart';
 import 'database/daos/products_dao.dart';
@@ -23,7 +27,10 @@ import '../features/sync/data/sync_credential_store.dart';
 import '../features/sync/domain/repositories/sync_enrollment_repository.dart';
 import 'config/remote_config_service.dart';
 import 'currency/exchange_rate_service.dart';
+import 'settings/device_preferences.dart';
 import 'settings/inventory_settings_service.dart';
+import 'security/biometric_service.dart';
+import 'security/manager_pin_service.dart';
 import 'settings/print_settings_service.dart';
 import 'sync/sync_clock.dart';
 import 'theme/font_scale_controller.dart';
@@ -184,12 +191,24 @@ Future<void> init() async {
       () => InventorySettingsService(sl<SettingsDao>()));
   sl.registerLazySingleton<PrintSettingsService>(
       () => PrintSettingsService(sl<SettingsDao>()));
+  // Singleton, not a factory: it holds the wrong-attempt counter in memory, and
+  // a fresh instance per guard call would reset the cooldown on every try.
+  sl.registerLazySingleton<ManagerPinService>(
+      () => ManagerPinService(sl<SettingsDao>()));
+  // Phone-local display settings, kept out of the shop's database — see
+  // `DevicePreferences`.
+  sl.registerLazySingleton<DevicePreferences>(() => DevicePreferences());
+  // Reads its on/off flag from the phone, not the shop's database — an enrolled
+  // fingerprint is a fact about this handset, not about the books.
+  sl.registerLazySingleton<BiometricService>(
+      () => BiometricService(sl<DevicePreferences>()));
+  sl.registerLazySingleton<LocalNotifier>(() => LocalNotifier());
   // Singleton, not a factory: `MyApp` listens to this instance and the settings
   // page writes to it — two copies would leave the UI out of sync.
   sl.registerLazySingleton<ThemeController>(
-      () => ThemeController(sl<SettingsDao>()));
+      () => ThemeController(sl<SettingsDao>(), sl<DevicePreferences>()));
   sl.registerLazySingleton<FontScaleController>(
-      () => FontScaleController(sl<SettingsDao>()));
+      () => FontScaleController(sl<SettingsDao>(), sl<DevicePreferences>()));
 
   // ── Repositories ─────────────────────────────────────────────────────────
   sl.registerLazySingleton<ProductRepository>(
@@ -231,6 +250,17 @@ Future<void> init() async {
           sl<LicenseRepository>()));
   sl.registerLazySingleton<AutoBackupService>(
       () => AutoBackupService(sl<BackupRepository>(), sl<SettingsDao>()));
+  // Watches the product stream for products crossing their alert level
+  // (Plan 013 #10). Singleton: it holds the stream subscription, and a second
+  // instance would double every alert.
+  sl.registerLazySingleton<LowStockNotifier>(() => LowStockNotifier(
+        sl<ProductRepository>(),
+        sl<SettingsDao>(),
+        sl<LocalNotifier>(),
+        // The app pins its locale in `main.dart`; the notifier has no
+        // BuildContext to read one from, so it is handed the same value.
+        locale: kAppLocale,
+      ));
 
   // ── Licensing (network-backed; no DAO) ───────────────────────────────────
   sl.registerLazySingleton<DeviceIdentityService>(

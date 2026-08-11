@@ -3,7 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../../../l10n/app_localizations.dart';
+import '../../../product/presentation/bloc/product_bloc.dart';
 import '../../data/business_templates.dart';
+import '../../domain/attribute_options.dart';
 import '../../domain/entities/attribute_definition.dart';
 import '../../domain/entities/attribute_type.dart';
 import '../bloc/attribute_definition_bloc.dart';
@@ -21,7 +23,24 @@ class AttributeFieldsPage extends StatelessWidget {
         title: Text(l10n.productFieldsTitle),
         centerTitle: true,
       ),
-      body: BlocBuilder<AttributeDefinitionBloc, AttributeDefinitionState>(
+      body: BlocConsumer<AttributeDefinitionBloc, AttributeDefinitionState>(
+        // Report what a rename/delete actually did. "Renamed" alone leaves the
+        // owner wondering whether the products came along — which is the whole
+        // question this feature exists to answer.
+        listenWhen: (prev, curr) =>
+            curr.optionChange != null && prev.optionChange != curr.optionChange,
+        listener: (context, state) {
+          final change = state.optionChange!;
+          ScaffoldMessenger.of(context)
+            ..hideCurrentSnackBar()
+            ..showSnackBar(SnackBar(
+              content: Text(
+                change.kind == OptionChangeKind.renamed
+                    ? l10n.optionRenamedMsg(change.productsAffected)
+                    : l10n.optionRemovedMsg(change.productsAffected),
+              ),
+            ));
+        },
         builder: (context, state) {
           final defs = state.definitions; // includes archived
           if (defs.isEmpty) {
@@ -153,6 +172,216 @@ class _DefinitionTile extends StatelessWidget {
   }
 }
 
+/// The options of an existing `select` field, edited one at a time so a rename
+/// stays a rename (Plan 014 step 3).
+///
+/// **Why not a comma-separated text box, like when creating the field?** Because
+/// every option here is a string that has already been copied into products.
+/// Editing "مشروبات" into "عصائر" in free text is indistinguishable from
+/// deleting one and adding the other, and the difference decides whether every
+/// product in that section comes along or silently falls out of it. Renaming and
+/// deleting are separate, explicit actions for exactly that reason.
+///
+/// Its edits apply **immediately** — they are transactional writes across two
+/// tables, not form state — which is why the note says so out loud.
+class _OptionsEditor extends StatefulWidget {
+  final AttributeDefinition definition;
+  final AttributeDefinitionBloc bloc;
+
+  /// Reports the list back up after every edit.
+  ///
+  /// Load-bearing, not plumbing: rename and delete write to the database
+  /// immediately, but the form's own Save also writes the definition. Without
+  /// this the form would save the option list it was **opened** with, quietly
+  /// undoing a rename in the definition — while the products had already moved.
+  /// One list, held by the parent, ends that race.
+  final ValueChanged<List<String>> onOptionsChanged;
+
+  const _OptionsEditor({
+    required this.definition,
+    required this.bloc,
+    required this.onOptionsChanged,
+  });
+
+  @override
+  State<_OptionsEditor> createState() => _OptionsEditorState();
+}
+
+class _OptionsEditorState extends State<_OptionsEditor> {
+  final _newOption = TextEditingController();
+  late List<String> _options = List.of(widget.definition.options);
+
+  void _apply(List<String> next) {
+    setState(() => _options = next);
+    widget.onOptionsChanged(next);
+  }
+
+  @override
+  void dispose() {
+    _newOption.dispose();
+    super.dispose();
+  }
+
+  /// How many products hold [option] for this field.
+  ///
+  /// Counted from `ProductBloc`, which already holds the whole catalogue live,
+  /// rather than asking the database for a number it is sitting on.
+  int _usedBy(BuildContext context, String option) => context
+      .read<ProductBloc>()
+      .state
+      .products
+      .where((p) => p.attributes[widget.definition.id] == option)
+      .length;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final def = widget.definition;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(l10n.optionsSectionTitle,
+            style: Theme.of(context).textTheme.labelLarge),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            for (final option in _options)
+              InputChip(
+                label: Text(option),
+                onPressed: () => _rename(context, def, option, l10n),
+                onDeleted: () => _confirmRemove(context, def, option, l10n),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                controller: _newOption,
+                decoration: InputDecoration(labelText: l10n.addOptionHint),
+                onSubmitted: (_) => _add(),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline),
+              onPressed: _add,
+            ),
+          ],
+        ),
+        Text(l10n.optionsLiveNote,
+            style: Theme.of(context).textTheme.bodySmall),
+      ],
+    );
+  }
+
+  /// Adding is the one option edit that touches **no product**, so it rides
+  /// along with the form's Save instead of writing on its own.
+  void _add() {
+    final value = _newOption.text.trim();
+    if (value.isEmpty) return;
+    _apply(addOptionToList(_options, value));
+    _newOption.clear();
+  }
+
+  void _rename(BuildContext context, AttributeDefinition def, String option,
+      AppLocalizations l10n) {
+    final moving = _usedBy(context, option);
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) {
+        var typed = option;
+        return StatefulBuilder(
+          builder: (dialogCtx, setDialog) {
+            final target = typed.trim();
+            // Renaming onto an existing option merges the two. Say so before
+            // it happens — a merge is not undoable by renaming back.
+            final merges = target.isNotEmpty &&
+                target != option &&
+                _options.contains(target);
+            return AlertDialog(
+              title: Text(l10n.optionRenameTitle(option)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    autofocus: true,
+                    initialValue: option,
+                    onChanged: (v) => setDialog(() => typed = v),
+                  ),
+                  const SizedBox(height: 8),
+                  if (moving > 0)
+                    Text(l10n.optionInUseCount(moving),
+                        style: Theme.of(dialogCtx).textTheme.bodySmall),
+                  if (merges)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 6),
+                      child: Text(l10n.optionRenameMergeWarning(target),
+                          style: TextStyle(
+                              fontSize: 12, color: Colors.orange.shade800)),
+                    ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx),
+                  child: Text(l10n.cancel),
+                ),
+                FilledButton(
+                  onPressed: target.isEmpty || target == option
+                      ? null
+                      : () {
+                          widget.bloc.add(RenameOption(
+                              definitionId: def.id, from: option, to: target));
+                          // Mirror the write the repository just made, using
+                          // the same pure function, so the chips and the form
+                          // agree without waiting for the stream.
+                          _apply(renameOptionInList(_options, option, target));
+                          Navigator.pop(dialogCtx);
+                        },
+                  child: Text(l10n.optionRenameAction),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _confirmRemove(BuildContext context, AttributeDefinition def,
+      String option, AppLocalizations l10n) {
+    final affected = _usedBy(context, option);
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text(l10n.optionRemoveTitle(option)),
+        content: Text(l10n.optionRemoveBody(affected)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text(l10n.cancel),
+          ),
+          TextButton(
+            onPressed: () {
+              widget.bloc
+                  .add(RemoveOption(definitionId: def.id, value: option));
+              _apply(removeOptionFromList(_options, option));
+              Navigator.pop(dialogCtx);
+            },
+            child:
+                Text(l10n.delete, style: const TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 /// Localized name for an [AttributeType] (shared with any list subtitle).
 String attributeTypeLabel(AppLocalizations l10n, AttributeType type) {
   switch (type) {
@@ -262,6 +491,9 @@ class _DefinitionEditorState extends State<_DefinitionEditor> {
   late final TextEditingController _unit;
   late final TextEditingController _options;
   late AttributeType _type;
+
+  /// The option list as the managed editor currently shows it.
+  late List<String> _liveOptions = List.of(widget.existing?.options ?? const []);
   late bool _required;
   late bool _showInList;
   late bool _showOnReceipt;
@@ -287,15 +519,26 @@ class _DefinitionEditorState extends State<_DefinitionEditor> {
     super.dispose();
   }
 
+  /// True when the managed options editor is on screen — see the comment at its
+  /// call site. Its edits are already saved, so the form must not overwrite them
+  /// with the stale text it was opened with.
+  bool get _managedOptions =>
+      _type == AttributeType.select &&
+      widget.existing?.type == AttributeType.select;
+
   void _save() {
     if (!_formKey.currentState!.validate()) return;
-    final options = _type == AttributeType.select
-        ? _options.text
-            .split(RegExp(r'[,،]'))
-            .map((s) => s.trim())
-            .where((s) => s.isNotEmpty)
-            .toList()
-        : <String>[];
+    final options = _type != AttributeType.select
+        ? <String>[]
+        : _managedOptions
+            // What the managed editor is showing, not the text this sheet
+            // opened with — see [_OptionsEditor.onOptionsChanged].
+            ? _liveOptions
+            : _options.text
+                .split(RegExp(r'[,،]'))
+                .map((s) => s.trim())
+                .where((s) => s.isNotEmpty)
+                .toList();
     final existing = widget.existing;
     // Next sort order (append) for a brand-new field.
     final maxOrder = widget.bloc.state.definitions
@@ -349,17 +592,32 @@ class _DefinitionEditorState extends State<_DefinitionEditor> {
             ),
             if (_type == AttributeType.select) ...[
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _options,
-                decoration: InputDecoration(
-                  labelText: l10n.fieldOptionsLabel,
-                  hintText: l10n.fieldOptionsHint,
+              // A brand-new field has no products pointing at it yet, so its
+              // options are still plain text saved with the rest of the form.
+              // An **existing** field is different: every option is a string
+              // already copied into products, so editing the list as free text
+              // cannot tell a rename from a delete-plus-add — and guessing
+              // wrong silently drops products out of their category. That is
+              // why an existing field gets the managed editor below.
+              if (widget.existing == null ||
+                  widget.existing!.type != AttributeType.select)
+                TextFormField(
+                  controller: _options,
+                  decoration: InputDecoration(
+                    labelText: l10n.fieldOptionsLabel,
+                    hintText: l10n.fieldOptionsHint,
+                  ),
+                  validator: (v) => _type == AttributeType.select &&
+                          (v == null || v.trim().isEmpty)
+                      ? l10n.fieldRequired
+                      : null,
+                )
+              else
+                _OptionsEditor(
+                  definition: widget.existing!,
+                  bloc: widget.bloc,
+                  onOptionsChanged: (opts) => _liveOptions = opts,
                 ),
-                validator: (v) => _type == AttributeType.select &&
-                        (v == null || v.trim().isEmpty)
-                    ? l10n.fieldRequired
-                    : null,
-              ),
             ],
             if (_type == AttributeType.number) ...[
               const SizedBox(height: 16),

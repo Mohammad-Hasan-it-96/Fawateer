@@ -134,6 +134,30 @@ abstract class AppLocalizations {
   /// **'Scanned Items'**
   String get scannedItems;
 
+  /// No description provided for @clearCart.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the invoice'**
+  String get clearCart;
+
+  /// No description provided for @clearCartTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the whole invoice?'**
+  String get clearCartTitle;
+
+  /// No description provided for @clearCartBody.
+  ///
+  /// In en, this message translates to:
+  /// **'All the scanned items will be removed. This cannot be undone.'**
+  String get clearCartBody;
+
+  /// No description provided for @clearCartConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clearCartConfirm;
+
   /// No description provided for @itemsCount.
   ///
   /// In en, this message translates to:
@@ -625,6 +649,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Low stock'**
   String get lowStockBadge;
+
+  /// No description provided for @showAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all'**
+  String get showAll;
+
+  /// No description provided for @noLowStockThresholds.
+  ///
+  /// In en, this message translates to:
+  /// **'No product has a minimum set yet. Open a product and set its low-stock alert to use this filter.'**
+  String get noLowStockThresholds;
 
   /// No description provided for @outOfStockBadge.
   ///
@@ -1345,6 +1381,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Font size'**
   String get fontSizeTitle;
+
+  /// No description provided for @fontSizeTiny.
+  ///
+  /// In en, this message translates to:
+  /// **'Tiny'**
+  String get fontSizeTiny;
 
   /// No description provided for @fontSizeSmall.
   ///
@@ -2163,6 +2205,18 @@ abstract class AppLocalizations {
   /// **'Add a customer to track credit sales and payments.'**
   String get noCustomersHint;
 
+  /// No description provided for @searchCustomersHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Search by name or phone'**
+  String get searchCustomersHint;
+
+  /// No description provided for @noCustomerResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No customer matches this search'**
+  String get noCustomerResults;
+
   /// No description provided for @selectCustomer.
   ///
   /// In en, this message translates to:
@@ -2366,6 +2420,30 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Share statement'**
   String get shareStatement;
+
+  /// No description provided for @statementCardTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Account statement'**
+  String get statementCardTitle;
+
+  /// No description provided for @statementMoreEntries.
+  ///
+  /// In en, this message translates to:
+  /// **'…and {count} earlier entries'**
+  String statementMoreEntries(int count);
+
+  /// No description provided for @shareAsImage.
+  ///
+  /// In en, this message translates to:
+  /// **'Share as image'**
+  String get shareAsImage;
+
+  /// No description provided for @shareAsText.
+  ///
+  /// In en, this message translates to:
+  /// **'Share as text'**
+  String get shareAsText;
 
   /// No description provided for @printStatement.
   ///
@@ -3854,6 +3932,684 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Only the main phone can do this'**
   String get syncErrorOwnerOnly;
+
+  /// No description provided for @selectAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Select'**
+  String get selectAction;
+
+  /// No description provided for @selectedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} selected'**
+  String selectedCount(int count);
+
+  /// No description provided for @selectAllAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get selectAllAction;
+
+  /// No description provided for @clearSelectionAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get clearSelectionAction;
+
+  /// No description provided for @selectionHiddenByFilter.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of them are hidden by the current filter'**
+  String selectionHiddenByFilter(int count);
+
+  /// No description provided for @bulkEditPricesAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit prices'**
+  String get bulkEditPricesAction;
+
+  /// No description provided for @bulkPriceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Change price for {count} products'**
+  String bulkPriceTitle(int count);
+
+  /// No description provided for @bulkFieldPrice.
+  ///
+  /// In en, this message translates to:
+  /// **'Selling price'**
+  String get bulkFieldPrice;
+
+  /// No description provided for @bulkFieldCost.
+  ///
+  /// In en, this message translates to:
+  /// **'Purchase cost'**
+  String get bulkFieldCost;
+
+  /// No description provided for @bulkModeSetTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Set amount'**
+  String get bulkModeSetTo;
+
+  /// No description provided for @bulkModePercent.
+  ///
+  /// In en, this message translates to:
+  /// **'Percentage'**
+  String get bulkModePercent;
+
+  /// No description provided for @bulkPercentIncrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Increase'**
+  String get bulkPercentIncrease;
+
+  /// No description provided for @bulkPercentDecrease.
+  ///
+  /// In en, this message translates to:
+  /// **'Decrease'**
+  String get bulkPercentDecrease;
+
+  /// No description provided for @bulkAmountLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New amount'**
+  String get bulkAmountLabel;
+
+  /// No description provided for @bulkPercentLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Percentage %'**
+  String get bulkPercentLabel;
+
+  /// No description provided for @bulkPreviewCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} products will change'**
+  String bulkPreviewCount(int count);
+
+  /// No description provided for @bulkPreviewNoChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing will change with these numbers'**
+  String get bulkPreviewNoChange;
+
+  /// No description provided for @bulkMixedCurrency.
+  ///
+  /// In en, this message translates to:
+  /// **'The selection has products priced in different currencies. Use a percentage, or select products of one currency only.'**
+  String get bulkMixedCurrency;
+
+  /// No description provided for @bulkApplyAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply'**
+  String get bulkApplyAction;
+
+  /// No description provided for @bulkPricesUpdated.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} products updated'**
+  String bulkPricesUpdated(int count);
+
+  /// No description provided for @bulkPricesUnchanged.
+  ///
+  /// In en, this message translates to:
+  /// **'No price changed'**
+  String get bulkPricesUnchanged;
+
+  /// No description provided for @tabAllProducts.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get tabAllProducts;
+
+  /// No description provided for @tabByCategory.
+  ///
+  /// In en, this message translates to:
+  /// **'By category'**
+  String get tabByCategory;
+
+  /// No description provided for @categoryUncategorized.
+  ///
+  /// In en, this message translates to:
+  /// **'Other'**
+  String get categoryUncategorized;
+
+  /// No description provided for @categoryAllChip.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get categoryAllChip;
+
+  /// No description provided for @noCategoriesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'No categories yet'**
+  String get noCategoriesTitle;
+
+  /// No description provided for @noCategoriesHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Create a few sections for your shop — drinks, dairy, cleaning. You can change them later from Settings → Product fields.'**
+  String get noCategoriesHint;
+
+  /// No description provided for @createCategoriesBtn.
+  ///
+  /// In en, this message translates to:
+  /// **'Create categories'**
+  String get createCategoriesBtn;
+
+  /// No description provided for @categoriesDialogTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Shop categories'**
+  String get categoriesDialogTitle;
+
+  /// No description provided for @categoriesDialogHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Category names, separated by a comma'**
+  String get categoriesDialogHint;
+
+  /// No description provided for @manageCategoriesTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Manage categories'**
+  String get manageCategoriesTooltip;
+
+  /// No description provided for @setCategoryAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Set category'**
+  String get setCategoryAction;
+
+  /// No description provided for @chooseCategoryTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Category for {count} products'**
+  String chooseCategoryTitle(int count);
+
+  /// No description provided for @newCategoryHint.
+  ///
+  /// In en, this message translates to:
+  /// **'New category'**
+  String get newCategoryHint;
+
+  /// No description provided for @categoryClearOption.
+  ///
+  /// In en, this message translates to:
+  /// **'No category'**
+  String get categoryClearOption;
+
+  /// No description provided for @bulkCategorySet.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} products moved'**
+  String bulkCategorySet(int count);
+
+  /// No description provided for @optionRenameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename \"{value}\"'**
+  String optionRenameTitle(String value);
+
+  /// No description provided for @optionRenameMergeWarning.
+  ///
+  /// In en, this message translates to:
+  /// **'\"{value}\" already exists — the two will be merged into one.'**
+  String optionRenameMergeWarning(String value);
+
+  /// No description provided for @optionRenameAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Rename'**
+  String get optionRenameAction;
+
+  /// No description provided for @optionRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete \"{value}\"?'**
+  String optionRemoveTitle(String value);
+
+  /// No description provided for @optionRemoveBody.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} products use it. They will keep everything else and simply have no value for this field.'**
+  String optionRemoveBody(int count);
+
+  /// No description provided for @optionInUseCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Used by {count} products'**
+  String optionInUseCount(int count);
+
+  /// No description provided for @optionRenamedMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Renamed — {count} products moved with it'**
+  String optionRenamedMsg(int count);
+
+  /// No description provided for @optionRemovedMsg.
+  ///
+  /// In en, this message translates to:
+  /// **'Deleted — {count} products cleared'**
+  String optionRemovedMsg(int count);
+
+  /// No description provided for @addOptionHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Add an option'**
+  String get addOptionHint;
+
+  /// No description provided for @optionsSectionTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Options'**
+  String get optionsSectionTitle;
+
+  /// No description provided for @optionsLiveNote.
+  ///
+  /// In en, this message translates to:
+  /// **'Changes to the options are saved right away, and your products move with them.'**
+  String get optionsLiveNote;
+
+  /// No description provided for @duplicateProductAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate'**
+  String get duplicateProductAction;
+
+  /// No description provided for @duplicateProductTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Duplicate \"{name}\"'**
+  String duplicateProductTitle(String name);
+
+  /// No description provided for @duplicateProductHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Price, cost, category and the other fields are copied. Stock starts at zero.'**
+  String get duplicateProductHint;
+
+  /// No description provided for @newProductNameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'New product name'**
+  String get newProductNameLabel;
+
+  /// No description provided for @newBarcodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Barcode (optional)'**
+  String get newBarcodeLabel;
+
+  /// No description provided for @deleteInvoiceAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete sale'**
+  String get deleteInvoiceAction;
+
+  /// No description provided for @deleteInvoiceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this sale?'**
+  String get deleteInvoiceTitle;
+
+  /// No description provided for @deleteInvoiceIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'This does not only remove the paper. It undoes the whole sale:'**
+  String get deleteInvoiceIntro;
+
+  /// No description provided for @deleteInvoiceStock.
+  ///
+  /// In en, this message translates to:
+  /// **'The items go back into stock'**
+  String get deleteInvoiceStock;
+
+  /// No description provided for @deleteInvoiceCash.
+  ///
+  /// In en, this message translates to:
+  /// **'The cash comes out of the drawer'**
+  String get deleteInvoiceCash;
+
+  /// No description provided for @deleteInvoiceDebt.
+  ///
+  /// In en, this message translates to:
+  /// **'{name}\'s debt goes down by this amount'**
+  String deleteInvoiceDebt(String name);
+
+  /// No description provided for @deleteInvoiceIrreversible.
+  ///
+  /// In en, this message translates to:
+  /// **'This cannot be undone. Ring the sale again to correct it.'**
+  String get deleteInvoiceIrreversible;
+
+  /// No description provided for @invoiceDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Sale deleted'**
+  String get invoiceDeleted;
+
+  /// No description provided for @invoiceDeleteFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t delete the sale'**
+  String get invoiceDeleteFailed;
+
+  /// No description provided for @changePaymentAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Change payment'**
+  String get changePaymentAction;
+
+  /// No description provided for @changePaymentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'How was this sale paid?'**
+  String get changePaymentTitle;
+
+  /// No description provided for @changePaymentIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the payment record changes. The items, the total and the receipt stay exactly as they are.'**
+  String get changePaymentIntro;
+
+  /// No description provided for @changePaymentCashHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The amount goes into the cash drawer'**
+  String get changePaymentCashHint;
+
+  /// No description provided for @changePaymentCreditHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The amount is added to a customer\'s debt'**
+  String get changePaymentCreditHint;
+
+  /// No description provided for @changePaymentChooseCustomer.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose customer'**
+  String get changePaymentChooseCustomer;
+
+  /// No description provided for @changePaymentNotRepayment.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this to fix a mistake. If the customer is paying off a debt, record a payment on their account instead.'**
+  String get changePaymentNotRepayment;
+
+  /// No description provided for @paymentChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Payment updated'**
+  String get paymentChanged;
+
+  /// No description provided for @paymentChangeFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Couldn\'t update the payment'**
+  String get paymentChangeFailed;
+
+  /// No description provided for @managerLockSection.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager lock'**
+  String get managerLockSection;
+
+  /// No description provided for @managerPinTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager PIN'**
+  String get managerPinTitle;
+
+  /// No description provided for @managerPinOffSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Off — anyone can delete or change a sale'**
+  String get managerPinOffSubtitle;
+
+  /// No description provided for @managerPinOnSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'On — asked before deleting or changing a sale'**
+  String get managerPinOnSubtitle;
+
+  /// No description provided for @managerPinSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Set a PIN'**
+  String get managerPinSet;
+
+  /// No description provided for @managerPinChange.
+  ///
+  /// In en, this message translates to:
+  /// **'Change the PIN'**
+  String get managerPinChange;
+
+  /// No description provided for @managerPinRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove the PIN'**
+  String get managerPinRemove;
+
+  /// No description provided for @managerPinNote.
+  ///
+  /// In en, this message translates to:
+  /// **'A short code asked before a sale is deleted, or its payment is changed. It is a speed bump, not a login — it will not stop someone who keeps the phone.'**
+  String get managerPinNote;
+
+  /// No description provided for @managerPinNew.
+  ///
+  /// In en, this message translates to:
+  /// **'New PIN (4 to 6 digits)'**
+  String get managerPinNew;
+
+  /// No description provided for @managerPinConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat the new PIN'**
+  String get managerPinConfirm;
+
+  /// No description provided for @managerPinEnter.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the manager PIN'**
+  String get managerPinEnter;
+
+  /// No description provided for @managerPinUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock'**
+  String get managerPinUnlock;
+
+  /// No description provided for @managerPinInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Use 4 to 6 digits'**
+  String get managerPinInvalid;
+
+  /// No description provided for @managerPinMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The two PINs are not the same'**
+  String get managerPinMismatch;
+
+  /// No description provided for @managerPinWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'Wrong PIN'**
+  String get managerPinWrong;
+
+  /// No description provided for @managerPinLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many tries. Wait {seconds} seconds.'**
+  String managerPinLocked(int seconds);
+
+  /// No description provided for @managerPinSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager PIN saved'**
+  String get managerPinSaved;
+
+  /// No description provided for @managerPinRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Manager PIN removed'**
+  String get managerPinRemoved;
+
+  /// No description provided for @managerPinForgot.
+  ///
+  /// In en, this message translates to:
+  /// **'Forgot the PIN?'**
+  String get managerPinForgot;
+
+  /// No description provided for @managerPinResetTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset the manager PIN'**
+  String get managerPinResetTitle;
+
+  /// No description provided for @managerPinResetIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Send your device number to support. They will give you a code that works today only. This works without internet.'**
+  String get managerPinResetIntro;
+
+  /// No description provided for @managerPinResetCodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset code'**
+  String get managerPinResetCodeLabel;
+
+  /// No description provided for @managerPinResetWrong.
+  ///
+  /// In en, this message translates to:
+  /// **'This code is not right for this device today'**
+  String get managerPinResetWrong;
+
+  /// No description provided for @managerPinResetDone.
+  ///
+  /// In en, this message translates to:
+  /// **'The PIN was removed. Set a new one from Settings.'**
+  String get managerPinResetDone;
+
+  /// No description provided for @lowStockAlertsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Low stock alerts'**
+  String get lowStockAlertsTitle;
+
+  /// No description provided for @lowStockAlertsSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Notify me when a product reaches its alert level. Needs an alert level on the product, and works only while the app is open.'**
+  String get lowStockAlertsSubtitle;
+
+  /// No description provided for @lowStockAlertsDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'Notifications are turned off for this app in the phone settings'**
+  String get lowStockAlertsDenied;
+
+  /// No description provided for @lowStockTestAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Send a test alert'**
+  String get lowStockTestAction;
+
+  /// No description provided for @lowStockTestSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Check that notifications reach this phone'**
+  String get lowStockTestSubtitle;
+
+  /// No description provided for @lowStockTestTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Test alert'**
+  String get lowStockTestTitle;
+
+  /// No description provided for @lowStockTestBody.
+  ///
+  /// In en, this message translates to:
+  /// **'If you can see this, low stock alerts are working.'**
+  String get lowStockTestBody;
+
+  /// No description provided for @lowStockTestSent.
+  ///
+  /// In en, this message translates to:
+  /// **'Sent — check your notifications'**
+  String get lowStockTestSent;
+
+  /// No description provided for @lowStockTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The phone did not accept the notification'**
+  String get lowStockTestFailed;
+
+  /// No description provided for @lowStockAlertOne.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} is running low'**
+  String lowStockAlertOne(String name);
+
+  /// No description provided for @lowStockAlertRemaining.
+  ///
+  /// In en, this message translates to:
+  /// **'Only {qty} left'**
+  String lowStockAlertRemaining(String qty);
+
+  /// No description provided for @lowStockAlertMany.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} products are running low'**
+  String lowStockAlertMany(int count);
+
+  /// No description provided for @managerBiometricTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Unlock with fingerprint'**
+  String get managerBiometricTitle;
+
+  /// No description provided for @managerBiometricOn.
+  ///
+  /// In en, this message translates to:
+  /// **'On — your fingerprint or face opens the lock'**
+  String get managerBiometricOn;
+
+  /// No description provided for @managerBiometricOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off — the PIN is asked every time'**
+  String get managerBiometricOff;
+
+  /// No description provided for @managerBiometricUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'No fingerprint or face is set up on this phone'**
+  String get managerBiometricUnavailable;
+
+  /// No description provided for @managerBiometricReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm it is you to unlock the manager actions'**
+  String get managerBiometricReason;
+
+  /// No description provided for @managerBiometricFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Fingerprint not recognised — the PIN still works'**
+  String get managerBiometricFailed;
+
+  /// No description provided for @managerPinResetMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'I forgot the manager PIN of my Fawateer app. My device number: {id}'**
+  String managerPinResetMessage(String id);
 }
 
 class _AppLocalizationsDelegate

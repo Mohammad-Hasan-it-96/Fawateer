@@ -50,4 +50,16 @@ class ApiConfig {
   /// Salt mixed into the raw device id before hashing. App-specific so the same
   /// physical device yields a different id per app.
   static const String deviceIdSalt = 'fawateer_pos_app';
+
+  /// Shared secret behind the daily manager-PIN reset code (Plan 017 R1).
+  /// Support computes the same code from the device id and the date, so a shop
+  /// that forgot its PIN can be unlocked **offline** — which matters, because a
+  /// locked-out shop often has no internet either.
+  ///
+  /// Deliberately `const` and not remote-configurable: a shop that can't reach
+  /// the network can't receive a new value, so making it configurable would
+  /// break the one case the whole mechanism exists for. Treat it like
+  /// [deviceIdSalt] — an APK can be reverse-engineered, and that is accepted
+  /// for a lock on an owner's own till.
+  static const String pinResetSecret = 'fawateer_manager_pin_v1';
 }

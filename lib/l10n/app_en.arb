@@ -6,6 +6,10 @@
   "customersTab": "Customers",
   "settingsTab": "Settings",
   "scannedItems": "Scanned Items",
+  "clearCart": "Clear the invoice",
+  "clearCartTitle": "Clear the whole invoice?",
+  "clearCartBody": "All the scanned items will be removed. This cannot be undone.",
+  "clearCartConfirm": "Clear",
   "itemsCount": "{count} items total",
   "@itemsCount": {
     "placeholders": {
@@ -116,6 +120,8 @@
     }
   },
   "lowStockBadge": "Low stock",
+  "showAll": "Show all",
+  "noLowStockThresholds": "No product has a minimum set yet. Open a product and set its low-stock alert to use this filter.",
   "outOfStockBadge": "Out of stock",
   "outOfStockScanNotice": "Out of stock: {name}",
   "@outOfStockScanNotice": {
@@ -243,6 +249,7 @@
   "themeDark": "Dark",
   "themeSystem": "Follow system",
   "fontSizeTitle": "Font size",
+  "fontSizeTiny": "Tiny",
   "fontSizeSmall": "Small",
   "fontSizeNormal": "Normal",
   "fontSizeLarge": "Large",
@@ -452,6 +459,8 @@
   "customersLoadFailed": "Couldn't load customers.",
   "noCustomers": "No customers yet",
   "noCustomersHint": "Add a customer to track credit sales and payments.",
+  "searchCustomersHint": "Search by name or phone",
+  "noCustomerResults": "No customer matches this search",
   "selectCustomer": "Select customer",
   "addNewCustomer": "Add new customer",
   "searchCustomerHint": "Search customers",
@@ -514,6 +523,11 @@
     }
   },
   "shareStatement": "Share statement",
+  "statementCardTitle": "Account statement",
+  "statementMoreEntries": "…and {count} earlier entries",
+  "@statementMoreEntries": {"placeholders": {"count": {"type": "int"}}},
+  "shareAsImage": "Share as image",
+  "shareAsText": "Share as text",
   "printStatement": "Print statement",
   "statementPrinted": "Statement printed",
   "statementHeader": "Account Statement — {shop}",
@@ -836,5 +850,273 @@
   "syncRevokeConfirm": "Remove",
   "syncRevokedMessage": "That phone was removed",
   "syncErrorRevoked": "This phone was removed from the shop by the main phone",
-  "syncErrorOwnerOnly": "Only the main phone can do this"
+  "syncErrorOwnerOnly": "Only the main phone can do this",
+
+  "selectAction": "Select",
+  "selectedCount": "{count} selected",
+  "@selectedCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "selectAllAction": "Select all",
+  "clearSelectionAction": "Clear",
+  "selectionHiddenByFilter": "{count} of them are hidden by the current filter",
+  "@selectionHiddenByFilter": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bulkEditPricesAction": "Edit prices",
+  "bulkPriceTitle": "Change price for {count} products",
+  "@bulkPriceTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bulkFieldPrice": "Selling price",
+  "bulkFieldCost": "Purchase cost",
+  "bulkModeSetTo": "Set amount",
+  "bulkModePercent": "Percentage",
+  "bulkPercentIncrease": "Increase",
+  "bulkPercentDecrease": "Decrease",
+  "bulkAmountLabel": "New amount",
+  "bulkPercentLabel": "Percentage %",
+  "bulkPreviewCount": "{count} products will change",
+  "@bulkPreviewCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bulkPreviewNoChange": "Nothing will change with these numbers",
+  "bulkMixedCurrency": "The selection has products priced in different currencies. Use a percentage, or select products of one currency only.",
+  "bulkApplyAction": "Apply",
+  "bulkPricesUpdated": "{count} products updated",
+  "@bulkPricesUpdated": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "bulkPricesUnchanged": "No price changed",
+
+  "tabAllProducts": "All",
+  "tabByCategory": "By category",
+  "categoryUncategorized": "Other",
+  "categoryAllChip": "All",
+  "noCategoriesTitle": "No categories yet",
+  "noCategoriesHint": "Create a few sections for your shop — drinks, dairy, cleaning. You can change them later from Settings → Product fields.",
+  "createCategoriesBtn": "Create categories",
+  "categoriesDialogTitle": "Shop categories",
+  "categoriesDialogHint": "Category names, separated by a comma",
+  "manageCategoriesTooltip": "Manage categories",
+  "setCategoryAction": "Set category",
+  "chooseCategoryTitle": "Category for {count} products",
+  "@chooseCategoryTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "newCategoryHint": "New category",
+  "categoryClearOption": "No category",
+  "bulkCategorySet": "{count} products moved",
+  "@bulkCategorySet": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "optionRenameTitle": "Rename \"{value}\"",
+  "@optionRenameTitle": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "optionRenameMergeWarning": "\"{value}\" already exists — the two will be merged into one.",
+  "@optionRenameMergeWarning": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "optionRenameAction": "Rename",
+  "optionRemoveTitle": "Delete \"{value}\"?",
+  "@optionRemoveTitle": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "optionRemoveBody": "{count} products use it. They will keep everything else and simply have no value for this field.",
+  "@optionRemoveBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "optionInUseCount": "Used by {count} products",
+  "@optionInUseCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "optionRenamedMsg": "Renamed — {count} products moved with it",
+  "@optionRenamedMsg": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "optionRemovedMsg": "Deleted — {count} products cleared",
+  "@optionRemovedMsg": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "addOptionHint": "Add an option",
+  "optionsSectionTitle": "Options",
+  "optionsLiveNote": "Changes to the options are saved right away, and your products move with them.",
+
+  "duplicateProductAction": "Duplicate",
+  "duplicateProductTitle": "Duplicate \"{name}\"",
+  "@duplicateProductTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "duplicateProductHint": "Price, cost, category and the other fields are copied. Stock starts at zero.",
+  "newProductNameLabel": "New product name",
+  "newBarcodeLabel": "Barcode (optional)",
+
+  "deleteInvoiceAction": "Delete sale",
+  "deleteInvoiceTitle": "Delete this sale?",
+  "deleteInvoiceIntro": "This does not only remove the paper. It undoes the whole sale:",
+  "deleteInvoiceStock": "The items go back into stock",
+  "deleteInvoiceCash": "The cash comes out of the drawer",
+  "deleteInvoiceDebt": "{name}'s debt goes down by this amount",
+  "@deleteInvoiceDebt": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "deleteInvoiceIrreversible": "This cannot be undone. Ring the sale again to correct it.",
+  "invoiceDeleted": "Sale deleted",
+  "invoiceDeleteFailed": "Couldn't delete the sale",
+
+  "changePaymentAction": "Change payment",
+  "changePaymentTitle": "How was this sale paid?",
+  "changePaymentIntro": "Only the payment record changes. The items, the total and the receipt stay exactly as they are.",
+  "changePaymentCashHint": "The amount goes into the cash drawer",
+  "changePaymentCreditHint": "The amount is added to a customer's debt",
+  "changePaymentChooseCustomer": "Choose customer",
+  "changePaymentNotRepayment": "Use this to fix a mistake. If the customer is paying off a debt, record a payment on their account instead.",
+  "paymentChanged": "Payment updated",
+  "paymentChangeFailed": "Couldn't update the payment",
+
+  "managerLockSection": "Manager lock",
+  "managerPinTitle": "Manager PIN",
+  "managerPinOffSubtitle": "Off — anyone can delete or change a sale",
+  "managerPinOnSubtitle": "On — asked before deleting or changing a sale",
+  "managerPinSet": "Set a PIN",
+  "managerPinChange": "Change the PIN",
+  "managerPinRemove": "Remove the PIN",
+  "managerPinNote": "A short code asked before a sale is deleted, or its payment is changed. It is a speed bump, not a login — it will not stop someone who keeps the phone.",
+  "managerPinNew": "New PIN (4 to 6 digits)",
+  "managerPinConfirm": "Repeat the new PIN",
+  "managerPinEnter": "Enter the manager PIN",
+  "managerPinUnlock": "Unlock",
+  "managerPinInvalid": "Use 4 to 6 digits",
+  "managerPinMismatch": "The two PINs are not the same",
+  "managerPinWrong": "Wrong PIN",
+  "managerPinLocked": "Too many tries. Wait {seconds} seconds.",
+  "@managerPinLocked": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "managerPinSaved": "Manager PIN saved",
+  "managerPinRemoved": "Manager PIN removed",
+  "managerPinForgot": "Forgot the PIN?",
+  "managerPinResetTitle": "Reset the manager PIN",
+  "managerPinResetIntro": "Send your device number to support. They will give you a code that works today only. This works without internet.",
+  "managerPinResetCodeLabel": "Reset code",
+  "managerPinResetWrong": "This code is not right for this device today",
+  "managerPinResetDone": "The PIN was removed. Set a new one from Settings.",
+  "lowStockAlertsTitle": "Low stock alerts",
+  "lowStockAlertsSubtitle": "Notify me when a product reaches its alert level. Needs an alert level on the product, and works only while the app is open.",
+  "lowStockAlertsDenied": "Notifications are turned off for this app in the phone settings",
+  "lowStockTestAction": "Send a test alert",
+  "lowStockTestSubtitle": "Check that notifications reach this phone",
+  "lowStockTestTitle": "Test alert",
+  "lowStockTestBody": "If you can see this, low stock alerts are working.",
+  "lowStockTestSent": "Sent — check your notifications",
+  "lowStockTestFailed": "The phone did not accept the notification",
+  "lowStockAlertOne": "{name} is running low",
+  "@lowStockAlertOne": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "lowStockAlertRemaining": "Only {qty} left",
+  "@lowStockAlertRemaining": {
+    "placeholders": {
+      "qty": {
+        "type": "String"
+      }
+    }
+  },
+  "lowStockAlertMany": "{count} products are running low",
+  "@lowStockAlertMany": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+
+  "managerBiometricTitle": "Unlock with fingerprint",
+  "managerBiometricOn": "On — your fingerprint or face opens the lock",
+  "managerBiometricOff": "Off — the PIN is asked every time",
+  "managerBiometricUnavailable": "No fingerprint or face is set up on this phone",
+  "managerBiometricReason": "Confirm it is you to unlock the manager actions",
+  "managerBiometricFailed": "Fingerprint not recognised — the PIN still works",
+
+  "managerPinResetMessage": "I forgot the manager PIN of my Fawateer app. My device number: {id}",
+  "@managerPinResetMessage": {
+    "placeholders": {
+      "id": {
+        "type": "String"
+      }
+    }
+  }
 }

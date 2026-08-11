@@ -100,7 +100,7 @@ class SalesDao extends DatabaseAccessor<AppDatabase> with _$SalesDaoMixin {
         fromMs: fromMs, toMs: toMs, payment: payment, search: search);
     final sql = '''
 SELECT i.id AS id, i.created_at AS created_at, i.total_amount AS total_amount,
-       c.name AS customer_name,
+       c.name AS customer_name, le.customer_id AS customer_id,
        (le.invoice_id IS NOT NULL) AS is_credit,
        (SELECT COUNT(*) FROM sales_items si
          WHERE si.invoice_id = i.id AND si.deleted_at = '') AS item_count
@@ -122,6 +122,7 @@ LIMIT ? OFFSET ?''';
               createdAt: r.read<int>('created_at'),
               totalAmount: r.read<double>('total_amount'),
               customerName: r.readNullable<String>('customer_name'),
+              customerId: r.readNullable<String>('customer_id'),
               isCredit: r.read<int>('is_credit') != 0,
               itemCount: r.read<int>('item_count'),
             ))
@@ -270,24 +271,123 @@ $whereSql''';
         }
       });
 
+  /// Correct how an already-recorded sale was paid (Plan 016 C-a): cash ⇄
+  /// credit, or move a credit sale to a different customer. Pass [customerId]
+  /// for credit, null for cash.
+  ///
+  /// **The sale itself is not edited, and that is the whole point.** No
+  /// snapshot column is touched: the line items, the total, the discounts, the
+  /// stock and the serialized units all stay exactly as they were, so the
+  /// receipt still reprints byte-for-byte and the invoice number the customer
+  /// is holding survives. Only the *money record* moves — which is the thing
+  /// that was actually wrong.
+  ///
+  /// It works by re-deriving rather than diffing: whatever the sale posted
+  /// (cash entry and/or ledger charge) is retired, then exactly one row is
+  /// written for the payment type now being asked for. That makes every
+  /// direction — cash→credit, credit→cash, customer A→B — the same code path,
+  /// and re-applying the same choice a no-op instead of a double posting.
+  ///
+  /// **Retired means tombstoned, not deleted** (the sync rule): a physically
+  /// removed row is "absent here, present there" to a merge, and comes back
+  /// from the other till on the next pull — so a corrected sale would silently
+  /// regain the cash entry it was supposed to lose, and the customer would be
+  /// charged twice.
+  ///
+  /// Both new rows are dated at the **sale's** time, not now. This is a
+  /// correction of a mis-recorded sale, not a payment happening today: dating
+  /// it today would leave yesterday's cash report wrong *and* make today's
+  /// wrong too. A customer actually paying off a debt is a different thing —
+  /// that is a ledger `payment` entry, which this must never be used for.
+  ///
+  /// Known limit, shared with [softDeleteInvoice]: ledger `payment` rows carry
+  /// no invoice link, so a repayment the customer already made against this
+  /// debt cannot be identified and is left in place. Turning such a sale into
+  /// cash leaves that payment standing as a credit on their account, which is
+  /// visible on the statement rather than silent.
+  Future<PaymentChangeResult> setInvoicePayment({
+    required String invoiceId,
+    required String? customerId,
+    required String newRowId,
+    required SyncStamp stamp,
+  }) =>
+      transaction(() async {
+        final invoice = await (select(salesInvoices)
+              ..where((i) => i.id.equals(invoiceId) & i.deletedAt.equals('')))
+            .getSingleOrNull();
+        if (invoice == null) return PaymentChangeResult.invoiceMissing;
+        // No FK constraints are declared on these tables yet, so an unknown id
+        // would insert happily and leave a charge nobody owns — the audit
+        // query's LEFT JOIN would just render it as a credit sale with no name.
+        // Checking here is cheap and keeps that impossible.
+        if (customerId != null) {
+          final customer = await (select(customers)
+                ..where((c) => c.id.equals(customerId) & c.deletedAt.equals('')))
+              .getSingleOrNull();
+          if (customer == null) return PaymentChangeResult.customerMissing;
+        }
+
+        final amount = (invoice.totalAmount * 100).roundToDouble() / 100;
+        await (update(cashboxTransactions)
+              ..where((c) =>
+                  c.relatedId.equals(invoiceId) & c.deletedAt.equals('')))
+            .write(CashboxTransactionsCompanion(
+          deletedAt: Value(stamp.hlc),
+          updatedAt: Value(stamp.hlc),
+          originDevice: Value(stamp.device),
+        ));
+        await (update(ledgerEntries)
+              ..where((e) =>
+                  e.invoiceId.equals(invoiceId) & e.deletedAt.equals('')))
+            .write(LedgerEntriesCompanion(
+          deletedAt: Value(stamp.hlc),
+          updatedAt: Value(stamp.hlc),
+          originDevice: Value(stamp.device),
+        ));
+
+        if (customerId == null) {
+          await into(cashboxTransactions).insert(CashboxTransactionsCompanion(
+            id: Value(newRowId),
+            type: const Value('cashSale'),
+            amount: Value(amount),
+            relatedId: Value(invoiceId),
+            occurredAt: Value(invoice.createdAt),
+            createdAt: Value(invoice.createdAt),
+            updatedAt: Value(stamp.hlc),
+            originDevice: Value(stamp.device),
+          ));
+        } else {
+          await into(ledgerEntries).insert(LedgerEntriesCompanion(
+            id: Value(newRowId),
+            customerId: Value(customerId),
+            invoiceId: Value(invoiceId),
+            entryType: const Value('charge'),
+            amount: Value(amount),
+            createdAt: Value(invoice.createdAt),
+            updatedAt: Value(stamp.hlc),
+            originDevice: Value(stamp.device),
+          ));
+        }
+        return PaymentChangeResult.ok;
+      });
+
   /// Tombstone an invoice together with its line items in one transaction, so
-  /// no line is left visible without its invoice. Also reverses the invoice's
-  /// cashbox entry (if it was a cash sale) so the cash-on-hand balance stays
-  /// honest; no-op for a credit sale (nothing was posted there).
+  /// no line is left visible without its invoice. Also retires the money the
+  /// sale posted — the cashbox entry of a cash sale, or the ledger `charge` of
+  /// a credit one — and the stock movements it wrote.
   ///
   /// The lines are tombstoned individually rather than left to fall out with
   /// their parent: the sync contract replicates rows, not row trees, so a line
   /// whose only claim to being deleted is its invoice's tombstone would arrive
   /// on the other device as a live orphan.
   ///
-  /// **Incomplete for credit sales — do not wire this to a UI as-is.** A credit
-  /// sale also writes a `charge` row to `ledger_entries` (see the ledger
-  /// section of CLAUDE.md), and this does not remove it. Deleting a credit
-  /// invoice today would leave the customer still owing money for a sale that
-  /// no longer exists, and the debt is derived from those rows, so the error is
-  /// permanent and invisible. Nothing calls this yet; whoever adds "delete
-  /// invoice" must tombstone the matching `ledger_entries` row (by `invoiceId`)
-  /// in this same transaction.
+  /// **The ledger charge is the part that was missing** (Plan 016 A). Without
+  /// it, deleting a credit invoice left the customer owing money for a sale
+  /// that no longer existed — and because the balance is *derived* from those
+  /// rows, the error was permanent and invisible. This method carried a "do not
+  /// wire this to a UI as-is" warning for exactly that reason until the delete
+  /// button was built on the release branch; the warning was right, and it was
+  /// understated.
   Future<void> softDeleteInvoice(String id, SyncStamp stamp) =>
       transaction(() async {
         await (update(salesItems)
@@ -335,6 +435,22 @@ $whereSql''';
           touched.addAll(reversed.map((m) => m.productId));
         }
 
+        // Retire the debt a credit sale created. `ledger_entries.invoiceId` is
+        // set only by that path (null for manual charges and payments), so this
+        // takes exactly the one `charge` this invoice posted.
+        //
+        // Tombstoned, never deleted: a physically removed row reads as "absent
+        // here, present there" to a merge and is resurrected from the other
+        // till on the next pull — so the customer would silently start owing
+        // the money again, for a sale that no longer exists.
+        await (update(ledgerEntries)
+              ..where((e) => e.invoiceId.equals(id) & e.deletedAt.equals('')))
+            .write(LedgerEntriesCompanion(
+          deletedAt: Value(stamp.hlc),
+          updatedAt: Value(stamp.hlc),
+          originDevice: Value(stamp.device),
+        ));
+
         // Release any serialized units this invoice consumed back to stock
         // (Plan 012). The units themselves are NOT tombstoned: the handsets
         // still exist and are back on the shelf; only the sale was undone.
@@ -366,6 +482,11 @@ $whereSql''';
       });
 }
 
+/// Outcome of [SalesDao.setInvoicePayment]. Returned rather than thrown so the
+/// repository can map each case to its own [Failure] and the UI can say which
+/// record is missing, instead of one opaque "save failed".
+enum PaymentChangeResult { ok, invoiceMissing, customerMissing }
+
 /// Projection returned by [SalesDao.watchAuditInvoices]: an invoice with its
 /// derived payment type, customer, and item count.
 class AuditInvoiceRow {
@@ -373,6 +494,10 @@ class AuditInvoiceRow {
   final int createdAt; // ms since epoch
   final double totalAmount;
   final String? customerName;
+
+  /// The credit customer's id — what a payment correction needs to pre-select
+  /// them (the name alone can't identify a row). Null for a cash sale.
+  final String? customerId;
   final bool isCredit;
   final int itemCount;
   const AuditInvoiceRow({
@@ -380,6 +505,7 @@ class AuditInvoiceRow {
     required this.createdAt,
     required this.totalAmount,
     required this.customerName,
+    this.customerId,
     required this.isCredit,
     required this.itemCount,
   });

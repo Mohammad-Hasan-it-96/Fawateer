@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/security/manager_guard.dart';
 import '../../../../core/share/cards/invoice_share_card.dart';
 import '../../../../core/share/share_card_action.dart';
 import '../../../../core/utils/format.dart';
 import '../../../../l10n/app_localizations.dart';
+import '../../../ledger/presentation/widgets/customer_picker.dart';
 import '../../../shop/domain/entities/shop.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../../domain/entities/invoice_item.dart';
@@ -26,18 +29,31 @@ class InvoiceDetailPage extends StatefulWidget {
 }
 
 class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
+  /// The invoice as this page currently understands it.
+  ///
+  /// Held in state rather than read from `widget` because a payment correction
+  /// (Plan 016 C-a) changes the derived payment fields while the page is open.
+  /// It is not re-read from the list either: the list window is *filtered*, so
+  /// switching a sale from cash to credit under a "cash only" filter drops the
+  /// row out of the window entirely — and the page would fall back to the stale
+  /// value it was pushed with.
+  late InvoiceListItem _invoice;
+
+  /// The payment correction awaiting its write, applied to [_invoice] only once
+  /// the BLoC reports success.
+  _PaymentChoice? _pendingChoice;
+
   @override
   void initState() {
     super.initState();
-    context
-        .read<HistoryBloc>()
-        .add(LoadInvoiceDetailsEvent(widget.invoice.id));
+    _invoice = widget.invoice;
+    context.read<HistoryBloc>().add(LoadInvoiceDetailsEvent(_invoice.id));
   }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
-    final inv = widget.invoice;
+    final inv = _invoice;
     final currency = (context.watch<ShopBloc>().state is ShopLoaded)
         ? (context.read<ShopBloc>().state as ShopLoaded).shop.currencySymbol
         : '';
@@ -66,23 +82,78 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
               );
             },
           ),
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
+            tooltip: l10n.deleteInvoiceAction,
+            onPressed: () => _confirmDelete(context, l10n, inv, currency),
+          ),
         ],
       ),
-      body: BlocListener<HistoryBloc, HistoryState>(
-        listenWhen: (prev, curr) =>
-            prev.reprintStatus != curr.reprintStatus &&
-            (curr.reprintStatus == ReprintStatus.done ||
-                curr.reprintStatus == ReprintStatus.failed),
-        listener: (context, state) {
-          final ok = state.reprintStatus == ReprintStatus.done;
-          ScaffoldMessenger.of(context)
-            ..hideCurrentSnackBar()
-            ..showSnackBar(SnackBar(
-              content:
-                  Text(ok ? l10n.printedSuccessfully : l10n.printFailed),
-              backgroundColor: ok ? Colors.green : Colors.red,
-            ));
-        },
+      body: MultiBlocListener(
+        listeners: [
+          BlocListener<HistoryBloc, HistoryState>(
+            listenWhen: (prev, curr) =>
+                prev.reprintStatus != curr.reprintStatus &&
+                (curr.reprintStatus == ReprintStatus.done ||
+                    curr.reprintStatus == ReprintStatus.failed),
+            listener: (context, state) {
+              final ok = state.reprintStatus == ReprintStatus.done;
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(SnackBar(
+                  content:
+                      Text(ok ? l10n.printedSuccessfully : l10n.printFailed),
+                  backgroundColor: ok ? Colors.green : Colors.red,
+                ));
+            },
+          ),
+          BlocListener<HistoryBloc, HistoryState>(
+            listenWhen: (prev, curr) =>
+                prev.deleteStatus != curr.deleteStatus &&
+                (curr.deleteStatus == DeleteStatus.done ||
+                    curr.deleteStatus == DeleteStatus.failed),
+            listener: (context, state) {
+              final ok = state.deleteStatus == DeleteStatus.done;
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(SnackBar(
+                  content: Text(
+                      ok ? l10n.invoiceDeleted : l10n.invoiceDeleteFailed),
+                  backgroundColor: ok ? Colors.green : Colors.red,
+                ));
+              // The invoice this page is showing no longer exists — staying
+              // here would leave the shop reading a sale that has been undone.
+              if (ok && context.canPop()) context.pop();
+            },
+          ),
+          BlocListener<HistoryBloc, HistoryState>(
+            listenWhen: (prev, curr) =>
+                prev.paymentChangeStatus != curr.paymentChangeStatus &&
+                (curr.paymentChangeStatus == PaymentChangeStatus.done ||
+                    curr.paymentChangeStatus == PaymentChangeStatus.failed),
+            listener: (context, state) {
+              final ok = state.paymentChangeStatus == PaymentChangeStatus.done;
+              final choice = _pendingChoice;
+              _pendingChoice = null;
+              ScaffoldMessenger.of(context)
+                ..hideCurrentSnackBar()
+                ..showSnackBar(SnackBar(
+                  content: Text(
+                      ok ? l10n.paymentChanged : l10n.paymentChangeFailed),
+                  backgroundColor: ok ? Colors.green : Colors.red,
+                ));
+              if (ok && choice != null) {
+                setState(() {
+                  _invoice = _invoice.withPayment(
+                    isCredit: choice.customerId != null,
+                    customerName: choice.customerName,
+                    customerId: choice.customerId,
+                  );
+                });
+              }
+            },
+          ),
+        ],
         child: BlocBuilder<HistoryBloc, HistoryState>(
           builder: (context, state) {
             final items = state.itemsCache[inv.id];
@@ -140,9 +211,53 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
           _row(l10n.timeLabel, time),
           _row(l10n.paymentType, payment),
           _row(l10n.customerLabel, customer),
+          const SizedBox(height: 4),
+          // Sits with the payment/customer rows it edits, not among the app-bar
+          // actions: those act on the whole sale (share it, delete it), while
+          // this one only corrects the two lines directly above it.
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              onPressed: () => _openChangePayment(context, l10n),
+              icon: const Icon(Icons.edit_outlined, size: 16),
+              label: Text(l10n.changePaymentAction),
+              style: TextButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                textStyle: const TextStyle(
+                    fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
         ],
       ),
     );
+  }
+
+  /// Correct how this sale was paid (Plan 016 C-a).
+  ///
+  /// The choice is held until the write reports back, and the header is
+  /// rewritten only on success. Painting it optimistically would be worse than
+  /// a moment's delay: a failed save that still showed the new customer would
+  /// tell the shop a debt exists that was never recorded.
+  Future<void> _openChangePayment(
+      BuildContext context, AppLocalizations l10n) async {
+    final bloc = context.read<HistoryBloc>();
+    // Manager lock (Plan 016 B). Asked *before* the sheet, not after it: making
+    // the shop fill in a correction and only then refusing it wastes the work
+    // and reads as a bug.
+    if (!await requireManager(context) || !mounted) return;
+    if (!context.mounted) return;
+    final choice = await showModalBottomSheet<_PaymentChoice>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _ChangePaymentSheet(invoice: _invoice),
+    );
+    if (choice == null || !mounted) return;
+
+    _pendingChoice = choice;
+    bloc.add(ChangeInvoicePaymentEvent(
+        invoiceId: _invoice.id, customerId: choice.customerId));
   }
 
   Widget _row(String label, String value, {bool mono = false}) {
@@ -386,8 +501,8 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
     final shopState = context.read<ShopBloc>().state;
     final Shop shop = shopState is ShopLoaded ? shopState.shop : const Shop();
     context.read<HistoryBloc>().add(ReprintInvoiceEvent(
-          invoiceId: widget.invoice.id,
-          total: widget.invoice.total,
+          invoiceId: _invoice.id,
+          total: _invoice.total,
           shopName: shop.name,
           address1: shop.addressLine1,
           address2: shop.addressLine2,
@@ -400,6 +515,90 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
   /// Share this stored invoice as a styled PNG receipt (Plan 007). The discount
   /// is derived from the snapshotted items vs. the stored total, exactly like
   /// the footer breakdown.
+  /// Confirm deleting a sale (Plan 016 A).
+  ///
+  /// **The dialog lists the consequences, one line each, and it is not
+  /// decoration.** Deleting a sale is not deleting a piece of paper: the goods
+  /// go back into stock, the cash comes out of the drawer, and on a credit sale
+  /// the customer's debt drops. A shopkeeper who expects only the invoice to
+  /// disappear finds the drawer short at closing time and concludes the app
+  /// lost their money — which is a far worse outcome than one extra dialog.
+  ///
+  /// Which lines show is decided per invoice: cash and credit undo different
+  /// things, and naming the customer makes the debt line concrete.
+  Future<void> _confirmDelete(BuildContext context, AppLocalizations l10n,
+      InvoiceListItem inv, String currency) async {
+    final bloc = context.read<HistoryBloc>();
+    final customer = inv.customerName?.isNotEmpty == true
+        ? inv.customerName!
+        : l10n.paymentCredit;
+
+    // Manager lock (Plan 016 B) — before the consequences dialog, so a helper
+    // without the PIN is told "no" straight away rather than after reading a
+    // warning they were never able to act on.
+    if (!await requireManager(context) || !mounted) return;
+    if (!context.mounted) return;
+
+    showDialog<void>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        title: Text(l10n.deleteInvoiceTitle),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l10n.deleteInvoiceIntro),
+            const SizedBox(height: 12),
+            _consequence(dialogCtx, Icons.inventory_2_outlined,
+                l10n.deleteInvoiceStock),
+            if (inv.isCredit)
+              _consequence(dialogCtx, Icons.account_balance_wallet_outlined,
+                  l10n.deleteInvoiceDebt(customer))
+            else
+              _consequence(dialogCtx, Icons.point_of_sale_outlined,
+                  l10n.deleteInvoiceCash),
+            const SizedBox(height: 12),
+            Text(l10n.deleteInvoiceIrreversible,
+                style: Theme.of(dialogCtx)
+                    .textTheme
+                    .bodySmall
+                    ?.copyWith(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(dialogCtx).colorScheme.error),
+            onPressed: () {
+              Navigator.pop(dialogCtx);
+              bloc.add(DeleteInvoiceEvent(inv.id));
+            },
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _consequence(BuildContext context, IconData icon, String text) =>
+      Padding(
+        padding: const EdgeInsets.only(bottom: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon,
+                size: 18,
+                color: Theme.of(context).colorScheme.onSurfaceVariant),
+            const SizedBox(width: 8),
+            Expanded(child: Text(text)),
+          ],
+        ),
+      );
+
   Future<void> _shareInvoice(BuildContext context, AppLocalizations l10n,
       String locale, String currency, InvoiceListItem inv,
       List<InvoiceItem> items) async {
@@ -440,5 +639,218 @@ class _InvoiceDetailPageState extends State<InvoiceDetailPage> {
         card: card,
         fileName: 'invoice_${inv.id}.png',
         messageText: shop.name.isNotEmpty ? shop.name : null);
+  }
+}
+
+/// What the change-payment sheet pops: null [customerId] = cash, otherwise
+/// credit for that customer. The name rides along purely so the caller can
+/// repaint the header without waiting for a stream round-trip.
+class _PaymentChoice {
+  final String? customerId;
+  final String? customerName;
+  const _PaymentChoice({this.customerId, this.customerName});
+}
+
+/// Pick how an already-recorded sale was paid (Plan 016 C-a).
+///
+/// Deliberately **not** a two-line "cash or credit?" prompt. The sheet says
+/// what moves and what does not, because the first question a shopkeeper asks
+/// is whether editing an invoice will change the receipt their customer is
+/// holding — and the answer, which is "no", is the reason this action exists
+/// instead of delete-and-re-enter.
+class _ChangePaymentSheet extends StatefulWidget {
+  final InvoiceListItem invoice;
+  const _ChangePaymentSheet({required this.invoice});
+
+  @override
+  State<_ChangePaymentSheet> createState() => _ChangePaymentSheetState();
+}
+
+class _ChangePaymentSheetState extends State<_ChangePaymentSheet> {
+  late bool _isCredit;
+  String? _customerId;
+  String? _customerName;
+
+  @override
+  void initState() {
+    super.initState();
+    _isCredit = widget.invoice.isCredit;
+    _customerId = widget.invoice.customerId;
+    _customerName = widget.invoice.customerName;
+  }
+
+  Future<void> _pick() async {
+    final picked = await pickCustomer(context);
+    if (picked == null || !mounted) return;
+    setState(() {
+      _isCredit = true;
+      _customerId = picked.id;
+      _customerName = picked.name;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
+    final theme = Theme.of(context);
+    // Credit with nobody attached is not a payment record, it's a hole in one.
+    final canSave = !_isCredit || _customerId != null;
+    // Nothing to write, so Save would be a confusing no-op.
+    final unchanged = _isCredit == widget.invoice.isCredit &&
+        (!_isCredit || _customerId == widget.invoice.customerId);
+
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                    color: theme.dividerColor,
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            Text(l10n.changePaymentTitle,
+                style:
+                    const TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 6),
+            Text(l10n.changePaymentIntro,
+                style: TextStyle(
+                    fontSize: 12.5, color: theme.colorScheme.onSurfaceVariant)),
+            const SizedBox(height: 14),
+            _option(
+              selected: !_isCredit,
+              icon: Icons.payments_outlined,
+              title: l10n.paymentCash,
+              subtitle: l10n.changePaymentCashHint,
+              onTap: () => setState(() {
+                _isCredit = false;
+                _customerId = null;
+                _customerName = null;
+              }),
+            ),
+            const SizedBox(height: 8),
+            _option(
+              selected: _isCredit,
+              icon: Icons.account_balance_wallet_outlined,
+              title: _isCredit && (_customerName?.isNotEmpty ?? false)
+                  ? '${l10n.paymentCredit} — $_customerName'
+                  : l10n.paymentCredit,
+              subtitle: l10n.changePaymentCreditHint,
+              // Choosing credit is choosing *a customer* — there is no useful
+              // in-between state, so the tap goes straight to the picker.
+              onTap: _pick,
+              trailing: _isCredit
+                  ? TextButton(
+                      onPressed: _pick,
+                      child: Text(l10n.changePaymentChooseCustomer,
+                          style: const TextStyle(fontSize: 12)))
+                  : null,
+            ),
+            const SizedBox(height: 12),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(Icons.info_outline,
+                    size: 15, color: theme.colorScheme.onSurfaceVariant),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(l10n.changePaymentNotRepayment,
+                      style: TextStyle(
+                          fontSize: 11.5,
+                          color: theme.colorScheme.onSurfaceVariant)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(l10n.cancel),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: (!canSave || unchanged)
+                        ? null
+                        : () => Navigator.pop(
+                              context,
+                              _PaymentChoice(
+                                customerId: _isCredit ? _customerId : null,
+                                customerName: _isCredit ? _customerName : null,
+                              ),
+                            ),
+                    child: Text(l10n.save),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _option({
+    required bool selected,
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+    Widget? trailing,
+  }) {
+    final theme = Theme.of(context);
+    final accent = theme.colorScheme.primary;
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? accent.withValues(alpha: 0.08) : null,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+              color: selected ? accent : theme.dividerColor,
+              width: selected ? 1.5 : 1),
+        ),
+        child: Row(
+          children: [
+            Icon(icon,
+                size: 20,
+                color:
+                    selected ? accent : theme.colorScheme.onSurfaceVariant),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: selected ? accent : null)),
+                  Text(subtitle,
+                      style: TextStyle(
+                          fontSize: 11.5,
+                          color: theme.colorScheme.onSurfaceVariant)),
+                ],
+              ),
+            ),
+            if (trailing != null) trailing,
+          ],
+        ),
+      ),
+    );
   }
 }

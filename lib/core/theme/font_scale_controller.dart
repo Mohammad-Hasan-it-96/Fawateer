@@ -1,11 +1,17 @@
 import 'package:flutter/widgets.dart';
 
 import '../database/daos/settings_dao.dart';
+import '../settings/device_preferences.dart';
 
 /// App-wide text-size options (Plan 011 #1). Persisted **by name** (never index,
 /// so reordering can't remap a stored choice) in one [AppSettings] row — same
 /// treatment as the theme mode.
 enum AppFontScale {
+  /// Added after a shop reported action labels still running out of room at
+  /// [small] on a narrow phone. **0.8 is the floor**, not a step on the way
+  /// down: below it the shop's own product names stop being readable across a
+  /// counter, and the fix for a cramped screen becomes a screen nobody can use.
+  tiny(0.8),
   small(0.9),
   normal(1.0),
   large(1.15),
@@ -25,11 +31,14 @@ enum AppFontScale {
 /// choice scales every screen at once. The choice is cosmetic: a failed write
 /// only costs the preference on the next launch, never blocks anything.
 class FontScaleController extends ChangeNotifier {
-  FontScaleController(this._settingsDao);
+  FontScaleController(this._settingsDao, this._prefs);
 
   final SettingsDao _settingsDao;
+  final DevicePreferences _prefs;
 
-  static const String _key = 'font_scale';
+  /// The old home: one row in the app database. Still read **once**, so an
+  /// install that already has a choice keeps it — see [load].
+  static const String _legacyKey = 'font_scale';
 
   AppFontScale _scale = AppFontScale.normal;
   AppFontScale get scale => _scale;
@@ -37,10 +46,24 @@ class FontScaleController extends ChangeNotifier {
 
   /// Reads the stored preference. Call once during startup, before `runApp`, so
   /// the first frame is already at the right size. Never throws.
+  ///
+  /// Device preferences first; the old database row is a **one-time fallback**
+  /// that migrates itself across on the next launch after the update. Without
+  /// that, everyone who had already chosen a size would silently be reset to
+  /// normal by the very change meant to make the choice stick.
   Future<void> load() async {
+    final stored = await _prefs.read(DevicePreferences.fontScale);
+    if (stored != null) {
+      _scale = _decode(stored);
+      notifyListeners();
+      return;
+    }
     try {
-      final stored = await _settingsDao.getValue(_key);
-      if (stored != null) _scale = _decode(stored);
+      final legacy = await _settingsDao.getValue(_legacyKey);
+      if (legacy != null) {
+        _scale = _decode(legacy);
+        await _prefs.write(DevicePreferences.fontScale, _scale.name);
+      }
     } catch (_) {
       // Leave the default; a missing/corrupt pref must not block startup.
     }
@@ -52,11 +75,7 @@ class FontScaleController extends ChangeNotifier {
     _scale = scale;
     notifyListeners();
     // Persist after notifying: the repaint is what the user is waiting on.
-    try {
-      await _settingsDao.setValue(_key, scale.name);
-    } catch (_) {
-      // Ignored by design — see above.
-    }
+    await _prefs.write(DevicePreferences.fontScale, scale.name);
   }
 
   static AppFontScale _decode(String value) {

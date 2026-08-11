@@ -22,6 +22,39 @@ class AttributeDefinitionBloc
     on<SaveDefinition>(_onSave);
     on<DeleteDefinition>(_onDelete);
     on<ApplyTemplate>(_onApplyTemplate);
+    on<RenameOption>(_onRenameOption);
+    on<RemoveOption>(_onRemoveOption);
+  }
+
+  Future<void> _onRenameOption(
+      RenameOption event, Emitter<AttributeDefinitionState> emit) async {
+    final result = await repository.renameOption(
+      definitionId: event.definitionId,
+      from: event.from,
+      to: event.to,
+    );
+    result.fold(
+      (_) => emit(state.copyWith(status: AttributeDefStatus.error)),
+      (moved) => emit(state.copyWith(
+        status: AttributeDefStatus.loaded,
+        optionChange: OptionChangeOutcome(OptionChangeKind.renamed, moved),
+      )),
+    );
+  }
+
+  Future<void> _onRemoveOption(
+      RemoveOption event, Emitter<AttributeDefinitionState> emit) async {
+    final result = await repository.removeOption(
+      definitionId: event.definitionId,
+      value: event.value,
+    );
+    result.fold(
+      (_) => emit(state.copyWith(status: AttributeDefStatus.error)),
+      (cleared) => emit(state.copyWith(
+        status: AttributeDefStatus.loaded,
+        optionChange: OptionChangeOutcome(OptionChangeKind.removed, cleared),
+      )),
+    );
   }
 
   Future<void> _onLoad(

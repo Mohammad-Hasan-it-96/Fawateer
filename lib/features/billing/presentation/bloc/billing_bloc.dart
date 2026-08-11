@@ -67,6 +67,7 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
         emit(state.copyWith(clearMeasuredPrompt: true)));
     on<ClearOutOfStockScanEvent>((event, emit) =>
         emit(state.copyWith(clearOutOfStockScan: true)));
+    on<RefreshCartProductEvent>(_onRefreshCartProduct);
     on<ClearCartEvent>(_onClearCart);
     on<PrintReceiptEvent>(_onPrintReceipt);
     on<ConfirmSaleEvent>(_onConfirmSale);
@@ -320,6 +321,25 @@ class BillingBloc extends Bloc<BillingEvent, BillingState> {
       emit(state.copyWith(
           cartItems: items, lowStockWarnings: _computeStockWarnings(items)));
     }
+  }
+
+  /// Re-price the open line(s) for a product that was just edited from the cart
+  /// (Plan 013 #4).
+  ///
+  /// Reuses [_priceLine] rather than writing the price in directly, so a USD
+  /// product edited mid-sale is re-converted at the current rate and an edit
+  /// that leaves it unpriced still blocks checkout. The quantity, the manual
+  /// line discount and the serialized unit are carried over — the cashier
+  /// changed the *product*, not this sale's line.
+  void _onRefreshCartProduct(
+      RefreshCartProductEvent event, Emitter<BillingState> emit) {
+    final items = state.cartItems.map((item) {
+      if (item.product.id != event.product.id) return item;
+      final repriced = _priceLine(event.product, item.quantity, unit: item.unit);
+      return repriced.copyWith(discount: item.discount);
+    }).toList();
+    emit(state.copyWith(
+        cartItems: items, lowStockWarnings: _computeStockWarnings(items)));
   }
 
   void _onClearCart(ClearCartEvent event, Emitter<BillingState> emit) {

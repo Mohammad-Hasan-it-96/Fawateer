@@ -18,6 +18,11 @@ class InvoiceListItem extends Equatable {
   /// The customer's name for a credit sale; null for a cash (anonymous) sale.
   final String? customerName;
 
+  /// The credit customer's id; null for a cash sale. Carried alongside the name
+  /// because a payment correction (Plan 016 C-a) has to pre-select the customer
+  /// it is about, and two customers may share a name.
+  final String? customerId;
+
   const InvoiceListItem({
     required this.id,
     required this.createdAt,
@@ -25,9 +30,31 @@ class InvoiceListItem extends Equatable {
     required this.itemCount,
     required this.isCredit,
     this.customerName,
+    this.customerId,
   });
+
+  /// Only the *derived* payment fields are replaceable — that is the one thing
+  /// about a recorded sale that can legitimately change (Plan 016 C-a). The id,
+  /// date, total and item count belong to the invoice itself and never move.
+  ///
+  /// The customer is passed positively (null clears it) because switching to
+  /// cash must drop the old name, not keep it via a `??` fallback.
+  InvoiceListItem withPayment({
+    required bool isCredit,
+    String? customerName,
+    String? customerId,
+  }) =>
+      InvoiceListItem(
+        id: id,
+        createdAt: createdAt,
+        total: total,
+        itemCount: itemCount,
+        isCredit: isCredit,
+        customerName: isCredit ? customerName : null,
+        customerId: isCredit ? customerId : null,
+      );
 
   @override
   List<Object?> get props =>
-      [id, createdAt, total, itemCount, isCredit, customerName];
+      [id, createdAt, total, itemCount, isCredit, customerName, customerId];
 }

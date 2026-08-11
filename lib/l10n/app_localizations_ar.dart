@@ -27,6 +27,19 @@ class AppLocalizationsAr extends AppLocalizations {
   String get scannedItems => 'المنتجات الممسوحة';
 
   @override
+  String get clearCart => 'إفراغ الفاتورة';
+
+  @override
+  String get clearCartTitle => 'إفراغ الفاتورة بالكامل؟';
+
+  @override
+  String get clearCartBody =>
+      'ستُحذف جميع المنتجات الممسوحة. لا يمكن التراجع عن هذا الإجراء.';
+
+  @override
+  String get clearCartConfirm => 'إفراغ';
+
+  @override
   String itemsCount(String count) {
     return '$count منتج';
   }
@@ -281,6 +294,13 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get lowStockBadge => 'مخزون منخفض';
+
+  @override
+  String get showAll => 'عرض الكل';
+
+  @override
+  String get noLowStockThresholds =>
+      'لم يتم تحديد حد أدنى لأي منتج بعد. افتح منتجاً وحدّد تنبيه المخزون المنخفض لاستخدام هذه التصفية.';
 
   @override
   String get outOfStockBadge => 'منتهي';
@@ -648,6 +668,9 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get fontSizeTitle => 'حجم الخط';
+
+  @override
+  String get fontSizeTiny => 'صغير جدًا';
 
   @override
   String get fontSizeSmall => 'صغير';
@@ -1098,6 +1121,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get noCustomersHint => 'أضف عميلاً لتتبع البيع الآجل والدفعات.';
 
   @override
+  String get searchCustomersHint => 'ابحث بالاسم أو رقم الهاتف';
+
+  @override
+  String get noCustomerResults => 'لا يوجد عميل يطابق هذا البحث';
+
+  @override
   String get selectCustomer => 'اختر العميل';
 
   @override
@@ -1207,6 +1236,20 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get shareStatement => 'مشاركة كشف الحساب';
+
+  @override
+  String get statementCardTitle => 'كشف حساب';
+
+  @override
+  String statementMoreEntries(int count) {
+    return '…و$count حركة أقدم';
+  }
+
+  @override
+  String get shareAsImage => 'مشاركة كصورة';
+
+  @override
+  String get shareAsText => 'مشاركة كنص';
 
   @override
   String get printStatement => 'طباعة كشف الحساب';
@@ -2016,4 +2059,403 @@ class AppLocalizationsAr extends AppLocalizations {
 
   @override
   String get syncErrorOwnerOnly => 'الهاتف الرئيسي وحده يستطيع القيام بذلك';
+
+  @override
+  String get selectAction => 'تحديد';
+
+  @override
+  String selectedCount(int count) {
+    return '$count محدّد';
+  }
+
+  @override
+  String get selectAllAction => 'تحديد الكل';
+
+  @override
+  String get clearSelectionAction => 'إلغاء التحديد';
+
+  @override
+  String selectionHiddenByFilter(int count) {
+    return '$count منها مخفي بالفلتر الحالي';
+  }
+
+  @override
+  String get bulkEditPricesAction => 'تعديل الأسعار';
+
+  @override
+  String bulkPriceTitle(int count) {
+    return 'تعديل سعر $count منتج';
+  }
+
+  @override
+  String get bulkFieldPrice => 'سعر البيع';
+
+  @override
+  String get bulkFieldCost => 'سعر الشراء';
+
+  @override
+  String get bulkModeSetTo => 'تعيين مبلغ';
+
+  @override
+  String get bulkModePercent => 'نسبة مئوية';
+
+  @override
+  String get bulkPercentIncrease => 'زيادة';
+
+  @override
+  String get bulkPercentDecrease => 'خفض';
+
+  @override
+  String get bulkAmountLabel => 'المبلغ الجديد';
+
+  @override
+  String get bulkPercentLabel => 'النسبة %';
+
+  @override
+  String bulkPreviewCount(int count) {
+    return 'سيتغيّر $count منتج';
+  }
+
+  @override
+  String get bulkPreviewNoChange => 'لن يتغيّر شيء بهذه الأرقام';
+
+  @override
+  String get bulkMixedCurrency =>
+      'التحديد يضمّ منتجات بعملات مختلفة. استخدم النسبة المئوية، أو حدّد منتجات بعملة واحدة فقط.';
+
+  @override
+  String get bulkApplyAction => 'تطبيق';
+
+  @override
+  String bulkPricesUpdated(int count) {
+    return 'تم تحديث $count منتج';
+  }
+
+  @override
+  String get bulkPricesUnchanged => 'لم يتغيّر أي سعر';
+
+  @override
+  String get tabAllProducts => 'الكل';
+
+  @override
+  String get tabByCategory => 'حسب التصنيف';
+
+  @override
+  String get categoryUncategorized => 'أخرى';
+
+  @override
+  String get categoryAllChip => 'الكل';
+
+  @override
+  String get noCategoriesTitle => 'لا توجد أقسام بعد';
+
+  @override
+  String get noCategoriesHint =>
+      'أنشئ أقسامًا لمتجرك — مشروبات، ألبان، تنظيف. يمكنك تعديلها لاحقًا من الإعدادات ← حقول المنتجات.';
+
+  @override
+  String get createCategoriesBtn => 'إنشاء الأقسام';
+
+  @override
+  String get categoriesDialogTitle => 'أقسام المتجر';
+
+  @override
+  String get categoriesDialogHint => 'أسماء الأقسام، مفصولة بفاصلة';
+
+  @override
+  String get manageCategoriesTooltip => 'إدارة الأقسام';
+
+  @override
+  String get setCategoryAction => 'تعيين القسم';
+
+  @override
+  String chooseCategoryTitle(int count) {
+    return 'القسم لـ $count منتج';
+  }
+
+  @override
+  String get newCategoryHint => 'قسم جديد';
+
+  @override
+  String get categoryClearOption => 'بدون قسم';
+
+  @override
+  String bulkCategorySet(int count) {
+    return 'تم نقل $count منتج';
+  }
+
+  @override
+  String optionRenameTitle(String value) {
+    return 'إعادة تسمية «$value»';
+  }
+
+  @override
+  String optionRenameMergeWarning(String value) {
+    return '«$value» موجود مسبقًا — سيتم دمج الاثنين في واحد.';
+  }
+
+  @override
+  String get optionRenameAction => 'إعادة تسمية';
+
+  @override
+  String optionRemoveTitle(String value) {
+    return 'حذف «$value»؟';
+  }
+
+  @override
+  String optionRemoveBody(int count) {
+    return '$count منتج يستخدمه. ستبقى كل بياناته الأخرى، وسيصبح بلا قيمة لهذا الحقل فقط.';
+  }
+
+  @override
+  String optionInUseCount(int count) {
+    return 'يستخدمه $count منتج';
+  }
+
+  @override
+  String optionRenamedMsg(int count) {
+    return 'تمت إعادة التسمية — انتقل معها $count منتج';
+  }
+
+  @override
+  String optionRemovedMsg(int count) {
+    return 'تم الحذف — $count منتج بلا قيمة الآن';
+  }
+
+  @override
+  String get addOptionHint => 'أضف خيارًا';
+
+  @override
+  String get optionsSectionTitle => 'الخيارات';
+
+  @override
+  String get optionsLiveNote =>
+      'التغييرات على الخيارات تُحفظ فورًا، وتنتقل معها المنتجات.';
+
+  @override
+  String get duplicateProductAction => 'نسخ';
+
+  @override
+  String duplicateProductTitle(String name) {
+    return 'نسخ «$name»';
+  }
+
+  @override
+  String get duplicateProductHint =>
+      'يُنسخ السعر والتكلفة والقسم وبقية الحقول. المخزون يبدأ من صفر.';
+
+  @override
+  String get newProductNameLabel => 'اسم المنتج الجديد';
+
+  @override
+  String get newBarcodeLabel => 'الباركود (اختياري)';
+
+  @override
+  String get deleteInvoiceAction => 'حذف الفاتورة';
+
+  @override
+  String get deleteInvoiceTitle => 'حذف هذه الفاتورة؟';
+
+  @override
+  String get deleteInvoiceIntro =>
+      'لن يُحذف الورق فقط، بل تُلغى عملية البيع بالكامل:';
+
+  @override
+  String get deleteInvoiceStock => 'ترجع الأصناف إلى المخزون';
+
+  @override
+  String get deleteInvoiceCash => 'يخرج المبلغ من الصندوق';
+
+  @override
+  String deleteInvoiceDebt(String name) {
+    return 'ينقص دين $name بهذا المبلغ';
+  }
+
+  @override
+  String get deleteInvoiceIrreversible =>
+      'لا يمكن التراجع. لتصحيح الفاتورة أعد تسجيلها من جديد.';
+
+  @override
+  String get invoiceDeleted => 'تم حذف الفاتورة';
+
+  @override
+  String get invoiceDeleteFailed => 'تعذّر حذف الفاتورة';
+
+  @override
+  String get changePaymentAction => 'تعديل طريقة الدفع';
+
+  @override
+  String get changePaymentTitle => 'كيف تم دفع هذه الفاتورة؟';
+
+  @override
+  String get changePaymentIntro =>
+      'يتغيّر تسجيل الدفع فقط. الأصناف والإجمالي والفاتورة المطبوعة تبقى كما هي تمامًا.';
+
+  @override
+  String get changePaymentCashHint => 'يدخل المبلغ إلى الصندوق';
+
+  @override
+  String get changePaymentCreditHint => 'يُضاف المبلغ إلى دين العميل';
+
+  @override
+  String get changePaymentChooseCustomer => 'اختر العميل';
+
+  @override
+  String get changePaymentNotRepayment =>
+      'استخدم هذا لتصحيح خطأ. أمّا إذا كان العميل يسدّد دينه فسجّل دفعة على حسابه بدلًا من ذلك.';
+
+  @override
+  String get paymentChanged => 'تم تعديل طريقة الدفع';
+
+  @override
+  String get paymentChangeFailed => 'تعذّر تعديل طريقة الدفع';
+
+  @override
+  String get managerLockSection => 'قفل المدير';
+
+  @override
+  String get managerPinTitle => 'رمز المدير';
+
+  @override
+  String get managerPinOffSubtitle =>
+      'معطّل — يستطيع أي شخص حذف الفاتورة أو تعديلها';
+
+  @override
+  String get managerPinOnSubtitle =>
+      'مفعّل — يُطلب قبل حذف الفاتورة أو تعديل دفعها';
+
+  @override
+  String get managerPinSet => 'تعيين رمز';
+
+  @override
+  String get managerPinChange => 'تغيير الرمز';
+
+  @override
+  String get managerPinRemove => 'إزالة الرمز';
+
+  @override
+  String get managerPinNote =>
+      'رمز قصير يُطلب قبل حذف فاتورة أو تعديل طريقة دفعها. هو عائق بسيط وليس تسجيل دخول — لن يوقف من يبقى الهاتف بين يديه.';
+
+  @override
+  String get managerPinNew => 'الرمز الجديد (٤ إلى ٦ أرقام)';
+
+  @override
+  String get managerPinConfirm => 'أعد كتابة الرمز الجديد';
+
+  @override
+  String get managerPinEnter => 'أدخل رمز المدير';
+
+  @override
+  String get managerPinUnlock => 'فتح';
+
+  @override
+  String get managerPinInvalid => 'استخدم من ٤ إلى ٦ أرقام';
+
+  @override
+  String get managerPinMismatch => 'الرمزان غير متطابقين';
+
+  @override
+  String get managerPinWrong => 'الرمز غير صحيح';
+
+  @override
+  String managerPinLocked(int seconds) {
+    return 'محاولات كثيرة. انتظر $seconds ثانية.';
+  }
+
+  @override
+  String get managerPinSaved => 'تم حفظ رمز المدير';
+
+  @override
+  String get managerPinRemoved => 'تمت إزالة رمز المدير';
+
+  @override
+  String get managerPinForgot => 'نسيت الرمز؟';
+
+  @override
+  String get managerPinResetTitle => 'استعادة رمز المدير';
+
+  @override
+  String get managerPinResetIntro =>
+      'أرسل رقم جهازك إلى الدعم، وسيعطيك رمزًا يعمل اليوم فقط. هذه الطريقة تعمل بدون إنترنت.';
+
+  @override
+  String get managerPinResetCodeLabel => 'رمز الاستعادة';
+
+  @override
+  String get managerPinResetWrong => 'هذا الرمز غير صحيح لهذا الجهاز اليوم';
+
+  @override
+  String get managerPinResetDone =>
+      'تمت إزالة الرمز. عيّن رمزًا جديدًا من الإعدادات.';
+
+  @override
+  String get lowStockAlertsTitle => 'تنبيهات قرب النفاد';
+
+  @override
+  String get lowStockAlertsSubtitle =>
+      'نبّهني عندما يصل صنف إلى حدّ التنبيه. يحتاج ضبط حدّ تنبيه على الصنف، ويعمل فقط أثناء فتح التطبيق.';
+
+  @override
+  String get lowStockAlertsDenied =>
+      'الإشعارات مغلقة لهذا التطبيق من إعدادات الهاتف';
+
+  @override
+  String get lowStockTestAction => 'إرسال تنبيه تجريبي';
+
+  @override
+  String get lowStockTestSubtitle => 'تأكّد من وصول الإشعارات إلى هذا الهاتف';
+
+  @override
+  String get lowStockTestTitle => 'تنبيه تجريبي';
+
+  @override
+  String get lowStockTestBody =>
+      'إذا ظهر هذا الإشعار فتنبيهات قرب النفاد تعمل.';
+
+  @override
+  String get lowStockTestSent => 'تم الإرسال — تحقّق من الإشعارات';
+
+  @override
+  String get lowStockTestFailed => 'لم يقبل الهاتف الإشعار';
+
+  @override
+  String lowStockAlertOne(String name) {
+    return '$name أوشك على النفاد';
+  }
+
+  @override
+  String lowStockAlertRemaining(String qty) {
+    return 'المتبقّي: $qty';
+  }
+
+  @override
+  String lowStockAlertMany(int count) {
+    return '$count أصناف أوشكت على النفاد';
+  }
+
+  @override
+  String get managerBiometricTitle => 'الفتح بالبصمة';
+
+  @override
+  String get managerBiometricOn => 'مفعّل — بصمتك أو وجهك يفتح القفل';
+
+  @override
+  String get managerBiometricOff => 'معطّل — يُطلب الرمز في كل مرة';
+
+  @override
+  String get managerBiometricUnavailable =>
+      'لا توجد بصمة أو تعرّف على الوجه مضبوط على هذا الهاتف';
+
+  @override
+  String get managerBiometricReason => 'أكّد هويتك لفتح إجراءات المدير';
+
+  @override
+  String get managerBiometricFailed =>
+      'لم يتم التعرّف على البصمة — الرمز ما زال يعمل';
+
+  @override
+  String managerPinResetMessage(String id) {
+    return 'نسيت رمز المدير في تطبيق فواتير. رقم جهازي: $id';
+  }
 }

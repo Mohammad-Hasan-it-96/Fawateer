@@ -8,6 +8,10 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../../core/config/remote_config_service.dart';
 import '../../../../core/config/update_dialog.dart';
+import '../../../../core/notifications/local_notifier.dart';
+import '../../../../core/security/biometric_service.dart';
+import '../../../../core/security/manager_guard.dart';
+import '../../../../core/security/manager_pin_service.dart';
 import '../../../../core/service_locator.dart' as di;
 import '../../../../core/settings/inventory_settings_service.dart';
 import '../../../../core/settings/print_settings_service.dart';
@@ -17,6 +21,7 @@ import '../../../../core/theme/theme_controller.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../../billing/presentation/bloc/billing_bloc.dart';
 import '../../../licensing/domain/repositories/license_repository.dart';
+import '../../../product/data/low_stock_notifier.dart';
 import '../../../licensing/presentation/bloc/license_bloc.dart';
 import '../../../shop/presentation/bloc/shop_bloc.dart';
 import '../bloc/printer_bloc.dart';
@@ -64,6 +69,9 @@ class _SettingsPageState extends State<SettingsPage> {
   /// True while a manual "check for updates" (tap on the version row) runs.
   bool _checkingUpdate = false;
 
+  /// Whether a manager PIN is set (Plan 016 B). Off by default.
+  bool _pinSet = false;
+
   @override
   void initState() {
     super.initState();
@@ -71,17 +79,159 @@ class _SettingsPageState extends State<SettingsPage> {
     _loadAbout();
     _loadInventory();
     _loadPrintSetting();
+    _loadPinState();
   }
 
-  /// Best-effort read of the strict-inventory flag; leaves it off on error.
+  /// Whether the fingerprint shortcut is on, and whether this phone can offer
+  /// it at all. Both off until [_loadPinState] resolves.
+  bool _biometricOn = false;
+  bool _biometricAvailable = false;
+
+  /// Best-effort read of the manager-lock state; leaves everything off on error.
+  Future<void> _loadPinState() async {
+    var set = false;
+    var bioOn = false;
+    var bioAvailable = false;
+    try {
+      set = await di.sl<ManagerPinService>().isPinSet();
+      final biometric = di.sl<BiometricService>();
+      bioOn = await biometric.isEnabled();
+      bioAvailable = await biometric.isAvailable();
+    } catch (_) {/* leave off */}
+    if (!mounted) return;
+    setState(() {
+      _pinSet = set;
+      _biometricOn = bioOn;
+      _biometricAvailable = bioAvailable;
+    });
+  }
+
+  /// Turn the fingerprint shortcut on or off.
+  ///
+  /// Turning it **on** asks for the current PIN and then for the fingerprint
+  /// itself: the switch should only flip once the sensor has actually worked
+  /// once on this phone, or the owner learns it doesn't at the moment they are
+  /// relying on it. Turning it **off** needs only the PIN — losing a shortcut
+  /// can never lock anyone out.
+  Future<void> _setBiometric(bool value) async {
+    if (!await requireManager(context) || !mounted) return;
+    final biometric = di.sl<BiometricService>();
+    if (value) {
+      final l10n = AppLocalizations.of(context)!;
+      final ok = await biometric.authenticate(l10n.managerBiometricReason);
+      if (!mounted) return;
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(l10n.managerBiometricFailed),
+            backgroundColor: Colors.red));
+        return;
+      }
+    }
+    await biometric.setEnabled(value);
+    if (!mounted) return;
+    setState(() => _biometricOn = value);
+  }
+
+  /// Set a first PIN, or change an existing one.
+  ///
+  /// Changing an existing PIN asks for the current one first. Without that the
+  /// lock would protect the sales but not itself — anyone could simply set a
+  /// new PIN and walk in through the front door.
+  Future<void> _openPinSetup() async {
+    if (_pinSet) {
+      if (!await requireManager(context) || !mounted) return;
+    }
+    if (!mounted) return;
+    final saved = await showManagerPinSetup(context);
+    if (!mounted) return;
+    await _loadPinState();
+    if (!saved || !mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(AppLocalizations.of(context)!.managerPinSaved),
+        backgroundColor: Colors.green));
+  }
+
+  /// Turn the lock off. Also gated by the current PIN, for the same reason.
+  Future<void> _removePin() async {
+    if (!await requireManager(context) || !mounted) return;
+    await di.sl<ManagerPinService>().clear();
+    if (!mounted) return;
+    await _loadPinState();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(AppLocalizations.of(context)!.managerPinRemoved),
+        backgroundColor: Colors.green));
+  }
+
+  /// Low-stock alerts (Plan 013 #10). Off by default.
+  bool _lowStockAlerts = false;
+
+  /// Best-effort read of the inventory flags; leaves them off on error.
   Future<void> _loadInventory() async {
     var blocked = false;
+    var alerts = false;
     try {
       blocked =
           await di.sl<InventorySettingsService>().isBlockOversellEnabled();
+      alerts = await di.sl<LowStockNotifier>().isEnabled();
     } catch (_) {/* leave off */}
     if (!mounted) return;
-    setState(() => _blockOversell = blocked);
+    setState(() {
+      _blockOversell = blocked;
+      _lowStockAlerts = alerts;
+    });
+  }
+
+  /// Turn low-stock alerts on or off.
+  ///
+  /// Switching on asks for the notification permission at that exact moment —
+  /// the one time the request explains itself. A refusal leaves the switch off
+  /// rather than on-but-silent, which would be a setting that lies, and offers
+  /// the phone's own notification settings, because that is where a permission
+  /// the OS has stopped asking about can only be fixed.
+  Future<void> _setLowStockAlerts(bool value) async {
+    final l10n = AppLocalizations.of(context)!;
+    if (value) {
+      final notifier = di.sl<LocalNotifier>();
+      final granted = await notifier.requestPermission() ||
+          await notifier.areNotificationsEnabled();
+      if (!mounted) return;
+      if (!granted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(l10n.lowStockAlertsDenied),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 6),
+          action: SnackBarAction(
+            label: l10n.openSettings,
+            textColor: Colors.white,
+            onPressed: () => AppSettings.openAppSettings(
+                type: AppSettingsType.notification),
+          ),
+        ));
+        return;
+      }
+    }
+    setState(() => _lowStockAlerts = value);
+    final delivered = await di.sl<LowStockNotifier>().setEnabled(value);
+    if (!mounted || !value || delivered) return;
+    // Switched on, something was already low, and the phone still refused it.
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(l10n.lowStockTestFailed),
+        backgroundColor: Colors.red));
+  }
+
+  /// Post a sample alert on demand.
+  ///
+  /// "I didn't get a notification" has three very different causes — nothing
+  /// was due, the phone is blocking us, or the pipe is broken — and from
+  /// outside the app they look identical. This separates them in one tap.
+  Future<void> _sendTestAlert() async {
+    final l10n = AppLocalizations.of(context)!;
+    final ok = await di.sl<LowStockNotifier>().sendTestAlert();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(ok ? l10n.lowStockTestSent : l10n.lowStockTestFailed),
+        backgroundColor: ok ? Colors.green : Colors.red));
   }
 
   /// Persist the strict-inventory flag and push it into the app-wide
@@ -331,6 +481,70 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   onTap: () => _setBlockOversell(!_blockOversell),
                 ),
+                _buildListItem(
+                  icon: Icons.notifications_active_outlined,
+                  title: l10n.lowStockAlertsTitle,
+                  subtitle: l10n.lowStockAlertsSubtitle,
+                  trailingWidget: Switch(
+                    value: _lowStockAlerts,
+                    onChanged: _setLowStockAlerts,
+                  ),
+                  trailingIcon: null,
+                  onTap: () => _setLowStockAlerts(!_lowStockAlerts),
+                ),
+                if (_lowStockAlerts)
+                  _buildListItem(
+                    icon: Icons.notifications_none,
+                    title: l10n.lowStockTestAction,
+                    subtitle: l10n.lowStockTestSubtitle,
+                    onTap: _sendTestAlert,
+                  ),
+              ],
+            ),
+
+            const SizedBox(height: 24),
+
+            _buildSectionHeader(l10n.managerLockSection),
+            _buildListGroup(
+              children: [
+                _buildListItem(
+                  icon: _pinSet ? Icons.lock_outline : Icons.lock_open_outlined,
+                  title: l10n.managerPinTitle,
+                  subtitle: _pinSet
+                      ? l10n.managerPinOnSubtitle
+                      : l10n.managerPinOffSubtitle,
+                  onTap: _openPinSetup,
+                ),
+                // Only meaningful once a PIN exists — the fingerprint is a
+                // shortcut past it, never a lock of its own.
+                if (_pinSet)
+                  _buildListItem(
+                    icon: Icons.fingerprint,
+                    title: l10n.managerBiometricTitle,
+                    subtitle: !_biometricAvailable
+                        ? l10n.managerBiometricUnavailable
+                        : (_biometricOn
+                            ? l10n.managerBiometricOn
+                            : l10n.managerBiometricOff),
+                    trailingWidget: Switch(
+                      value: _biometricOn && _biometricAvailable,
+                      // Shown but disabled when the phone has nothing enrolled,
+                      // rather than hidden: a missing row looks like a missing
+                      // feature, while a greyed one explains itself.
+                      onChanged: _biometricAvailable ? _setBiometric : null,
+                    ),
+                    trailingIcon: null,
+                    onTap: _biometricAvailable
+                        ? () => _setBiometric(!_biometricOn)
+                        : null,
+                  ),
+                if (_pinSet)
+                  _buildListItem(
+                    icon: Icons.lock_reset_outlined,
+                    title: l10n.managerPinRemove,
+                    subtitle: l10n.managerPinOffSubtitle,
+                    onTap: _removePin,
+                  ),
               ],
             ),
 
@@ -761,6 +975,7 @@ class _SettingsPageState extends State<SettingsPage> {
 
   String _fontScaleLabel(AppFontScale scale, AppLocalizations l10n) =>
       switch (scale) {
+        AppFontScale.tiny => l10n.fontSizeTiny,
         AppFontScale.small => l10n.fontSizeSmall,
         AppFontScale.normal => l10n.fontSizeNormal,
         AppFontScale.large => l10n.fontSizeLarge,

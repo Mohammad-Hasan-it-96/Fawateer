@@ -27,6 +27,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scannedItems => 'Scanned Items';
 
   @override
+  String get clearCart => 'Clear the invoice';
+
+  @override
+  String get clearCartTitle => 'Clear the whole invoice?';
+
+  @override
+  String get clearCartBody =>
+      'All the scanned items will be removed. This cannot be undone.';
+
+  @override
+  String get clearCartConfirm => 'Clear';
+
+  @override
   String itemsCount(String count) {
     return '$count items total';
   }
@@ -282,6 +295,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get lowStockBadge => 'Low stock';
+
+  @override
+  String get showAll => 'Show all';
+
+  @override
+  String get noLowStockThresholds =>
+      'No product has a minimum set yet. Open a product and set its low-stock alert to use this filter.';
 
   @override
   String get outOfStockBadge => 'Out of stock';
@@ -652,6 +672,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get fontSizeTitle => 'Font size';
+
+  @override
+  String get fontSizeTiny => 'Tiny';
 
   @override
   String get fontSizeSmall => 'Small';
@@ -1107,6 +1130,12 @@ class AppLocalizationsEn extends AppLocalizations {
       'Add a customer to track credit sales and payments.';
 
   @override
+  String get searchCustomersHint => 'Search by name or phone';
+
+  @override
+  String get noCustomerResults => 'No customer matches this search';
+
+  @override
   String get selectCustomer => 'Select customer';
 
   @override
@@ -1217,6 +1246,20 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shareStatement => 'Share statement';
+
+  @override
+  String get statementCardTitle => 'Account statement';
+
+  @override
+  String statementMoreEntries(int count) {
+    return '…and $count earlier entries';
+  }
+
+  @override
+  String get shareAsImage => 'Share as image';
+
+  @override
+  String get shareAsText => 'Share as text';
 
   @override
   String get printStatement => 'Print statement';
@@ -2036,4 +2079,408 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get syncErrorOwnerOnly => 'Only the main phone can do this';
+
+  @override
+  String get selectAction => 'Select';
+
+  @override
+  String selectedCount(int count) {
+    return '$count selected';
+  }
+
+  @override
+  String get selectAllAction => 'Select all';
+
+  @override
+  String get clearSelectionAction => 'Clear';
+
+  @override
+  String selectionHiddenByFilter(int count) {
+    return '$count of them are hidden by the current filter';
+  }
+
+  @override
+  String get bulkEditPricesAction => 'Edit prices';
+
+  @override
+  String bulkPriceTitle(int count) {
+    return 'Change price for $count products';
+  }
+
+  @override
+  String get bulkFieldPrice => 'Selling price';
+
+  @override
+  String get bulkFieldCost => 'Purchase cost';
+
+  @override
+  String get bulkModeSetTo => 'Set amount';
+
+  @override
+  String get bulkModePercent => 'Percentage';
+
+  @override
+  String get bulkPercentIncrease => 'Increase';
+
+  @override
+  String get bulkPercentDecrease => 'Decrease';
+
+  @override
+  String get bulkAmountLabel => 'New amount';
+
+  @override
+  String get bulkPercentLabel => 'Percentage %';
+
+  @override
+  String bulkPreviewCount(int count) {
+    return '$count products will change';
+  }
+
+  @override
+  String get bulkPreviewNoChange => 'Nothing will change with these numbers';
+
+  @override
+  String get bulkMixedCurrency =>
+      'The selection has products priced in different currencies. Use a percentage, or select products of one currency only.';
+
+  @override
+  String get bulkApplyAction => 'Apply';
+
+  @override
+  String bulkPricesUpdated(int count) {
+    return '$count products updated';
+  }
+
+  @override
+  String get bulkPricesUnchanged => 'No price changed';
+
+  @override
+  String get tabAllProducts => 'All';
+
+  @override
+  String get tabByCategory => 'By category';
+
+  @override
+  String get categoryUncategorized => 'Other';
+
+  @override
+  String get categoryAllChip => 'All';
+
+  @override
+  String get noCategoriesTitle => 'No categories yet';
+
+  @override
+  String get noCategoriesHint =>
+      'Create a few sections for your shop — drinks, dairy, cleaning. You can change them later from Settings → Product fields.';
+
+  @override
+  String get createCategoriesBtn => 'Create categories';
+
+  @override
+  String get categoriesDialogTitle => 'Shop categories';
+
+  @override
+  String get categoriesDialogHint => 'Category names, separated by a comma';
+
+  @override
+  String get manageCategoriesTooltip => 'Manage categories';
+
+  @override
+  String get setCategoryAction => 'Set category';
+
+  @override
+  String chooseCategoryTitle(int count) {
+    return 'Category for $count products';
+  }
+
+  @override
+  String get newCategoryHint => 'New category';
+
+  @override
+  String get categoryClearOption => 'No category';
+
+  @override
+  String bulkCategorySet(int count) {
+    return '$count products moved';
+  }
+
+  @override
+  String optionRenameTitle(String value) {
+    return 'Rename \"$value\"';
+  }
+
+  @override
+  String optionRenameMergeWarning(String value) {
+    return '\"$value\" already exists — the two will be merged into one.';
+  }
+
+  @override
+  String get optionRenameAction => 'Rename';
+
+  @override
+  String optionRemoveTitle(String value) {
+    return 'Delete \"$value\"?';
+  }
+
+  @override
+  String optionRemoveBody(int count) {
+    return '$count products use it. They will keep everything else and simply have no value for this field.';
+  }
+
+  @override
+  String optionInUseCount(int count) {
+    return 'Used by $count products';
+  }
+
+  @override
+  String optionRenamedMsg(int count) {
+    return 'Renamed — $count products moved with it';
+  }
+
+  @override
+  String optionRemovedMsg(int count) {
+    return 'Deleted — $count products cleared';
+  }
+
+  @override
+  String get addOptionHint => 'Add an option';
+
+  @override
+  String get optionsSectionTitle => 'Options';
+
+  @override
+  String get optionsLiveNote =>
+      'Changes to the options are saved right away, and your products move with them.';
+
+  @override
+  String get duplicateProductAction => 'Duplicate';
+
+  @override
+  String duplicateProductTitle(String name) {
+    return 'Duplicate \"$name\"';
+  }
+
+  @override
+  String get duplicateProductHint =>
+      'Price, cost, category and the other fields are copied. Stock starts at zero.';
+
+  @override
+  String get newProductNameLabel => 'New product name';
+
+  @override
+  String get newBarcodeLabel => 'Barcode (optional)';
+
+  @override
+  String get deleteInvoiceAction => 'Delete sale';
+
+  @override
+  String get deleteInvoiceTitle => 'Delete this sale?';
+
+  @override
+  String get deleteInvoiceIntro =>
+      'This does not only remove the paper. It undoes the whole sale:';
+
+  @override
+  String get deleteInvoiceStock => 'The items go back into stock';
+
+  @override
+  String get deleteInvoiceCash => 'The cash comes out of the drawer';
+
+  @override
+  String deleteInvoiceDebt(String name) {
+    return '$name\'s debt goes down by this amount';
+  }
+
+  @override
+  String get deleteInvoiceIrreversible =>
+      'This cannot be undone. Ring the sale again to correct it.';
+
+  @override
+  String get invoiceDeleted => 'Sale deleted';
+
+  @override
+  String get invoiceDeleteFailed => 'Couldn\'t delete the sale';
+
+  @override
+  String get changePaymentAction => 'Change payment';
+
+  @override
+  String get changePaymentTitle => 'How was this sale paid?';
+
+  @override
+  String get changePaymentIntro =>
+      'Only the payment record changes. The items, the total and the receipt stay exactly as they are.';
+
+  @override
+  String get changePaymentCashHint => 'The amount goes into the cash drawer';
+
+  @override
+  String get changePaymentCreditHint =>
+      'The amount is added to a customer\'s debt';
+
+  @override
+  String get changePaymentChooseCustomer => 'Choose customer';
+
+  @override
+  String get changePaymentNotRepayment =>
+      'Use this to fix a mistake. If the customer is paying off a debt, record a payment on their account instead.';
+
+  @override
+  String get paymentChanged => 'Payment updated';
+
+  @override
+  String get paymentChangeFailed => 'Couldn\'t update the payment';
+
+  @override
+  String get managerLockSection => 'Manager lock';
+
+  @override
+  String get managerPinTitle => 'Manager PIN';
+
+  @override
+  String get managerPinOffSubtitle =>
+      'Off — anyone can delete or change a sale';
+
+  @override
+  String get managerPinOnSubtitle =>
+      'On — asked before deleting or changing a sale';
+
+  @override
+  String get managerPinSet => 'Set a PIN';
+
+  @override
+  String get managerPinChange => 'Change the PIN';
+
+  @override
+  String get managerPinRemove => 'Remove the PIN';
+
+  @override
+  String get managerPinNote =>
+      'A short code asked before a sale is deleted, or its payment is changed. It is a speed bump, not a login — it will not stop someone who keeps the phone.';
+
+  @override
+  String get managerPinNew => 'New PIN (4 to 6 digits)';
+
+  @override
+  String get managerPinConfirm => 'Repeat the new PIN';
+
+  @override
+  String get managerPinEnter => 'Enter the manager PIN';
+
+  @override
+  String get managerPinUnlock => 'Unlock';
+
+  @override
+  String get managerPinInvalid => 'Use 4 to 6 digits';
+
+  @override
+  String get managerPinMismatch => 'The two PINs are not the same';
+
+  @override
+  String get managerPinWrong => 'Wrong PIN';
+
+  @override
+  String managerPinLocked(int seconds) {
+    return 'Too many tries. Wait $seconds seconds.';
+  }
+
+  @override
+  String get managerPinSaved => 'Manager PIN saved';
+
+  @override
+  String get managerPinRemoved => 'Manager PIN removed';
+
+  @override
+  String get managerPinForgot => 'Forgot the PIN?';
+
+  @override
+  String get managerPinResetTitle => 'Reset the manager PIN';
+
+  @override
+  String get managerPinResetIntro =>
+      'Send your device number to support. They will give you a code that works today only. This works without internet.';
+
+  @override
+  String get managerPinResetCodeLabel => 'Reset code';
+
+  @override
+  String get managerPinResetWrong =>
+      'This code is not right for this device today';
+
+  @override
+  String get managerPinResetDone =>
+      'The PIN was removed. Set a new one from Settings.';
+
+  @override
+  String get lowStockAlertsTitle => 'Low stock alerts';
+
+  @override
+  String get lowStockAlertsSubtitle =>
+      'Notify me when a product reaches its alert level. Needs an alert level on the product, and works only while the app is open.';
+
+  @override
+  String get lowStockAlertsDenied =>
+      'Notifications are turned off for this app in the phone settings';
+
+  @override
+  String get lowStockTestAction => 'Send a test alert';
+
+  @override
+  String get lowStockTestSubtitle =>
+      'Check that notifications reach this phone';
+
+  @override
+  String get lowStockTestTitle => 'Test alert';
+
+  @override
+  String get lowStockTestBody =>
+      'If you can see this, low stock alerts are working.';
+
+  @override
+  String get lowStockTestSent => 'Sent — check your notifications';
+
+  @override
+  String get lowStockTestFailed => 'The phone did not accept the notification';
+
+  @override
+  String lowStockAlertOne(String name) {
+    return '$name is running low';
+  }
+
+  @override
+  String lowStockAlertRemaining(String qty) {
+    return 'Only $qty left';
+  }
+
+  @override
+  String lowStockAlertMany(int count) {
+    return '$count products are running low';
+  }
+
+  @override
+  String get managerBiometricTitle => 'Unlock with fingerprint';
+
+  @override
+  String get managerBiometricOn =>
+      'On — your fingerprint or face opens the lock';
+
+  @override
+  String get managerBiometricOff => 'Off — the PIN is asked every time';
+
+  @override
+  String get managerBiometricUnavailable =>
+      'No fingerprint or face is set up on this phone';
+
+  @override
+  String get managerBiometricReason =>
+      'Confirm it is you to unlock the manager actions';
+
+  @override
+  String get managerBiometricFailed =>
+      'Fingerprint not recognised — the PIN still works';
+
+  @override
+  String managerPinResetMessage(String id) {
+    return 'I forgot the manager PIN of my Fawateer app. My device number: $id';
+  }
 }

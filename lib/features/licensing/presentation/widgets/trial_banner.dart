@@ -11,6 +11,15 @@ import '../bloc/license_bloc.dart';
 /// through to the plans page to upgrade. Turns red in the final stretch to
 /// nudge conversion. Renders nothing for paid/expired/unlicensed states, so it
 /// costs zero space outside a trial.
+/// Whether [TrialBanner] will paint anything for this state.
+///
+/// Exported so `AppShell` can ask without duplicating the rule: the banner
+/// paints **into the status bar area** and consumes that inset itself, so the
+/// shell has to know whether the space below it is still under the status bar
+/// or not. One predicate, two readers — a second copy would drift.
+bool trialBannerVisible(LicenseState state) =>
+    state.license.isTrial && state.license.isActive;
+
 class TrialBanner extends StatelessWidget {
   const TrialBanner({super.key});
 
@@ -23,7 +32,7 @@ class TrialBanner extends StatelessWidget {
       buildWhen: (p, c) => p.license != c.license,
       builder: (context, state) {
         final lic = state.license;
-        if (!(lic.isTrial && lic.isActive)) return const SizedBox.shrink();
+        if (!trialBannerVisible(state)) return const SizedBox.shrink();
 
         // null = the server sent no expiry date at all (e.g. a data problem).
         // That is NOT the same as "0 days left" — 0 must only ever mean

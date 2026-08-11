@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -150,6 +151,23 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
   String? _pendingScan;
   int _pendingScanCount = 0;
   static const int _kScanConfirmations = 2;
+
+  /// How much of the screen the camera takes (Plan 013 #7).
+  ///
+  /// Was `0.4`, which left room for about three cart lines on a small phone —
+  /// so a cashier scanning a ten-item basket could not see what they had
+  /// already scanned, which is exactly when a double-scan goes unnoticed.
+  ///
+  /// Then `0.32`, now `0.26`: what the preview has to hold is a **barcode**,
+  /// which is wide and short. Height was buying nothing — a taller preview
+  /// shows more shelf above and below the label, not more label. The width
+  /// (full screen) is the dimension that decides how close the cashier has to
+  /// hold a wholesale carton, and it is untouched.
+  ///
+  /// Not smaller than this: below ~0.24 the preview stops reading as a live
+  /// camera and starts looking like a stuck image, and the aiming frame no
+  /// longer clears the overlay buttons.
+  static const double _kScannerHeightFraction = 0.26;
 
   // "Try inverted mode" hint (Plan 011 #11 follow-up).
   //
@@ -332,48 +350,47 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
 
   void _onDetect(BarcodeCapture capture) async {
     final now = DateTime.now();
-    for (final barcode in capture.barcodes) {
-      if (barcode.rawValue != null) {
-        final rawValue = barcode.rawValue!;
 
-        // Multi-frame confirmation: only accept a value seen on
-        // [_kScanConfirmations] consecutive frames. A one-off misread off a
-        // curved/glary surface won't repeat, so it never confirms.
-        if (rawValue == _pendingScan) {
-          _pendingScanCount++;
-        } else {
-          _pendingScan = rawValue;
-          _pendingScanCount = 1;
-        }
-        if (_pendingScanCount < _kScanConfirmations) {
-          break; // wait for the next frame to agree (or disagree)
-        }
+    // One frame can decode a printed barcode AND a QR label off the same
+    // package. Taking `barcodes.first` meant ML Kit chose which one, and the QR
+    // usually won — see [pickRetailBarcode].
+    final picked = pickRetailBarcode(capture.barcodes);
+    if (picked == null) return;
+    final rawValue = picked.rawValue!;
 
-        final lastScan = _lastScanTimes[rawValue];
-        if (lastScan != null && now.difference(lastScan).inSeconds < 2) {
-          break;
-        }
-        _lastScanTimes[rawValue] = now;
-        _pendingScan = null;
-        _pendingScanCount = 0;
-        // Reading anything proves the current polarity works — hide the hint
-        // and restart its countdown.
-        if (_showInvertHint) setState(() => _showInvertHint = false);
-        _armInvertHint();
+    // Multi-frame confirmation: only accept a value seen on
+    // [_kScanConfirmations] consecutive frames. A one-off misread off a
+    // curved/glary surface won't repeat, so it never confirms.
+    if (rawValue == _pendingScan) {
+      _pendingScanCount++;
+    } else {
+      _pendingScan = rawValue;
+      _pendingScanCount = 1;
+    }
+    if (_pendingScanCount < _kScanConfirmations) {
+      return; // wait for the next frame to agree (or disagree)
+    }
 
-        // Beep first, then buzz: the sound is the primary confirmation for a
-        // cashier whose eyes are on the goods, and awaiting `canVibrate` first
-        // would delay it noticeably on some devices.
-        ScanFeedback.beep();
+    final lastScan = _lastScanTimes[rawValue];
+    if (lastScan != null && now.difference(lastScan).inSeconds < 2) return;
+    _lastScanTimes[rawValue] = now;
+    _pendingScan = null;
+    _pendingScanCount = 0;
+    // Reading anything proves the current polarity works — hide the hint
+    // and restart its countdown.
+    if (_showInvertHint) setState(() => _showInvertHint = false);
+    _armInvertHint();
 
-        final canVibrate = await Vibrate.canVibrate;
-        if (canVibrate) Vibrate.feedback(FeedbackType.success);
+    // Beep first, then buzz: the sound is the primary confirmation for a
+    // cashier whose eyes are on the goods, and awaiting `canVibrate` first
+    // would delay it noticeably on some devices.
+    ScanFeedback.beep();
 
-        if (mounted) {
-          context.read<BillingBloc>().add(ScanBarcodeEvent(rawValue));
-        }
-        break;
-      }
+    final canVibrate = await Vibrate.canVibrate;
+    if (canVibrate) Vibrate.feedback(FeedbackType.success);
+
+    if (mounted) {
+      context.read<BillingBloc>().add(ScanBarcodeEvent(rawValue));
     }
   }
 
@@ -501,24 +518,30 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             },
           ),
         ],
-        child: Stack(
-          children: [
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              height: MediaQuery.of(context).size.height * 0.4,
-              child: _buildScannerSection(l10n),
-            ),
-            Positioned(
-              top: (MediaQuery.of(context).size.height * 0.4) - 24,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: _buildBottomPanel(l10n),
-            ),
-          ],
-        ),
+        child: Builder(builder: (context) {
+          final scannerHeight =
+              MediaQuery.of(context).size.height * _kScannerHeightFraction;
+          return Stack(
+            children: [
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: scannerHeight,
+                child: _buildScannerSection(l10n),
+              ),
+              Positioned(
+                // The panel overlaps the camera by its rounded corner, so the
+                // two read as one surface rather than a seam.
+                top: scannerHeight - 24,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: _buildBottomPanel(l10n),
+              ),
+            ],
+          );
+        }),
       ),
       bottomSheet: BlocBuilder<BillingBloc, BillingState>(
         builder: (context, state) {
@@ -542,6 +565,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   },
             icon: Icons.payment,
             label: l10n.reviewOrder,
+            // Tight, not the default page-CTA spacing (Plan 013 #7): the
+            // 24px frame around this button cost about two cart lines on a
+            // small phone, and the cashier needs to see what they scanned.
+            // `dense` trims the button itself for the same reason — the tap
+            // target stays 44dp.
+            dense: true,
+            margin: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+            elevation: 4,
           );
         },
       ),
@@ -605,14 +636,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
           // Quick currency-rate chip (top-start): tap to set/update the USD→SP
           // exchange rate without leaving the POS.
           Positioned(
-            top: MediaQuery.of(context).padding.top + 12,
+            top: MediaQuery.of(context).padding.top + 8,
             left: 12,
             child: _buildRateChip(l10n),
           ),
 
           // Two overlay buttons (flash + camera toggle) — top-right horizontal row
           Positioned(
-            top: MediaQuery.of(context).padding.top + 12,
+            top: MediaQuery.of(context).padding.top + 8,
             right: 12,
             child: Row(
               children: [
@@ -649,7 +680,17 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             ),
           ),
 
-          // Scan target corners. IgnorePointer is load-bearing: a Container
+          // Scan target corners — a wide, short rectangle, shaped like the
+          // thing it is aiming at. A square frame told the cashier to centre a
+          // barcode in a box twice as tall as the code, so they backed away to
+          // "fill" it and lost the resolution the decode needs.
+          //
+          // It is a **hint, not a scan window**: no `scanWindow` is set, so ML
+          // Kit still decodes the whole frame. That is deliberate — the app
+          // prints its own product labels as QR (LabelImage), and a letterbox
+          // scan window would refuse the square codes we ourselves produce.
+          //
+          // IgnorePointer is load-bearing: a Container
           // with a BoxDecoration hit-tests as solid inside its rounded rect
           // even with no fill, so without it this box swallows every tap in
           // the center of the screen — exactly where the error state's
@@ -663,21 +704,38 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 valueListenable: _scannerController,
                 builder: (context, value, _) {
                   if (value.error != null) return const SizedBox.shrink();
-                  return Center(
-                    child: Container(
-                      width: 220,
-                      height: 220,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white24, width: 2),
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Stack(children: [
-                        _buildCorner(Alignment.topLeft),
-                        _buildCorner(Alignment.topRight),
-                        _buildCorner(Alignment.bottomLeft),
-                        _buildCorner(Alignment.bottomRight),
-                      ]),
-                    ),
+                  return LayoutBuilder(
+                    builder: (context, constraints) {
+                      // Keep clear of the status bar and the overlay button row
+                      // above, and of the cart panel that laps over the bottom
+                      // 24px of the preview.
+                      final topInset =
+                          MediaQuery.of(context).padding.top + 56;
+                      final width = constraints.maxWidth * 0.82;
+                      final room = constraints.maxHeight - topInset - 28;
+                      final height =
+                          math.min(width / 2.6, room).clamp(56.0, 200.0);
+                      return Padding(
+                        padding: EdgeInsets.only(top: topInset, bottom: 28),
+                        child: Center(
+                          child: Container(
+                            width: width,
+                            height: height,
+                            decoration: BoxDecoration(
+                              border:
+                                  Border.all(color: Colors.white24, width: 2),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Stack(children: [
+                              _buildCorner(Alignment.topLeft),
+                              _buildCorner(Alignment.topRight),
+                              _buildCorner(Alignment.bottomLeft),
+                              _buildCorner(Alignment.bottomRight),
+                            ]),
+                          ),
+                        ),
+                      );
+                    },
                   );
                 },
               ),
@@ -1026,18 +1084,32 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
                       children: [
-                        Text(l10n.scannedItems,
-                            style: const TextStyle(
-                                fontSize: 18, fontWeight: FontWeight.w600)),
-                        Text(l10n.itemsCount(formatQty(totalItems)),
-                            style: TextStyle(
-                                fontSize: 12,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant)),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(l10n.scannedItems,
+                                style: const TextStyle(
+                                    fontSize: 18, fontWeight: FontWeight.w600)),
+                            Text(l10n.itemsCount(formatQty(totalItems)),
+                                style: TextStyle(
+                                    fontSize: 12,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurfaceVariant)),
+                          ],
+                        ),
+                        // Clear the whole invoice (Plan 013 #5). Hidden on an
+                        // empty cart — an action that does nothing is noise
+                        // next to the one number the cashier is reading.
+                        if (state.cartItems.isNotEmpty)
+                          IconButton(
+                            icon: const Icon(Icons.remove_shopping_cart_outlined),
+                            color: Theme.of(context).colorScheme.error,
+                            tooltip: l10n.clearCart,
+                            onPressed: () => _confirmClearCart(context, l10n),
+                          ),
                       ],
                     ),
                     Column(
@@ -1170,7 +1242,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
               offset: const Offset(0, 2))
         ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -1178,11 +1250,29 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.product.name,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 14),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis),
+                // The name opens the product for editing (Plan 013 #4). A
+                // wrong price or count is discovered here, at the counter, and
+                // before this the cashier had to leave POS, find the product,
+                // fix it, and come back to a cart they hoped survived.
+                InkWell(
+                  onTap: () => _editProduct(context, item),
+                  borderRadius: BorderRadius.circular(6),
+                  child: Row(
+                    children: [
+                      Flexible(
+                        child: Text(item.product.name,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w600, fontSize: 14),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(Icons.edit_outlined,
+                          size: 14,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant),
+                    ],
+                  ),
+                ),
                 if (out) ...[
                   const SizedBox(height: 4),
                   _outOfStockBadge(l10n),
@@ -1229,9 +1319,9 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                   onTap: () => _editMeasured(context, item),
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    constraints: const BoxConstraints(minHeight: 44),
+                    constraints: const BoxConstraints(minHeight: 40),
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 12, vertical: 8),
+                        horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: AppTheme.primaryColor.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(8),
@@ -1241,10 +1331,10 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                       children: [
                         Text('${formatQty(item.quantity)} ${l10n.unitKg}',
                             style: const TextStyle(
-                                fontWeight: FontWeight.bold, fontSize: 15)),
+                                fontWeight: FontWeight.bold, fontSize: 14)),
                         const SizedBox(width: 6),
                         const Icon(Icons.edit,
-                            size: 16, color: AppTheme.primaryColor),
+                            size: 15, color: AppTheme.primaryColor),
                       ],
                     ),
                   ),
@@ -1263,7 +1353,7 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 color: Theme.of(context).colorScheme.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(8),
               ),
-              padding: const EdgeInsets.all(4),
+              padding: const EdgeInsets.all(2),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -1284,14 +1374,14 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                     borderRadius: BorderRadius.circular(6),
                     child: Container(
                       constraints:
-                          const BoxConstraints(minWidth: 48, minHeight: 44),
+                          const BoxConstraints(minWidth: 40, minHeight: 40),
                       alignment: Alignment.center,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 6),
+                          horizontal: 6, vertical: 4),
                       child: Text(formatQty(item.quantity),
                           textAlign: TextAlign.center,
                           style: const TextStyle(
-                              fontWeight: FontWeight.bold, fontSize: 16)),
+                              fontWeight: FontWeight.bold, fontSize: 15)),
                     ),
                   ),
                   _qtyButton(
@@ -1302,21 +1392,110 @@ class _HomePageState extends State<HomePage> with WidgetsBindingObserver {
                 ],
               ),
             ),
+          // A real delete, next to the stepper rather than replacing `−`
+          // (Plan 013 #5). `−` still removes the line at quantity 1, but
+          // getting there from 8 is eight taps at a counter with a queue, and a
+          // button whose icon says "minus one" should not be the way you delete.
+          if (!measured)
+            _qtyButton(
+              icon: Icons.delete_outline,
+              color: Theme.of(context).colorScheme.error,
+              onPressed: () => context
+                  .read<BillingBloc>()
+                  .add(RemoveProductFromCartEvent(item.product.id)),
+            ),
         ],
       ),
     );
   }
 
-  Widget _qtyButton({required IconData icon, required VoidCallback onPressed}) {
+  /// Open the edit-product screen for a line already in the cart (Plan 013 #4),
+  /// then re-price that line from whatever was saved.
+  ///
+  /// Reads the fresh product back out of `ProductBloc`'s stream rather than
+  /// trusting a return value: the edit page saves through the repository and
+  /// the list is stream-backed, so the stream is the one place guaranteed to
+  /// hold what actually landed in the database.
+  ///
+  /// The camera is suspended for the round trip, exactly as checkout does —
+  /// leaving it decoding behind a pushed page would keep firing scans into a
+  /// screen the cashier is not looking at.
+  Future<void> _editProduct(BuildContext context, CartItem item) async {
+    final bloc = context.read<BillingBloc>();
+    final productBloc = context.read<ProductBloc>();
+    await _withOverlay(() async {
+      if (!context.mounted) return;
+      await context.push('/products/edit/${item.product.id}',
+          extra: item.product);
+    });
+    if (!mounted) return;
+    final updated = productBloc.state.products
+        .where((p) => p.id == item.product.id)
+        .firstOrNull;
+    // Absent means it was deleted while open. Dropping the line is the honest
+    // outcome — the alternative is selling something the shop just removed.
+    if (updated == null) {
+      bloc.add(RemoveProductFromCartEvent(item.product.id));
+      return;
+    }
+    bloc.add(RefreshCartProductEvent(updated));
+  }
+
+  /// Clearing the cart **must** confirm (Plan 013 #5).
+  ///
+  /// It is one tap away from the total, and a mis-tap that erases a 30-line
+  /// invoice with a queue at the counter is the worst outcome this screen can
+  /// produce — there is no undo, and the customer's goods are already scanned.
+  Future<void> _confirmClearCart(
+      BuildContext context, AppLocalizations l10n) async {
+    final bloc = context.read<BillingBloc>();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.clearCartTitle),
+        content: Text(l10n.clearCartBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child:
+                Text(MaterialLocalizations.of(dialogContext).cancelButtonLabel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+                backgroundColor: Theme.of(dialogContext).colorScheme.error),
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: Text(l10n.clearCartConfirm),
+          ),
+        ],
+      ),
+    );
+    // `ClearCartEvent` deliberately preserves the session-loaded exchange rate,
+    // oversell flag and print flag — a bare `BillingState()` would drop them
+    // for the rest of the session.
+    if (confirmed == true) bloc.add(ClearCartEvent());
+  }
+
+  /// A cart-line button (+ / − / delete).
+  ///
+  /// 40dp, down from 44. These are the most-tapped controls in the app, so
+  /// this is the floor: 40 is still a comfortable target, and anything below it
+  /// starts costing the cashier mis-taps in the middle of a sale — which would
+  /// be a bad trade for a few pixels of list.
+  Widget _qtyButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+    Color? color,
+  }) {
     return InkWell(
       onTap: onPressed,
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        width: 44,
-        height: 44,
+        width: 40,
+        height: 40,
         alignment: Alignment.center,
         child: Icon(icon,
-            size: 24, color: Theme.of(context).colorScheme.onSurfaceVariant),
+            size: 21,
+            color: color ?? Theme.of(context).colorScheme.onSurfaceVariant),
       ),
     );
   }
@@ -1582,9 +1761,12 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
                         gridDelegate:
                             const SliverGridDelegateWithFixedCrossAxisCount(
                           crossAxisCount: 2,
-                          childAspectRatio: 1.6,
-                          crossAxisSpacing: 12,
-                          mainAxisSpacing: 12,
+                          // Shorter tiles: this sheet is a picker, and a tile
+                          // holds two lines of text — the extra height was
+                          // costing a row of products on a small phone.
+                          childAspectRatio: 1.9,
+                          crossAxisSpacing: 8,
+                          mainAxisSpacing: 8,
                         ),
                         itemCount: filtered.length,
                         itemBuilder: (context, i) => _ProductTile(
@@ -1607,7 +1789,7 @@ class _ProductPickerSheetState extends State<_ProductPickerSheet> {
 /// product-picker tile so a finished item reads the same everywhere.
 Widget _outOfStockBadge(AppLocalizations l10n) {
   return Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
     decoration: BoxDecoration(
       color: Colors.red.withValues(alpha: 0.1),
       borderRadius: BorderRadius.circular(8),
@@ -1680,7 +1862,7 @@ class _ProductTileState extends State<_ProductTile> {
           children: [
             AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: highlighted
                     ? AppTheme.primaryColor.withValues(alpha: 0.06)
@@ -1706,11 +1888,18 @@ class _ProductTileState extends State<_ProductTile> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(widget.product.name,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 14)),
+                  Padding(
+                    // Keep clear of the out-of-stock chip pinned to this
+                    // corner: without the gap a short name sits underneath it
+                    // and both become unreadable.
+                    padding:
+                        EdgeInsetsDirectional.only(end: out ? 78 : 0),
+                    child: Text(widget.product.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                            fontWeight: FontWeight.w600, fontSize: 13)),
+                  ),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -1721,11 +1910,12 @@ class _ProductTileState extends State<_ProductTile> {
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                               fontWeight: FontWeight.bold,
+                              fontSize: 13,
                               color: AppTheme.primaryColor),
                         ),
                       ),
                       const Icon(Icons.add_circle,
-                          color: AppTheme.primaryColor, size: 24),
+                          color: AppTheme.primaryColor, size: 21),
                     ],
                   ),
                 ],

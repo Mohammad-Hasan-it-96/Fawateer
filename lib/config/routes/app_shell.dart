@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/utils/app_snack.dart';
 import '../../l10n/app_localizations.dart';
+import '../../features/licensing/presentation/bloc/license_bloc.dart';
 import '../../features/licensing/presentation/widgets/offline_warning_banner.dart';
 import '../../features/licensing/presentation/widgets/trial_banner.dart';
 
@@ -80,15 +82,37 @@ class _AppShellState extends State<AppShell> {
         _handleBack();
       },
       child: Scaffold(
-        body: Column(
-          children: [
-            // Persistent free-trial banner (renders nothing outside a trial).
-            const TrialBanner(),
-            // "Too long offline, connect soon" warning (renders nothing when
-            // recently synced) — the fair warning before the 7-day hard lock.
-            const OfflineWarningBanner(),
-            Expanded(child: widget.navigationShell),
-          ],
+        body: BlocBuilder<LicenseBloc, LicenseState>(
+          builder: (context, licenseState) {
+            // A visible banner paints **into** the status bar area and consumes
+            // that inset itself. Without telling the page below, the inset is
+            // spent twice: every screen then leaves a status-bar-sized empty
+            // strip under the banner. It showed up as the POS camera's overlay
+            // buttons floating well below the top of the preview, but it was
+            // never a POS bug — it was every page, on every trial device.
+            final bannerShown = trialBannerVisible(licenseState) ||
+                offlineBannerVisible(licenseState, DateTime.now());
+            return Column(
+              children: [
+                // Persistent free-trial banner (renders nothing outside a trial).
+                const TrialBanner(),
+                // "Too long offline, connect soon" warning (renders nothing when
+                // recently synced) — the fair warning before the 7-day hard lock.
+                const OfflineWarningBanner(),
+                Expanded(
+                  // Always a MediaQuery, only the flag changes: inserting and
+                  // removing a wrapper here would remount the whole branch when
+                  // a trial ends — which for the POS means tearing down and
+                  // restarting the camera mid-shift.
+                  child: MediaQuery.removePadding(
+                    context: context,
+                    removeTop: bannerShown,
+                    child: widget.navigationShell,
+                  ),
+                ),
+              ],
+            );
+          },
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: widget.navigationShell.currentIndex,
