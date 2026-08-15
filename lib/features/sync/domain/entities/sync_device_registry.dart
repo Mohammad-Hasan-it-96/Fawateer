@@ -62,7 +62,22 @@ class SyncDeviceRegistry extends Equatable {
             .toList()
         : <SyncDevice>[];
 
-    final allowance = data['device_allowance'] ?? data['allowance'];
+    // **The allowance is looked for in three places, and the envelope is the
+    // one that matters.** `GET /sync/devices` returns the seats as `data[]`
+    // (pinned 2026-08-15), so `data` is a LIST and there is no map to read a
+    // number out of — the allowance must sit beside it, in the envelope or in
+    // `meta`. Reading only `data` would silently find nothing, and the screen
+    // would fall back to `SyncSession.deviceAllowance`, the number cached on
+    // enrollment day. For a shop whose plan has not changed that is the same
+    // value, so the display would look perfectly correct while the
+    // server-authoritative path — the whole reason the tiers merge was chosen
+    // over a config lever — was never exercised at all.
+    final meta = envelope?['meta'];
+    final allowance = data['device_allowance'] ??
+        data['allowance'] ??
+        envelope?['device_allowance'] ??
+        envelope?['allowance'] ??
+        (meta is Map ? (meta['device_allowance'] ?? meta['allowance']) : null);
     return SyncDeviceRegistry(
       devices: devices,
       allowance: allowance is int ? allowance : int.tryParse('$allowance'),

@@ -60,14 +60,23 @@ class SyncDevice extends Equatable {
 
   factory SyncDevice.fromJson(Map<String, dynamic> json, {String? currentSeat}) {
     final uuid = json['uuid']?.toString() ?? json['seat_uuid']?.toString() ?? '';
-    final seen = json['last_seen_at'];
+    // **`last_used_at` and `last_seen_at` are both accepted, and that is not
+    // sloppiness.** The 2026-07-27 design named the column `last_seen_at`; the
+    // 2026-08-11 reply re-read the shipped migration and it is `last_used_at`.
+    // Reading only one of them would leave every row saying "not seen yet",
+    // which does not look like a parsing bug — it looks like the server never
+    // hears from the other phone, i.e. like sync itself is broken.
+    final seen =
+        json['last_used_at'] ?? json['last_seen_at'] ?? json['lastSeenAt'];
     DateTime? lastSeen;
     if (seen is int) {
       lastSeen = DateTime.fromMillisecondsSinceEpoch(seen * 1000);
     } else if (seen != null) {
       lastSeen = DateTime.tryParse(seen.toString())?.toLocal();
     }
-    final label = json['label'] ?? json['name'] ?? json['device_name'];
+    // `name` is the pinned field (2026-08-15); the others are older spellings
+    // kept so an older server response still renders rather than going blank.
+    final label = json['name'] ?? json['label'] ?? json['device_name'];
     return SyncDevice(
       uuid: uuid,
       role: SyncSeatRole.fromName(json['role']?.toString()),
