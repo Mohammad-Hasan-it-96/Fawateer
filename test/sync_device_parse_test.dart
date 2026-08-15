@@ -77,6 +77,52 @@ void main() {
       expect(registry.hasAllowance, isFalse);
     });
 
+    test('the pinned production shape: data[] plus meta', () {
+      // Exactly what evotech-core shipped in PR #34 on 2026-08-15. Before it,
+      // device_allowance was emitted ONLY by the onboarding response, which an
+      // already-enrolled phone never calls again — so this screen could not
+      // read the server's number at all and silently used the enrollment cache.
+      final registry = parse({
+        'data': [
+          {
+            'uuid': 's1',
+            'role': 'owner',
+            'name': null,
+            'revoked': false,
+            'last_used_at': '2026-08-15T14:32:07+00:00',
+          },
+          {
+            'uuid': 's2',
+            'role': 'member',
+            'name': 'الكاشير',
+            'revoked': false,
+            'last_used_at': '2026-08-15T14:30:00+00:00',
+          },
+        ],
+        'meta': {'device_allowance': 3, 'seats_used': 2},
+      }, seat: 's1');
+
+      expect(registry.allowance, 3);
+      expect(registry.used, 2);
+      expect(registry.devices[1].label, 'الكاشير');
+      expect(registry.devices[0].isCurrent, isTrue);
+      expect(registry.devices[0].lastSeenAt, isNotNull);
+      expect(registry.isAtCap, isFalse);
+    });
+
+    test('the server count wins over counting the rows ourselves', () {
+      // Two definitions of "used" is one too many: the server computes it the
+      // way the enrollment check enforces it, so ours disagreeing would tell an
+      // owner they have a seat free while the next enroll is refused.
+      final registry = parse({
+        'data': [
+          {'uuid': 's1', 'role': 'owner'}
+        ],
+        'meta': {'device_allowance': 3, 'seats_used': 2},
+      });
+      expect(registry.used, 2, reason: 'not 1');
+    });
+
     test('a string allowance is still a number', () {
       // PHP happily serialises an integer column as a string.
       final registry = parse({'data': const [], 'device_allowance': '3'});
@@ -141,6 +187,52 @@ void main() {
       // The owner seat is refused server-side too, so it is never offered.
       expect(rows[0].isRevocable, isFalse);
       expect(rows[0].role, SyncSeatRole.owner);
+    });
+
+    test('a revoked seat is not a phone using the shop', () {
+      // GET /sync/devices returns revoked seats too. Shown, a revoke would look
+      // like it silently failed: the row vanishes optimistically and the
+      // re-read puts it straight back — indistinguishable from a dead button.
+      final registry = parse({
+        'data': [
+          {'uuid': 's1', 'role': 'owner', 'revoked': false},
+          {'uuid': 's2', 'role': 'member', 'revoked': true},
+        ]
+      });
+      expect(registry.devices.map((d) => d.uuid), ['s1']);
+    });
+
+    test('revoked survives a JSON layer that sends 1 or "true"', () {
+      // The error direction matters: anything truthy read as "still active"
+      // resurrects a phone the owner deliberately removed.
+      for (final raw in [1, 'true', '1', 'yes']) {
+        final device =
+            SyncDevice.fromJson({'uuid': 's2', 'role': 'member', 'revoked': raw});
+        expect(device.revoked, isTrue, reason: 'revoked: $raw');
+      }
+      for (final raw in [0, 'false', '0', '']) {
+        final device =
+            SyncDevice.fromJson({'uuid': 's2', 'role': 'member', 'revoked': raw});
+        expect(device.revoked, isFalse, reason: 'revoked: $raw');
+      }
+    });
+
+    test('an optimistic removal drops the stale server count with it', () {
+      // Otherwise the screen contradicts itself for one round trip: the row is
+      // gone from the list while the count still says the old number.
+      final registry = parse({
+        'data': [
+          {'uuid': 's1', 'role': 'owner'},
+          {'uuid': 's2', 'role': 'member'},
+        ],
+        'meta': {'device_allowance': 3, 'seats_used': 2},
+      });
+      expect(registry.used, 2);
+
+      final after = registry.copyWith(
+          devices: registry.devices.where((d) => d.uuid != 's2').toList());
+      expect(after.used, 1);
+      expect(after.allowance, 3, reason: 'the limit did not change');
     });
 
     test('a row with no uuid is dropped rather than shown unusable', () {

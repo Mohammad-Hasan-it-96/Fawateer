@@ -27,9 +27,23 @@ class SyncDeviceRegistry extends Equatable {
   /// same locked screen.
   final int? allowance;
 
-  const SyncDeviceRegistry({this.devices = const [], this.allowance});
+  /// Seats in use as the **server** counts them (`meta.seats_used`), or null
+  /// when it did not say.
+  ///
+  /// Preferred over `devices.length` because the server computes it exactly the
+  /// way the enrollment check enforces it — active, non-revoked seats. Counting
+  /// the rows ourselves would be a second definition of "used", and the one
+  /// that disagreed would tell an owner they have a seat free while the next
+  /// enroll is refused, or the reverse.
+  final int? seatsUsed;
 
-  int get used => devices.length;
+  const SyncDeviceRegistry({
+    this.devices = const [],
+    this.allowance,
+    this.seatsUsed,
+  });
+
+  int get used => seatsUsed ?? devices.length;
 
   /// True only when the server told us a limit *and* the seats are gone.
   ///
@@ -58,7 +72,16 @@ class SyncDeviceRegistry extends Equatable {
         ? raw
             .whereType<Map<String, dynamic>>()
             .map((e) => SyncDevice.fromJson(e, currentSeat: currentSeat))
+            // A row with no uuid is a button that cannot work — every action on
+            // this screen is keyed by it.
             .where((d) => d.uuid.isNotEmpty)
+            // **Revoked seats come back in `data` and must not be shown.** They
+            // are the shop's history, not phones using it. Left in, a revoke
+            // would look like it silently failed: the owner removes a phone,
+            // the row vanishes optimistically, and then the re-read puts it
+            // straight back — which is indistinguishable from the button not
+            // working, on the one screen where trusting the button matters.
+            .where((d) => !d.revoked)
             .toList()
         : <SyncDevice>[];
 
@@ -78,18 +101,35 @@ class SyncDeviceRegistry extends Equatable {
         envelope?['device_allowance'] ??
         envelope?['allowance'] ??
         (meta is Map ? (meta['device_allowance'] ?? meta['allowance']) : null);
+    final used = (meta is Map ? meta['seats_used'] : null) ??
+        data['seats_used'] ??
+        envelope?['seats_used'];
+
     return SyncDeviceRegistry(
       devices: devices,
       allowance: allowance is int ? allowance : int.tryParse('$allowance'),
+      seatsUsed: used is int ? used : int.tryParse('$used'),
     );
   }
 
-  SyncDeviceRegistry copyWith({List<SyncDevice>? devices, int? allowance}) =>
+  /// **Editing the list drops the server's count**, unless a new one is given.
+  ///
+  /// The only caller is the optimistic removal after a revoke. Keeping
+  /// `seatsUsed` there would leave the row gone but the count unchanged for the
+  /// length of a round trip — "1 phone listed, 2 of 3 used" — which reads as the
+  /// screen contradicting itself. Falling back to `devices.length` for that
+  /// moment is the honest answer, and the re-read restores the server's.
+  SyncDeviceRegistry copyWith({
+    List<SyncDevice>? devices,
+    int? allowance,
+    int? seatsUsed,
+  }) =>
       SyncDeviceRegistry(
         devices: devices ?? this.devices,
         allowance: allowance ?? this.allowance,
+        seatsUsed: seatsUsed ?? (devices == null ? this.seatsUsed : null),
       );
 
   @override
-  List<Object?> get props => [devices, allowance];
+  List<Object?> get props => [devices, allowance, seatsUsed];
 }

@@ -43,12 +43,22 @@ class SyncDevice extends Equatable {
   /// True for the seat held by the phone showing the list.
   final bool isCurrent;
 
+  /// The server has revoked this seat.
+  ///
+  /// **`GET /sync/devices` returns revoked seats too** (the `revoked` field on
+  /// the seat object, pinned 2026-08-15). They are history, not phones using
+  /// the shop, so the registry drops them — see `SyncDeviceRegistry.fromJson`.
+  /// Kept as a field rather than filtered at parse time so the reason a row is
+  /// missing is stated in one place instead of hidden in a `where`.
+  final bool revoked;
+
   const SyncDevice({
     required this.uuid,
     required this.role,
     this.label,
     this.lastSeenAt,
     this.isCurrent = false,
+    this.revoked = false,
   });
 
   /// **The owner seat is not revocable** — refused at the endpoint, not merely
@@ -60,12 +70,13 @@ class SyncDevice extends Equatable {
 
   factory SyncDevice.fromJson(Map<String, dynamic> json, {String? currentSeat}) {
     final uuid = json['uuid']?.toString() ?? json['seat_uuid']?.toString() ?? '';
-    // **`last_used_at` and `last_seen_at` are both accepted, and that is not
-    // sloppiness.** The 2026-07-27 design named the column `last_seen_at`; the
-    // 2026-08-11 reply re-read the shipped migration and it is `last_used_at`.
-    // Reading only one of them would leave every row saying "not seen yet",
-    // which does not look like a parsing bug — it looks like the server never
-    // hears from the other phone, i.e. like sync itself is broken.
+    // **`last_used_at` is the real key**, confirmed against the serializer on
+    // 2026-08-15: the 2026-07-27 reply that said `last_seen_at` named something
+    // that was never built. The other spellings are kept as dead branches on
+    // purpose — they cost nothing, and reading only the wrong one would leave
+    // every row saying "not seen yet", which does not look like a parsing bug.
+    // It looks like the server never hears from the other phone, i.e. like sync
+    // itself is broken, on the one screen an owner opens to check.
     final seen =
         json['last_used_at'] ?? json['last_seen_at'] ?? json['lastSeenAt'];
     DateTime? lastSeen;
@@ -77,15 +88,29 @@ class SyncDevice extends Equatable {
     // `name` is the pinned field (2026-08-15); the others are older spellings
     // kept so an older server response still renders rather than going blank.
     final label = json['name'] ?? json['label'] ?? json['device_name'];
+    // `revoked_at` is the older shape (a nullable timestamp); `revoked` is what
+    // the pinned response carries. Anything truthy counts — a JSON layer that
+    // hands back 1 or "true" must not read as "still active", because that
+    // error direction resurrects a phone the owner deliberately removed.
+    final revokedRaw = json['revoked'] ?? json['revoked_at'];
+    final revoked = revokedRaw is bool
+        ? revokedRaw
+        : revokedRaw != null &&
+            revokedRaw.toString().isNotEmpty &&
+            revokedRaw.toString() != '0' &&
+            revokedRaw.toString().toLowerCase() != 'false';
+
     return SyncDevice(
       uuid: uuid,
       role: SyncSeatRole.fromName(json['role']?.toString()),
       label: (label?.toString().isEmpty ?? true) ? null : label.toString(),
       lastSeenAt: lastSeen,
       isCurrent: uuid.isNotEmpty && uuid == currentSeat,
+      revoked: revoked,
     );
   }
 
   @override
-  List<Object?> get props => [uuid, role, label, lastSeenAt, isCurrent];
+  List<Object?> get props =>
+      [uuid, role, label, lastSeenAt, isCurrent, revoked];
 }
