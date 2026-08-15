@@ -7,26 +7,34 @@ import 'sync_seat_role.dart';
 ///
 /// **Telling one row from another is the whole design problem here.** A shop
 /// with three identical linked phones gets three identical rows, and revoking
-/// the wrong one takes a working till off the counter mid-shift. Two things
-/// distinguish them, and both matter:
+/// the wrong one takes a working till off the counter mid-shift. Three things
+/// distinguish them:
 ///
+///  - [label] — the owner's own name for the phone, and much the best of the
+///    three, because it is the only one carrying the shop's own meaning
+///    ("الكاشير", "المحل الثاني"). There was no field for it in the first
+///    contract; the server gained one on 2026-08-11, and the app now also
+///    *proposes* the handset model at enrollment, so even a shop that never
+///    renames anything sees rows it can tell apart.
 ///  - [isCurrent] — the phone in the owner's hand, matched on the seat uuid the
 ///    device already holds. It is never revocable (see below), so marking it is
 ///    also what stops the owner locking themselves out by accident.
-///  - [lastSeenAt] — the only other discriminator available. "last seen two
-///    minutes ago" against "last seen three days ago" is exactly how an owner
-///    identifies the tablet that left with a staff member.
-///
-/// A user-assigned device name would beat both, but there is no field for one in
-/// the negotiated contract; worth raising before this ships to a 5-seat shop.
+///  - [lastSeenAt] — the fallback discriminator, and it stays visible even on a
+///    named row: a name says WHICH phone this is, not whether it is still
+///    working. "last seen two minutes ago" against "three days ago" is how an
+///    owner identifies the tablet that left with a staff member.
 class SyncDevice extends Equatable {
   /// The seat's uuid — what `DELETE /sync/devices/{uuid}` takes.
   final String uuid;
 
   final SyncSeatRole role;
 
-  /// A server-supplied label, when there is one. Not in the pinned contract, so
-  /// it is read opportunistically and the UI falls back to the role.
+  /// The owner-assigned name, or null when the seat is unnamed.
+  ///
+  /// **Null is a real state, not a missing value** — the server stores NULL for
+  /// empty-after-trim, which is how a name is cleared. The UI must fall back to
+  /// the role rather than inventing a placeholder, because a made-up name is
+  /// indistinguishable from one the owner actually chose.
   final String? label;
 
   /// When the server last heard from this device, if it says.

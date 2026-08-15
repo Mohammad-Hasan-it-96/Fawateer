@@ -134,6 +134,73 @@ void main() {
         expect(find.text(l10n.syncAtCapHint(2)), findsOneWidget);
       });
 
+      testWidgets('a named phone shows its name and keeps its last-seen line',
+          (tester) async {
+        // The point of the whole feature: two linked phones that were
+        // previously two identical rows. The last-seen line stays because a
+        // name says WHICH phone this is, not whether it is still working.
+        final bloc = _StubSyncBloc(SyncState(
+          loaded: true,
+          session: _owner,
+          registry: SyncDeviceRegistry(
+            allowance: 3,
+            devices: [
+              const SyncDevice(
+                  uuid: 's', role: SyncSeatRole.owner, isCurrent: true),
+              const SyncDevice(
+                  uuid: 's2', role: SyncSeatRole.member, label: 'الكاشير'),
+              SyncDevice(
+                uuid: 's3',
+                role: SyncSeatRole.member,
+                label: 'المستودع',
+                lastSeenAt: DateTime.now().subtract(const Duration(days: 3)),
+              ),
+            ],
+          ),
+        ));
+        await tester.pumpWidget(_host(locale, bloc));
+        await tester.pumpAndSettle();
+
+        final l10n = await AppLocalizations.delegate.load(locale);
+        expect(find.text('الكاشير'), findsOneWidget);
+        expect(find.text('المستودع'), findsOneWidget);
+        expect(find.text(l10n.syncDeviceSeenDays(3)), findsOneWidget);
+        // The unnamed owner row still falls back to its role rather than to an
+        // invented placeholder — a made-up name cannot be told apart from one
+        // the owner actually chose.
+        expect(find.text(l10n.syncStatusOwner), findsWidgets);
+      });
+
+      testWidgets('tapping a phone opens the rename sheet with its name in it',
+          (tester) async {
+        final bloc = _StubSyncBloc(const SyncState(
+          loaded: true,
+          session: _owner,
+          registry: SyncDeviceRegistry(
+            allowance: 3,
+            devices: [
+              SyncDevice(uuid: 's', role: SyncSeatRole.owner, isCurrent: true),
+              SyncDevice(
+                  uuid: 's2', role: SyncSeatRole.member, label: 'الكاشير'),
+            ],
+          ),
+        ));
+        await tester.pumpWidget(_host(locale, bloc));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.text('الكاشير'));
+        await tester.pumpAndSettle();
+
+        final l10n = await AppLocalizations.delegate.load(locale);
+        expect(find.text(l10n.syncRenameTitle), findsOneWidget);
+        // Pre-filled: renaming is usually a correction, and an empty field
+        // makes the owner retype a name that was nearly right.
+        final field = tester.widget<TextField>(find.byType(TextField));
+        expect(field.controller?.text, 'الكاشير');
+        // Capped where it can be seen, not silently on save.
+        expect(field.maxLength, 40);
+      });
+
       testWidgets('a linked phone is never told a device allowance of zero',
           (tester) async {
         final bloc = _StubSyncBloc(const SyncState(

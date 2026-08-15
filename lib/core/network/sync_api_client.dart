@@ -108,6 +108,22 @@ class SyncApiClient {
         _client.delete(_uri(endpoint), headers: _headers(token)).timeout(timeout));
   }
 
+  /// Partial update (`PATCH`) — currently only the seat rename.
+  ///
+  /// A separate verb rather than reusing [postJson]: the seat routes are
+  /// method-dispatched server-side, and POSTing to `sync/devices/{seat}` would
+  /// be a 405, not a rename.
+  Future<Map<String, dynamic>> patchJson(
+    String endpoint,
+    Map<String, dynamic> body, {
+    String? token,
+    Duration timeout = const Duration(seconds: 15),
+  }) async {
+    return _send(() => _client
+        .patch(_uri(endpoint), headers: _headers(token), body: jsonEncode(body))
+        .timeout(timeout));
+  }
+
   /// Upload a file with accompanying form fields.
   ///
   /// Multipart rather than a JSON body with base64: the bootstrap snapshot is

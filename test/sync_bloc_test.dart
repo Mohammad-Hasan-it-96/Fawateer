@@ -55,8 +55,10 @@ class _FakeEnrollment implements SyncEnrollmentRepository {
   int? allowance = 3;
   Failure? devicesFailure;
   Failure? revokeFailure;
+  Failure? renameFailure;
   int listCalls = 0;
   final List<String> revoked = [];
+  final List<({String seat, String? name})> renamed = [];
 
   EnrollmentOutcome _outcome(SyncSession s) => EnrollmentOutcome(
         session: s,
@@ -102,6 +104,27 @@ class _FakeEnrollment implements SyncEnrollmentRepository {
     final f = revokeFailure;
     if (f != null) return Left(f);
     devices = devices.where((d) => d.uuid != seatUuid).toList();
+    return const Right(unit);
+  }
+
+  @override
+  Future<Either<Failure, Unit>> renameDevice(
+      String seatUuid, String? name) async {
+    renamed.add((seat: seatUuid, name: name));
+    final f = renameFailure;
+    if (f != null) return Left(f);
+    // Stand in for the server: it is the authority on the stored name, so the
+    // fake applies it to the list the next listDevices() will return.
+    devices = devices
+        .map((d) => d.uuid == seatUuid
+            ? SyncDevice(
+                uuid: d.uuid,
+                role: d.role,
+                label: (name?.trim().isEmpty ?? true) ? null : name!.trim(),
+                lastSeenAt: d.lastSeenAt,
+                isCurrent: d.isCurrent)
+            : d)
+        .toList();
     return const Right(unit);
   }
 
@@ -607,6 +630,72 @@ void main() {
       expect(bloc.state.devices.map((d) => d.uuid), ['seat', 'seat-9']);
       expect(bloc.state.error, SyncError.ownerOnly);
       expect(bloc.state.revoking, isNull);
+      await bloc.close();
+    });
+
+    test('a rename shows the SERVER name, never the typed one', () async {
+      repository.session = _ownerSession;
+      repository.devices = const [owner, other];
+      final bloc = build();
+      bloc.add(const LoadSyncStatus());
+      await bloc.stream.firstWhere((s) => s.devices.isNotEmpty);
+
+      bloc.add(const RenameDeviceRequested('seat-9', '  الكاشير  '));
+      await bloc.stream
+          .firstWhere((s) => s.message == SyncMessage.deviceRenamed);
+      await bloc.stream.firstWhere((s) => !s.devicesLoading);
+
+      expect(repository.renamed.single.seat, 'seat-9');
+      // The opposite choice from revoke, on purpose. A revoke has one outcome;
+      // a rename has three — the server may trim it, cap it at 40, or store
+      // NULL for a blank. Painting the typed text first would show the owner
+      // two different names for one phone a second apart.
+      final row = bloc.state.devices.firstWhere((d) => d.uuid == 'seat-9');
+      expect(row.label, 'الكاشير', reason: 'trimmed by the server, not by us');
+      expect(bloc.state.renaming, isNull);
+      await bloc.close();
+    });
+
+    test('an empty name clears it rather than doing nothing', () async {
+      // Blank is a real answer — it is how a name is REMOVED. If it were
+      // treated as "no change", an owner could never undo a name they regret.
+      repository.session = _ownerSession;
+      repository.devices = const [
+        SyncDevice(uuid: 'seat-9', role: SyncSeatRole.member, label: 'قديم'),
+      ];
+      final bloc = build();
+      bloc.add(const LoadSyncStatus());
+      await bloc.stream.firstWhere((s) => s.devices.isNotEmpty);
+
+      bloc.add(const RenameDeviceRequested('seat-9', '   '));
+      await bloc.stream
+          .firstWhere((s) => s.message == SyncMessage.deviceRenamed);
+      await bloc.stream.firstWhere((s) => !s.devicesLoading);
+
+      expect(bloc.state.devices.single.label, isNull);
+      await bloc.close();
+    });
+
+    test('a refused rename keeps the old name and says why', () async {
+      // Until the backend deploys the PATCH route this is the LIVE path: the
+      // call 404s. Showing the typed name anyway would tell the owner a rename
+      // worked when the server never accepted it.
+      repository.session = _ownerSession;
+      repository.devices = const [
+        SyncDevice(uuid: 'seat-9', role: SyncSeatRole.member, label: 'قديم'),
+      ];
+      repository.renameFailure =
+          const SyncFailure(SyncError.ownerOnly, 'not the owner');
+      final bloc = build();
+      bloc.add(const LoadSyncStatus());
+      await bloc.stream.firstWhere((s) => s.devices.isNotEmpty);
+
+      bloc.add(const RenameDeviceRequested('seat-9', 'جديد'));
+      await bloc.stream.firstWhere((s) => s.error != null);
+
+      expect(bloc.state.devices.single.label, 'قديم');
+      expect(bloc.state.error, SyncError.ownerOnly);
+      expect(bloc.state.renaming, isNull);
       await bloc.close();
     });
 

@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/sync/device_label.dart';
 import '../../../../core/utils/app_snack.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../data/bootstrap_service.dart';
@@ -305,12 +306,47 @@ class _SyncPageState extends State<SyncPage> {
       SyncState state, SyncDevice device) {
     final theme = Theme.of(context);
     final busy = state.revoking == device.uuid;
+    final renaming = state.renaming == device.uuid;
+    final named = device.label != null;
     return ListTile(
       leading: Icon(device.role.isOwner ? Icons.smartphone : Icons.phonelink),
-      title: Text(device.label ??
-          (device.role.isOwner ? l10n.syncStatusOwner : l10n.syncStatusMember)),
-      // Two identical linked phones are told apart only by this line and the
-      // "this phone" badge — so it is a subtitle, not a tooltip.
+      // The whole row opens the rename sheet. Every row in this list belongs to
+      // a business whose registry only the owner can read, so if you can see a
+      // row you may rename it — no second permission check is needed, and the
+      // owner's own phone is renameable too (it is a till like any other).
+      onTap: state.renaming != null
+          ? null
+          : () => _openRename(context, l10n, device),
+      title: Row(
+        children: [
+          Flexible(
+            child: Text(
+              device.label ??
+                  (device.role.isOwner
+                      ? l10n.syncStatusOwner
+                      : l10n.syncStatusMember),
+              overflow: TextOverflow.ellipsis,
+              // An unnamed row is shown in the role's words but styled as the
+              // placeholder it is, so "الجهاز الرئيسي" cannot be mistaken for a
+              // name somebody chose.
+              style: named
+                  ? null
+                  : TextStyle(color: theme.textTheme.bodySmall?.color),
+            ),
+          ),
+          const SizedBox(width: 6),
+          if (renaming)
+            const SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(strokeWidth: 2))
+          else
+            Icon(Icons.edit_outlined,
+                size: 14, color: theme.textTheme.bodySmall?.color),
+        ],
+      ),
+      // A name says WHICH phone this is; last-seen says whether it is still
+      // working. Both are needed, so this line stays even on a named row.
       subtitle: Text(_seenText(l10n, device.lastSeenAt),
           style: theme.textTheme.bodySmall),
       trailing: busy
@@ -336,6 +372,20 @@ class _SyncPageState extends State<SyncPage> {
                   : Text(l10n.syncDeviceOwnerNote,
                       style: theme.textTheme.bodySmall),
     );
+  }
+
+  Future<void> _openRename(BuildContext context, AppLocalizations l10n,
+      SyncDevice device) async {
+    final bloc = context.read<SyncBloc>();
+    final name = await showModalBottomSheet<String?>(
+      context: context,
+      isScrollControlled: true,
+      builder: (_) => _RenameSheet(device: device, l10n: l10n),
+    );
+    // null = dismissed. An empty string is a real answer — it clears the name —
+    // so the two cannot be collapsed into one falsy check.
+    if (name == null) return;
+    bloc.add(RenameDeviceRequested(device.uuid, name));
   }
 
   Future<void> _confirmRevoke(BuildContext context, AppLocalizations l10n,
@@ -539,6 +589,7 @@ class _SyncPageState extends State<SyncPage> {
       SyncMessage.joined => l10n.syncJoinedMessage,
       SyncMessage.left => l10n.syncLeftMessage,
       SyncMessage.deviceRevoked => l10n.syncRevokedMessage,
+      SyncMessage.deviceRenamed => l10n.syncRenamedMessage,
       SyncMessage.synced => null, // the status line already says what happened
       null => null,
     };
@@ -667,6 +718,91 @@ class _JoinCodeCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Name one phone in the shop's device list.
+///
+/// A sheet rather than an `AlertDialog` because the keyboard is up the whole
+/// time it is open, and a dialog with a raised keyboard leaves the field behind
+/// the keys on a short screen.
+///
+/// **Returns `''` to clear the name and `null` when dismissed.** Those are
+/// different answers: one is a decision the owner made, the other is them
+/// changing their mind, and collapsing them would make Cancel silently erase a
+/// name.
+class _RenameSheet extends StatefulWidget {
+  const _RenameSheet({required this.device, required this.l10n});
+
+  final SyncDevice device;
+  final AppLocalizations l10n;
+
+  @override
+  State<_RenameSheet> createState() => _RenameSheetState();
+}
+
+class _RenameSheetState extends State<_RenameSheet> {
+  late final TextEditingController _controller =
+      TextEditingController(text: widget.device.label ?? '');
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = widget.l10n;
+    final theme = Theme.of(context);
+    return Padding(
+      // Lift the sheet above the keyboard; without this the Save button sits
+      // under it and the owner has to dismiss the keyboard to find it.
+      padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          left: 16,
+          right: 16,
+          top: 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(l10n.syncRenameTitle, style: theme.textTheme.titleMedium),
+          const SizedBox(height: 4),
+          Text(l10n.syncRenameHelp, style: theme.textTheme.bodySmall),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            textInputAction: TextInputAction.done,
+            // Capped where the owner can see it stop, not silently on save —
+            // the server enforces the same 40 and would otherwise hand back a
+            // shortened name with no explanation of what shortened it.
+            maxLength: kDeviceNameMaxLength,
+            decoration: InputDecoration(
+              labelText: l10n.syncRenameLabel,
+              hintText: l10n.syncRenameHint,
+            ),
+            onSubmitted: (value) => Navigator.of(context).pop(value),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text(
+                    MaterialLocalizations.of(context).cancelButtonLabel),
+              ),
+              const Spacer(),
+              FilledButton(
+                onPressed: () => Navigator.of(context).pop(_controller.text),
+                child: Text(l10n.syncRenameSave),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

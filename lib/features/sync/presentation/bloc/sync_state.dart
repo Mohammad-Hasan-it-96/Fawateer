@@ -1,7 +1,7 @@
 part of 'sync_bloc.dart';
 
 /// One-shot successes. Typed, like the errors — the page owns the wording.
-enum SyncMessage { enabled, joined, left, synced, deviceRevoked }
+enum SyncMessage { enabled, joined, left, synced, deviceRevoked, deviceRenamed }
 
 class SyncState extends Equatable {
   /// True during the initial read, so the page can hold a spinner instead of
@@ -57,6 +57,11 @@ class SyncState extends Equatable {
   /// The seat currently being revoked, so only its row spins.
   final String? revoking;
 
+  /// The seat currently being renamed. Separate from [revoking] so a rename
+  /// cannot make a row look like it is being removed — the two are one tap
+  /// apart and the destructive reading is the one that alarms an owner.
+  final String? renaming;
+
   const SyncState({
     this.loading = false,
     this.loaded = false,
@@ -73,6 +78,7 @@ class SyncState extends Equatable {
     this.devicesLoading = false,
     this.devicesError,
     this.revoking,
+    this.renaming,
   });
 
   bool get isEnrolled => session != null;
@@ -118,12 +124,14 @@ class SyncState extends Equatable {
     bool? devicesLoading,
     SyncError? devicesError,
     String? revoking,
+    String? renaming,
     bool clearSession = false,
     bool clearFeedback = false,
     bool clearToken = false,
     bool clearStep = false,
     bool clearDevicesError = false,
     bool clearRevoking = false,
+    bool clearRenaming = false,
   }) {
     return SyncState(
       loading: loading ?? this.loading,
@@ -143,6 +151,7 @@ class SyncState extends Equatable {
       devicesLoading: devicesLoading ?? this.devicesLoading,
       devicesError: clearDevicesError ? null : (devicesError ?? this.devicesError),
       revoking: clearRevoking ? null : (revoking ?? this.revoking),
+      renaming: clearRenaming ? null : (renaming ?? this.renaming),
     );
   }
 
@@ -163,5 +172,6 @@ class SyncState extends Equatable {
         devicesLoading,
         devicesError,
         revoking,
+        renaming,
       ];
 }

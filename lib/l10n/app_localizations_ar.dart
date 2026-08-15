@@ -2058,6 +2058,25 @@ class AppLocalizationsAr extends AppLocalizations {
   String get syncRevokedMessage => 'تمت إزالة ذلك الهاتف';
 
   @override
+  String get syncRenameTitle => 'تسمية هذا الهاتف';
+
+  @override
+  String get syncRenameHelp =>
+      'الاسم يساعدك على التمييز بين هواتفك — مثلاً حسب مكان استخدامه. اتركه فارغاً لإزالة الاسم.';
+
+  @override
+  String get syncRenameLabel => 'اسم الهاتف';
+
+  @override
+  String get syncRenameHint => 'الكاشير الأمامي';
+
+  @override
+  String get syncRenameSave => 'حفظ';
+
+  @override
+  String get syncRenamedMessage => 'تم حفظ الاسم';
+
+  @override
   String get syncErrorRevoked =>
       'تمت إزالة هذا الهاتف من المحل بواسطة الهاتف الرئيسي';
 

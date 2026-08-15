@@ -50,6 +50,18 @@ abstract class SyncEnrollmentRepository {
   /// The owner's own seat is refused server-side, not merely hidden here.
   Future<Either<Failure, Unit>> revokeDevice(String seatUuid);
 
+  /// Give a seat an owner-assigned name
+  /// (`PATCH /api/v1/sync/devices/{uuid}`, OWNER role only).
+  ///
+  /// Keyed off the **seat uuid**, the same identifier `DELETE` takes — never the
+  /// device id (pinned with evotech-core, 2026-08-11 #2). Passing null clears
+  /// the name; the server stores NULL and the row falls back to its role.
+  ///
+  /// Names are **not unique** by design: two tills both called "الكاشير" is a
+  /// choice the owner is allowed to make, and de-duplicating would mean
+  /// refusing a name for a reason no shopkeeper would guess.
+  Future<Either<Failure, Unit>> renameDevice(String seatUuid, String? name);
+
   /// The locally cached sync credential, or null if this device has not enrolled.
   Future<SyncSession?> currentSession();
 

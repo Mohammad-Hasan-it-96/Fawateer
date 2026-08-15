@@ -3,6 +3,7 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/error/failure.dart';
 import '../../../../core/network/api_config.dart';
 import '../../../../core/network/sync_api_client.dart';
+import '../../../../core/sync/device_label.dart';
 import '../../../licensing/data/datasources/license_local_storage.dart';
 import '../../../licensing/data/services/device_identity_service.dart';
 import '../../domain/entities/bootstrap_handoff.dart';
@@ -38,10 +39,11 @@ class SyncEnrollmentRepositoryImpl implements SyncEnrollmentRepository {
 
   @override
   Future<Either<Failure, EnrollmentOutcome>> establishAsOwner({String? pushToken}) {
-    return _enroll('sync/business', (deviceId, fcm) => {
+    return _enroll('sync/business', (deviceId, fcm, name) => {
           'app_name': ApiConfig.appName,
           'device_id': deviceId,
           if (fcm != null) 'fcm_token': fcm,
+          if (name != null) 'name': name,
         }, pushToken);
   }
 
@@ -50,10 +52,11 @@ class SyncEnrollmentRepositoryImpl implements SyncEnrollmentRepository {
     String joinToken, {
     String? pushToken,
   }) {
-    return _enroll('sync/enroll', (deviceId, fcm) => {
+    return _enroll('sync/enroll', (deviceId, fcm, name) => {
           'join_token': joinToken,
           'device_id': deviceId,
           if (fcm != null) 'fcm_token': fcm,
+          if (name != null) 'name': name,
         }, pushToken);
   }
 
@@ -82,12 +85,18 @@ class SyncEnrollmentRepositoryImpl implements SyncEnrollmentRepository {
 
   Future<Either<Failure, EnrollmentOutcome>> _enroll(
     String endpoint,
-    Map<String, dynamic> Function(String deviceId, String? fcmToken) body,
+    Map<String, dynamic> Function(String deviceId, String? fcmToken, String? name)
+        body,
     String? pushToken,
   ) async {
     try {
       final deviceId = await _identity.getDeviceId();
-      final json = await _api.postJson(endpoint, body(deviceId, await _fcmToken(pushToken)));
+      // A SUGGESTED name only — the handset's model, so a shop that never
+      // renames anything still sees rows it can tell apart. The owner's rename
+      // always wins, and a device that cannot report its model just enrolls
+      // unnamed.
+      final json = await _api.postJson(endpoint,
+          body(deviceId, await _fcmToken(pushToken), await proposedDeviceName()));
       final outcome = _outcomeFromData(_data(json));
       await _store.save(outcome.session);
       return Right(outcome);
@@ -124,6 +133,22 @@ class SyncEnrollmentRepositoryImpl implements SyncEnrollmentRepository {
   Future<Either<Failure, Unit>> revokeDevice(String seatUuid) async {
     return _guarded((session) async {
       await _api.delete('sync/devices/$seatUuid', token: session.syncToken);
+      return unit;
+    });
+  }
+
+  @override
+  Future<Either<Failure, Unit>> renameDevice(
+      String seatUuid, String? name) async {
+    return _guarded((session) async {
+      // The key is always sent, with null to clear — omitting it would read
+      // server-side as "leave the name alone", so clearing a name would
+      // silently do nothing.
+      await _api.patchJson(
+        'sync/devices/$seatUuid',
+        {'name': sanitizeDeviceName(name)},
+        token: session.syncToken,
+      );
       return unit;
     });
   }

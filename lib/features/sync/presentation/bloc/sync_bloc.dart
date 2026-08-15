@@ -47,6 +47,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     on<SyncNowRequested>(_onSyncNow);
     on<LoadDevicesRequested>(_onLoadDevices);
     on<RevokeDeviceRequested>(_onRevokeDevice);
+    on<RenameDeviceRequested>(_onRenameDevice);
     on<LeaveSyncRequested>(_onLeave);
     on<ClearSyncFeedback>(_onClearFeedback);
     on<DismissJoinToken>(_onDismissToken);
@@ -112,6 +113,31 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
         ));
         // The server is the authority on what a seat freed — the allowance, and
         // whether anything else changed with it.
+        await _loadDevices(emit);
+      },
+    );
+  }
+
+  /// Rename a seat, then re-read the registry.
+  ///
+  /// **The row is NOT updated optimistically**, which is the opposite of the
+  /// revoke above, and deliberately so. A revoke has one outcome — the row is
+  /// gone — so showing it immediately can only be right or be corrected. A
+  /// rename has three: the server trims it, caps it at 40 characters, or stores
+  /// NULL for a blank. Painting the typed text and then replacing it with the
+  /// server's version a second later shows the owner two different names for
+  /// their phone and leaves them unsure which one it now has. So the row waits,
+  /// spinning, and shows only what the server confirms.
+  Future<void> _onRenameDevice(
+      RenameDeviceRequested event, Emitter<SyncState> emit) async {
+    emit(state.copyWith(renaming: event.seatUuid, clearFeedback: true));
+    final result = await _repository.renameDevice(event.seatUuid, event.name);
+    await result.match(
+      (failure) async =>
+          emit(state.copyWith(clearRenaming: true, error: _errorOf(failure))),
+      (_) async {
+        emit(state.copyWith(
+            clearRenaming: true, message: SyncMessage.deviceRenamed));
         await _loadDevices(emit);
       },
     );

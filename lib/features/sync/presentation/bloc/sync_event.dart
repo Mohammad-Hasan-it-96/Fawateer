@@ -58,6 +58,20 @@ class RevokeDeviceRequested extends SyncEvent {
   List<Object?> get props => [seatUuid];
 }
 
+/// Owner: give a seat a name, or clear it by passing null/blank.
+///
+/// Takes the seat uuid for the same reason [RevokeDeviceRequested] does: the
+/// list is re-read after the call, so an event holding a row object from the
+/// previous list could name a seat that no longer exists.
+class RenameDeviceRequested extends SyncEvent {
+  final String seatUuid;
+  final String? name;
+  const RenameDeviceRequested(this.seatUuid, this.name);
+
+  @override
+  List<Object?> get props => [seatUuid, name];
+}
+
 /// Forget this device's seat locally. Does **not** revoke it server-side —
 /// that is the owner's action from the device registry, and conflating the two
 /// would let a member silently free a seat the owner is paying for.

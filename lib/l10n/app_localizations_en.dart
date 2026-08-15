@@ -2078,6 +2078,25 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncRevokedMessage => 'That phone was removed';
 
   @override
+  String get syncRenameTitle => 'Name this phone';
+
+  @override
+  String get syncRenameHelp =>
+      'A name helps you tell your phones apart — for example the counter it sits on. Leave it empty to remove the name.';
+
+  @override
+  String get syncRenameLabel => 'Phone name';
+
+  @override
+  String get syncRenameHint => 'Front counter';
+
+  @override
+  String get syncRenameSave => 'Save';
+
+  @override
+  String get syncRenamedMessage => 'The name was saved';
+
+  @override
   String get syncErrorRevoked =>
       'This phone was removed from the shop by the main phone';
 

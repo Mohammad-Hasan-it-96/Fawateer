@@ -850,6 +850,12 @@
   "syncRevokeBody": "That phone will stop sharing this shop and will stop selling once it next checks its subscription. It keeps the copy of the shop it already has — this does not erase anything on it.",
   "syncRevokeConfirm": "Remove",
   "syncRevokedMessage": "That phone was removed",
+  "syncRenameTitle": "Name this phone",
+  "syncRenameHelp": "A name helps you tell your phones apart — for example the counter it sits on. Leave it empty to remove the name.",
+  "syncRenameLabel": "Phone name",
+  "syncRenameHint": "Front counter",
+  "syncRenameSave": "Save",
+  "syncRenamedMessage": "The name was saved",
   "syncErrorRevoked": "This phone was removed from the shop by the main phone",
   "syncErrorOwnerOnly": "Only the main phone can do this",
 

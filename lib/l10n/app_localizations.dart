@@ -3927,6 +3927,42 @@ abstract class AppLocalizations {
   /// **'That phone was removed'**
   String get syncRevokedMessage;
 
+  /// No description provided for @syncRenameTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Name this phone'**
+  String get syncRenameTitle;
+
+  /// No description provided for @syncRenameHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'A name helps you tell your phones apart — for example the counter it sits on. Leave it empty to remove the name.'**
+  String get syncRenameHelp;
+
+  /// No description provided for @syncRenameLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Phone name'**
+  String get syncRenameLabel;
+
+  /// No description provided for @syncRenameHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Front counter'**
+  String get syncRenameHint;
+
+  /// No description provided for @syncRenameSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save'**
+  String get syncRenameSave;
+
+  /// No description provided for @syncRenamedMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The name was saved'**
+  String get syncRenamedMessage;
+
   /// No description provided for @syncErrorRevoked.
   ///
   /// In en, this message translates to:
