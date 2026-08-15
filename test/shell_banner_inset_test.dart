@@ -20,19 +20,26 @@ void main() {
   final now = DateTime(2026, 8, 9);
 
   group('trial banner', () {
+    // `trialBannerVisible` goes through `LicenseStatus.isActive`, which reads
+    // the REAL clock — it takes no injected `now`. So a live licence here has
+    // to be dated off `DateTime.now()`, not off the fixed `now` above. The
+    // first version used the fixed date and passed for five days, then
+    // started failing on a change that had nothing to do with licensing.
+    final realNow = DateTime.now();
+
     test('shows only while a trial is active', () {
       expect(
         trialBannerVisible(_state(LicenseStatus(
             isVerified: true,
             isTrial: true,
-            expiresAt: now.add(const Duration(days: 5))))),
+            expiresAt: realNow.add(const Duration(days: 5))))),
         isTrue,
       );
       // Paid: no banner, so the page below keeps the status-bar inset.
       expect(
         trialBannerVisible(_state(LicenseStatus(
             isVerified: true,
-            expiresAt: now.add(const Duration(days: 30))))),
+            expiresAt: realNow.add(const Duration(days: 30))))),
         isFalse,
       );
     });
@@ -49,10 +56,15 @@ void main() {
   });
 
   group('offline banner', () {
+    // Same split as above: the offline WINDOW is measured against the injected
+    // `now`, but `isActive` inside the predicate reads the real clock, so the
+    // expiry has to be real-clock too.
+    final realNow = DateTime.now();
+
     test('shows once the shop has been offline long enough', () {
       final stale = _state(LicenseStatus(
         isVerified: true,
-        expiresAt: now.add(const Duration(days: 30)),
+        expiresAt: realNow.add(const Duration(days: 30)),
         lastServerSync: now.subtract(const Duration(days: 5)),
       ));
       expect(offlineBannerVisible(stale, now), isTrue);
@@ -61,7 +73,7 @@ void main() {
     test('stays hidden right after a sync — the common case', () {
       final fresh = _state(LicenseStatus(
         isVerified: true,
-        expiresAt: now.add(const Duration(days: 30)),
+        expiresAt: realNow.add(const Duration(days: 30)),
         lastServerSync: now,
       ));
       expect(offlineBannerVisible(fresh, now), isFalse);

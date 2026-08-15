@@ -56,6 +56,10 @@ void main() {
     // Before v17 this was a one-way door: the deleted row still occupied the
     // barcode, so a shop that deleted a product could never re-add anything
     // scanning to the same code. Hard deletes hid it; tombstones surface it.
+    //
+    // Since v19 the barcode index is no longer UNIQUE, so the insert below can
+    // no longer be refused by the engine. What this still pins is the READ
+    // rule every screen depends on — a tombstoned row is not on the shelf.
     await db.customStatement(
         "UPDATE products SET deleted_at = '001785312000000-00000-abc' "
         "WHERE id = 'p1'");
@@ -73,18 +77,38 @@ void main() {
     await db.close();
   });
 
-  test('two live products still cannot share a barcode', () async {
+  test('an upgrade from v16 ends with a barcode index that is NOT unique',
+      () async {
+    // This test used to assert the opposite: v17 narrowed a UNIQUE barcode
+    // index, so two live products sharing a code were refused. v19 (Plan 015
+    // Case A) removed that constraint deliberately — the same packet is sold
+    // at two prices from two piles, and the shop needs both rows.
+    //
+    // What is worth testing here is not the feature (migration_v19_test owns
+    // that, from v18) but the ORDER of the chain. An upgrade starting at v16
+    // runs v17, which CREATES the unique index, and then v19, which drops and
+    // recreates it plain. Get those two the wrong way round — or let v19 use
+    // `CREATE INDEX IF NOT EXISTS` without the drop — and the shop ends up on
+    // the unique index anyway, with every second price refused by a
+    // constraint that reads like a bug in the form.
     await seedV16();
     final db = AppDatabase.forTesting(NativeDatabase(dbFile));
 
-    // The index is narrowed, not removed. Scanning one code must never be
-    // ambiguous between two products actually on the shelf.
-    await expectLater(
-      db.customStatement(
-          "INSERT INTO products (id,name,barcode,price,quantity) "
-          "VALUES ('p9','مكرر','BR-1',6000,20)"),
-      throwsA(anything),
-    );
+    await db.customStatement(
+        "INSERT INTO products (id,name,barcode,price,quantity) "
+        "VALUES ('p9','رز سعر ثاني','BR-1',6000,20)");
+
+    final live = await db
+        .customSelect("SELECT id FROM products WHERE barcode = 'BR-1' "
+            "AND deleted_at = ''")
+        .get();
+    expect(live.length, 2, reason: 'both piles are on the shelf');
+
+    final index = await db
+        .customSelect("SELECT sql FROM sqlite_master WHERE type = 'index' "
+            "AND name = 'idx_products_barcode'")
+        .getSingle();
+    expect(index.read<String>('sql').toUpperCase().contains('UNIQUE'), isFalse);
 
     await db.close();
   });
