@@ -3777,6 +3777,18 @@ abstract class AppLocalizations {
   /// **'No connection — it will try again on its own'**
   String get syncErrorOffline;
 
+  /// Title of the diagnostic dialog opened by long-pressing the sync status row. Untranslated server text is shown inside it.
+  ///
+  /// In en, this message translates to:
+  /// **'Technical details'**
+  String get syncErrorDetailTitle;
+
+  /// Shown in the technical-details dialog when nothing has failed.
+  ///
+  /// In en, this message translates to:
+  /// **'No recent error.'**
+  String get syncErrorDetailNone;
+
   /// No description provided for @syncErrorServer.
   ///
   /// In en, this message translates to:

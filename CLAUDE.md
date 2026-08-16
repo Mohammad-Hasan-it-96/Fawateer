@@ -161,6 +161,19 @@ The v5→v6 `TableMigration` remains the **only** table rebuild in the whole his
 
 `features/sync/` — one pass is **push then pull**, driven by `SyncEngine.sync()`. The wire contract is `docs/backend-replies/` (2026-07-27 → 07-29); read those before changing a payload shape.
 
+- **The shipped route names are NOT the ones the design document uses**, and reading only the 2026-07-27 reply gets all four wrong. Verified against production 2026-08-16:
+
+  | Purpose | Shipped route | The design's name (404s) |
+  |---|---|---|
+  | push | `POST /api/v1/sync/changes` | `/sync/push` |
+  | pull | `GET /api/v1/sync/changes?since=&limit=` | `/sync/pull` |
+  | mint a join code | `POST /api/v1/sync/join-tokens` | `/sync/enroll/token` |
+  | upload the bootstrap snapshot | `POST /api/v1/sync/join-tokens/{token}/bootstrap` | `/sync/enroll/seed` (invented) |
+
+  Establish (`POST /sync/business`), join (`POST /sync/enroll`), the registry (`GET /sync/devices`), rename (`PATCH`) and revoke (`DELETE`) were always right — which is exactly what made this survive: the sync **screen** worked, so the feature looked healthy while nothing replicated. The 08-11 reply names the real routes in one line ("business, enroll, signed bootstrap, join-tokens[/bootstrap], GET|DELETE devices, POST|GET changes") and our own 08-11 request repeats them; the client was simply never changed to match.
+- **A wrong URL is invisible to the entire sync suite.** `integration_test/sync_engine_test.dart` and `bootstrap_test.dart` drive a `SyncTransport` implemented as an in-memory relay — the right way to prove convergence, but a relay has no URL, so `SyncApiTransport` is never on that path. `test/sync_endpoints_test.dart` is the guard: it drives the real transport and the real repository through a `MockClient` and asserts the literal URLs. **A new endpoint needs a line there**, or it is untested by construction.
+- **A 404 carries no typed code**, so it falls to `SyncError.server` → "something went wrong, try again" — indistinguishable from a real outage, and retried forever. `SyncState.errorDetail` exists for this: the raw server message/status, reachable by **long-pressing the sync status row**, never rendered as ordinary copy (it is untranslated and means nothing to a shopkeeper). Without it, diagnosing a field failure costs a round trip per attempt.
+
 - **Two positions, two clocks, never converted.** `SyncStateStore.pushWatermark` is an *authored HLC* ("everything stamped at or before this has been handed over"); `pullCursor` is a *server sequence* ("everything the server had at or before this has reached us"). Conflating them is the bug most of the 07-29 exchange was about: resolving authorship by arrival order lets a device that was offline for three days overwrite fresher edits. Both live in `AppSettings`, not SharedPreferences, because they describe the *data* — a bootstrap restore that replaces the database must replace them too.
 - **Push first, always.** A pull that ran first would apply a remote edit over a local row whose own change has not left the device; it survives (it is still queued) but the shopkeeper watches their edit vanish and come back.
 - **The watermark advances only to the last *contiguous* accepted row.** Partial success is normal, so stopping at the first row the server refused leaves it — and everything after it — to retry. Advancing to the highest accepted HLC instead would step over the refused row and strand it permanently: one bad row silently costing a shop a day of sales.

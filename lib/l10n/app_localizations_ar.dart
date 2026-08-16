@@ -1974,6 +1974,12 @@ class AppLocalizationsAr extends AppLocalizations {
   String get syncErrorOffline => 'لا يوجد اتصال — ستتم إعادة المحاولة تلقائياً';
 
   @override
+  String get syncErrorDetailTitle => 'تفاصيل تقنية';
+
+  @override
+  String get syncErrorDetailNone => 'لا يوجد خطأ حديث.';
+
+  @override
   String get syncErrorServer => 'حدث خطأ. حاول مرة أخرى';
 
   @override

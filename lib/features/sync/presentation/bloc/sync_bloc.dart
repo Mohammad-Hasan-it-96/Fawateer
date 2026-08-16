@@ -86,7 +86,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     final result = await _repository.listDevices();
     result.match(
       (failure) => emit(state.copyWith(
-          devicesLoading: false, devicesError: _errorOf(failure))),
+          devicesLoading: false, devicesError: _errorOf(failure), errorDetail: failure.message)),
       (registry) =>
           emit(state.copyWith(devicesLoading: false, registry: registry)),
     );
@@ -98,7 +98,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     final result = await _repository.revokeDevice(event.seatUuid);
     await result.match(
       (failure) async => emit(state.copyWith(
-          clearRevoking: true, error: _errorOf(failure))),
+          clearRevoking: true, error: _errorOf(failure), errorDetail: failure.message)),
       (_) async {
         // Drop the row immediately rather than waiting for the re-read: the
         // owner just watched themselves remove it, and a row that lingers for
@@ -134,7 +134,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     final result = await _repository.renameDevice(event.seatUuid, event.name);
     await result.match(
       (failure) async =>
-          emit(state.copyWith(clearRenaming: true, error: _errorOf(failure))),
+          emit(state.copyWith(clearRenaming: true, error: _errorOf(failure), errorDetail: failure.message)),
       (_) async {
         emit(state.copyWith(
             clearRenaming: true, message: SyncMessage.deviceRenamed));
@@ -149,7 +149,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     final result = await _repository.establishAsOwner();
     await result.match(
       (failure) async =>
-          emit(state.copyWith(busy: false, error: _errorOf(failure))),
+          emit(state.copyWith(busy: false, error: _errorOf(failure), errorDetail: failure.message)),
       (outcome) async {
         // Cursor-only: a shop's first device is establishing the business, not
         // joining one, so there is no snapshot and nothing to restart for.
@@ -182,7 +182,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     final result = await _repository.joinBusiness(scanned.token);
     await result.match(
       (failure) async =>
-          emit(state.copyWith(busy: false, error: _errorOf(failure))),
+          emit(state.copyWith(busy: false, error: _errorOf(failure), errorDetail: failure.message)),
       (outcome) => _adoptSeed(outcome, scanned.sha256, emit),
     );
   }
@@ -210,7 +210,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
               busy: false,
               clearStep: true,
               restartRequired: true,
-              error: _errorOf(failure)));
+              error: _errorOf(failure), errorDetail: failure.message));
           return;
         }
         // The seat is real but the shop never arrived, and the join code was
@@ -219,7 +219,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
         // instead: the owner mints a fresh code and it is simply retried.
         await _repository.leave();
         emit(const SyncState(loaded: true)
-            .copyWith(error: _errorOf(failure)));
+            .copyWith(error: _errorOf(failure), errorDetail: failure.message));
       },
       (result) async {
         emit(state.copyWith(
@@ -247,7 +247,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     );
     result.match(
       (failure) => emit(state.copyWith(
-          busy: false, clearStep: true, error: _errorOf(failure))),
+          busy: false, clearStep: true, error: _errorOf(failure), errorDetail: failure.message)),
       (invite) =>
           emit(state.copyWith(busy: false, clearStep: true, invite: invite)),
     );

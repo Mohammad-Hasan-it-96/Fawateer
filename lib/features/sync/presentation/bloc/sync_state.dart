@@ -22,6 +22,25 @@ class SyncState extends Equatable {
   final SyncError? error;
   final SyncMessage? message;
 
+  /// The raw technical reason behind [error] or [devicesError] — the server's
+  /// message, its typed code, or `HTTP <status>`.
+  ///
+  /// **Never shown as ordinary UI copy.** It is untranslated and means nothing
+  /// to a shopkeeper; the screen still renders only the localized text mapped
+  /// from the typed error. It is reachable on purpose (a long press on the
+  /// status card) because most of [SyncError]'s members are unreachable in
+  /// normal running, so `server` — the catch-all — is what a shop actually
+  /// hits, and "something went wrong, try again" says nothing at all about
+  /// which of a wrong URL, a rejected payload, an expired token or a real
+  /// outage it was. Those need completely different fixes, and telling them
+  /// apart from a support message otherwise costs a round trip per attempt.
+  ///
+  /// This exists because of a real one: the client called `/sync/push` and
+  /// `/sync/pull`, the names in the 2026-07-27 design, while the shipped routes
+  /// are `POST|GET /sync/changes`. Every pass 404'd, every 404 fell to
+  /// `SyncError.server`, and the shop was told to try again — forever.
+  final String? errorDetail;
+
   /// A freshly minted invitation, shown until dismissed or the page leaves.
   final JoinInvite? invite;
 
@@ -69,6 +88,7 @@ class SyncState extends Equatable {
     this.busy = false,
     this.error,
     this.message,
+    this.errorDetail,
     this.invite,
     this.step,
     this.restartRequired = false,
@@ -115,6 +135,7 @@ class SyncState extends Equatable {
     bool? busy,
     SyncError? error,
     SyncMessage? message,
+    String? errorDetail,
     JoinInvite? invite,
     BootstrapStep? step,
     bool? restartRequired,
@@ -142,6 +163,9 @@ class SyncState extends Equatable {
       // a snackbar cannot fire again on the next unrelated rebuild.
       error: clearFeedback ? null : (error ?? this.error),
       message: clearFeedback ? null : (message ?? this.message),
+      // Rides with the feedback it explains, so a stale detail can never be
+      // read against a newer error.
+      errorDetail: clearFeedback ? null : (errorDetail ?? this.errorDetail),
       invite: clearToken ? null : (invite ?? this.invite),
       step: clearStep ? null : (step ?? this.step),
       restartRequired: restartRequired ?? this.restartRequired,
@@ -163,6 +187,7 @@ class SyncState extends Equatable {
         busy,
         error,
         message,
+        errorDetail,
         invite,
         step,
         restartRequired,

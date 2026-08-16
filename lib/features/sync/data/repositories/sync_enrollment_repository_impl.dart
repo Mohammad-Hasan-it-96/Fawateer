@@ -1,6 +1,7 @@
 import 'package:fpdart/fpdart.dart';
 
 import '../../../../core/error/failure.dart';
+import '../../../../core/network/api_client.dart' show ApiErrorKind;
 import '../../../../core/network/api_config.dart';
 import '../../../../core/network/sync_api_client.dart';
 import '../../../../core/sync/device_label.dart';
@@ -111,9 +112,24 @@ class SyncEnrollmentRepositoryImpl implements SyncEnrollmentRepository {
   @override
   Future<Either<Failure, JoinToken>> mintJoinToken() async {
     return _guarded((session) async {
+      // `sync/join-tokens`, not the `sync/enroll/token` of the 2026-07-27
+      // design — the shipped route was confirmed on 2026-08-11 and verified
+      // against production. See the note on [SyncApiTransport].
       final json = await _api
-          .postJson('sync/enroll/token', const {}, token: session.syncToken);
-      return JoinToken.fromJson(_data(json));
+          .postJson('sync/join-tokens', const {}, token: session.syncToken);
+      final token = JoinToken.fromJson(_data(json));
+      // **An empty code is a failure, not an invitation.** The mint response's
+      // field names were never pinned in the 07-27 → 08-15 exchange, so an
+      // unexpected spelling parses to `''` — and that renders as a QR of
+      // nothing beside a blank line to type, with no error anywhere. The owner
+      // would hold out a code that cannot work and blame the other phone. The
+      // raw body rides along in the message, which is what the long-press
+      // detail dialog shows.
+      if (token.token.isEmpty) {
+        throw SyncApiException(ApiErrorKind.badResponse,
+            'mint returned no join token: ${_data(json)}');
+      }
+      return token;
     });
   }
 

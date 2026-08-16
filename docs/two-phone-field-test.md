@@ -150,3 +150,34 @@ Then join B again with a fresh code, to be sure the way back in works.
 - **A phone that is closed.** Sync is foreground-only by design. A till that is
   shut does not sync until it is opened. That is a stated limitation, not a
   defect — do not report it as one.
+
+---
+
+## If something fails: read the technical detail first
+
+Every sync failure that is not one of the known cases shows the same Arabic
+message: **"حدث خطأ. حاول مرة أخرى"**. That message cannot tell you whether the
+problem is the network, the server, the token, or the app.
+
+**Long-press the sync row** (the one with the "مزامنة الآن" button) on the
+الأجهزة والمزامنة screen. A dialog opens with the raw reason — the typed error
+name and the server's own message or HTTP status — and a Copy button.
+
+Copy that text and keep it. It is the difference between one fix and a day of
+guessing.
+
+### Known from 2026-08-16
+
+The app called four endpoints by the names in the July design document. The
+server serves different names. Every sync pass and every "add a phone" failed
+with the generic message.
+
+| What | Real route |
+|---|---|
+| push | `POST /api/v1/sync/changes` |
+| pull | `GET /api/v1/sync/changes` |
+| join code | `POST /api/v1/sync/join-tokens` |
+| snapshot upload | `POST /api/v1/sync/join-tokens/{token}/bootstrap` |
+
+Fixed in the build dated 2026-08-16. Both phones must run **that** build or
+later — an older APK still asks for the dead URLs.

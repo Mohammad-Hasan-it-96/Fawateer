@@ -1,6 +1,6 @@
 import 'entities/sync_change.dart';
 
-/// What the server gave back for one page of `GET /api/v1/sync/pull`.
+/// What the server gave back for one page of `GET /api/v1/sync/changes`.
 class PullPage {
   final List<SyncChange> changes;
 

@@ -58,10 +58,15 @@ class BootstrapService {
   final SyncApiClient _api;
   final SyncCredentialStore _credentials;
 
-  /// Fallback upload path, used when the mint response carries no `upload_url`.
-  /// See [JoinToken.uploadUrl] — this shape is the one thing in the contract we
-  /// are guessing at.
-  static const kSeedEndpoint = 'sync/enroll/seed';
+  /// Where the snapshot goes when the mint response carries no `upload_url`:
+  /// the token's own bootstrap sub-resource, `POST /sync/join-tokens/{t}/bootstrap`.
+  ///
+  /// Confirmed against their routes on 2026-08-11 and verified on production.
+  /// The earlier guess (`sync/enroll/seed`, invented because the 2026-07-28 §H
+  /// reply named an "upload target" without pinning a path) does not exist and
+  /// 404s — see the note on [SyncApiTransport] for why that was invisible.
+  static String seedEndpoint(String joinToken) =>
+      'sync/join-tokens/$joinToken/bootstrap';
 
   const BootstrapService({
     required SyncEnrollmentRepository enrollment,
@@ -143,13 +148,17 @@ class BootstrapService {
 
       onStep?.call(BootstrapStep.uploading);
       await _api.postFile(
-        token.uploadUrl ?? kSeedEndpoint,
+        token.uploadUrl ?? seedEndpoint(token.token),
         file,
         fields: {
           // The join token is the *binding*, not the credential: the Bearer
           // below is the owner's own seat token. Conflating the two would let
           // anyone who photographed the QR replace the snapshot the joining
           // device is about to trust with its whole shop (2026-07-29 H1).
+          //
+          // Still sent although the shipped route also carries it in the path:
+          // an extra field a Laravel request does not validate is ignored, and
+          // dropping it would break a server that reads only the body.
           'join_token': token.token,
           'cursor': cursor.toString(),
           'sha256': manifest.sha256,

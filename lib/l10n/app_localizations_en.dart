@@ -1992,6 +1992,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get syncErrorOffline => 'No connection — it will try again on its own';
 
   @override
+  String get syncErrorDetailTitle => 'Technical details';
+
+  @override
+  String get syncErrorDetailNone => 'No recent error.';
+
+  @override
   String get syncErrorServer => 'Something went wrong. Please try again';
 
   @override

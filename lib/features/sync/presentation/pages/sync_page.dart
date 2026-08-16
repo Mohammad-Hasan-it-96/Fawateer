@@ -178,6 +178,12 @@ class _SyncPageState extends State<SyncPage> {
             const Divider(height: 1),
             ListTile(
               leading: const Icon(Icons.sync),
+              // A long press is deliberately the only way in. The detail is
+              // untranslated server text — worthless to a shopkeeper, and the
+              // one thing that saves a support round trip when the localized
+              // message is the "something went wrong" catch-all. Hiding it
+              // costs nothing; not having it cost a field test.
+              onLongPress: () => _showErrorDetail(context, l10n, state),
               title: Text(state.lastSyncAt == null
                   ? l10n.syncNever
                   : l10n.syncLastAt(_formatWhen(l10n, state.lastSyncAt!))),
@@ -580,6 +586,56 @@ class _SyncPageState extends State<SyncPage> {
         BootstrapStep.snapshotting => l10n.syncStepSnapshotting,
         BootstrapStep.uploading => l10n.syncStepUploading,
       };
+
+  /// The last technical failure, verbatim and copyable.
+  ///
+  /// Shows the typed error's own name beside the server's text: the two answer
+  /// different questions — which branch the app took, and what the server
+  /// actually said — and a report carrying only one of them is usually the
+  /// wrong one.
+  static Future<void> _showErrorDetail(
+      BuildContext context, AppLocalizations l10n, SyncState state) async {
+    final error = state.error ?? state.devicesError;
+    final detail = state.errorDetail;
+    final body = (error == null && detail == null)
+        ? l10n.syncErrorDetailNone
+        : [if (error != null) error.name, if (detail != null) detail].join('\n');
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(l10n.syncErrorDetailTitle),
+        content: SelectableText(
+          body,
+          // Forced LTR: this is ASCII diagnostic text (URLs, HTTP codes), and
+          // the Arabic layout reorders it into something that cannot be read
+          // back or retyped — the same reason the join code is forced LTR.
+          textDirection: TextDirection.ltr,
+          style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: body));
+              if (!dialogContext.mounted) return;
+              Navigator.of(dialogContext).pop();
+              ScaffoldMessenger.of(context)
+                ..clearSnackBars()
+                ..showSnackBar(SnackBar(
+                  content: Text(l10n.copied),
+                  behavior: SnackBarBehavior.floating,
+                ));
+            },
+            child: Text(l10n.copy),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: Text(l10n.cancel),
+          ),
+        ],
+      ),
+    );
+  }
 
   String? _feedbackText(AppLocalizations l10n, SyncState state) {
     final error = state.error;

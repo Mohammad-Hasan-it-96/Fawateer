@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 /// A single-use invitation for another device to join this business
-/// (`POST /api/v1/sync/enroll/token`, owner role only).
+/// (`POST /api/v1/sync/join-tokens`, owner role only).
 ///
 /// **Short-lived and single-use by design.** A leaked durable QR would let an
 /// intruder join a shop's financial data, so the token is minted on demand,

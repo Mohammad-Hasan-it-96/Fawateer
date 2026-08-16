@@ -27,7 +27,7 @@ abstract class SyncEnrollmentRepository {
   });
 
   /// Mint a single-use invitation for another device
-  /// (`POST /api/v1/sync/enroll/token`, OWNER role only). Fails with
+  /// (`POST /api/v1/sync/join-tokens`, OWNER role only). Fails with
   /// [SyncError.allowanceExceeded] when the business is already at its device
   /// cap — refused at mint rather than at redemption, so the owner finds out
   /// while looking at their own phone instead of at the other person's.
