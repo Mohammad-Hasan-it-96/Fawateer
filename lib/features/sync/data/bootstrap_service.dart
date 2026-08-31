@@ -68,6 +68,39 @@ class BootstrapService {
   static String seedEndpoint(String joinToken) =>
       'sync/join-tokens/$joinToken/bootstrap';
 
+  /// The multipart fields that ride with the snapshot.
+  ///
+  /// A named function rather than a map literal inline for the same reason
+  /// [seedEndpoint] is one: the wire spelling of these keys is a contract with
+  /// the server that no in-memory relay can check, so it needs somewhere a test
+  /// can point at. `test/sync_endpoints_test.dart` pins it.
+  ///
+  /// **The hash field is `snapshot_sha256`, not `sha256`.** We sent `sha256`
+  /// until 2026-08-16 and it was never noticed, because the route was answering
+  /// 404 before it ever reached validation (evotech-core bound `{token}` on a
+  /// record uuid the mint never returns — their bug, fixed in their PR #35).
+  /// With the 404 gone the next thing our old call would have hit is a 422,
+  /// "The snapshot sha256 field is required." Confirmed in their
+  /// 2026-08-16 reply, answer 3.
+  ///
+  /// `join_token` is redundant — the path segment already carries it and the
+  /// server explicitly ignores the body copy (same reply). It is kept because
+  /// it costs nothing and an unvalidated extra field is dropped either way, and
+  /// because it records that the token is the *binding*, not the credential:
+  /// the Bearer on this request is the owner's own seat token. Conflating the
+  /// two would let anyone who photographed the QR replace the snapshot the
+  /// joining device is about to trust with its whole shop (2026-07-29 H1).
+  static Map<String, String> seedFields({
+    required String joinToken,
+    required int cursor,
+    required String sha256,
+  }) =>
+      {
+        'join_token': joinToken,
+        'cursor': cursor.toString(),
+        'snapshot_sha256': sha256,
+      };
+
   const BootstrapService({
     required SyncEnrollmentRepository enrollment,
     required SyncEngine engine,
@@ -150,19 +183,11 @@ class BootstrapService {
       await _api.postFile(
         token.uploadUrl ?? seedEndpoint(token.token),
         file,
-        fields: {
-          // The join token is the *binding*, not the credential: the Bearer
-          // below is the owner's own seat token. Conflating the two would let
-          // anyone who photographed the QR replace the snapshot the joining
-          // device is about to trust with its whole shop (2026-07-29 H1).
-          //
-          // Still sent although the shipped route also carries it in the path:
-          // an extra field a Laravel request does not validate is ignored, and
-          // dropping it would break a server that reads only the body.
-          'join_token': token.token,
-          'cursor': cursor.toString(),
-          'sha256': manifest.sha256,
-        },
+        fields: seedFields(
+          joinToken: token.token,
+          cursor: cursor,
+          sha256: manifest.sha256,
+        ),
         token: session.syncToken,
       );
 

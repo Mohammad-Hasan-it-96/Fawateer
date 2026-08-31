@@ -253,6 +253,45 @@ void main() {
       expect(BootstrapService.seedEndpoint('a'),
           isNot(BootstrapService.seedEndpoint('b')));
     });
+
+    test('the path segment is the raw join token, not a uuid or a hash', () {
+      // What evotech-core's own bug turned out to be, mirrored from our side so
+      // it stays true if either end is reworked: the value in the URL is the
+      // exact string `POST /sync/join-tokens` handed us and the joiner presents
+      // to `/sync/enroll`. One identifier drives the whole enrollment chain.
+      expect(BootstrapService.seedEndpoint('evojoin_abc123'),
+          contains('evojoin_abc123'));
+    });
+
+    test('the hash rides as snapshot_sha256, never sha256', () {
+      // The field the server validates. We sent `sha256` from the first cut and
+      // no test could see it: the endpoint suite only ever asserted the URL,
+      // and every other sync test drives an in-memory relay with no wire format
+      // at all. It stayed invisible because their route 404'd before reaching
+      // validation, so the 422 this would have caused was never reached.
+      final fields = BootstrapService.seedFields(
+        joinToken: 'JT-123',
+        cursor: 7,
+        sha256: 'a' * 64,
+      );
+
+      expect(fields['snapshot_sha256'], 'a' * 64);
+      expect(fields.containsKey('sha256'), isFalse,
+          reason: 'the old spelling is a 422, not a fallback');
+      expect(fields['cursor'], '7');
+      expect(fields['join_token'], 'JT-123');
+    });
+
+    test('cursor 0 is sent, not dropped as a falsy value', () {
+      // A first device that has never pulled reports 0, and 0 is a real
+      // position: omitting it would fail validation (`cursor` is required,
+      // >= 0) on exactly the shop most likely to be adding its second phone.
+      expect(
+        BootstrapService.seedFields(
+            joinToken: 'JT-123', cursor: 0, sha256: 'b' * 64)['cursor'],
+        '0',
+      );
+    });
   });
 
   group('the base URL is the versioned root, not the app namespace', () {

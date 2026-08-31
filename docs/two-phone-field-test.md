@@ -4,6 +4,10 @@ The one thing no test on this machine can prove. `integration_test/` runs two
 real databases through the real engine, but against a **fake server in the same
 process**. This runs two real phones against **production**.
 
+This file is the **checklist** — what must be true. For the practical walk-through
+(what to build, what to install, which button to press, what the screen should
+show) see [`how-to-test-sync-two-phones.md`](how-to-test-sync-two-phones.md).
+
 Backend state as of 2026-08-15: allowance is **3**, `PATCH /sync/devices/{seat}`
 is live, `name` is returned on enroll/business/devices. Nothing is blocked.
 
