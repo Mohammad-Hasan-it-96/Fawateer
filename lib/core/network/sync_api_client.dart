@@ -2,10 +2,29 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import 'api_client.dart';
 import 'api_config.dart';
+
+/// Debug-build wire log for every sync call: method, URL, status, and the body
+/// the server sent back.
+///
+/// **Not diagnostics for a shop — diagnostics for a two-phone field test.**
+/// `SyncError` is a coarse taxonomy and almost everything lands on `server`,
+/// whose copy is "something went wrong, try again". The in-app detail dialog
+/// exists for this, but it is behind a long press on one row, which is no help
+/// when the phone is plugged into Android Studio and the person holding it is
+/// the developer. Two separate wire mismatches (the route names, the snapshot
+/// hash field) each cost a field session that this line would have ended.
+///
+/// Stripped from release builds by `kDebugMode`, and the Bearer is never
+/// included — the seat token is a durable credential and logcat is readable by
+/// any app with the right tooling attached.
+void _wireLog(String line) {
+  if (kDebugMode) debugPrint('[sync] $line');
+}
 
 /// A transport-level failure from the sync API, carrying the server's
 /// machine-readable error **code** when there was one.
@@ -85,7 +104,7 @@ class SyncApiClient {
     String? token,
     Duration timeout = const Duration(seconds: 15),
   }) async {
-    return _send(() => _client
+    return _send('POST ${_uri(endpoint)}', () => _client
         .post(_uri(endpoint), headers: _headers(token), body: jsonEncode(body))
         .timeout(timeout));
   }
@@ -95,7 +114,7 @@ class SyncApiClient {
     String? token,
     Duration timeout = const Duration(seconds: 15),
   }) async {
-    return _send(
+    return _send('GET ${_uri(endpoint)}',
         () => _client.get(_uri(endpoint), headers: _headers(token)).timeout(timeout));
   }
 
@@ -104,7 +123,7 @@ class SyncApiClient {
     String? token,
     Duration timeout = const Duration(seconds: 15),
   }) async {
-    return _send(() =>
+    return _send('DELETE ${_uri(endpoint)}', () =>
         _client.delete(_uri(endpoint), headers: _headers(token)).timeout(timeout));
   }
 
@@ -119,7 +138,7 @@ class SyncApiClient {
     String? token,
     Duration timeout = const Duration(seconds: 15),
   }) async {
-    return _send(() => _client
+    return _send('PATCH ${_uri(endpoint)}', () => _client
         .patch(_uri(endpoint), headers: _headers(token), body: jsonEncode(body))
         .timeout(timeout));
   }
@@ -143,10 +162,16 @@ class SyncApiClient {
     String? token,
     Duration timeout = const Duration(minutes: 5),
   }) async {
-    return _send(() async {
-      final uri = endpoint.startsWith('http')
-          ? Uri.parse(endpoint)
-          : _uri(endpoint);
+    final target =
+        endpoint.startsWith('http') ? Uri.parse(endpoint) : _uri(endpoint);
+    // Logged before the send, not only after: a multi-megabyte upload on a
+    // shop's 3G can sit here for minutes, and a line that only appears on
+    // completion makes a slow upload and a hung one look identical.
+    _wireLog('POST(file) $target '
+        'fields=${fields.keys.toList()} '
+        'size=${await file.length()}B');
+    return _send('POST(file) $target', () async {
+      final uri = target;
       final request = http.MultipartRequest('POST', uri)
         ..headers.addAll({
           'Accept': 'application/json',
@@ -176,6 +201,7 @@ class SyncApiClient {
     } catch (e) {
       throw SyncApiException(ApiErrorKind.network, e.toString());
     }
+    _wireLog('GET(bytes) $url -> ${res.statusCode} ${res.bodyBytes.length}B');
     if (res.statusCode < 200 || res.statusCode >= 300) {
       // A signed URL that has expired comes back as a plain 403 with no JSON
       // envelope, so there is no typed code to preserve here.
@@ -186,17 +212,25 @@ class SyncApiClient {
   }
 
   Future<Map<String, dynamic>> _send(
-      Future<http.Response> Function() request) async {
+      String label, Future<http.Response> Function() request) async {
     http.Response res;
     try {
       res = await request();
     } on TimeoutException {
+      _wireLog('$label -> TIMEOUT');
       throw const SyncApiException(ApiErrorKind.timeout, 'Request timed out');
     } on SocketException catch (e) {
+      _wireLog('$label -> SOCKET ${e.message}');
       throw SyncApiException(ApiErrorKind.network, e.message);
     } catch (e) {
+      _wireLog('$label -> $e');
       throw SyncApiException(ApiErrorKind.network, e.toString());
     }
+    // The whole body on a refusal, truncated on success. A 4xx body is the
+    // thing worth reading; a 200 page of 200 rows is not, and would bury it.
+    final ok = res.statusCode >= 200 && res.statusCode < 300;
+    _wireLog('$label -> ${res.statusCode} '
+        '${ok ? '${res.body.length}B' : res.body}');
     return _decode(res);
   }
 

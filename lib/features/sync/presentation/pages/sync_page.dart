@@ -57,6 +57,12 @@ class _SyncPageState extends State<SyncPage> {
           }
           final text = _feedbackText(l10n, state);
           if (text == null) return;
+          // The detail is captured HERE, not read inside the action. The
+          // listener fires `ClearSyncFeedback` one line below, and although the
+          // detail now survives that, a later failure would replace it — so the
+          // button must show the error this snackbar is about, not whatever is
+          // current when it is finally tapped.
+          final detail = state.error == null ? null : state.errorDetail;
           ScaffoldMessenger.of(context)
             ..clearSnackBars()
             ..showSnackBar(SnackBar(
@@ -65,6 +71,21 @@ class _SyncPageState extends State<SyncPage> {
               backgroundColor:
                   state.error != null ? Theme.of(context).colorScheme.error : null,
               duration: AppSnackDuration.normal,
+              // Offered only on a failure, and only when there is something to
+              // show. A long press on the status row is not discoverable — it
+              // was put there so untranslated server text could never be
+              // mistaken for ordinary copy, which is right, but it meant that
+              // during a field test the one person who needed the text could
+              // not find it. A named button keeps the text one deliberate tap
+              // away instead of hidden.
+              action: detail == null
+                  ? null
+                  : SnackBarAction(
+                      label: l10n.syncErrorDetailTitle,
+                      textColor: Theme.of(context).colorScheme.onError,
+                      onPressed: () =>
+                          _showDetailText(context, l10n, detail),
+                    ),
             ));
           context.read<SyncBloc>().add(const ClearSyncFeedback());
         },
@@ -599,8 +620,16 @@ class _SyncPageState extends State<SyncPage> {
     // name (`SyncBloc._detailOf`), and pairing it with the live `state.error`
     // here is what used to force the detail to be thrown away with the
     // snackbar — which left this dialog permanently empty.
-    final body = state.errorDetail ?? l10n.syncErrorDetailNone;
+    await _showDetailText(
+        context, l10n, state.errorDetail ?? l10n.syncErrorDetailNone);
+  }
 
+  /// The dialog itself, over text the caller has already resolved.
+  ///
+  /// Split out so the snackbar's action can show the failure it was raised for
+  /// rather than re-reading state that may have moved on.
+  static Future<void> _showDetailText(
+      BuildContext context, AppLocalizations l10n, String body) async {
     await showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
