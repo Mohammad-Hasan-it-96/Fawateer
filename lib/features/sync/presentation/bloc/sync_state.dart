@@ -163,9 +163,20 @@ class SyncState extends Equatable {
       // a snackbar cannot fire again on the next unrelated rebuild.
       error: clearFeedback ? null : (error ?? this.error),
       message: clearFeedback ? null : (message ?? this.message),
-      // Rides with the feedback it explains, so a stale detail can never be
-      // read against a newer error.
-      errorDetail: clearFeedback ? null : (errorDetail ?? this.errorDetail),
+      // **Deliberately NOT cleared with the feedback.** It used to be, on the
+      // reasoning that a detail riding with its error can never be read against
+      // a newer one — which was right about the risk and fatal in practice: the
+      // page dispatches `ClearSyncFeedback` immediately after showing every
+      // snackbar, so the detail lived for exactly one frame and the long-press
+      // dialog always said "no details". The whole mechanism was inert from the
+      // day it shipped, and the field failure it exists for hit anyway.
+      //
+      // The desync it guarded against is closed a better way: the detail is
+      // recorded already carrying its own typed error name (`SyncBloc._detailOf`),
+      // so it is self-describing and cannot be misread against whatever `error`
+      // happens to hold now. It is only ever replaced by a newer failure, never
+      // resurrected.
+      errorDetail: errorDetail ?? this.errorDetail,
       invite: clearToken ? null : (invite ?? this.invite),
       step: clearStep ? null : (step ?? this.step),
       restartRequired: restartRequired ?? this.restartRequired,

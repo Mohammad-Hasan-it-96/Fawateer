@@ -826,6 +826,57 @@ void main() {
     expect(bloc.state.isEnrolled, isTrue, reason: 'the seat itself survives');
     await bloc.close();
   });
+
+  group('the technical detail behind a failure', () {
+    test('survives the one-shot clear the snackbar fires', () async {
+      // The page dispatches ClearSyncFeedback the instant it has shown a
+      // snackbar. `errorDetail` used to be cleared with it, so it lived for one
+      // frame and the long-press dialog on the sync status row always read
+      // "no details" — the diagnostic that exists for exactly the errors with
+      // no typed code was inert from the day it shipped. Found on 2026-08-31
+      // while trying to read why "add a phone" failed on a real till.
+      final bloc = build();
+      repository.failure =
+          const SyncFailure(SyncError.server, 'VALIDATION_FAILED: row_uuid');
+      bloc.add(const EnableSyncAsOwner());
+      await bloc.stream.firstWhere((s) => s.error != null);
+
+      bloc.add(const ClearSyncFeedback());
+      await bloc.stream.firstWhere((s) => s.error == null);
+
+      expect(bloc.state.errorDetail, isNotNull,
+          reason: 'the dialog is opened AFTER the snackbar is dismissed');
+      expect(bloc.state.errorDetail, contains('row_uuid'));
+      await bloc.close();
+    });
+
+    test('names its own typed error, so it cannot be misread later', () async {
+      // Self-describing on purpose: the dialog renders this string alone, so it
+      // can outlive `state.error` without ever being paired with a newer one.
+      final bloc = build();
+      repository.failure = const NetworkFailure('no route to host');
+      bloc.add(const EnableSyncAsOwner());
+      await bloc.stream.firstWhere((s) => s.error != null);
+
+      expect(bloc.state.errorDetail, 'offline: no route to host');
+      await bloc.close();
+    });
+
+    test('a later failure replaces it rather than stacking', () async {
+      final bloc = build();
+      repository.failure = const NetworkFailure('first');
+      bloc.add(const EnableSyncAsOwner());
+      await bloc.stream.firstWhere((s) => s.errorDetail?.contains('first') ?? false);
+
+      repository.failure = const SyncFailure(SyncError.ownerOnly, 'second');
+      bloc.add(const EnableSyncAsOwner());
+      await bloc.stream
+          .firstWhere((s) => s.errorDetail?.contains('second') ?? false);
+
+      expect(bloc.state.errorDetail, 'ownerOnly: second');
+      await bloc.close();
+    });
+  });
 }
 
 class _NoopSyncDao implements SyncDao {

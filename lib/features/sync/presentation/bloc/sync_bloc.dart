@@ -86,7 +86,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     final result = await _repository.listDevices();
     result.match(
       (failure) => emit(state.copyWith(
-          devicesLoading: false, devicesError: _errorOf(failure), errorDetail: failure.message)),
+          devicesLoading: false, devicesError: _errorOf(failure), errorDetail: _detailOf(failure))),
       (registry) =>
           emit(state.copyWith(devicesLoading: false, registry: registry)),
     );
@@ -98,7 +98,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     final result = await _repository.revokeDevice(event.seatUuid);
     await result.match(
       (failure) async => emit(state.copyWith(
-          clearRevoking: true, error: _errorOf(failure), errorDetail: failure.message)),
+          clearRevoking: true, error: _errorOf(failure), errorDetail: _detailOf(failure))),
       (_) async {
         // Drop the row immediately rather than waiting for the re-read: the
         // owner just watched themselves remove it, and a row that lingers for
@@ -134,7 +134,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     final result = await _repository.renameDevice(event.seatUuid, event.name);
     await result.match(
       (failure) async =>
-          emit(state.copyWith(clearRenaming: true, error: _errorOf(failure), errorDetail: failure.message)),
+          emit(state.copyWith(clearRenaming: true, error: _errorOf(failure), errorDetail: _detailOf(failure))),
       (_) async {
         emit(state.copyWith(
             clearRenaming: true, message: SyncMessage.deviceRenamed));
@@ -149,7 +149,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     final result = await _repository.establishAsOwner();
     await result.match(
       (failure) async =>
-          emit(state.copyWith(busy: false, error: _errorOf(failure), errorDetail: failure.message)),
+          emit(state.copyWith(busy: false, error: _errorOf(failure), errorDetail: _detailOf(failure))),
       (outcome) async {
         // Cursor-only: a shop's first device is establishing the business, not
         // joining one, so there is no snapshot and nothing to restart for.
@@ -182,7 +182,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     final result = await _repository.joinBusiness(scanned.token);
     await result.match(
       (failure) async =>
-          emit(state.copyWith(busy: false, error: _errorOf(failure), errorDetail: failure.message)),
+          emit(state.copyWith(busy: false, error: _errorOf(failure), errorDetail: _detailOf(failure))),
       (outcome) => _adoptSeed(outcome, scanned.sha256, emit),
     );
   }
@@ -210,7 +210,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
               busy: false,
               clearStep: true,
               restartRequired: true,
-              error: _errorOf(failure), errorDetail: failure.message));
+              error: _errorOf(failure), errorDetail: _detailOf(failure)));
           return;
         }
         // The seat is real but the shop never arrived, and the join code was
@@ -219,7 +219,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
         // instead: the owner mints a fresh code and it is simply retried.
         await _repository.leave();
         emit(const SyncState(loaded: true)
-            .copyWith(error: _errorOf(failure), errorDetail: failure.message));
+            .copyWith(error: _errorOf(failure), errorDetail: _detailOf(failure)));
       },
       (result) async {
         emit(state.copyWith(
@@ -247,7 +247,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
     );
     result.match(
       (failure) => emit(state.copyWith(
-          busy: false, clearStep: true, error: _errorOf(failure), errorDetail: failure.message)),
+          busy: false, clearStep: true, error: _errorOf(failure), errorDetail: _detailOf(failure))),
       (invite) =>
           emit(state.copyWith(busy: false, clearStep: true, invite: invite)),
     );
@@ -265,7 +265,9 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
       // when nothing moved, because "already up to date" is a real answer and
       // silence reads as a broken button.
       error: outcome?.error,
-      errorDetail: outcome?.errorDetail,
+      errorDetail: outcome?.error == null
+          ? null
+          : '${outcome!.error!.name}: ${outcome.errorDetail ?? '-'}',
       message: outcome != null && outcome.isSuccess ? SyncMessage.synced : null,
     ));
     // The scheduler has already dropped the dead credential; without this the
@@ -290,6 +292,18 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
 
   void _onDismissToken(DismissJoinToken event, Emitter<SyncState> emit) =>
       emit(state.copyWith(clearToken: true));
+
+  /// The technical detail behind a failure, **with its typed error name baked
+  /// in**, for the long-press dialog on the sync status row.
+  ///
+  /// Composed once, here, rather than pairing `state.error` with
+  /// `state.errorDetail` at render time. The two used to be joined in the
+  /// dialog, which meant the detail had to be discarded whenever the error was
+  /// — and the error is discarded after every snackbar, so the detail never
+  /// survived long enough to be read. Baking the name in makes the string
+  /// self-describing, so it can safely outlive the one-shot feedback.
+  static String _detailOf(Failure failure) =>
+      '${_errorOf(failure).name}: ${failure.message}';
 
   /// Unwrap the typed sync error a repository put inside a [SyncFailure];
   /// anything else is a transport-shaped failure the taxonomy already names.

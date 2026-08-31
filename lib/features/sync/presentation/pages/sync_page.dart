@@ -595,11 +595,11 @@ class _SyncPageState extends State<SyncPage> {
   /// wrong one.
   static Future<void> _showErrorDetail(
       BuildContext context, AppLocalizations l10n, SyncState state) async {
-    final error = state.error ?? state.devicesError;
-    final detail = state.errorDetail;
-    final body = (error == null && detail == null)
-        ? l10n.syncErrorDetailNone
-        : [if (error != null) error.name, if (detail != null) detail].join('\n');
+    // Read from `errorDetail` alone. It already carries its own typed error
+    // name (`SyncBloc._detailOf`), and pairing it with the live `state.error`
+    // here is what used to force the detail to be thrown away with the
+    // snackbar — which left this dialog permanently empty.
+    final body = state.errorDetail ?? l10n.syncErrorDetailNone;
 
     await showDialog<void>(
       context: context,
