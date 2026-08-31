@@ -24,13 +24,24 @@ class CustomerRepositoryDriftImpl implements CustomerRepository {
         isArchived: r.isArchived,
       );
 
-  static CustomersCompanion _toCompanion(Customer c) => CustomersCompanion(
+  static CustomersCompanion _toCompanion(Customer c, SyncStamp stamp) =>
+      CustomersCompanion(
         id: Value(c.id),
         name: Value(c.name),
         phone: Value(c.phone),
         note: Value(c.note),
         createdAt: Value(c.createdAt.millisecondsSinceEpoch),
         isArchived: Value(c.isArchived),
+
+        // **The sync stamp, on every write.** Without it `updated_at` stays ''
+        // — the "predates sync, never push me" marker — so the row is silently
+        // invisible to `SyncDao.collectSince` and never leaves this phone. That
+        // was the shipped state: deletes and sales were stamped, ordinary
+        // creates and edits were not, so a shop could add a product on one till
+        // and watch the other till never hear about it while every screen
+        // reported success (found in a two-phone field test, 2026-09-01).
+        updatedAt: Value(stamp.hlc),
+        originDevice: Value(stamp.device),
       );
 
   @override
@@ -73,7 +84,8 @@ class CustomerRepositoryDriftImpl implements CustomerRepository {
       if (await _dao.nameExists(customer.name, exceptId: customer.id)) {
         return const Left(DuplicateFailure('Duplicate customer name'));
       }
-      await _dao.upsertCustomer(_toCompanion(customer));
+      await _dao.upsertCustomer(
+          _toCompanion(customer, await _clock.stamp()));
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
@@ -86,7 +98,8 @@ class CustomerRepositoryDriftImpl implements CustomerRepository {
       if (await _dao.nameExists(customer.name, exceptId: customer.id)) {
         return const Left(DuplicateFailure('Duplicate customer name'));
       }
-      await _dao.upsertCustomer(_toCompanion(customer));
+      await _dao.upsertCustomer(
+          _toCompanion(customer, await _clock.stamp()));
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));

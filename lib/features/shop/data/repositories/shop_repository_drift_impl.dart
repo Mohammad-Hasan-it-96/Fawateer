@@ -3,13 +3,20 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/database/app_database.dart';
 import '../../../../core/database/daos/shop_dao.dart';
 import '../../../../core/error/failure.dart';
+import '../../../../core/sync/sync_clock.dart';
 import '../../domain/entities/shop.dart';
 import '../../domain/repositories/shop_repository.dart';
 
 class ShopRepositoryDriftImpl implements ShopRepository {
   final ShopDao _dao;
 
-  const ShopRepositoryDriftImpl(this._dao);
+  /// `shop_settings` replicates (Plan 002), so a save has to be stamped like
+  /// any other edit. It is a single `id = 'default'` row that every device
+  /// writes, so it always collides — last-write-wins on the authored HLC is
+  /// what decides it, and an unstamped row simply never travels.
+  final SyncClock _clock;
+
+  const ShopRepositoryDriftImpl(this._dao, this._clock);
 
   /// Arabic, because these are printed. A shopkeeper who sells before ever
   /// opening Settings → Shop — the normal first day — would otherwise hand
@@ -46,6 +53,7 @@ class ShopRepositoryDriftImpl implements ShopRepository {
   @override
   Future<Either<Failure, void>> updateShop(Shop shop) async {
     try {
+      final stamp = await _clock.stamp();
       await _dao.upsertShop(ShopSettingsCompanion(
         id: const Value('default'),
         name: Value(shop.name),
@@ -54,6 +62,8 @@ class ShopRepositoryDriftImpl implements ShopRepository {
         phoneNumber: Value(shop.phoneNumber),
         footerText: Value(shop.footerText),
         currencySymbol: Value(shop.currencySymbol),
+        updatedAt: Value(stamp.hlc),
+        originDevice: Value(stamp.device),
       ));
       return const Right(null);
     } catch (e) {

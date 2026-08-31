@@ -110,22 +110,34 @@ class ProductUnitsDao extends DatabaseAccessor<AppDatabase>
       });
 
   /// Change a unit's status (e.g. mark defective) and re-sync, atomically.
-  Future<void> updateStatus(String id, String status) => transaction(() async {
+  Future<void> updateStatus(String id, String status, SyncStamp stamp) =>
+      transaction(() async {
         final row = await (select(productUnits)
               ..where((u) => u.id.equals(id) & u.deletedAt.equals('')))
             .getSingleOrNull();
         if (row == null) return;
         await (update(productUnits)..where((u) => u.id.equals(id)))
-            .write(ProductUnitsCompanion(status: Value(status)));
+            .write(ProductUnitsCompanion(
+          status: Value(status),
+          // A status change is an edit, so it has to be stamped or it never
+          // leaves this phone — a handset marked returned here would still
+          // read as sold on the other till.
+          updatedAt: Value(stamp.hlc),
+          originDevice: Value(stamp.device),
+        ));
         await _syncQuantity(row.productId);
       });
 
   /// Set a unit's warranty expiry (ms since epoch; 0 clears it). Does not touch
   /// stock, so no re-sync is needed.
-  Future<void> setWarranty(String id, int warrantyUntil) =>
+  Future<void> setWarranty(String id, int warrantyUntil, SyncStamp stamp) =>
       (update(productUnits)
             ..where((u) => u.id.equals(id) & u.deletedAt.equals('')))
-          .write(ProductUnitsCompanion(warrantyUntil: Value(warrantyUntil)));
+          .write(ProductUnitsCompanion(
+        warrantyUntil: Value(warrantyUntil),
+        updatedAt: Value(stamp.hlc),
+        originDevice: Value(stamp.device),
+      ));
 
   /// Mark units sold as part of a sale.
   ///

@@ -100,17 +100,29 @@ class AttributesDao extends DatabaseAccessor<AppDatabase>
     required String jsonPath,
     required String from,
     required String to,
+    required SyncStamp stamp,
   }) {
     return transaction(() async {
       await (update(attributeDefinitions)
             ..where((t) => t.id.equals(definitionId)))
-          .write(AttributeDefinitionsCompanion(options: Value(newOptionsJson)));
+          .write(AttributeDefinitionsCompanion(
+        options: Value(newOptionsJson),
+        updatedAt: Value(stamp.hlc),
+        originDevice: Value(stamp.device),
+      ));
+        // Both the definition and every product row it rewrites are stamped.
+        // A bulk rewrite is still an edit: unstamped, the renamed values sit
+        // below the push watermark and the other till keeps showing the old
+        // option forever, with nothing having failed.
       return customUpdate(
-        'UPDATE products SET attributes = json_set(attributes, ?, ?) '
+        'UPDATE products SET attributes = json_set(attributes, ?, ?), '
+        'updated_at = ?, origin_device = ? '
         'WHERE json_valid(attributes) AND json_extract(attributes, ?) = ?',
         variables: [
           Variable.withString(jsonPath),
           Variable.withString(to),
+          Variable.withString(stamp.hlc),
+          Variable.withString(stamp.device),
           Variable.withString(jsonPath),
           Variable.withString(from),
         ],
@@ -131,22 +143,34 @@ class AttributesDao extends DatabaseAccessor<AppDatabase>
     required String newOptionsJson,
     required String jsonPath,
     required String value,
+    required SyncStamp stamp,
   }) {
     return transaction(() async {
       await (update(attributeDefinitions)
             ..where((t) => t.id.equals(definitionId)))
-          .write(AttributeDefinitionsCompanion(options: Value(newOptionsJson)));
+          .write(AttributeDefinitionsCompanion(
+        options: Value(newOptionsJson),
+        updatedAt: Value(stamp.hlc),
+        originDevice: Value(stamp.device),
+      ));
       // Collapse a bag that ends up empty back to '' rather than '{}', so the
       // column keeps the single "no attributes" representation the entity
       // writes (ProductAttributes.toJson).
+        // Both the definition and every product row it rewrites are stamped.
+        // A bulk rewrite is still an edit: unstamped, the renamed values sit
+        // below the push watermark and the other till keeps showing the old
+        // option forever, with nothing having failed.
       return customUpdate(
         "UPDATE products SET attributes = "
         "CASE WHEN json_remove(attributes, ?) = '{}' THEN '' "
-        "     ELSE json_remove(attributes, ?) END "
+        "     ELSE json_remove(attributes, ?) END, "
+        'updated_at = ?, origin_device = ? '
         'WHERE json_valid(attributes) AND json_extract(attributes, ?) = ?',
         variables: [
           Variable.withString(jsonPath),
           Variable.withString(jsonPath),
+          Variable.withString(stamp.hlc),
+          Variable.withString(stamp.device),
           Variable.withString(jsonPath),
           Variable.withString(value),
         ],

@@ -36,7 +36,8 @@ class AttributeDefinitionRepositoryDriftImpl
         isArchived: row.isArchived,
       );
 
-  static AttributeDefinitionsCompanion _toCompanion(AttributeDefinition d) =>
+  static AttributeDefinitionsCompanion _toCompanion(
+          AttributeDefinition d, SyncStamp stamp) =>
       AttributeDefinitionsCompanion(
         id: Value(d.id),
         label: Value(d.label),
@@ -48,6 +49,10 @@ class AttributeDefinitionRepositoryDriftImpl
         showOnReceipt: Value(d.showOnReceipt),
         sortOrder: Value(d.sortOrder),
         isArchived: Value(d.isArchived),
+        // The sync stamp: without it `updated_at` stays '' and the row is
+        // never pushed. See the note in ProductRepositoryDriftImpl.
+        updatedAt: Value(stamp.hlc),
+        originDevice: Value(stamp.device),
       );
 
   /// The stored form of an option list — `''` for none, matching what
@@ -86,7 +91,7 @@ class AttributeDefinitionRepositoryDriftImpl
   @override
   Future<Either<Failure, void>> save(AttributeDefinition definition) async {
     try {
-      await _dao.upsert(_toCompanion(definition));
+      await _dao.upsert(_toCompanion(definition, await _clock.stamp()));
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
@@ -97,7 +102,10 @@ class AttributeDefinitionRepositoryDriftImpl
   Future<Either<Failure, void>> saveAll(
       List<AttributeDefinition> definitions) async {
     try {
-      await _dao.insertAll(definitions.map(_toCompanion).toList());
+      // One stamp for the whole template: they are applied as a single act.
+      final stamp = await _clock.stamp();
+      await _dao
+          .insertAll(definitions.map((d) => _toCompanion(d, stamp)).toList());
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
@@ -134,6 +142,7 @@ class AttributeDefinitionRepositoryDriftImpl
         jsonPath: attributeJsonPath(definitionId),
         from: from,
         to: target,
+        stamp: await _clock.stamp(),
       ));
     } catch (e) {
       return Left(CacheFailure(e.toString()));
@@ -156,6 +165,7 @@ class AttributeDefinitionRepositoryDriftImpl
             _encodeOptions(removeOptionFromList(def.options, value)),
         jsonPath: attributeJsonPath(definitionId),
         value: value,
+        stamp: await _clock.stamp(),
       ));
     } catch (e) {
       return Left(CacheFailure(e.toString()));

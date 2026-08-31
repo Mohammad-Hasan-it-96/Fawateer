@@ -36,6 +36,7 @@ class CashboxRepositoryDriftImpl implements CashboxRepository {
       // but we don't want raw float noise accumulating in a running balance).
       // The idiom works for negative amounts too.
       final amount = (tx.amount * 100).roundToDouble() / 100;
+      final stamp = await _clock.stamp();
       await _dao.insertTransaction(CashboxTransactionsCompanion(
         id: Value(tx.id),
         type: Value(tx.type.name),
@@ -44,6 +45,16 @@ class CashboxRepositoryDriftImpl implements CashboxRepository {
         relatedId: Value(tx.relatedId),
         occurredAt: Value(tx.occurredAt.millisecondsSinceEpoch),
         createdAt: Value(tx.createdAt.millisecondsSinceEpoch),
+
+        // **The sync stamp, on every write.** Without it `updated_at` stays ''
+        // — the "predates sync, never push me" marker — so the row is silently
+        // invisible to `SyncDao.collectSince` and never leaves this phone. That
+        // was the shipped state: deletes and sales were stamped, ordinary
+        // creates and edits were not, so a shop could add a product on one till
+        // and watch the other till never hear about it while every screen
+        // reported success (found in a two-phone field test, 2026-09-01).
+        updatedAt: Value(stamp.hlc),
+        originDevice: Value(stamp.device),
       ));
       return const Right(null);
     } catch (e) {

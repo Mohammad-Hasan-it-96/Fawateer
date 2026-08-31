@@ -281,6 +281,83 @@ void main() {
     });
   });
 
+  group('an ordinary create or edit replicates', () {
+    // The hole this closes: Phase 0 stamped the TOMBSTONES and the sale path
+    // and nothing else, so `products`, `customers`, `shop_settings`,
+    // `attribute_definitions` and `product_units` were written with
+    // `updated_at = ''` — the "predates sync, never push me" marker. Every one
+    // of them was therefore invisible to `collectSince` forever.
+    //
+    // It was invisible to this suite too, because every existing test seeds its
+    // fixtures through `addProduct` below, which stamps by hand. Real code went
+    // through the repositories, which did not. Found in the field on
+    // 2026-09-01: a product added on one till never appeared on the other,
+    // while both screens reported success and "sent 0" read as "nothing to
+    // send".
+    //
+    // These assert the DATA, not the counts. "sent 1" was the misleading part
+    // of the report — a sale's stock movement was stamped and travelled, so the
+    // numbers looked alive while the catalogue never moved.
+
+    Future<Set<String>> productIdsOn(TestDevice d) async => (await d.db
+            .customSelect("SELECT id FROM products WHERE deleted_at = ''")
+            .get())
+        .map((r) => r.data['id'].toString())
+        .toSet();
+
+    test('a product added through the repository reaches the other phone',
+        () async {
+      await a.db.productsDao.createProduct(ProductsCompanion.insert(
+        id: 'p-new',
+        name: 'شاي',
+        price: 1500,
+        updatedAt: Value((await a.clock.stamp()).hlc),
+        originDevice: Value((await a.clock.stamp()).device),
+      ));
+
+      await settle();
+
+      expect(await productIdsOn(b), contains('p-new'));
+    });
+
+    test('an unstamped row is the bug, and stays put', () async {
+      // The counter-test. Without it the one above passes for the wrong reason
+      // — it would pass even if `collectSince` ignored the stamp entirely.
+      await a.db.productsDao.createProduct(ProductsCompanion.insert(
+        id: 'p-unstamped',
+        name: 'قهوة',
+        price: 1500,
+      ));
+
+      await settle();
+
+      expect(await productIdsOn(b), isNot(contains('p-unstamped')),
+          reason: "updated_at = '' means 'predates sync' — by design");
+    });
+
+    test('an edit to an existing product travels as well as its creation',
+        () async {
+      await addProduct(a, 'p1', 'رز', qty: 5);
+      await settle();
+      expect(await nameOf(b, 'p1'), 'رز');
+
+      final stamp = await a.clock.stamp();
+      await a.db.productsDao.insertProduct(ProductsCompanion(
+        id: const Value('p1'),
+        name: const Value('رز بسمتي'),
+        price: const Value(2000),
+        updatedAt: Value(stamp.hlc),
+        originDevice: Value(stamp.device),
+      ));
+
+      await settle();
+
+      expect(await nameOf(b, 'p1'), 'رز بسمتي',
+          reason: 'an edit that does not travel is a price the other till '
+              'keeps selling at');
+    });
+  });
+
   group('a relayed null never wedges the device', () {
     // evotech-core runs Laravel's default `ConvertEmptyStringsToNull`
     // middleware, which rewrites every empty string in a request to null —

@@ -52,6 +52,11 @@ class LedgerRepositoryDriftImpl implements LedgerRepository {
       // but we don't want raw float noise accumulating in a running balance).
       final amount = (entry.amount * 100).roundToDouble() / 100;
       final isPayment = entry.type == LedgerEntryType.payment;
+      // One stamp for the whole act, exactly as `deleteEntry` takes one for
+      // the entry and its reversal: a repayment and the cash it put in the
+      // drawer are the same event, and giving them different positions would
+      // be a lie the merge could act on.
+      final stamp = await _clock.stamp();
       final ledgerCompanion = LedgerEntriesCompanion(
         id: Value(entry.id),
         customerId: Value(entry.customerId),
@@ -60,6 +65,10 @@ class LedgerRepositoryDriftImpl implements LedgerRepository {
         amount: Value(amount),
         note: Value(entry.note),
         createdAt: Value(entry.createdAt.millisecondsSinceEpoch),
+        // The sync stamp: without it `updated_at` stays '' and the row is
+        // never pushed. See the note in ProductRepositoryDriftImpl.
+        updatedAt: Value(stamp.hlc),
+        originDevice: Value(stamp.device),
       );
 
       if (isPayment) {
@@ -78,6 +87,8 @@ class LedgerRepositoryDriftImpl implements LedgerRepository {
             relatedId: Value(entry.id),
             occurredAt: Value(entry.createdAt.millisecondsSinceEpoch),
             createdAt: Value(entry.createdAt.millisecondsSinceEpoch),
+            updatedAt: Value(stamp.hlc),
+            originDevice: Value(stamp.device),
           ));
         });
       } else {

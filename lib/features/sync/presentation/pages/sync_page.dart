@@ -498,50 +498,10 @@ class _SyncPageState extends State<SyncPage> {
   Future<void> _promptForCode(
       BuildContext context, AppLocalizations l10n) async {
     final bloc = context.read<SyncBloc>();
-    final controller = TextEditingController();
     final code = await showDialog<String>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text(l10n.syncEnterCodeTitle),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: controller,
-              autofocus: true,
-              decoration: InputDecoration(labelText: l10n.syncEnterCodeLabel),
-              textDirection: TextDirection.ltr,
-            ),
-            const SizedBox(height: 12),
-            // Reuses the existing top-level scanner route, the same one the
-            // product pages push for a barcode.
-            TextButton.icon(
-              icon: const Icon(Icons.qr_code_scanner),
-              label: Text(l10n.syncEnterCodeScan),
-              onPressed: () async {
-                final scanned =
-                    await dialogContext.push<String>('/scanner');
-                if (scanned != null && scanned.isNotEmpty) {
-                  controller.text = scanned;
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(),
-            child: Text(MaterialLocalizations.of(dialogContext).cancelButtonLabel),
-          ),
-          FilledButton(
-            onPressed: () =>
-                Navigator.of(dialogContext).pop(controller.text.trim()),
-            child: Text(l10n.syncEnterCodeConfirm),
-          ),
-        ],
-      ),
+      builder: (_) => _JoinCodeDialog(l10n: l10n),
     );
-    controller.dispose();
     if (code != null && code.isNotEmpty) bloc.add(JoinWithToken(code));
   }
 
@@ -917,4 +877,92 @@ class _QrPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_QrPainter oldDelegate) => oldDelegate.data != data;
+}
+
+/// The "type or scan a join code" dialog.
+///
+/// **A StatefulWidget purely so the controller outlives the dialog's exit
+/// animation.** It used to be a closure that created a `TextEditingController`,
+/// awaited `showDialog`, and disposed it on the next line. That is wrong by one
+/// frame: `showDialog`'s future completes when `pop` is *called*, while the
+/// route is still animating out and still rebuilding its subtree — so the
+/// `TextField` reattaches a listener to a controller that has just been
+/// disposed. On a real phone that threw
+/// `A TextEditingController was used after being disposed` mid-frame, and
+/// because the throw happened during `build`, the rest of the frame unwound
+/// into a cascade that had nothing to do with the cause: a RenderFlex
+/// overflowing by 99775 pixels, `_dependents.isEmpty` failing in the go_router
+/// Navigator, and duplicate `GlobalKey`s — the red screen the joining phone
+/// showed after scanning.
+///
+/// The join survived it, which is what made it so confusing: the enroll request
+/// had already gone out, so closing and reopening the app showed a correctly
+/// linked phone.
+///
+/// Owning the controller in a State fixes it at the root: `dispose` runs when
+/// the element is unmounted, which is after the animation, by construction.
+class _JoinCodeDialog extends StatefulWidget {
+  const _JoinCodeDialog({required this.l10n});
+
+  final AppLocalizations l10n;
+
+  @override
+  State<_JoinCodeDialog> createState() => _JoinCodeDialogState();
+}
+
+class _JoinCodeDialogState extends State<_JoinCodeDialog> {
+  final _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = widget.l10n;
+    return AlertDialog(
+      title: Text(l10n.syncEnterCodeTitle),
+      // Scrollable: the code field autofocuses, so the keyboard is up
+      // immediately and a short phone has very little dialog height left.
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _controller,
+              autofocus: true,
+              decoration: InputDecoration(labelText: l10n.syncEnterCodeLabel),
+              // An opaque ASCII code reordered by the Arabic layout gets typed
+              // back in wrongly — the same reason the owner's code renders LTR.
+              textDirection: TextDirection.ltr,
+            ),
+            const SizedBox(height: 12),
+            // Reuses the existing top-level scanner route, the same one the
+            // product pages push for a barcode.
+            TextButton.icon(
+              icon: const Icon(Icons.qr_code_scanner),
+              label: Text(l10n.syncEnterCodeScan),
+              onPressed: () async {
+                final scanned = await context.push<String>('/scanner');
+                if (!mounted || scanned == null || scanned.isEmpty) return;
+                _controller.text = scanned;
+              },
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(MaterialLocalizations.of(context).cancelButtonLabel),
+        ),
+        FilledButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
+          child: Text(l10n.syncEnterCodeConfirm),
+        ),
+      ],
+    );
+  }
 }

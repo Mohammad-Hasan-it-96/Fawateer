@@ -43,7 +43,8 @@ class ProductRepositoryDriftImpl implements ProductRepository {
   /// number the form was showing — the last-write-wins scalar the movement log
   /// exists to eliminate — and would silently erase any sale made while the
   /// edit screen was open.
-  static ProductsCompanion _toCompanion(Product p) => ProductsCompanion(
+  static ProductsCompanion _toCompanion(Product p, SyncStamp stamp) =>
+      ProductsCompanion(
         id: Value(p.id),
         name: Value(p.name),
         barcode: Value(p.barcode),
@@ -54,6 +55,16 @@ class ProductRepositoryDriftImpl implements ProductRepository {
         priceCurrency: Value(p.priceCurrency.name),
         attributes: Value(p.attributes.toJson()),
         isSerialized: Value(p.isSerialized),
+
+        // **The sync stamp, on every write.** Without it `updated_at` stays ''
+        // — the "predates sync, never push me" marker — so the row is silently
+        // invisible to `SyncDao.collectSince` and never leaves this phone. That
+        // was the shipped state: deletes and sales were stamped, ordinary
+        // creates and edits were not, so a shop could add a product on one till
+        // and watch the other till never hear about it while every screen
+        // reported success (found in a two-phone field test, 2026-09-01).
+        updatedAt: Value(stamp.hlc),
+        originDevice: Value(stamp.device),
       );
 
   // ── repository interface ──────────────────────────────────────────────────
@@ -102,7 +113,7 @@ class ProductRepositoryDriftImpl implements ProductRepository {
   @override
   Future<Either<Failure, void>> addProduct(Product product) async {
     try {
-      await _dao.createProduct(_toCompanion(product));
+      await _dao.createProduct(_toCompanion(product, await _clock.stamp()));
       // Whatever stock the owner typed on the add form becomes the product's
       // opening balance — an event, so a second device adding the same product
       // offline contributes its own movement instead of overwriting this one.
@@ -121,7 +132,8 @@ class ProductRepositoryDriftImpl implements ProductRepository {
   @override
   Future<Either<Failure, void>> updateProduct(Product product) async {
     try {
-      await _dao.insertProduct(_toCompanion(product)); // insertOrReplace
+      await _dao.insertProduct(
+          _toCompanion(product, await _clock.stamp())); // insertOrReplace
       // The edit form's quantity field is a *correction*, recorded as the
       // difference from what the log currently says. Serialized products send
       // their unchanged on-hand (the field is read-only for them), so this is a

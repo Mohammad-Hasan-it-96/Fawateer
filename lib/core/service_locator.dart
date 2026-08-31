@@ -215,7 +215,7 @@ Future<void> init() async {
       () => ProductRepositoryDriftImpl(
           sl(), sl<StockDao>(), sl<SyncClock>()));
   sl.registerLazySingleton<ShopRepository>(
-      () => ShopRepositoryDriftImpl(sl()));
+      () => ShopRepositoryDriftImpl(sl(), sl()));
   sl.registerLazySingleton<PrinterRepository>(
       () => PrinterRepositoryDriftImpl(sl()));
   sl.registerLazySingleton<InvoiceRepository>(

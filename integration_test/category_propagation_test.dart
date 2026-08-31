@@ -76,6 +76,7 @@ void main() {
       jsonPath: path,
       from: 'مشروبات',
       to: 'عصائر',
+      stamp: await clock.stamp(),
     );
 
     expect(moved, 2);
@@ -95,6 +96,7 @@ void main() {
       jsonPath: path,
       from: 'مشروبات',
       to: 'عصائر',
+      stamp: await clock.stamp(),
     );
 
     final bag = await attrOf('p2');
@@ -108,6 +110,7 @@ void main() {
       newOptionsJson: '["ألبان","تنظيف"]',
       jsonPath: path,
       value: 'مشروبات',
+      stamp: await clock.stamp(),
     );
 
     expect(cleared, 2);
@@ -194,4 +197,40 @@ void main() {
     // cannot pass while the app queries a different key shape.
     expect(attributeJsonPath(kCategoryFieldId), path);
   });
+
+  testWidgets('a bulk rewrite stamps the rows it touches, or it never travels',
+      (tester) async {
+    // Plan 002: a row whose `updated_at` is still '' is invisible to
+    // SyncDao.collectSince by design — it "predates sync". So an unstamped bulk
+    // rewrite renames the option on this phone and the other till keeps showing
+    // the old one forever, with nothing having failed. Same trap as the
+    // ordinary create/update paths, which shipped unstamped and were fixed on
+    // 2026-09-01.
+    await attributes.renameOptionEverywhere(
+      definitionId: 'category',
+      newOptionsJson: '["عصائر"]',
+      jsonPath: path,
+      from: 'مشروبات',
+      to: 'عصائر',
+      stamp: await clock.stamp(),
+    );
+
+    final rows = await db
+        .customSelect("SELECT updated_at, origin_device FROM products "
+            "WHERE id IN ('p1','p2')")
+        .get();
+    expect(rows.length, 2);
+    for (final r in rows) {
+      expect(r.data['updated_at'], isNotEmpty,
+          reason: 'an unstamped row is never pushed');
+      expect(r.data['origin_device'], 'testnode00000001');
+    }
+
+    final def = await db
+        .customSelect("SELECT updated_at FROM attribute_definitions "
+            "WHERE id = 'category'")
+        .getSingle();
+    expect(def.data['updated_at'], isNotEmpty);
+  });
+
 }

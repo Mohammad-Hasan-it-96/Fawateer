@@ -33,7 +33,7 @@ class ProductUnitRepositoryDriftImpl implements ProductUnitRepository {
         createdAt: DateTime.fromMillisecondsSinceEpoch(row.createdAt),
       );
 
-  static ProductUnitsCompanion _toCompanion(ProductUnit u) =>
+  static ProductUnitsCompanion _toCompanion(ProductUnit u, SyncStamp stamp) =>
       ProductUnitsCompanion(
         id: Value(u.id),
         productId: Value(u.productId),
@@ -44,6 +44,10 @@ class ProductUnitRepositoryDriftImpl implements ProductUnitRepository {
         warrantyUntil: Value(u.warrantyUntil?.millisecondsSinceEpoch ?? 0),
         note: Value(u.note),
         createdAt: Value(u.createdAt.millisecondsSinceEpoch),
+        // The sync stamp: without it `updated_at` stays '' and the row is
+        // never pushed. See the note in ProductRepositoryDriftImpl.
+        updatedAt: Value(stamp.hlc),
+        originDevice: Value(stamp.device),
       );
 
   /// True when [e] is SQLite refusing a duplicate serial — the partial unique
@@ -101,7 +105,7 @@ class ProductUnitRepositoryDriftImpl implements ProductUnitRepository {
       if (serial.isNotEmpty && await _dao.getBySerial(serial) != null) {
         return const Left(DuplicateFailure('duplicate_serial'));
       }
-      await _dao.insertUnit(_toCompanion(unit));
+      await _dao.insertUnit(_toCompanion(unit, await _clock.stamp()));
       return const Right(null);
     } catch (e) {
       // A duplicate serial is an expected outcome the cashier must be told
@@ -135,7 +139,7 @@ class ProductUnitRepositoryDriftImpl implements ProductUnitRepository {
   @override
   Future<Either<Failure, void>> setStatus(String id, UnitStatus status) async {
     try {
-      await _dao.updateStatus(id, status.name);
+      await _dao.updateStatus(id, status.name, await _clock.stamp());
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
@@ -145,7 +149,8 @@ class ProductUnitRepositoryDriftImpl implements ProductUnitRepository {
   @override
   Future<Either<Failure, void>> setWarranty(String id, DateTime? until) async {
     try {
-      await _dao.setWarranty(id, until?.millisecondsSinceEpoch ?? 0);
+      await _dao.setWarranty(
+          id, until?.millisecondsSinceEpoch ?? 0, await _clock.stamp());
       return const Right(null);
     } catch (e) {
       return Left(CacheFailure(e.toString()));
