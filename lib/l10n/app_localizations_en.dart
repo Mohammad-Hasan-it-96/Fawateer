@@ -1410,6 +1410,33 @@ class AppLocalizationsEn extends AppLocalizations {
       'Important: this shop was rolled back to an earlier copy. Your other phones still show the old data, so link them again from Devices & sync.';
 
   @override
+  String get welcomeTitle => 'Welcome to Fawateer';
+
+  @override
+  String get welcomeSubtitle => 'Before we start, tell us about this phone.';
+
+  @override
+  String get welcomeCreateTitle => 'A new shop';
+
+  @override
+  String get welcomeCreateSubtitle =>
+      'This is the shop\'s first phone. We\'ll register it and start fresh.';
+
+  @override
+  String get welcomeJoinTitle => 'Link to an existing shop';
+
+  @override
+  String get welcomeJoinSubtitle =>
+      'The shop already has a phone running, and this is another one for it.';
+
+  @override
+  String get joinShopHowTo =>
+      'On the main phone: Settings > Devices & sync > Add a phone. It will show a QR code and a written code.';
+
+  @override
+  String get joinShopOrType => 'or type the code';
+
+  @override
   String get backupLinkedPhoneNotice =>
       'Backups are made by the main phone only. This phone can restore, but does not create backups — so the shop keeps one clear backup history.';
 

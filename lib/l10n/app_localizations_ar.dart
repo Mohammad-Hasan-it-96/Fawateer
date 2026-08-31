@@ -1398,6 +1398,33 @@ class AppLocalizationsAr extends AppLocalizations {
       'مهم: هذا المحل عاد إلى نسخة سابقة. الهواتف الأخرى ما زالت تعرض البيانات القديمة، لذلك اربطها من جديد من إعدادات الأجهزة والمزامنة.';
 
   @override
+  String get welcomeTitle => 'أهلاً بك في فواتير';
+
+  @override
+  String get welcomeSubtitle => 'قبل أن نبدأ، أخبرنا عن هذا الهاتف.';
+
+  @override
+  String get welcomeCreateTitle => 'محل جديد';
+
+  @override
+  String get welcomeCreateSubtitle =>
+      'هذا أول هاتف للمحل. سنسجّله ونبدأ من جديد.';
+
+  @override
+  String get welcomeJoinTitle => 'ربط بمحل موجود';
+
+  @override
+  String get welcomeJoinSubtitle =>
+      'لدى المحل هاتف يعمل بالفعل، وهذا هاتف إضافي له.';
+
+  @override
+  String get joinShopHowTo =>
+      'على الهاتف الرئيسي: الإعدادات ← الأجهزة والمزامنة ← إضافة هاتف. سيظهر لك رمز QR ورمز مكتوب.';
+
+  @override
+  String get joinShopOrType => 'أو اكتب الرمز';
+
+  @override
   String get backupLinkedPhoneNotice =>
       'النسخ الاحتياطي يتم من الهاتف الرئيسي فقط. هذا الهاتف يستطيع الاستعادة، لكنه لا ينشئ نسخاً — حتى تبقى للمحل نسخة واحدة واضحة.';
 

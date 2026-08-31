@@ -36,10 +36,26 @@ away from the action that caused it.
 
 WHAT WE THINK IS RIGHT
 
-`enroll()` links the joining device the same way `onboardOwner()` links the
+DECIDED ON OUR SIDE, 2026-09-01: the owner's subscription covers the seats.
+
+`enroll()` should link the joining device the way `onboardOwner()` links the
 owner: set `device_subscriptions.business_id`, and let `check_device` answer
 from the business's subscription state (expiry, plan, verification) for any
-device holding an active, non-revoked seat. Then:
+device holding an active, non-revoked seat.
+
+**Please CREATE the `device_subscriptions` row when it is absent**, rather than
+only linking an existing one. This is the part that matters for a brand-new
+handset, and it is not a detail: `create_device` validates `phone` as
+`required`, so a phone that has never been registered cannot get a row without
+asking its user for a name and a number. On a joining device we have neither
+and should not invent them — the shop is already registered, by the owner. The
+enrol request carries `device_id`, `app_name` and the proposed device name,
+which is everything the row needs.
+
+Without that, the first-run "join a shop" screen has to send the user through
+the registration form first, which is exactly the detour it exists to remove.
+
+Then:
 
   - the allowance is the only thing that limits seats, which is what the tiers
     are already sold on;

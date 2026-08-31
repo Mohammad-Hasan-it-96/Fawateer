@@ -2709,6 +2709,54 @@ abstract class AppLocalizations {
   /// **'Important: this shop was rolled back to an earlier copy. Your other phones still show the old data, so link them again from Devices & sync.'**
   String get backupRestartRelinkNote;
 
+  /// First-run screen title, shown before registration.
+  ///
+  /// In en, this message translates to:
+  /// **'Welcome to Fawateer'**
+  String get welcomeTitle;
+
+  /// First-run screen subtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Before we start, tell us about this phone.'**
+  String get welcomeSubtitle;
+
+  /// First-run choice: this is the shop's first phone.
+  ///
+  /// In en, this message translates to:
+  /// **'A new shop'**
+  String get welcomeCreateTitle;
+
+  /// Explains the 'new shop' choice.
+  ///
+  /// In en, this message translates to:
+  /// **'This is the shop\'s first phone. We\'ll register it and start fresh.'**
+  String get welcomeCreateSubtitle;
+
+  /// First-run choice: this is an extra phone for a shop that already uses Fawateer.
+  ///
+  /// In en, this message translates to:
+  /// **'Link to an existing shop'**
+  String get welcomeJoinTitle;
+
+  /// Explains the 'link to existing shop' choice.
+  ///
+  /// In en, this message translates to:
+  /// **'The shop already has a phone running, and this is another one for it.'**
+  String get welcomeJoinSubtitle;
+
+  /// Tells the user where the join code comes from. Without it they are looking at a field for something they have never seen.
+  ///
+  /// In en, this message translates to:
+  /// **'On the main phone: Settings > Devices & sync > Add a phone. It will show a QR code and a written code.'**
+  String get joinShopHowTo;
+
+  /// Divider between the scan button and the manual code field.
+  ///
+  /// In en, this message translates to:
+  /// **'or type the code'**
+  String get joinShopOrType;
+
   /// Shown on the Backup page of a linked (non-owner) phone in place of the backup actions. Restore stays available.
   ///
   /// In en, this message translates to:

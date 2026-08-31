@@ -23,6 +23,8 @@ import '../../features/licensing/presentation/pages/splash_page.dart';
 import '../../features/licensing/presentation/pages/subscription_plans_page.dart';
 import '../../features/licensing/presentation/pages/subscription_status_page.dart';
 import '../../features/licensing/presentation/pages/verification_required_page.dart';
+import '../../features/licensing/presentation/pages/welcome_page.dart';
+import '../../features/sync/presentation/pages/join_shop_page.dart';
 import '../../features/product/domain/entities/product.dart';
 import '../../features/product/domain/product_stock_filter.dart';
 import '../../features/product/presentation/pages/add_product_page.dart';
@@ -52,18 +54,26 @@ final _licenseBloc = sl<LicenseBloc>();
 final rootNavigatorKey = GlobalKey<NavigatorState>();
 
 /// The activation-flow screens (reachable while unlicensed).
+/// The first-run fork: new shop, or another phone for an existing one.
+/// Reached only by a device that has never registered — once it has, the
+/// question is already answered.
+const _welcome = '/welcome';
 const _activationForm = '/activation'; // name/phone → create_device
 const _activationPlans = '/activation/plans'; // pick a plan → contact support
 const _activationVerify = '/activation/verify'; // offline/tamper → reconnect
 
-final router = GoRouter(
-  navigatorKey: rootNavigatorKey,
-  initialLocation: '/pos',
-  // Re-run [redirect] whenever the license state changes.
-  refreshListenable: _LicenseGateListenable(_licenseBloc.stream),
-  redirect: (context, state) {
-    final license = _licenseBloc.state;
-    final loc = state.matchedLocation;
+/// The licence gate's decision, as a pure function of the licence state and
+/// where the user currently is.
+///
+/// Lifted out of the `GoRouter` closure so it can be tested. This is the app's
+/// front door — it decides, on every navigation and on every licence state
+/// change, whether a shopkeeper can reach their till at all — and until now the
+/// only way to exercise it was to run the app. A wrong branch here does not
+/// throw; it silently strands someone on a screen, which is exactly the failure
+/// the first-run fork introduced a new way to hit.
+///
+/// Returns null to stay put, or the location to go to.
+String? licenseGateRedirect(LicenseState license, String loc) {
 
     // 1. Before the first check resolves → hold on the splash.
     if (!license.bootstrapped) {
@@ -72,7 +82,11 @@ final router = GoRouter(
 
     // 2. Active subscription → into the app; never sit on a gate screen.
     if (license.isActive) {
-      if (loc == '/splash' || loc.startsWith('/activation')) return '/pos';
+      if (loc == '/splash' ||
+          loc.startsWith('/activation') ||
+          loc.startsWith(_welcome)) {
+        return '/pos';
+      }
       return null;
     }
 
@@ -93,7 +107,18 @@ final router = GoRouter(
     //      collects the details and calls `create_device`.
     //    - registered but unverified → the plan catalogue, where the user picks
     //      a plan and contacts support (WhatsApp / email / Telegram).
-    final target = license.registered ? _activationPlans : _activationForm;
+    // The first-run fork owns the whole flow while the user is inside it —
+    // including the moment a join succeeds, when the licence state has not
+    // caught up yet and the bare `registered` check below would yank the
+    // shopkeeper onto the registration form mid-restore.
+    if (loc.startsWith(_welcome)) return null;
+
+    // A device that has never registered is asked the fork question first. It
+    // is not the activation form's job to guess: for the shop's second phone
+    // the form asks for a name and a number that the owner has already given
+    // once, and then drops them into an empty shop they have to go and link by
+    // hand from Settings.
+    final target = license.registered ? _activationPlans : _welcome;
 
     // Let the activation flow's own screens stay put, but move a registered user
     // off the bare name form onto plan selection (unless a request is in flight,
@@ -107,12 +132,36 @@ final router = GoRouter(
       return null;
     }
     return target;
-  },
+}
+
+final router = GoRouter(
+  navigatorKey: rootNavigatorKey,
+  initialLocation: '/pos',
+  // Re-run [redirect] whenever the license state changes.
+  refreshListenable: _LicenseGateListenable(_licenseBloc.stream),
+  redirect: (context, state) =>
+      licenseGateRedirect(_licenseBloc.state, state.matchedLocation),
   routes: [
     // Licensing gate (top-level, outside the tab shell).
     GoRoute(
       path: '/splash',
       builder: (context, state) => const SplashPage(),
+    ),
+    GoRoute(
+      path: _welcome,
+      builder: (context, state) => const WelcomePage(),
+      routes: [
+        GoRoute(
+          path: 'join',
+          // Scopes its own SyncBloc, exactly as `/settings/sync` does — the
+          // enrollment state belongs to this screen and nothing outside it
+          // should pay for a listener.
+          builder: (context, state) => BlocProvider(
+            create: (_) => sl<SyncBloc>(),
+            child: const JoinShopPage(),
+          ),
+        ),
+      ],
     ),
     GoRoute(
       path: '/activation',
