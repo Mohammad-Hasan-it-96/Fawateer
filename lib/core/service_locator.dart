@@ -248,8 +248,8 @@ Future<void> init() async {
           // Registered further down, but these are lazy singletons: the closure
           // resolves on first access, not here.
           sl<LicenseRepository>()));
-  sl.registerLazySingleton<AutoBackupService>(
-      () => AutoBackupService(sl<BackupRepository>(), sl<SettingsDao>()));
+  sl.registerLazySingleton<AutoBackupService>(() => AutoBackupService(
+      sl<BackupRepository>(), sl<SettingsDao>(), sl<SyncCredentialStore>()));
   // Watches the product stream for products crossing their alert level
   // (Plan 013 #10). Singleton: it holds the stream subscription, and a second
   // instance would double every alert.

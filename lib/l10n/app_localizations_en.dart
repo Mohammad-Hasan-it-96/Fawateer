@@ -1406,6 +1406,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backupNowButton => 'Back up now';
 
   @override
+  String get backupRestartRelinkNote =>
+      'Important: this shop was rolled back to an earlier copy. Your other phones still show the old data, so link them again from Devices & sync.';
+
+  @override
+  String get backupLinkedPhoneNotice =>
+      'Backups are made by the main phone only. This phone can restore, but does not create backups — so the shop keeps one clear backup history.';
+
+  @override
   String get backupAutoTitle => 'Automatic daily backup';
 
   @override

@@ -1394,6 +1394,14 @@ class AppLocalizationsAr extends AppLocalizations {
   String get backupNowButton => 'أنشئ نسخة الآن';
 
   @override
+  String get backupRestartRelinkNote =>
+      'مهم: هذا المحل عاد إلى نسخة سابقة. الهواتف الأخرى ما زالت تعرض البيانات القديمة، لذلك اربطها من جديد من إعدادات الأجهزة والمزامنة.';
+
+  @override
+  String get backupLinkedPhoneNotice =>
+      'النسخ الاحتياطي يتم من الهاتف الرئيسي فقط. هذا الهاتف يستطيع الاستعادة، لكنه لا ينشئ نسخاً — حتى تبقى للمحل نسخة واحدة واضحة.';
+
+  @override
   String get backupAutoTitle => 'نسخ احتياطي تلقائي يومي';
 
   @override

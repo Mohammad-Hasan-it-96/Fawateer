@@ -2703,6 +2703,18 @@ abstract class AppLocalizations {
   /// **'Back up now'**
   String get backupNowButton;
 
+  /// Added to the restart dialog after a successful restore, only when this phone shares its shop with others. A restored row predates sync and never replicates, so the other phones must be reseeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Important: this shop was rolled back to an earlier copy. Your other phones still show the old data, so link them again from Devices & sync.'**
+  String get backupRestartRelinkNote;
+
+  /// Shown on the Backup page of a linked (non-owner) phone in place of the backup actions. Restore stays available.
+  ///
+  /// In en, this message translates to:
+  /// **'Backups are made by the main phone only. This phone can restore, but does not create backups — so the shop keeps one clear backup history.'**
+  String get backupLinkedPhoneNotice;
+
   /// No description provided for @backupAutoTitle.
   ///
   /// In en, this message translates to:

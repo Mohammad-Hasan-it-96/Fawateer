@@ -13,6 +13,7 @@ import '../../domain/entities/sync_device.dart';
 import '../../domain/entities/sync_outcome.dart';
 import '../../domain/sync_error.dart';
 import '../bloc/sync_bloc.dart';
+import '../../../../core/utils/app_restart.dart';
 
 /// Settings → Devices & sync (Plan 002).
 ///
@@ -550,7 +551,11 @@ class _SyncPageState extends State<SyncPage> {
           content: Text(l10n.syncRestartBody),
           actions: [
             FilledButton(
-              onPressed: () => SystemNavigator.pop(),
+              // Relaunches rather than only exiting. The app still has to start
+              // over — the snapshot swap closed SQLite — but dropping the
+              // shopkeeper on the launcher right after telling them the shop
+              // arrived reads as a crash.
+              onPressed: AppRestart.now,
               child: Text(l10n.syncRestartConfirm),
             ),
           ],

@@ -46,6 +46,11 @@ class BackupBloc extends Bloc<BackupEvent, BackupState> {
       accountHint: hint,
       lastBackupAt: last,
       autoEnabled: auto,
+      // One shop, one backup history, written by the main phone — see
+      // [AutoBackupService.isBackupDevice]. Restore stays available here,
+      // because pulling a snapshot onto a linked phone is a recovery path.
+      canBackUp: await _auto.isBackupDevice(),
+      isLinked: await _auto.isLinkedToOtherPhones(),
       clearEmail: !signedIn,
     ));
     if (signedIn) add(const BackupListRequested());

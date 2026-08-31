@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
@@ -9,6 +8,7 @@ import '../../../../core/theme/app_theme.dart';
 import '../../../../l10n/app_localizations.dart';
 import '../../domain/entities/backup_info.dart';
 import '../bloc/backup_bloc.dart';
+import '../../../../core/utils/app_restart.dart';
 
 /// Map a [Failure] to a localized, user-facing message (no English in the BLoC).
 String _errorText(Failure f, AppLocalizations l10n) {
@@ -23,6 +23,9 @@ String _errorText(Failure f, AppLocalizations l10n) {
   }
   return l10n.backupErrorUnknown;
 }
+
+/// Blank line between the restart dialog's two paragraphs.
+final String _kParagraphBreak = '${String.fromCharCode(10)}${String.fromCharCode(10)}';
 
 class BackupPage extends StatefulWidget {
   const BackupPage({super.key});
@@ -83,7 +86,7 @@ class _BackupPageState extends State<BackupPage> {
                 Share.shareXFiles([XFile(f.path)], subject: l10n.backupTitle);
               }
             case BackupSuccess.restored:
-              _showRestartDialog(context, l10n);
+              _showRestartDialog(context, l10n, relink: state.isLinked);
             case null:
               break;
           }
@@ -218,41 +221,62 @@ class _BackupPageState extends State<BackupPage> {
               ),
               const Divider(height: 24),
               _lastBackupLine(l10n, state.lastBackupAt),
-              const Divider(height: 24),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                value: state.autoEnabled,
-                onChanged: (v) => bloc.add(BackupAutoToggled(v)),
-                title: Text(l10n.backupAutoTitle,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w600, fontSize: 14)),
-                subtitle: Text(l10n.backupAutoSubtitle,
+              // The whole backup-writing half of this page is HIDDEN on a
+              // linked phone rather than shown and refused — the same rule the
+              // sync screen follows for owner-only actions. A greyed-out
+              // "Back up now" reads as something that failed; a sentence saying
+              // the main phone does it reads as a design.
+              //
+              // Export is hidden with it: it is the same snapshot handed to the
+              // share sheet instead of Drive, so a linked phone emailing itself
+              // a copy of the shop recreates the confusion this prevents.
+              if (!state.canBackUp) ...[
+                const Divider(height: 24),
+                Text(l10n.backupLinkedPhoneNotice,
                     style: TextStyle(
                         fontSize: 12,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
-              ),
+                        color:
+                            Theme.of(context).colorScheme.onSurfaceVariant)),
+              ] else ...[
+                const Divider(height: 24),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: state.autoEnabled,
+                  onChanged: (v) => bloc.add(BackupAutoToggled(v)),
+                  title: Text(l10n.backupAutoTitle,
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w600, fontSize: 14)),
+                  subtitle: Text(l10n.backupAutoSubtitle,
+                      style: TextStyle(
+                          fontSize: 12,
+                          color:
+                              Theme.of(context).colorScheme.onSurfaceVariant)),
+                ),
+              ],
             ],
           ),
         ),
-        const SizedBox(height: 16),
-        SizedBox(
-          height: 52,
-          child: FilledButton.icon(
-            style:
-                FilledButton.styleFrom(backgroundColor: AppTheme.primaryColor),
-            icon: const Icon(Icons.backup),
-            label: Text(state.busy == BackupBusy.backingUp
-                ? l10n.backupBusyBackingUp
-                : l10n.backupNowButton),
-            onPressed: () => bloc.add(const BackupNowRequested()),
+        if (state.canBackUp) ...[
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 52,
+            child: FilledButton.icon(
+              style: FilledButton.styleFrom(
+                  backgroundColor: AppTheme.primaryColor),
+              icon: const Icon(Icons.backup),
+              label: Text(state.busy == BackupBusy.backingUp
+                  ? l10n.backupBusyBackingUp
+                  : l10n.backupNowButton),
+              onPressed: () => bloc.add(const BackupNowRequested()),
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
-        TextButton.icon(
-          icon: const Icon(Icons.ios_share),
-          label: Text(l10n.backupExportButton),
-          onPressed: () => bloc.add(const BackupExportRequested()),
-        ),
+          const SizedBox(height: 8),
+          TextButton.icon(
+            icon: const Icon(Icons.ios_share),
+            label: Text(l10n.backupExportButton),
+            onPressed: () => bloc.add(const BackupExportRequested()),
+          ),
+        ],
         const SizedBox(height: 16),
         Text(l10n.backupListTitle,
             style:
@@ -396,18 +420,30 @@ class _BackupPageState extends State<BackupPage> {
   /// says "your data was replaced", the other "your data was *not* touched".
   Future<void> _showRestartDialog(
       BuildContext context, AppLocalizations l10n,
-      {bool failed = false}) async {
+      {bool failed = false, bool relink = false}) async {
     await showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         title: Text(
             failed ? l10n.backupRestoreFailedTitle : l10n.backupRestartTitle),
-        content: Text(
-            failed ? l10n.backupRestoreFailedBody : l10n.backupRestartBody),
+        content: Text([
+          failed ? l10n.backupRestoreFailedBody : l10n.backupRestartBody,
+          // Only on a SUCCESSFUL restore, and only when other phones share
+          // this shop. A restored row carries `updated_at = ''` and is
+          // therefore never pushed, so the other tills keep showing what
+          // they had — with nothing failing and both screens reporting
+          // success. Linking them again reseeds them from this database,
+          // which is the handoff the bootstrap snapshot exists for.
+          if (relink && !failed) l10n.backupRestartRelinkNote,
+        ].join(_kParagraphBreak)),
         actions: [
           FilledButton(
-            onPressed: () => SystemNavigator.pop(),
+            // Relaunches rather than only exiting — see [AppRestart]. Also used
+            // on the FAILED path: the restore rolled back, so the database is
+            // the one the app started with and coming straight back to it is
+            // exactly the reassurance the copy is giving.
+            onPressed: AppRestart.now,
             child: Text(l10n.backupRestartAction),
           ),
         ],

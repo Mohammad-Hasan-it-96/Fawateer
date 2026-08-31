@@ -17,6 +17,16 @@ class BackupState extends Equatable {
 
   /// Whether the daily automatic backup is on (see [AutoBackupService]).
   final bool autoEnabled;
+
+  /// False on a linked (non-owner) phone: it may restore, never back up.
+  /// Defaults to true so a single-phone shop — and the first frame, before the
+  /// role has been read — is never wrongly told it cannot back up.
+  final bool canBackUp;
+
+  /// True when this phone shares its shop with others — the restore dialog
+  /// then has to say that they must be linked again. See
+  /// [AutoBackupService.isLinkedToOtherPhones].
+  final bool isLinked;
   final List<BackupInfo> backups;
   final bool loadingList;
   final BackupBusy busy;
@@ -34,6 +44,8 @@ class BackupState extends Equatable {
     this.accountHint,
     this.lastBackupAt,
     this.autoEnabled = true,
+    this.canBackUp = true,
+    this.isLinked = false,
     this.backups = const [],
     this.loadingList = false,
     this.busy = BackupBusy.idle,
@@ -51,6 +63,8 @@ class BackupState extends Equatable {
     bool clearEmail = false,
     DateTime? lastBackupAt,
     bool? autoEnabled,
+    bool? canBackUp,
+    bool? isLinked,
     List<BackupInfo>? backups,
     bool? loadingList,
     BackupBusy? busy,
@@ -65,6 +79,8 @@ class BackupState extends Equatable {
       accountHint: accountHint ?? this.accountHint,
       lastBackupAt: lastBackupAt ?? this.lastBackupAt,
       autoEnabled: autoEnabled ?? this.autoEnabled,
+      canBackUp: canBackUp ?? this.canBackUp,
+      isLinked: isLinked ?? this.isLinked,
       backups: backups ?? this.backups,
       loadingList: loadingList ?? this.loadingList,
       busy: busy ?? this.busy,
@@ -83,6 +99,8 @@ class BackupState extends Equatable {
         email,
         accountHint,
         lastBackupAt,
+        canBackUp,
+        isLinked,
         autoEnabled,
         backups,
         loadingList,
