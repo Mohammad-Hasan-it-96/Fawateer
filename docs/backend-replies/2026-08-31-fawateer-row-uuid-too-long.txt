@@ -10,6 +10,21 @@ owner's invite runs a full sync first (agreed 2026-07-29 §1), the push inside
 it is refused, and prepareInvite correctly refuses to seed a joiner from a
 database it knows is behind.
 
+CONFIRMED ON PRODUCTION, 2026-08-31, verbatim off the device:
+
+    server: VALIDATION_FAILED: The changes.1.row_uuid field must not be
+    greater than 36 characters.
+
+Note the index: `changes.1`. Row 0 is the sales_invoices row (36, fits); row
+1 is its first sales_items line at 38. kSyncTables pushes in dependency
+order, parents before children, so the very first sale a shop records puts an
+over-length row at index 1 of every batch from then on.
+
+Also verified from here, so you can rule these out: all five sync routes
+answer 401 UNAUTHENTICATED rather than 404 (PR #35's binding is live), and
+multipart uploads of 1, 3, 8 and 20 MB all reach auth, so no proxy or PHP
+body limit is involved.
+
 WHAT THE SERVER ANSWERS
 
   POST /api/v1/sync/changes  ->  422 VALIDATION_FAILED
@@ -62,7 +77,33 @@ WHAT WE ARE ASKING FOR
   2. Relax the rule to ['required','string','max:64'].
 
 Widening only. No existing value changes, no client change, and every row
-already stored still fits. 64 leaves headroom without being unbounded.
+already stored still fits. 64 leaves headroom without being unbounded. The
+idempotency key (row_uuid + authored_hlc) is a SHA-256 hex digest and is
+unaffected; authored_hlc can stay at 40, a packed HLC is 38.
+
+The two must move together: a column wider than the rule is dead capacity, a
+rule wider than the column is a silent truncation.
+
+THE EXACT PATCH
+
+A migration has already been written into your tree at
+
+  modules/DeviceSubscriptions/Database/Migrations/
+    2026_08_31_100000_widen_row_uuid_on_device_changes_table.php
+
+It is `$table->string('row_uuid', 64)->change();` with a no-op down() — a
+narrowing rollback would silently truncate identities that the idempotency
+key and every future pull page are built on.
+
+The one line left is in
+modules/DeviceSubscriptions/Http/Controllers/Sync/SyncChangeController.php,
+in push():
+
+  -  'changes.*.row_uuid' => ['required', 'string', 'max:36'],
+  +  'changes.*.row_uuid' => ['required', 'string', 'max:64'],
+
+Please run pint, phpstan and the suite on both SQLite and MySQL, and
+regenerate docs/api/openapi.json if the validation change moves the spec.
 
 Please also check any other column that assumed "a client row identity is a
 uuid" — the arbitration/claim tables (sync_product_units) are the likely
