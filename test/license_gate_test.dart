@@ -25,11 +25,13 @@ LicenseState _state({
   LicenseStatus license = LicenseStatus.empty,
   String agentName = '',
   bool isBusy = false,
+  bool isLinkedMember = false,
 }) =>
     LicenseState(
       bootstrapped: bootstrapped,
       license: license,
       agentName: agentName,
+      isLinkedMember: isLinkedMember,
       status: isBusy ? LicenseFlowStatus.activating : LicenseFlowStatus.initial,
     );
 
@@ -136,6 +138,48 @@ void main() {
         ),
       );
       expect(licenseGateRedirect(s, '/pos'), '/activation/plans');
+    });
+  });
+
+  group('a phone that joined a shop', () {
+    // It has no name of its own: the owner's subscription covers it (ADR 0011
+    // Decision 2) and the backend creates its row with name and phone null. So
+    // `registered` is false, and every branch that keys off it is wrong here.
+    test('is never offered "create a new shop"', () {
+      // The costly direction: taking that door makes a second business out of
+      // a till that already belongs to one.
+      final s = _state(isLinkedMember: true);
+      expect(licenseGateRedirect(s, '/pos'), '/activation/verify');
+      expect(licenseGateRedirect(s, '/pos'), isNot('/welcome'));
+    });
+
+    test('is never sent to the plans page either', () {
+      // Renewing is the owner's job on the main phone. Asking a member to buy
+      // is asking one shop to pay twice — the exact thing the seat-coverage
+      // change removed.
+      final s = _state(isLinkedMember: true, agentName: 'محمد');
+      expect(licenseGateRedirect(s, '/pos'), '/activation/verify');
+    });
+
+    test('is left alone once it is on the verify screen', () {
+      expect(
+          licenseGateRedirect(
+              _state(isLinkedMember: true), '/activation/verify'),
+          isNull);
+    });
+
+    test('reaches its till normally once the licence resolves', () {
+      final s = _state(isLinkedMember: true, license: _active);
+      expect(licenseGateRedirect(s, '/pos'), isNull);
+      expect(licenseGateRedirect(s, '/activation/verify'), '/pos');
+    });
+
+    test('falls back to the normal path once its seat is gone', () {
+      // A revoke clears the seat credential (SyncScheduler._onRevoked), so the
+      // probe reports false and the phone is an ordinary unregistered device
+      // again — which is the only way back in.
+      expect(licenseGateRedirect(_state(isLinkedMember: false), '/pos'),
+          '/welcome');
     });
   });
 }

@@ -1410,6 +1410,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'Important: this shop was rolled back to an earlier copy. Your other phones still show the old data, so link them again from Devices & sync.';
 
   @override
+  String get verifyLinkedMemberMessage =>
+      'This phone is linked to a shop, and the shop\'s subscription is what runs it. Check your internet connection and try again. If it keeps failing, check the subscription on the main phone.';
+
+  @override
   String get welcomeTitle => 'Welcome to Fawateer';
 
   @override

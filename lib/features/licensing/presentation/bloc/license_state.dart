@@ -52,6 +52,16 @@ class LicenseState extends Equatable {
   /// subscription screen) must NOT bounce the user back to the splash.
   final bool bootstrapped;
 
+  /// True when this phone joined a shop rather than creating one.
+  ///
+  /// The gate needs it because [registered] is a **local** fact — it is just
+  /// "have we cached a name" — and a member never registers. Without this a
+  /// member whose licence is momentarily inactive (offline on the first launch
+  /// after joining, a revoked seat, the owner's subscription lapsed) is read as
+  /// a brand-new install and offered "create a new shop", which is how one till
+  /// ends up as a second business.
+  final bool isLinkedMember;
+
   /// True while an agent name/phone edit is being saved.
   final bool isSavingAgent;
 
@@ -68,6 +78,7 @@ class LicenseState extends Equatable {
     this.agentPhone = '',
     this.deviceId = '',
     this.bootstrapped = false,
+    this.isLinkedMember = false,
     this.isSavingAgent = false,
     this.agentSaveOutcome,
   });
@@ -96,6 +107,7 @@ class LicenseState extends Equatable {
     String? agentPhone,
     String? deviceId,
     bool? bootstrapped,
+    bool? isLinkedMember,
     bool? isSavingAgent,
     AgentSaveOutcome? agentSaveOutcome,
   }) {
@@ -109,6 +121,7 @@ class LicenseState extends Equatable {
       agentPhone: agentPhone ?? this.agentPhone,
       deviceId: deviceId ?? this.deviceId,
       bootstrapped: bootstrapped ?? this.bootstrapped,
+      isLinkedMember: isLinkedMember ?? this.isLinkedMember,
       isSavingAgent: isSavingAgent ?? this.isSavingAgent,
       // One-shot (like [error]): defaults to null each emit unless set.
       agentSaveOutcome: agentSaveOutcome,
@@ -126,6 +139,7 @@ class LicenseState extends Equatable {
         agentPhone,
         deviceId,
         bootstrapped,
+        isLinkedMember,
         isSavingAgent,
         agentSaveOutcome,
       ];

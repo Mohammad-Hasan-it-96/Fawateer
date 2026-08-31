@@ -330,5 +330,15 @@ Future<void> init() async {
 
   // LicenseBloc is a SINGLETON (not a factory): the GoRouter gate redirect and
   // the widget tree must observe the same instance for the gate to react.
-  sl.registerLazySingleton<LicenseBloc>(() => LicenseBloc(repository: sl()));
+  sl.registerLazySingleton<LicenseBloc>(() => LicenseBloc(
+        repository: sl(),
+        // A phone that joined a shop is covered by the owner's subscription
+        // (ADR 0011 Decision 2) and has no agent name of its own, so the
+        // licence check must not mistake it for a fresh install. Passed as a
+        // function so licensing keeps no import of the sync feature.
+        isLinkedMember: () async {
+          final session = await sl<SyncCredentialStore>().load();
+          return session != null && !session.isOwner;
+        },
+      ));
 }

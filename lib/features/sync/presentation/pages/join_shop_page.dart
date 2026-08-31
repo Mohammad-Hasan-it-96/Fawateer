@@ -20,13 +20,18 @@ import 'sync_page.dart' show syncErrorText;
 /// no name and no number of its own to give, and the shop it is joining is
 /// already registered by its owner; inventing values to satisfy
 /// `create_device` would put fabricated contact details on a real support
-/// record. The seat is what should carry the licence — the owner's subscription
-/// covers it (ADR 0011: one subscription, N devices), and enrolling links the
-/// device to the business server-side. Until that backend change ships, a
-/// handset that has never been registered will still land on the registration
-/// form after the restart; that is the pre-existing behaviour, not a new dead
-/// end, and it self-heals the moment the link is made.
-/// See `docs/backend-replies/2026-09-01-fawateer-seat-licence-coverage.txt`.
+/// record. The seat carries the licence instead: the owner's subscription
+/// covers it (ADR 0011 Decision 2 — one subscription, N devices), and enrolling
+/// links the device to the business server-side, creating its
+/// `device_subscriptions` row with name and phone **null** and no trial of its
+/// own. Confirmed and implemented by evotech-core on 2026-09-01
+/// (`docs/backend-replies/2026-09-01-evotech-core-reply-seat-licence-coverage.txt`).
+///
+/// The client half of that is **not on this page** — it is
+/// `LicenseBloc.isLinkedMember`. A phone that comes through here has no cached
+/// agent name, and the licence check used to read that as "brand-new install,
+/// skip the server poll entirely". So it would never have asked, and the whole
+/// backend change would have looked like it did nothing.
 class JoinShopPage extends StatefulWidget {
   const JoinShopPage({super.key});
 

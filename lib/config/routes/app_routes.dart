@@ -113,6 +113,23 @@ String? licenseGateRedirect(LicenseState license, String loc) {
     // shopkeeper onto the registration form mid-restore.
     if (loc.startsWith(_welcome)) return null;
 
+    // A phone that JOINED a shop is neither of the two cases below. It has no
+    // name of its own (the owner's subscription covers it, ADR 0011 Decision
+    // 2), so `registered` is false and it would be offered "create a new shop"
+    // — the one thing it must never do, because taking that door makes a second
+    // business out of a till that already belongs to one. It must not be shown
+    // the plans page either: renewing is the owner's job on the main phone, and
+    // asking a member to buy is asking a shop to pay twice.
+    //
+    // The verify screen is the honest place: reachable, retryable, and true
+    // whether the cause is no network on the first launch after joining, a
+    // revoked seat, or the owner's subscription lapsing. A revoke clears the
+    // seat credential (`SyncScheduler._onRevoked`), so a genuinely unlinked
+    // phone falls through to the normal path on its next check.
+    if (license.isLinkedMember) {
+      return loc == _activationVerify ? null : _activationVerify;
+    }
+
     // A device that has never registered is asked the fork question first. It
     // is not the activation form's job to guess: for the shop's second phone
     // the form asks for a name and a number that the owner has already given

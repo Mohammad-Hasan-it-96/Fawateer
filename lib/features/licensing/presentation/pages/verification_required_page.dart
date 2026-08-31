@@ -63,9 +63,17 @@ class VerificationRequiredPage extends StatelessWidget {
                             fontSize: 20, fontWeight: FontWeight.bold)),
                     const SizedBox(height: 12),
                     Text(
-                      tampered
-                          ? l10n.verifyTamperMessage
-                          : l10n.verifyOfflineMessage,
+                      // A linked phone reaches this screen for a third reason
+                      // — the owner's subscription is what runs it, and the
+                      // gate sends it here rather than to a plans page it must
+                      // never be shown. Neither of the other two messages is
+                      // true for it: nothing was tampered with, and it may not
+                      // be offline at all.
+                      state.isLinkedMember
+                          ? l10n.verifyLinkedMemberMessage
+                          : tampered
+                              ? l10n.verifyTamperMessage
+                              : l10n.verifyOfflineMessage,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                           fontSize: 14,

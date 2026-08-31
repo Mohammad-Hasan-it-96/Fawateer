@@ -2709,6 +2709,12 @@ abstract class AppLocalizations {
   /// **'Important: this shop was rolled back to an earlier copy. Your other phones still show the old data, so link them again from Devices & sync.'**
   String get backupRestartRelinkNote;
 
+  /// Shown on the verification screen to a phone that JOINED a shop. It has no subscription of its own — the owner's covers it — so neither the offline nor the tamper wording fits, and it must never be told to buy a plan.
+  ///
+  /// In en, this message translates to:
+  /// **'This phone is linked to a shop, and the shop\'s subscription is what runs it. Check your internet connection and try again. If it keeps failing, check the subscription on the main phone.'**
+  String get verifyLinkedMemberMessage;
+
   /// First-run screen title, shown before registration.
   ///
   /// In en, this message translates to:

@@ -1398,6 +1398,10 @@ class AppLocalizationsAr extends AppLocalizations {
       'مهم: هذا المحل عاد إلى نسخة سابقة. الهواتف الأخرى ما زالت تعرض البيانات القديمة، لذلك اربطها من جديد من إعدادات الأجهزة والمزامنة.';
 
   @override
+  String get verifyLinkedMemberMessage =>
+      'هذا الهاتف مرتبط بمحل، واشتراك المحل هو ما يشغّله. تأكد من الاتصال بالإنترنت ثم أعد المحاولة. إذا استمرت المشكلة، راجع الاشتراك على الهاتف الرئيسي.';
+
+  @override
   String get welcomeTitle => 'أهلاً بك في فواتير';
 
   @override

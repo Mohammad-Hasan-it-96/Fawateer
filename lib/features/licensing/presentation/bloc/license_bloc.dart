@@ -21,16 +21,32 @@ class LicenseBloc extends Bloc<LicenseEvent, LicenseState> {
   /// check lands strictly after it. Injectable so tests can use milliseconds.
   final Duration expiryCheckBuffer;
 
+  /// Whether this phone holds a **member** sync seat — it joined a shop rather
+  /// than creating one.
+  ///
+  /// A function rather than a `SyncCredentialStore`, so licensing keeps no
+  /// import of the sync feature: sync already depends on licensing for the
+  /// device id and the push token, and pointing the arrow both ways would make
+  /// the two impossible to reason about separately. Same shape as the token
+  /// getter `SyncApiTransport` takes.
+  ///
+  /// Defaults to "no seat", which is every device that has never joined a shop.
+  final Future<bool> Function() isLinkedMember;
+
   LicenseBloc({
     required this.repository,
+    Future<bool> Function()? isLinkedMember,
     this.expiryCheckBuffer = const Duration(seconds: 10),
-  }) : super(const LicenseState()) {
+  })  : isLinkedMember = (isLinkedMember ?? _noSeat),
+        super(const LicenseState()) {
     on<CheckLicenseEvent>(_onCheck);
     on<ActivateLicenseEvent>(_onActivate);
     on<UpdateAgentEvent>(_onUpdateAgent);
     on<LoadPlansEvent>(_onLoadPlans);
     on<RequestPlanEvent>(_onRequestPlan);
   }
+
+  static Future<bool> _noSeat() async => false;
 
   /// Re-check scheduled for the moment the subscription expires (capped at
   /// 24h, re-arming itself for far-off expiries). Without it, expiry only
@@ -74,16 +90,31 @@ class LicenseBloc extends Bloc<LicenseEvent, LicenseState> {
       final deviceId =
           state.deviceId.isEmpty ? await repository.deviceId() : state.deviceId;
 
+      // Does this phone hold a member seat? Read on every check, not cached:
+      // a join, and a revoke, both change it without restarting the app.
+      final linked = await isLinkedMember();
+
       // Brand-new device (never registered here): skip the server poll and send
       // the user straight to the activation form to enter name/phone. Only after
       // they register (create_device) does check_device have anything to find —
       // polling it first just returns "device not found" (404). This also means
       // a fresh install performs no network call at startup at all.
+      //
+      // **Unless it has joined a shop.** A phone that took the first-run "join"
+      // door never registers — it has no name or number of its own to give, and
+      // the backend deliberately creates its `device_subscriptions` row with
+      // both null, covering it from the owner's business instead (ADR 0011
+      // Decision 2). So `agent.name` is empty on a perfectly licensed till, and
+      // skipping the poll here means the app never asks — the seat is real, the
+      // server would answer verified, and the phone sits on the first-run fork
+      // being offered a shop it already belongs to. The whole backend change
+      // would have looked like it did nothing.
       final neverRegistered = agent.name == null || agent.name!.trim().isEmpty;
-      if (neverRegistered) {
+      if (neverRegistered && !linked) {
         emit(state.copyWith(
           status: LicenseFlowStatus.unlicensed,
           deviceId: deviceId,
+          isLinkedMember: false,
           bootstrapped: true,
         ));
         return;
@@ -94,6 +125,7 @@ class LicenseBloc extends Bloc<LicenseEvent, LicenseState> {
         agentName: agent.name,
         agentPhone: agent.phone,
         deviceId: deviceId,
+        isLinkedMember: linked,
       ));
       final result = await repository.checkLicense();
       result.fold(
