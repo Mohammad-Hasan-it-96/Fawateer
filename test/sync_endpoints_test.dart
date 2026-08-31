@@ -79,14 +79,24 @@ void main() {
       expect(rec.only, 'POST $_kBase/sync/changes');
     });
 
-    test('pulling gets sync/changes, keeping since and limit', () async {
+    test('pulling names the position `cursor`, which is what the server reads',
+        () async {
+      // The design (ADR 0011 §9) writes the route as `?since=<seq>` and that is
+      // what we sent until 2026-08-31. Their `SyncChangeController::pull`
+      // validates and reads `cursor`; an unknown `since` is simply dropped, so
+      // every pull was answered from seq 0. HTTP 200 with a full, valid page —
+      // nothing to notice until retention prunes and cursor 0 falls below the
+      // pruned watermark, at which point a device that was never behind is told
+      // CURSOR_TOO_OLD and stops pulling for good.
       final rec = _Recorder();
       final transport = SyncApiTransport(
           SyncApiClient(client: rec.client, baseUrl: _kBase), () async => 't');
 
       await transport.pull(since: 42, limit: 7);
 
-      expect(rec.only, 'GET $_kBase/sync/changes?since=42&limit=7');
+      expect(rec.only, contains('cursor=42'),
+          reason: 'the shipped server reads `cursor`; `since` is ignored');
+      expect(rec.only, contains('limit=7'));
     });
 
     test('an empty push makes no request at all', () async {
@@ -181,6 +191,73 @@ void main() {
       result = await transportOn(flat).push(const [row]);
       expect(result.accepted, {'p1'});
       expect(result.rejected, {'p3'});
+    });
+  });
+
+  group('the push verdict is data.applied[], not data.accepted[]', () {
+    // The 2026-07-27 design and ADR 0011 §9 both promise
+    // "per-row accepted|rejected|conflict". The shipped server answers
+    //   {"data":{"applied":[{"row_uuid","authored_hlc","seq","duplicate"}],
+    //            "last_seq":N}}
+    // and has no rejected/conflicts buckets at all — every pushed row is
+    // appended, and a re-push comes back `duplicate: true` on its original seq.
+    //
+    // Reading the design's names finds three empty buckets, which the engine
+    // reads as "the server accepted nothing": the push watermark never
+    // advances, so the device re-uploads its whole backlog on every trigger,
+    // forever, while the screen reports "0 changes sent". The rows do land, so
+    // there is no error and no missing data — only a device that never stops
+    // talking and never admits it worked.
+    SyncApiTransport transportOn(_Recorder rec) => SyncApiTransport(
+        SyncApiClient(client: rec.client, baseUrl: _kBase), () async => 't');
+
+    const one = SyncChange(
+      table: 'products',
+      rowUuid: 'p1',
+      op: SyncChange.opUpsert,
+      payload: {'id': 'p1'},
+      authoredHlc: '000001',
+      originDevice: 'd1',
+    );
+
+    test('applied[] row_uuids count as accepted', () async {
+      final rec = _Recorder(body: '''
+        {"data":{"applied":[{"row_uuid":"p1","authored_hlc":"000001",
+                             "seq":4,"duplicate":false}],
+                 "last_seq":4}}''');
+
+      final result = await transportOn(rec).push(const [one]);
+
+      expect(result.accepted, {'p1'},
+          reason: 'without this the push watermark never moves');
+      expect(result.rejected, isEmpty);
+      expect(result.conflicts, isEmpty);
+    });
+
+    test('a duplicate is still accepted — it landed the first time', () async {
+      // Idempotency (§F2) replies with the ORIGINAL seq and `duplicate: true`.
+      // Treating that as anything but accepted would stall the watermark on
+      // exactly the rows a retry is meant to settle.
+      final rec = _Recorder(body: '''
+        {"data":{"applied":[{"row_uuid":"p1","authored_hlc":"000001",
+                             "seq":4,"duplicate":true}],
+                 "last_seq":9}}''');
+
+      expect((await transportOn(rec).push(const [one])).accepted, {'p1'});
+    });
+
+    test("the design's accepted/rejected/conflicts still parse", () async {
+      // Kept as a fallback rather than deleted: if the arbitration buckets are
+      // ever built they are additive, not a reinterpretation of `applied`.
+      final rec = _Recorder(body: '''
+        {"data":{"accepted":["p1"],"rejected":[{"row_uuid":"p2"}],
+                 "conflicts":["p3"]}}''');
+
+      final result = await transportOn(rec).push(const [one]);
+
+      expect(result.accepted, {'p1'});
+      expect(result.rejected, {'p2'});
+      expect(result.conflicts, {'p3'});
     });
   });
 

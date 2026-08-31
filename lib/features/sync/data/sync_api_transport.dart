@@ -41,20 +41,35 @@ class SyncApiTransport implements SyncTransport {
       timeout: const Duration(seconds: 30),
     );
 
-    // Per-row results. The server answers with three buckets because partial
-    // success is normal; a client that only checked the HTTP status would
-    // advance its watermark over rows the server refused.
+    // Per-row results. Partial success is normal, so a client that only checked
+    // the HTTP status would advance its watermark over rows the server refused.
     //
-    // Read out of `data` first, then the top level. This platform wraps every
-    // successful response as `{data: …, meta: …}` — verified on `/sync/changes`
-    // and `/sync/devices` — but the push buckets were never pinned in writing,
-    // so the flat shape stays as a fallback. Guessing wrong here is silent:
-    // empty buckets read as "the server accepted nothing", which stalls the
-    // watermark forever and re-sends the same rows every pass.
+    // **The shipped bucket is `applied`, not `accepted`.** The 2026-07-27 design
+    // and ADR 0011 §9 both say "per-row accepted|rejected|conflict"; what the
+    // server actually returns is
+    // `{data: {applied: [{row_uuid, authored_hlc, seq, duplicate}], last_seq}}`
+    // — read off their `SyncChangeController::push` on 2026-08-31. There are no
+    // `rejected` or `conflicts` buckets at all: every row in the batch is
+    // appended, and a re-push of the same edit comes back `duplicate: true` with
+    // its original seq.
+    //
+    // Reading the design's names against the shipped body is silent and
+    // expensive: all three buckets come back empty, which reads as "the server
+    // accepted nothing", so the push watermark never advances and the device
+    // re-uploads its entire backlog on every trigger — forever. The rows do
+    // land (idempotency absorbs the repeats) and the screen still says
+    // "0 changes sent", which is the worst combination: working, silent, and
+    // indistinguishable from being broken. Same class of drift as the endpoint
+    // names in `_kChangesEndpoint`, found the same way — by reading their
+    // controller instead of our own fake server.
+    //
+    // The design's spellings are kept as fallbacks rather than deleted: they
+    // cost one map lookup, and if the arbitration buckets are ever added they
+    // are additive, not a reinterpretation of `applied`.
     final data = json['data'];
     final body = data is Map<String, dynamic> ? data : json;
     return PushResult(
-      accepted: _uuids(body['accepted']),
+      accepted: {..._uuids(body['applied']), ..._uuids(body['accepted'])},
       rejected: _uuids(body['rejected']),
       conflicts: _uuids(body['conflicts']),
     );
@@ -63,7 +78,21 @@ class SyncApiTransport implements SyncTransport {
   @override
   Future<PullPage> pull({required int since, int limit = 200}) async {
     final json = await _client.getJson(
-      '$_kChangesEndpoint?since=$since&limit=$limit',
+      // **The server reads `cursor`; `since` is the design's name and is
+      // ignored.** ADR 0011 §9 writes the route as `?since=<seq>`, and that is
+      // what we sent until 2026-08-31 — but their `SyncChangeController::pull`
+      // validates and reads `cursor`, so an unknown `since` was dropped and
+      // every pull was served from seq 0. Silent again: the page comes back
+      // full and valid, the rows re-apply as no-ops under last-write-wins, and
+      // the only visible symptom is a device that re-reads the whole change log
+      // on every tick — until retention prunes anything, at which point cursor
+      // 0 sits below the pruned watermark and pull latches off with
+      // CURSOR_TOO_OLD for a device that was never actually behind.
+      //
+      // Both are sent. `since` is inert against the shipped server (unvalidated
+      // keys are dropped) and costs nothing, and it keeps the call correct
+      // against the name the ADR still carries.
+      '$_kChangesEndpoint?cursor=$since&since=$since&limit=$limit',
       token: await _token(),
       timeout: const Duration(seconds: 30),
     );

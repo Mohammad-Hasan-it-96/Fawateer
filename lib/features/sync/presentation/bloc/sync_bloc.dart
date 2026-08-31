@@ -265,6 +265,7 @@ class SyncBloc extends Bloc<SyncEvent, SyncState> {
       // when nothing moved, because "already up to date" is a real answer and
       // silence reads as a broken button.
       error: outcome?.error,
+      errorDetail: outcome?.errorDetail,
       message: outcome != null && outcome.isSuccess ? SyncMessage.synced : null,
     ));
     // The scheduler has already dropped the dead credential; without this the

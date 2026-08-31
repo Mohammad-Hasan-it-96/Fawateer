@@ -1,0 +1,102 @@
+TO:      evotech-core
+FROM:    Fawateer (Plan 002, multi-device sync)
+DATE:    2026-08-31
+SUBJECT: push rejects every sale — row_uuid is CHAR(36), three of our nine
+         tables identify rows with 38 and 44 characters
+
+Blocking. Two real phones, both enrolled, production. Tapping "add a phone"
+on the main phone shows the generic error. The cause is not the button: the
+owner's invite runs a full sync first (agreed 2026-07-29 §1), the push inside
+it is refused, and prepareInvite correctly refuses to seed a joiner from a
+database it knows is behind.
+
+WHAT THE SERVER ANSWERS
+
+  POST /api/v1/sync/changes  ->  422 VALIDATION_FAILED
+  "The changes.N.row_uuid field must not be greater than 36 characters."
+
+  SyncChangeController::push
+      'changes.*.row_uuid' => ['required', 'string', 'max:36']
+  2026_07_29_100300_create_device_changes_table.php
+      $table->uuid('row_uuid');          // CHAR(36) in MySQL
+
+Laravel fails the whole request, so ONE over-length row rejects the entire
+batch of up to 200. A shop that has ever rung up a sale can therefore never
+push anything at all.
+
+WHY OUR IDENTITIES ARE NOT BARE UUIDS
+
+Six of our nine replicated tables key on a v4 uuid and are fine at 36. Three
+do not, and in each case the shape is deliberate and load-bearing:
+
+  table            row_uuid shape             len   why it is not random
+  ---------------- -------------------------- ----- --------------------------
+  sales_items      '<invoice uuid>-<index>'     38  `sales_items.id` is a local
+                                                    autoincrement, so it can
+                                                    never travel. v16 added
+                                                    `uuid` and BACKFILLED it as
+                                                    invoice_id || '-' || id.
+                                                    Deterministic so the
+                                                    backfill is re-runnable and
+                                                    two devices migrating before
+                                                    their first sync agree.
+  stock_movements  'stock-<sales_items.uuid>'   44  A sale that arrives twice
+                                                    must insert the SAME row
+                                                    rather than deduct stock
+                                                    twice. The id IS the
+                                                    idempotency.
+  stock_movements  'opening-<product id>'       44  v18 backfills one opening
+                                                    balance per product. Random
+                                                    ids here would let two
+                                                    devices each mint one and
+                                                    sum to double the shop's
+                                                    real stock.
+
+Making these random 36-char uuids is not an option on our side: it would
+break the idempotency that stops a re-delivered sale double-deducting, and it
+would re-key rows two shipped migrations have already written.
+
+WHAT WE ARE ASKING FOR
+
+  1. ALTER device_changes.row_uuid  CHAR(36) -> VARCHAR(64).
+  2. Relax the rule to ['required','string','max:64'].
+
+Widening only. No existing value changes, no client change, and every row
+already stored still fits. 64 leaves headroom without being unbounded.
+
+Please also check any other column that assumed "a client row identity is a
+uuid" — the arbitration/claim tables (sync_product_units) are the likely
+second site, since a serialized unit id is a bare uuid today but a sale line
+reference would not be.
+
+TWO SMALLER MISMATCHES — FIXED ON OUR SIDE, NO ACTION NEEDED
+
+Found while reading your controller. Both are the client following ADR 0011's
+wording instead of what you shipped; we have changed the client to match you,
+and are flagging them only so the ADR can be corrected.
+
+  a. PULL POSITION.  §9 writes `GET /sync/pull?since=<seq>`. You validate and
+     read `cursor`. `since` is not in the validate list, so it was dropped and
+     every pull was served from seq 0. HTTP 200, full valid page, nothing to
+     notice — until retention prunes, at which point cursor 0 sits below the
+     pruned watermark and a device that was never behind gets CURSOR_TOO_OLD
+     and stops pulling permanently. We now send `cursor` (and `since`
+     alongside, inert).
+
+  b. PUSH VERDICT.  §9 promises per-row `accepted|rejected|conflict`. You
+     return `{data:{applied:[{row_uuid,authored_hlc,seq,duplicate}],
+     last_seq}}` with no rejected/conflicts buckets. Reading the design's
+     names found three empty buckets, which our engine reads as "the server
+     accepted nothing" — so the push watermark never advanced and the device
+     would re-upload its entire backlog on every trigger while reporting
+     "0 changes sent". We now read `applied`.
+
+     If the arbitration buckets are ever built, please add them alongside
+     `applied` rather than replacing it.
+
+Neither of (a) or (b) was visible to any test we own: our sync suite drives an
+in-memory relay, which has no URL and no wire format. Both are now pinned in
+test/sync_endpoints_test.dart against a mock HTTP client, the same guard that
+caught the endpoint names on 08-11 and the snapshot_sha256 field on 08-16.
+
+The row_uuid width is the only one blocking the field test.

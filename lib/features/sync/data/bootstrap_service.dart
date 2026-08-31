@@ -156,7 +156,12 @@ class BootstrapService {
       // Refused rather than seeded from a database we know is behind. A snapshot
       // taken now would be missing whatever the failed pass could not move, and
       // nothing downstream would ever notice.
-      return Left(SyncFailure(pass.error!, 'pre-seed sync failed'));
+      // The pass's own detail, not a fixed label. 'pre-seed sync failed' is
+      // true and says nothing — and this is the one screen where the raw server
+      // message is reachable (long-press the status row), so replacing it with
+      // our own words is throwing away the only diagnosis a shop can send us.
+      return Left(SyncFailure(
+          pass.error!, pass.errorDetail ?? 'pre-seed sync failed'));
     }
 
     final minted = await _enrollment.mintJoinToken();

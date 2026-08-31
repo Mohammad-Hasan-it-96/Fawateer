@@ -34,12 +34,28 @@ class SyncOutcome extends Equatable {
   /// already landed.
   final SyncError? error;
 
+  /// The server's own words for [error] — its `error.message`, or the transport
+  /// failure text. **Never shown as ordinary copy**: it is untranslated and
+  /// means nothing to a shopkeeper. It is what the long-press detail on the sync
+  /// status row reveals.
+  ///
+  /// It exists because [SyncError] is a deliberately coarse taxonomy: everything
+  /// the server does not give a typed code to lands on [SyncError.server], which
+  /// renders as "something went wrong, try again". That is the right thing to
+  /// show a shop and the wrong thing to debug with — a validation refusal naming
+  /// the exact field, a 404 on a route that moved and a genuine outage are one
+  /// message. Dropping the detail here cost a full field session: the server was
+  /// answering `VALIDATION_FAILED` with the offending field in the message, and
+  /// nothing carried it as far as a screen.
+  final String? errorDetail;
+
   const SyncOutcome({
     this.pushed = 0,
     this.pulled = 0,
     this.rejected = 0,
     this.conflicts = 0,
     this.error,
+    this.errorDetail,
   });
 
   bool get isSuccess => error == null;
@@ -54,6 +70,7 @@ class SyncOutcome extends Equatable {
     int? rejected,
     int? conflicts,
     SyncError? error,
+    String? errorDetail,
   }) =>
       SyncOutcome(
         pushed: pushed ?? this.pushed,
@@ -61,10 +78,12 @@ class SyncOutcome extends Equatable {
         rejected: rejected ?? this.rejected,
         conflicts: conflicts ?? this.conflicts,
         error: error ?? this.error,
+        errorDetail: errorDetail ?? this.errorDetail,
       );
 
   @override
-  List<Object?> get props => [pushed, pulled, rejected, conflicts, error];
+  List<Object?> get props =>
+      [pushed, pulled, rejected, conflicts, error, errorDetail];
 
   @override
   String toString() => 'SyncOutcome(pushed: $pushed, pulled: $pulled, '

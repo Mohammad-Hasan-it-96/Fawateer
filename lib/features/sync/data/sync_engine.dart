@@ -98,10 +98,19 @@ class SyncEngine {
     } on SyncApiException catch (e) {
       // Partial work is kept: whatever was pushed before the failure is already
       // on the server and its watermark has advanced.
+      //
+      // The server's own words are carried out alongside the typed error. Most
+      // refusals have no typed code and collapse onto `SyncError.server`, whose
+      // copy is "something went wrong, try again" — correct for a shopkeeper and
+      // useless for anyone diagnosing a shop that cannot sync. See
+      // [SyncOutcome.errorDetail].
       return outcome.copyWith(
-          error: e.isOffline ? SyncError.offline : SyncError.fromCode(e.code));
-    } catch (_) {
-      return outcome.copyWith(error: SyncError.server);
+        error: e.isOffline ? SyncError.offline : SyncError.fromCode(e.code),
+        errorDetail: e.code == null ? e.message : '${e.code}: ${e.message}',
+      );
+    } catch (e) {
+      return outcome.copyWith(
+          error: SyncError.server, errorDetail: e.toString());
     }
   }
 
