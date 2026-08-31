@@ -1,0 +1,84 @@
+TO:      evotech-core
+FROM:    Fawateer (Plan 002, multi-device sync)
+DATE:    2026-09-01
+SUBJECT: ConvertEmptyStringsToNull is rewriting the sync payload — please
+         exclude /api/v1/sync/* from it and from TrimStrings
+
+Not blocking any more; we have made the client tolerate it. Sending this
+because the client repair cannot cover all of it, and because the payload is
+supposed to be opaque to you.
+
+WHAT HAPPENS
+
+`bootstrap/app.php` keeps Laravel's default global middleware, which includes
+`ConvertEmptyStringsToNull`. It rewrites every empty string in the request to
+null — RECURSIVELY, through arrays.
+
+`changes.*.payload` is a nested array: the replicated row's own column map,
+which ADR 0011 §9 says you store and never interpret. So every `''` in it was
+turned into null on the way in, stored as null in `device_changes.payload`,
+and handed to the other device as null on pull.
+
+Observed 2026-08-31, master phone, applying a stock edit made on the second
+phone:
+
+    NOT NULL constraint failed: stock_movements.deleted_at
+    INSERT INTO stock_movements (id, note, delta, reason, created_at,
+      deleted_at, product_id, related_id, updated_at, occurred_at,
+      origin_device) VALUES (...)
+    parameters: 22a15068-..., null, -200, adjustment, 1788208543682, null,
+      552fcd97-..., null, ...
+
+Three columns arrived null — `note`, `related_id`, `deleted_at`. All three are
+`TEXT NOT NULL DEFAULT ''` in SQLite. That is the signature: it is not one
+field, it is every field that held an empty string.
+
+WHY IT WAS SO EXPENSIVE
+
+`deleted_at = ''` is our "this row is alive" marker, so it is present on
+essentially every live row we replicate. And our applier writes a page of
+changes in ONE transaction: the constraint failure aborted the whole page, the
+pull cursor never advanced, and every later pass re-read the same page and
+died identically. The phone was permanently stuck, not degraded.
+
+WHAT WE CHANGED (already shipped on our side)
+
+The applier now repairs a null arriving for a NOT NULL TEXT column back to
+`''`. That is lossless, because `''` is the ONLY value that middleware turns
+into null — so the round trip is recoverable in full, and no re-seed is needed
+for rows already stored with nulls in them.
+
+A null for a NOT NULL non-text column is dropped instead, and a row that is
+left missing a NOT NULL column with no default is skipped rather than allowed
+to abort its page. That is a robustness backstop, not a fix for this.
+
+WHAT WE ARE ASKING FOR
+
+Exclude the sync routes from both request-mangling middlewares:
+
+    ->withMiddleware(function (Middleware $middleware): void {
+        $middleware->throttleApi();
+        $middleware->redirectGuestsTo(fn (): ?string => null);
+
+        // The sync change log carries an OPAQUE client row payload (ADR 0011
+        // §9). Rewriting empty strings to null, or trimming whitespace inside
+        // it, corrupts a replicated row.
+        $middleware->trimStrings(except: ['changes.*.payload.*']);
+        $middleware->convertEmptyStringsToNull(except: [
+            fn ($request) => $request->is('api/v1/sync/*'),
+        ]);
+    })
+
+(Or scope it however fits your conventions — the requirement is only that
+nothing walks into `changes.*.payload`.)
+
+TrimStrings matters independently, and we cannot repair it. It silently strips
+whitespace inside the payload, so a product a shopkeeper deliberately named
+with a trailing space, or a note that is a single space, arrives on the other
+phone as something else. There is no signature to detect that and no way to
+undo it — the value simply differs between two phones that are supposed to be
+showing the same shop, with nothing to indicate why.
+
+General point, offered as a suggestion rather than a request: any endpoint
+whose body is an opaque blob should be outside both. `device_changes.payload`
+is the only one today.

@@ -281,6 +281,105 @@ void main() {
     });
   });
 
+  group('a relayed null never wedges the device', () {
+    // evotech-core runs Laravel's default `ConvertEmptyStringsToNull`
+    // middleware, which rewrites every empty string in a request to null —
+    // recursively, through arrays. Our push payload IS a nested array of the
+    // row's columns, so every `''` in it went up as `''`, was stored as null,
+    // and came back to the other phone as null.
+    //
+    // The in-memory relay cannot reproduce that (it hands the payload back
+    // byte-identical, which is right for what it exists to prove), so these
+    // drive the applier directly with the payload the real server sends.
+    //
+    // The cost of getting this wrong is not one lost row. `applyChanges` runs
+    // in a single transaction, so the constraint failure aborts the whole page,
+    // the pull cursor never advances, and every later pass re-reads the same
+    // page and dies the same way. Seen in the field on 2026-08-31: a stock edit
+    // on the second phone, then `NOT NULL constraint failed:
+    // stock_movements.deleted_at` on every sync from then on, permanently.
+
+    /// The row exactly as it came off the wire in that report.
+    SyncChange movementWithNulls(String hlc) => SyncChange(
+          table: 'stock_movements',
+          rowUuid: '22a15068-ca4f-4271-82fa-9167177ed95d',
+          op: SyncChange.opUpsert,
+          authoredHlc: hlc,
+          originDevice: 'nodeBBBBBBBBBBBB',
+          payload: {
+            'id': '22a15068-ca4f-4271-82fa-9167177ed95d',
+            'product_id': 'p1',
+            'delta': -200.0,
+            'reason': 'adjustment',
+            'occurred_at': 1788208543682,
+            'created_at': 1788208543682,
+            // All three are TEXT NOT NULL DEFAULT '' locally. All three
+            // arrived null.
+            'note': null,
+            'related_id': null,
+            'deleted_at': null,
+            'updated_at': hlc,
+            'origin_device': 'nodeBBBBBBBBBBBB',
+          },
+        );
+
+    test('an empty string relayed as null is restored, not rejected', () async {
+      await addProduct(a, 'p1', 'رز', qty: 500);
+      final hlc = (await b.clock.stamp()).hlc;
+
+      final applied = await a.db.syncDao.applyChanges([movementWithNulls(hlc)]);
+
+      expect(applied, 1, reason: 'the row must land, not abort the batch');
+      final row = await a.db
+          .customSelect(
+              "SELECT deleted_at, note, related_id FROM stock_movements "
+              "WHERE id = '22a15068-ca4f-4271-82fa-9167177ed95d'")
+          .getSingle();
+      // '' and not null: '' is the only value that middleware turns into null,
+      // so this is the sender's real value restored, not a guess.
+      expect(row.data['deleted_at'], '');
+      expect(row.data['note'], '');
+      expect(row.data['related_id'], '');
+    });
+
+    test('the movement still counts toward on-hand', () async {
+      // A row that landed but did not reach the quantity rebuild would be the
+      // same bug one layer down — silent instead of loud.
+      await addProduct(a, 'p1', 'رز', qty: 500);
+      final hlc = (await b.clock.stamp()).hlc;
+
+      await a.db.syncDao.applyChanges([movementWithNulls(hlc)]);
+
+      expect(await a.db.stockDao.derivedOnHand('p1'), 300);
+    });
+
+    test('an unwritable row is skipped, and its page still lands', () async {
+      // `occurred_at` is INTEGER NOT NULL with no default, so a null there
+      // cannot be repaired OR dropped — an insert missing it fails just as
+      // loudly. There is nothing to invent, so the row is skipped.
+      //
+      // Two rows, deliberately: the point is not that the bad one is dropped,
+      // it is that the GOOD one still lands. Before this, one unwritable row
+      // aborted the transaction, the cursor stayed put, and every later pass
+      // re-read the same page and died identically.
+      await addProduct(a, 'p1', 'رز', qty: 500);
+      final good = movementWithNulls((await b.clock.stamp()).hlc);
+      final broken = SyncChange(
+        table: good.table,
+        rowUuid: 'broken-row',
+        op: good.op,
+        authoredHlc: (await b.clock.stamp()).hlc,
+        originDevice: good.originDevice,
+        payload: {...good.payload, 'id': 'broken-row', 'occurred_at': null},
+      );
+
+      final applied = await a.db.syncDao.applyChanges([broken, good]);
+
+      expect(applied, 1, reason: 'the good row must survive the bad one');
+      expect(await a.db.stockDao.derivedOnHand('p1'), 300);
+    });
+  });
+
   group('what the scheduler listens to', () {
     test('a received row is not pushed straight back', () async {
       await addProduct(a, 'p1', 'رز');

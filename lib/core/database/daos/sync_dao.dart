@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
 
 import '../../../features/sync/domain/entities/sync_change.dart';
 import '../app_database.dart';
@@ -36,6 +37,67 @@ class SyncDao extends DatabaseAccessor<AppDatabase> with _$SyncDaoMixin {
   Future<Set<String>> _columnsOf(String table) async {
     final rows = await customSelect('PRAGMA table_info($table)').get();
     return rows.map((r) => r.read<String>('name')).toSet();
+  }
+
+  /// The `NOT NULL` columns of [table], split by whether a null arriving for
+  /// them can be repaired.
+  ///
+  /// **A null on the wire for a `NOT NULL` column is an artifact, not data**,
+  /// and the app has to survive it. evotech-core runs Laravel's default
+  /// `ConvertEmptyStringsToNull` middleware, which rewrites every empty string
+  /// in a request to null — **recursively, through arrays**. Our push payload is
+  /// a nested array of the row's columns, so every `''` in it (`deleted_at` on a
+  /// live row, `related_id`, `note`, a blank barcode) arrived as null, was stored
+  /// as null, and was handed back to the other phone as null.
+  ///
+  /// That is not a survivable crash: `applyChanges` runs in one transaction, so
+  /// a single such row aborts the whole page, the pull cursor never advances,
+  /// and the next pass re-reads the same page and fails identically. The device
+  /// is wedged permanently with no way out but a re-seed. Found on 2026-08-31 —
+  /// a stock edit on the second phone, `NOT NULL constraint failed:
+  /// stock_movements.deleted_at`, on every sync from then on.
+  ///
+  /// [text] is repaired to `''`, which is exactly the value the sender had:
+  /// `''` is the only thing that middleware turns into null, so the round trip
+  /// is lossless. [other] cannot be repaired that way — a null for a NOT NULL
+  /// integer was never an empty string, so there is nothing to restore — and the
+  /// key is dropped instead, letting the column default apply on insert and the
+  /// local value stand on update.
+  ///
+  /// [mandatory] is the NOT NULL columns with **no default**, and it is why
+  /// dropping alone is not enough: `stock_movements.occurred_at` is
+  /// `INTEGER NOT NULL` with nothing to fall back to, so an insert missing it
+  /// fails exactly as loudly as the null would have. A row that cannot supply
+  /// one is unwritable, and is skipped — the same rule
+  /// [SyncChange.fromJson] already applies to a malformed row, for the same
+  /// reason: one bad row in a page must not wedge the device forever. An update
+  /// is unaffected, since the existing row already holds a value.
+  ///
+  /// The server should also stop mangling an opaque payload (its `TrimStrings`
+  /// still silently strips a deliberate leading space from a product name, which
+  /// this cannot detect or undo) — but the client must not depend on that.
+  Future<({Set<String> text, Set<String> other, Set<String> mandatory})>
+      _notNullOf(String table) async {
+    final rows = await customSelect('PRAGMA table_info($table)').get();
+    final text = <String>{};
+    final other = <String>{};
+    final mandatory = <String>{};
+    for (final r in rows) {
+      if (r.read<int>('notnull') == 0) continue;
+      final name = r.read<String>('name');
+      if (r.read<String?>('dflt_value') == null) mandatory.add(name);
+      // SQLite type affinity: TEXT/CHAR/CLOB all store strings. Read loosely
+      // because the declared type is whatever the migration wrote.
+      final type = (r.read<String?>('type') ?? '').toUpperCase();
+      if (type.contains('CHAR') ||
+          type.contains('TEXT') ||
+          type.contains('CLOB')) {
+        text.add(name);
+      } else {
+        other.add(name);
+      }
+    }
+    return (text: text, other: other, mandatory: mandatory);
   }
 
   /// Local rows changed since [sinceHlc], oldest change first, across every
@@ -149,13 +211,25 @@ class SyncDao extends DatabaseAccessor<AppDatabase> with _$SyncDaoMixin {
         final forTable = changes.where((c) => c.table == spec.table);
         if (forTable.isEmpty) continue;
         final columns = await _columnsOf(spec.table);
+        final notNull = await _notNullOf(spec.table);
 
         for (final change in forTable) {
           final payload = <String, dynamic>{};
           for (final entry in change.payload.entries) {
             if (spec.localOnly.contains(entry.key)) continue;
             if (!columns.contains(entry.key)) continue; // unknown/newer column
-            payload[entry.key] = entry.value;
+            var value = entry.value;
+            if (value == null) {
+              // See [_notNullOf]: a null here is a relayed empty string, not a
+              // value. Repair it, or drop the key — never let it reach SQLite,
+              // where it aborts the transaction and wedges the device.
+              if (notNull.text.contains(entry.key)) {
+                value = '';
+              } else if (notNull.other.contains(entry.key)) {
+                continue;
+              }
+            }
+            payload[entry.key] = value;
           }
           // The identity must survive the filtering, or the row would be
           // written with no way to find it again.
@@ -183,6 +257,25 @@ class SyncDao extends DatabaseAccessor<AppDatabase> with _$SyncDaoMixin {
               updates: {products},
             );
           } else {
+            // An insert has to supply every NOT NULL column that has no
+            // default. If the wire did not carry one there is nothing to
+            // invent, so the row is skipped rather than allowed to abort the
+            // page — see [_notNullOf].
+            // `localOnly` is excluded: those columns are deliberately never
+            // sent and the database supplies them. `sales_items.id` is the
+            // case — an autoincrement rowid alias, NOT NULL with no default,
+            // which is exactly the shape this check looks for. Without the
+            // exclusion every replicated sale line is silently skipped, which
+            // is how this was caught: two invoices arrived with no lines.
+            final missing = notNull.mandatory.where(
+                (c) => !payload.containsKey(c) && !spec.localOnly.contains(c));
+            if (missing.isNotEmpty) {
+              if (kDebugMode) {
+                debugPrint('[sync] skipped ${spec.table}/${change.rowUuid}: '
+                    'missing required ${missing.toList()}');
+              }
+              continue;
+            }
             final cols = payload.keys.toList();
             await customInsert(
               'INSERT INTO ${spec.table} (${cols.join(', ')}) '
